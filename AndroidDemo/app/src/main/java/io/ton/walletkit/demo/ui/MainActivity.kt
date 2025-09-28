@@ -15,7 +15,7 @@ import io.ton.walletkit.demo.ui.screen.WalletScreen
 class MainActivity : ComponentActivity() {
     private val viewModel: WalletKitViewModel by viewModels {
         val app = application as WalletKitDemoApp
-        WalletKitViewModel.factory(app.bridge, app.storage)
+        WalletKitViewModel.factory(app.obtainEngine(), app.storage)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -1,13 +1,19 @@
 package io.ton.walletkit.demo
 
 import android.app.Application
-import io.ton.walletkit.bridge.WalletKitBridge
+import io.ton.walletkit.bridge.QuickJsWalletKitEngine
+import io.ton.walletkit.bridge.WalletKitEngine
+import io.ton.walletkit.bridge.WalletKitEngineKind
+import io.ton.walletkit.bridge.WebViewWalletKitEngine
 import io.ton.walletkit.storage.WalletKitStorage
 import io.ton.walletkit.storage.impl.DebugSharedPrefsStorage
 
 class WalletKitDemoApp : Application() {
-    val bridge: WalletKitBridge by lazy {
-        WalletKitBridge(this)
+    val defaultEngineKind: WalletKitEngineKind = WalletKitEngineKind.QUICKJS
+
+    fun obtainEngine(kind: WalletKitEngineKind = defaultEngineKind): WalletKitEngine = when (kind) {
+        WalletKitEngineKind.WEBVIEW -> WebViewWalletKitEngine(this)
+        WalletKitEngineKind.QUICKJS -> QuickJsWalletKitEngine(this)
     }
 
     val storage: WalletKitStorage by lazy {

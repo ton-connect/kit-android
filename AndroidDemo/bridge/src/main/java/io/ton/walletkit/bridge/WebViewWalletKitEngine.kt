@@ -14,7 +14,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
-import io.ton.walletkit.bridge.listener.WalletKitBridgeListener
+import io.ton.walletkit.bridge.listener.WalletKitEngineListener
 import io.ton.walletkit.bridge.model.WalletAccount
 import io.ton.walletkit.bridge.model.WalletKitEvent
 import io.ton.walletkit.bridge.model.WalletSession
@@ -31,16 +31,16 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArraySet
 
 /**
- * Thin bridge around the WalletKit Web bundle. Mirrors the pattern used in MyTonWallet:
- * - Host a dedicated WebView pointed at the WalletKit bundle via `WebViewAssetLoader`.
- * - Expose a JSON-RPC surface to Android via `window.__walletkitCall`.
- * - Stream events back via `WalletKitNative.postMessage`.
+ * WebView-backed WalletKit engine. Hosts the WalletKit bundle inside a hidden WebView and uses the
+ * established JS bridge to communicate with the Kotlin layer.
  */
-class WalletKitBridge(
+class WebViewWalletKitEngine(
     context: Context,
     private val assetPath: String = "walletkit/index.html",
-) {
-    private val logTag = "WalletKitBridge"
+) : WalletKitEngine {
+    override val kind: WalletKitEngineKind = WalletKitEngineKind.WEBVIEW
+
+    private val logTag = "WebViewWalletKitEngine"
     private val appContext = context.applicationContext
     private val assetLoader =
         WebViewAssetLoader
@@ -52,7 +52,7 @@ class WalletKitBridge(
     private val webView: WebView = WebView(appContext)
     private val ready = CompletableDeferred<Unit>()
     private val pending = ConcurrentHashMap<String, CompletableDeferred<BridgeResponse>>()
-    private val listeners = CopyOnWriteArraySet<WalletKitBridgeListener>()
+    private val listeners = CopyOnWriteArraySet<WalletKitEngineListener>()
 
     @Volatile private var currentNetwork: String = "testnet"
 
@@ -103,7 +103,7 @@ class WalletKitBridge(
         }
     }
 
-    /** Attach the WebView to a parent view. */
+    /** Attach the WebView to a parent view so it can be inspected/debugged if needed. */
     fun attachTo(parent: android.view.ViewGroup) {
         if (webView.parent !== parent) {
             (webView.parent as? android.view.ViewGroup)?.removeView(webView)
@@ -113,12 +113,12 @@ class WalletKitBridge(
 
     fun asView(): WebView = webView
 
-    fun addListener(listener: WalletKitBridgeListener): Closeable {
+    override fun addListener(listener: WalletKitEngineListener): Closeable {
         listeners.add(listener)
         return Closeable { listeners.remove(listener) }
     }
 
-    suspend fun init(config: WalletKitBridgeConfig = WalletKitBridgeConfig()): JSONObject {
+    override suspend fun init(config: WalletKitBridgeConfig): JSONObject {
         currentNetwork = config.network
         val tonClientEndpoint =
             config.tonClientEndpoint?.ifBlank { null }
@@ -152,10 +152,10 @@ class WalletKitBridge(
         "https://testnet.tonapi.io"
     }
 
-    suspend fun addWalletFromMnemonic(
+    override suspend fun addWalletFromMnemonic(
         words: List<String>,
         version: String,
-        network: String? = null,
+        network: String?,
     ): JSONObject {
         val params =
             JSONObject().apply {
@@ -166,7 +166,7 @@ class WalletKitBridge(
         return call("addWalletFromMnemonic", params)
     }
 
-    suspend fun getWallets(): List<WalletAccount> {
+    override suspend fun getWallets(): List<WalletAccount> {
         val result = call("getWallets")
         val items = result.optJSONArray("items") ?: JSONArray()
         return buildList(items.length()) {
@@ -185,7 +185,7 @@ class WalletKitBridge(
         }
     }
 
-    suspend fun getWalletState(address: String): WalletState {
+    override suspend fun getWalletState(address: String): WalletState {
         val params = JSONObject().apply { put("address", address) }
         val result = call("getWalletState", params)
         return WalletState(
@@ -199,12 +199,12 @@ class WalletKitBridge(
         )
     }
 
-    suspend fun handleTonConnectUrl(url: String): JSONObject {
+    override suspend fun handleTonConnectUrl(url: String): JSONObject {
         val params = JSONObject().apply { put("url", url) }
         return call("handleTonConnectUrl", params)
     }
 
-    suspend fun approveConnect(
+    override suspend fun approveConnect(
         requestId: Any,
         walletAddress: String,
     ): JSONObject {
@@ -216,9 +216,9 @@ class WalletKitBridge(
         return call("approveConnectRequest", params)
     }
 
-    suspend fun rejectConnect(
+    override suspend fun rejectConnect(
         requestId: Any,
-        reason: String? = null,
+        reason: String?,
     ): JSONObject {
         val params =
             JSONObject().apply {
@@ -228,14 +228,14 @@ class WalletKitBridge(
         return call("rejectConnectRequest", params)
     }
 
-    suspend fun approveTransaction(requestId: Any): JSONObject {
+    override suspend fun approveTransaction(requestId: Any): JSONObject {
         val params = JSONObject().apply { put("requestId", requestId) }
         return call("approveTransactionRequest", params)
     }
 
-    suspend fun rejectTransaction(
+    override suspend fun rejectTransaction(
         requestId: Any,
-        reason: String? = null,
+        reason: String?,
     ): JSONObject {
         val params =
             JSONObject().apply {
@@ -245,14 +245,14 @@ class WalletKitBridge(
         return call("rejectTransactionRequest", params)
     }
 
-    suspend fun approveSignData(requestId: Any): JSONObject {
+    override suspend fun approveSignData(requestId: Any): JSONObject {
         val params = JSONObject().apply { put("requestId", requestId) }
         return call("approveSignDataRequest", params)
     }
 
-    suspend fun rejectSignData(
+    override suspend fun rejectSignData(
         requestId: Any,
-        reason: String? = null,
+        reason: String?,
     ): JSONObject {
         val params =
             JSONObject().apply {
@@ -262,7 +262,7 @@ class WalletKitBridge(
         return call("rejectSignDataRequest", params)
     }
 
-    suspend fun listSessions(): List<WalletSession> {
+    override suspend fun listSessions(): List<WalletSession> {
         val result = call("listSessions")
         val items = result.optJSONArray("items") ?: JSONArray()
         return buildList(items.length()) {
@@ -284,13 +284,13 @@ class WalletKitBridge(
         }
     }
 
-    suspend fun disconnectSession(sessionId: String? = null): JSONObject {
+    override suspend fun disconnectSession(sessionId: String?): JSONObject {
         val params = JSONObject()
         sessionId?.let { params.put("sessionId", it) }
         return call("disconnectSession", if (params.length() == 0) null else params)
     }
 
-    suspend fun destroy() {
+    override suspend fun destroy() {
         withContext(Dispatchers.Main) {
             (webView.parent as? android.view.ViewGroup)?.removeView(webView)
             webView.removeJavascriptInterface("WalletKitNative")
@@ -403,3 +403,6 @@ class WalletKitBridge(
         private const val ASSET_LOADER_DOMAIN = "appassets.androidplatform.net"
     }
 }
+
+/** Legacy alias retained for callers that still reference the old class name. */
+typealias WalletKitBridge = WebViewWalletKitEngine

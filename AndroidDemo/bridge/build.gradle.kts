@@ -38,4 +38,6 @@ dependencies {
     implementation(libs.androidxLifecycleRuntimeKtx)
     implementation(libs.kotlinxCoroutinesAndroid)
     implementation(libs.androidxWebkit)
+    implementation(libs.okhttp)
+    implementation(files("libs/quickjs-android-0.9.2-aligned.aar"))
 }

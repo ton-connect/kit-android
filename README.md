@@ -25,11 +25,11 @@ apps/androidkit/
    ```bash
    pnpm -w --filter androidkit install
    ```
-2. **Build the adapter bundle**
+2. **Build the adapter bundles (WebView + QuickJS)**
    ```bash
-   pnpm -w --filter androidkit build
+   pnpm -w --filter androidkit run build:all
    ```
-   Output lands in `apps/androidkit/dist-android/` with `index.html`, `assets/`, and `manifest.json`.
+   WebView assets land in `apps/androidkit/dist-android/`; the QuickJS single-file bundle is emitted to `apps/androidkit/dist-android-quickjs/walletkit.quickjs.js`.
 3. **Open the demo in Android Studio**
    ```bash
    cd AndroidDemo
@@ -40,7 +40,7 @@ apps/androidkit/
 ## Bridge Overview
 
 - JavaScript exposes `window.walletkitBridge` with `init`, `addWalletFromMnemonic`, `getWallets`, `getWalletState`, `handleTonConnectUrl`, and approval helpers. Events (`connectRequest`, `transactionRequest`, etc.) stream through `walletkitBridge.onEvent` and `WalletKitNative.postMessage`.
-- The Android `walletkit-bridge` module hosts a dedicated `WebView`, wires `window.__walletkitCall`, and converts responses into Kotlin coroutines. It mirrors MyTonWallet’s `JSWebViewBridge` pattern.
+- The Android `walletkit-bridge` module now ships two engines: `WebViewWalletKitEngine` (existing WebView host) and `QuickJsWalletKitEngine` (embedded QuickJS runtime with native fetch/timer polyfills). Both share the same coroutine-based API surface.
 - The `storage` module is a placeholder for secure persistence. For PoC we use an in-memory implementation; swap in EncryptedSharedPreferences / Keystore for MVP.
 
 ## Demo App (Compose)

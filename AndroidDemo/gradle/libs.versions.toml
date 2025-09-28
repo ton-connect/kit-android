@@ -12,6 +12,7 @@ lifecycle = "2.9.4"
 coroutinesAndroid = "1.10.2"
 webkit = "1.14.0"
 datastorePreferences = "1.1.7"
+okhttp = "5.1.0"
 
 [libraries]
 androidxCoreKtx = { module = "androidx.core:core-ktx", version.ref = "androidxCoreKtx" }
@@ -31,6 +32,7 @@ androidxLifecycleViewmodelCompose = { module = "androidx.lifecycle:lifecycle-vie
 kotlinxCoroutinesAndroid = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutinesAndroid" }
 androidxWebkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
 androidxDatastorePreferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

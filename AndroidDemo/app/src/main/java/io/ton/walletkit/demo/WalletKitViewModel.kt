@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import io.ton.walletkit.bridge.WalletKitBridge
+import io.ton.walletkit.bridge.WalletKitEngine
 import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
 import io.ton.walletkit.bridge.listener.WalletKitBridgeListener
 import io.ton.walletkit.bridge.model.WalletAccount
@@ -45,7 +45,7 @@ import java.util.TimeZone
 import kotlin.collections.ArrayDeque
 
 class WalletKitViewModel(
-    private val bridge: WalletKitBridge,
+    private val engine: WalletKitEngine,
     private val storage: WalletKitStorage = InMemoryWalletKitStorage(),
 ) : ViewModel() {
 
@@ -95,7 +95,7 @@ class WalletKitViewModel(
             return
         }
 
-        bridgeListener = bridge.addListener(WalletKitBridgeListener(::onBridgeEvent))
+        bridgeListener = engine.addListener(WalletKitBridgeListener(::onBridgeEvent))
         _state.update { it.copy(initialized = true, status = "WalletKit ready", error = null) }
 
         refreshAll()
@@ -144,7 +144,7 @@ class WalletKitViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoadingSessions = true) }
             hydrateSessionHintsFromStorage()
-            val result = runCatching { bridge.listSessions() }
+            val result = runCatching { engine.listSessions() }
             result.onSuccess { sessions ->
                 val persistedHints = try {
                     storage.loadSessionHints()
@@ -243,7 +243,7 @@ class WalletKitViewModel(
                             "Bridge returned empty metadata for session ${session.sessionId}; removing stale entry",
                         )
                         removeSessionHintKeys(session.sessionId)
-                        viewModelScope.launch { runCatching { bridge.disconnectSession(session.sessionId) } }
+                        viewModelScope.launch { runCatching { engine.disconnectSession(session.sessionId) } }
                         return@mapNotNull null
                     }
 
@@ -337,7 +337,7 @@ class WalletKitViewModel(
             switchNetworkIfNeeded(network)
             pendingWallets.addLast(pending)
             val result = runCatching {
-                bridge.addWalletFromMnemonic(cleaned, DEFAULT_WALLET_VERSION, network.asBridgeValue())
+                engine.addWalletFromMnemonic(cleaned, DEFAULT_WALLET_VERSION, network.asBridgeValue())
             }
             if (result.isSuccess) {
                 refreshWallets()
@@ -360,7 +360,7 @@ class WalletKitViewModel(
             switchNetworkIfNeeded(network)
             pendingWallets.addLast(pending)
             val result = runCatching {
-                bridge.addWalletFromMnemonic(words, DEFAULT_WALLET_VERSION, network.asBridgeValue())
+                engine.addWalletFromMnemonic(words, DEFAULT_WALLET_VERSION, network.asBridgeValue())
             }
             if (result.isSuccess) {
                 refreshWallets()
@@ -376,7 +376,7 @@ class WalletKitViewModel(
     fun handleTonConnectUrl(url: String) {
         viewModelScope.launch {
             val trimmed = url.trim()
-            val result = runCatching { bridge.handleTonConnectUrl(trimmed) }
+            val result = runCatching { engine.handleTonConnectUrl(trimmed) }
             result.onSuccess {
                 hideUrlPrompt()
                 logEvent("Handled TON Connect URL")
@@ -388,7 +388,7 @@ class WalletKitViewModel(
                         if (candidate == currentNetwork) return@any false
                         val retry = runCatching {
                             switchNetworkIfNeeded(candidate)
-                            bridge.handleTonConnectUrl(trimmed)
+                            engine.handleTonConnectUrl(trimmed)
                         }
                         if (retry.isSuccess) {
                             hideUrlPrompt()
@@ -411,7 +411,7 @@ class WalletKitViewModel(
 
     fun approveConnect(request: ConnectRequestUi, wallet: WalletSummary) {
         viewModelScope.launch {
-            val result = runCatching { bridge.approveConnect(request.id, wallet.address) }
+            val result = runCatching { engine.approveConnect(request.id, wallet.address) }
             result.onSuccess {
                 dismissSheet()
                 refreshSessions()
@@ -424,7 +424,7 @@ class WalletKitViewModel(
 
     fun rejectConnect(request: ConnectRequestUi, reason: String = "User rejected") {
         viewModelScope.launch {
-            val result = runCatching { bridge.rejectConnect(request.id, reason) }
+            val result = runCatching { engine.rejectConnect(request.id, reason) }
             result.onSuccess {
                 dismissSheet()
                 logEvent("Rejected connect for ${request.dAppName}")
@@ -436,7 +436,7 @@ class WalletKitViewModel(
 
     fun approveTransaction(request: TransactionRequestUi) {
         viewModelScope.launch {
-            val result = runCatching { bridge.approveTransaction(request.id) }
+            val result = runCatching { engine.approveTransaction(request.id) }
             result.onSuccess {
                 dismissSheet()
                 refreshSessions()
@@ -449,7 +449,7 @@ class WalletKitViewModel(
 
     fun rejectTransaction(request: TransactionRequestUi, reason: String = "User rejected") {
         viewModelScope.launch {
-            val result = runCatching { bridge.rejectTransaction(request.id, reason) }
+            val result = runCatching { engine.rejectTransaction(request.id, reason) }
             result.onSuccess {
                 dismissSheet()
                 logEvent("Rejected transaction ${request.id}")
@@ -461,7 +461,7 @@ class WalletKitViewModel(
 
     fun approveSignData(request: SignDataRequestUi) {
         viewModelScope.launch {
-            val result = runCatching { bridge.approveSignData(request.id) }
+            val result = runCatching { engine.approveSignData(request.id) }
             result.onSuccess {
                 dismissSheet()
                 logEvent("Approved sign request ${request.id}")
@@ -473,7 +473,7 @@ class WalletKitViewModel(
 
     fun rejectSignData(request: SignDataRequestUi, reason: String = "User rejected") {
         viewModelScope.launch {
-            val result = runCatching { bridge.rejectSignData(request.id, reason) }
+            val result = runCatching { engine.rejectSignData(request.id, reason) }
             result.onSuccess {
                 dismissSheet()
                 logEvent("Rejected sign request ${request.id}")
@@ -485,7 +485,7 @@ class WalletKitViewModel(
 
     fun disconnectSession(sessionId: String) {
         viewModelScope.launch {
-            val result = runCatching { bridge.disconnectSession(sessionId) }
+            val result = runCatching { engine.disconnectSession(sessionId) }
             result.onSuccess {
                 refreshSessions()
                 logEvent("Disconnected session $sessionId")
@@ -507,14 +507,14 @@ class WalletKitViewModel(
     }
 
     private suspend fun loadWalletSummaries(): List<WalletSummary> {
-        val accounts = bridge.getWallets()
+        val accounts = engine.getWallets()
         val knownAddresses = accounts.map { it.address }.toSet()
         walletMetadata.keys.retainAll(knownAddresses)
 
         val result = mutableListOf<WalletSummary>()
         for (account in accounts) {
             val metadata = ensureMetadata(account)
-            val state = runCatching { bridge.getWalletState(account.address) }.getOrNull()
+            val state = runCatching { engine.getWalletState(account.address) }.getOrNull()
             val balance = state?.balance
             val formatted = balance?.let(::formatTon)
             val summary = WalletSummary(
@@ -580,7 +580,7 @@ class WalletKitViewModel(
     }
 
     private suspend fun ensureWallet() {
-        val existing = runCatching { bridge.getWallets() }.getOrDefault(emptyList())
+        val existing = runCatching { engine.getWallets() }.getOrDefault(emptyList())
         if (existing.isNotEmpty()) {
             existing.forEach { ensureMetadata(it) }
             return
@@ -594,7 +594,7 @@ class WalletKitViewModel(
         val pendingRecord = PendingWalletRecord(metadata = metadata, mnemonic = DEMO_MNEMONIC)
         pendingWallets.addLast(pendingRecord)
         runCatching {
-            bridge.addWalletFromMnemonic(DEMO_MNEMONIC, DEFAULT_WALLET_VERSION, currentNetwork.asBridgeValue())
+            engine.addWalletFromMnemonic(DEMO_MNEMONIC, DEFAULT_WALLET_VERSION, currentNetwork.asBridgeValue())
         }.onFailure { error ->
             pendingWallets.remove(pendingRecord)
             _state.update { it.copy(error = error.message ?: "Failed to prepare demo wallet") }
@@ -603,7 +603,7 @@ class WalletKitViewModel(
 
     private suspend fun restorePersistedWallets(stored: Map<String, StoredWalletRecord>) {
         if (stored.isEmpty()) return
-        val existing = runCatching { bridge.getWallets() }.getOrDefault(emptyList())
+        val existing = runCatching { engine.getWallets() }.getOrDefault(emptyList())
         val existingAddresses = existing.map { it.address }.toSet()
 
         stored.forEach { (accountId, record) ->
@@ -624,7 +624,7 @@ class WalletKitViewModel(
             )
             pendingWallets.addLast(pendingRecord)
             runCatching {
-                bridge.addWalletFromMnemonic(record.mnemonic, record.version ?: DEFAULT_WALLET_VERSION, network.asBridgeValue())
+                engine.addWalletFromMnemonic(record.mnemonic, record.version ?: DEFAULT_WALLET_VERSION, network.asBridgeValue())
             }.onFailure {
                 pendingWallets.remove(pendingRecord)
             }
@@ -637,7 +637,7 @@ class WalletKitViewModel(
         storedHintsOverride: Map<String, StoredSessionHint>? = null,
     ) {
         val endpoints = networkEndpoints(target)
-        bridge.init(
+        engine.init(
             WalletKitBridgeConfig(
                 network = target.asBridgeValue(),
                 tonClientEndpoint = endpoints.tonClientEndpoint,
@@ -718,7 +718,7 @@ class WalletKitViewModel(
                     sessionIdsToClear.forEach { removeSessionHintKeys(it) }
 
                     sessionIdsToClear.forEach { id ->
-                        runCatching { bridge.disconnectSession(id) }
+                        runCatching { engine.disconnectSession(id) }
                     }
 
                     refreshSessions()
@@ -854,9 +854,12 @@ class WalletKitViewModel(
     }
 
     override fun onCleared() {
-        super.onCleared()
-        bridgeListener?.close()
         balanceJob?.cancel()
+        bridgeListener?.close()
+        viewModelScope.launch {
+            runCatching { engine.destroy() }
+        }
+        super.onCleared()
     }
 
     private fun defaultWalletName(index: Int): String = "Wallet ${index + 1}"
@@ -1038,13 +1041,13 @@ class WalletKitViewModel(
         private const val DEMO_WALLET_NAME = "Demo Wallet"
 
         fun factory(
-            bridge: WalletKitBridge,
+            engine: WalletKitEngine,
             storage: WalletKitStorage = InMemoryWalletKitStorage(),
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 require(modelClass.isAssignableFrom(WalletKitViewModel::class.java))
-                return WalletKitViewModel(bridge, storage) as T
+                return WalletKitViewModel(engine, storage) as T
             }
         }
     }
