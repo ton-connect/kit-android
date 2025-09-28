@@ -1,0 +1,50 @@
+package io.ton.walletkit.demo.ui
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import io.ton.walletkit.demo.WalletKitDemoApp
+import io.ton.walletkit.demo.WalletKitViewModel
+import io.ton.walletkit.demo.ui.screen.WalletScreen
+
+class MainActivity : ComponentActivity() {
+    private val viewModel: WalletKitViewModel by viewModels {
+        val app = application as WalletKitDemoApp
+        WalletKitViewModel.factory(app.bridge, app.storage)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MaterialTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    val state by viewModel.state.collectAsState()
+                    WalletScreen(
+                        state = state,
+                        onAddWalletClick = viewModel::openAddWalletSheet,
+                        onUrlPromptClick = viewModel::showUrlPrompt,
+                        onRefresh = viewModel::refreshAll,
+                        onDismissSheet = viewModel::dismissSheet,
+                        onWalletDetails = viewModel::showWalletDetails,
+                        onDisconnectSession = viewModel::disconnectSession,
+                        onImportWallet = viewModel::importWallet,
+                        onGenerateWallet = viewModel::generateWallet,
+                        onApproveConnect = viewModel::approveConnect,
+                        onRejectConnect = viewModel::rejectConnect,
+                        onApproveTransaction = viewModel::approveTransaction,
+                        onRejectTransaction = viewModel::rejectTransaction,
+                        onApproveSignData = viewModel::approveSignData,
+                        onRejectSignData = viewModel::rejectSignData,
+                        onHandleUrl = viewModel::handleTonConnectUrl,
+                        onDismissUrlPrompt = viewModel::hideUrlPrompt,
+                    )
+                }
+            }
+        }
+    }
+}

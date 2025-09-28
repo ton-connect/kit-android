@@ -1,0 +1,21 @@
+{
+  "name": "androidkit",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "copy:demo": "rm -rf AndroidDemo/app/src/main/assets/walletkit && mkdir -p AndroidDemo/app/src/main/assets/walletkit && cp -R dist-android/* AndroidDemo/app/src/main/assets/walletkit/"
+  },
+  "dependencies": {
+    "@ton/walletkit": "workspace:*",
+    "buffer": "^6.0.3",
+    "whatwg-url": "^13.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vite": "^5.0.0"
+  }
+}
