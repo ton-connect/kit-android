@@ -9,7 +9,7 @@ import io.ton.walletkit.storage.WalletKitStorage
 import io.ton.walletkit.storage.impl.DebugSharedPrefsStorage
 
 class WalletKitDemoApp : Application() {
-    val defaultEngineKind: WalletKitEngineKind = WalletKitEngineKind.QUICKJS
+    val defaultEngineKind: WalletKitEngineKind = WalletKitEngineKind.WEBVIEW
 
     fun obtainEngine(kind: WalletKitEngineKind = defaultEngineKind): WalletKitEngine = when (kind) {
         WalletKitEngineKind.WEBVIEW -> WebViewWalletKitEngine(this)

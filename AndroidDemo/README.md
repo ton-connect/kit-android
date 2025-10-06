@@ -1,57 +1,160 @@
 # Android WalletKit Demo
 
-Native demo mirroring the iOS WalletKit sample. The project is split into modules so the bridge can graduate into a reusable SDK.
+Native Compose demo showcasing the dual-engine WalletKit architecture. The project is modularized so the bridge can graduate into a reusable SDK with minimal changes.
 
-## Modules
+## Architecture
 
-- `bridge/` – packs both execution engines: `WebViewWalletKitEngine` (invisible WebView host) and `QuickJsWalletKitEngine` (embedded `quickjs-ng` runtime) behind coroutine-first APIs, plus instrumentation smoke tests and vendored native sources.
-- `storage/` – pluggable storage facade; PoC uses in-memory/shared prefs, production swaps in Keystore.
-- `app/` – Compose UI that consumes the bridge, shows address/balance, and surfaces TON Connect events.
+### Modules
+
+- **`bridge/`** – Core SDK module packaged as AAR
+  - **Engines**: `WebViewWalletKitEngine` (invisible WebView) + `QuickJsWalletKitEngine` (embedded quickjs-ng runtime)
+  - **Interface**: `WalletKitEngine` – unified coroutine-based API for both engines
+  - **Native**: C++ JNI bridge (`quickjs_bridge.cpp`) and quickjs-ng v0.10.1 sources
+  - **Polyfills**: Native implementations of fetch, timers, EventSource for QuickJS
+  - **Tests**: Instrumentation smoke tests for both engines
+  
+- **`storage/`** – Pluggable storage facade
+  - `WalletKitStorage` interface for mnemonic/key persistence
+  - `InMemoryWalletKitStorage` – PoC implementation (volatile)
+  - `DebugSharedPrefsStorage` – SharedPreferences-backed (demo only, not secure)
+  - Production should use EncryptedSharedPreferences or Android Keystore
+  
+- **`app/`** – Compose UI demo consuming the bridge
+  - `MainActivity` – Main wallet demo (balance, TON Connect, session management)
+  - `PerformanceActivity` – Side-by-side engine performance comparison
+  - `WalletKitViewModel` – State management and bridge interaction
+  - `PerformanceBenchmarkViewModel` – Benchmarking logic and metrics collection
+
+### Execution Flow
+
+1. **JavaScript Layer** (`apps/androidkit/src-js/`):
+   - Built by Vite into two bundle formats (WebView: modular; QuickJS: single-file)
+   - Exposes `window.walletkitBridge` with WalletKit APIs
+   - Includes polyfills for both environments
+
+2. **Bridge Layer** (`bridge/src/main/java/`):
+   - Kotlin engines load appropriate bundle and manage runtime
+   - WebView: HTML + JS loaded via `WebViewAssetLoader`
+   - QuickJS: Single JS file evaluated in native runtime via JNI
+   - Bidirectional communication via JSON-RPC
+
+3. **Native Layer** (`bridge/src/main/cpp/`):
+   - QuickJS runtime compiled from C++ sources
+   - JNI bindings for script evaluation and host object bindings
+   - Supports all Android ABIs: arm64-v8a, armeabi-v7a, x86, x86_64
+
+4. **UI Layer** (`app/src/main/java/`):
+   - Jetpack Compose Material 3 UI
+   - ViewModel pattern with StateFlow
+   - Coroutine-based async operations
 
 ## Running the Demo
 
-1. Install dependencies and build the JS adapters from the repo root (once per change):
+### Prerequisites
+- Android Studio Hedgehog (2023.1.1) or later
+- JDK 17 or later
+- Android SDK with API 24+ (minSdk 24, compileSdk 36)
+- Android NDK 25+ (for QuickJS native compilation)
+- Node.js 18+ and pnpm
+
+### Quick Start
+
+1. **Build JavaScript bundles** (from repository root `kit/`):
    ```bash
    pnpm -w --filter androidkit install
-   pnpm -w --filter androidkit build
+   pnpm -w --filter androidkit build:all
    ```
-2. Produce the QuickJS single-file bundle (optional if you only need WebView):
-    ```bash
-    pnpm -w --filter androidkit build:quickjs
-    ```
-3. Copy bundles into the demo app assets (from the repo root):
-    ```bash
-    pnpm -w --filter androidkit copy:demo
-    ```
-4. Build bridge artifacts (`.aar` files include both engines):
-    ```bash
-    cd AndroidDemo
-    ./gradlew :bridge:assembleDebug :storage:assembleDebug
-    ```
-5. Open `AndroidDemo/` in Android Studio (or run `./gradlew :app:installDebug`).
-   The Gradle build runs `syncWalletKitAssets`, copying the WebView bundle; the QuickJS runtime is pulled from `dist-android-quickjs` at startup.
-6. Launch the `app` module on API 24+.
 
-The demo loads a **testnet** mnemonic, displays the first wallet’s balance, and lets you paste TON Connect URLs to see events flow through the bridge.
+2. **Open in Android Studio**:
+   - File → Open → Select `AndroidDemo/`
+   - Wait for Gradle sync
+   - Run `app` configuration on API 24+ device/emulator
+
+3. **Or build from command line**:
+   ```bash
+   cd AndroidDemo
+   ./gradlew :app:installDebug
+   ```
+
+The `preBuild` task automatically builds and copies bundles into assets. First build takes 2-5 minutes.
+
+### Demo Features
+
+**MainActivity** – Wallet demo:
+- Auto-initializes with QuickJS engine (configurable in `WalletKitDemoApp`)
+- Imports testnet mnemonic, displays balance and sessions
+- Test TON Connect by pasting deep links
+- Approve/reject connection and transaction requests
+
+**PerformanceActivity** – Benchmarking:
+- Compare WebView vs QuickJS performance
+- Run 1, 3, or 5 iterations per engine
+- Export results as CSV or copy to clipboard
 
 ## Engine Selection & Bridge Contract
 
-- Native → JS: `WalletKitBridge.call` forwards RPCs either to `window.__walletkitCall` in the WebView engine or to the JNI-bound QuickJS runtime.
-- JS → Native: WebView flows through `WalletKitNative.postMessage({ kind: 'response' | 'event' | 'ready', ... })`; QuickJS uses direct JNI callbacks serialised as JSON.
-- Legacy `walletkit_request` shim remains for backwards compatibility while the new engine migrates consumers.
+Switch engines by instantiating `WebViewWalletKitEngine` or `QuickJsWalletKitEngine` in `WalletKitDemoApp`:
 
-Switch engines by instantiating `WebViewWalletKitEngine` or `QuickJsWalletKitEngine`; the surrounding SDK APIs and storage modules remain unchanged.
-
-### Additional tooling
-
-```bash
-./gradlew :bridge:connectedDebugAndroidTest   # Exercises QuickJS bridge on device/emulator
-./gradlew :bridge:assembleRelease             # Produces release-ready bridge AAR
+```kotlin
+val defaultEngineKind: WalletKitEngineKind = WalletKitEngineKind.QUICKJS // or WEBVIEW
 ```
 
-## Todo for MVP
+**Communication**:
+- Native → JS: `WalletKitEngine` forwards RPCs to `window.__walletkitCall` (WebView) or JNI (QuickJS)
+- JS → Native: Events via `WalletKitNative.postMessage` (WebView) or direct JNI callbacks (QuickJS)
+- Message format: `{kind: 'response' | 'event' | 'ready', ...}`
 
-- Secure key custody (Keystore-backed signer).
-- Compose sheets for connect/transaction/sign approvals that call `approve*`/`reject*`.
-- Durable session cache + reconnect (Room/WorkManager).
-- Packaging the bridge as an AAR with ProGuard/R8 configuration.
+### Additional Tooling
+
+```bash
+./gradlew :bridge:connectedDebugAndroidTest   # Run instrumentation tests (requires device/emulator)
+./gradlew :bridge:assembleRelease             # Build release AAR for distribution
+./gradlew :app:assembleRelease                # Build release APK
+```
+
+## Production Roadmap
+
+### Security
+- **Storage**: Replace `DebugSharedPrefsStorage` with `EncryptedSharedPreferences` or Keystore-backed signer
+- **ProGuard/R8**: Add consumer ProGuard rules for AAR obfuscation
+- **Network**: Implement certificate pinning for API calls
+
+### Features
+- **Approval UIs**: Production Compose sheets for connect/transaction/sign requests
+- **Session persistence**: Durable cache with Room + WorkManager for reconnect after process death
+- **Background execution**: Support for Doze mode and background restrictions
+- **Multi-wallet**: Support for multiple accounts and wallet switching
+
+### Distribution
+- **AAR packaging**: Publish to Maven Central or GitHub Packages
+- **Documentation**: API reference (KDoc), integration guides, migration notes
+- **Testing**: Expanded test coverage for both engines and edge cases
+
+## Performance Notes
+```
+=== Performance Comparison ===
+
+QUICKJS (15 runs):
+  Engine Creation: 4.2ms (1ms - 20ms)
+  Init:            489.5ms (358ms - 1143ms)
+  Add Wallet:      775.3ms (569ms - 1122ms)
+  Get Account:     2.7ms (1ms - 7ms)
+  Get Balance:     574.0ms (369ms - 1170ms)
+  Total Startup:   1881.0ms (1376ms - 3412ms)
+
+WEBVIEW (15 runs):
+  Engine Creation: 27.1ms (9ms - 195ms)
+  Init:            247.9ms (162ms - 743ms)
+  Add Wallet:      88.6ms (53ms - 263ms)
+  Get Account:     10.2ms (6ms - 22ms)
+  Get Balance:     539.7ms (351ms - 1020ms)
+  Total Startup:   917.0ms (601ms - 2250ms)
+
+=== Speed Comparison (QuickJS vs WebView) ===
+Engine Creation: QuickJS faster by 84% (4.2ms vs 27.1ms)
+Init:            WebView faster by 97% (489.5ms vs 247.9ms)
+Add Wallet:      WebView faster by 775% (775.3ms vs 88.6ms)
+Get Account:     QuickJS faster by 73% (2.7ms vs 10.2ms)
+Get Balance:     WebView faster by 6% (574.0ms vs 539.7ms)
+Total Startup:   WebView faster by 105% (1881.0ms vs 917.0ms)
+```
