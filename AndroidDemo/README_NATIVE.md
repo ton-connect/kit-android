@@ -9,15 +9,24 @@ A native Android implementation (Compose + Kotlin) that mirrors the iOS native a
 |-------|-------------|------------------|
 | UI | SwiftUI Views (`WalletKitView`) | Jetpack Compose (`MainActivity` + composables) |
 | Wrapper | `TonWalletKitSwift` | `TonWalletKitAndroid` |
-| Engine | `WalletKitEngine.swift` (hidden WebView) | `WalletKitEngine.kt` (off‑screen WebView) |
+| Engine | `WalletKitEngine.swift` (hidden WebView) | `WalletKitEngine.kt` (off‑screen WebView) or `QuickJsWalletKitEngine` (embedded QuickJS) |
 | JS Adapter | WalletKit JS bundle | Same bundle produced by `apps/androidkit` |
-| Bridge | Swift <-> JS via message handlers | Kotlin <-> JS via `addJavascriptInterface` + `window.walletkit_request` |
+| Bridge | Swift <-> JS via message handlers | Kotlin <-> JS via `addJavascriptInterface` + `window.walletkit_request` (WebView) or JNI bridge (QuickJS) |
 
 ### Flow
-1. `WalletKitEngine` loads `file:///android_asset/walletkit/index.html` (built adapter).
+1. `WalletKitEngine` loads `file:///android_asset/walletkit/index.html` (built adapter) inside an invisible WebView, while `QuickJsWalletKitEngine` loads the same adapter into the vendored `quickjs-ng` runtime.
 2. On ready, Kotlin wrapper (`TonWalletKitAndroid`) calls `init` RPC.
 3. Wallet import, queries, and TON Connect requests go through a narrow JSON RPC (id/method/params).
 4. JS emits async events (connectRequest, transactionRequest, signDataRequest, disconnect) via `AndroidBridge.postMessage` → mapped into `Flow<JsEvent>`.
+
+## Execution Modes
+
+The Android demo can run WalletKit in two different engines behind the same `TonWalletKitAndroid` API surface:
+
+- **Invisible WebView** – original implementation backed by `WalletKitEngine`. Use this when WebView usage is acceptable and you want to avoid native code.
+- **Embedded QuickJS** – new implementation backed by `QuickJsWalletKitEngine`, powered by a vendored build of `quickjs-ng` with native fetch/timer/EventSource polyfills. This option removes the WebView dependency and works in headless/background flows.
+
+Switching between the two is as simple as constructing the appropriate engine implementation.
 
 ## Project Structure
 
@@ -36,6 +45,10 @@ apps/androidkit/
         res/...
       build.gradle
     README_NATIVE.md       # (this doc)
+    bridge/
+      src/main/cpp/        # quickjs-ng sources + JNI bridge
+      src/main/java/io/ton/walletkit/quickjs/  # QuickJS Kotlin façade
+      src/androidTest/     # Instrumentation smoke tests for QuickJS engine
 ```
 
 ## Components
@@ -93,8 +106,17 @@ scope.launch {
    - `pnpm -w --filter androidkit build`
 2. Copy bundle into demo assets:
    - `pnpm -w --filter androidkit copy:demo`
-3. Open `AndroidDemo` in Android Studio, run the app.
-4. You should see the imported test wallet address and its balance.
+3. Build the QuickJS runtime bundle (optional if you only need WebView):
+  - `pnpm -w --filter androidkit build:quickjs`
+4. Build the Android bridge modules (generates `.aar` with both engines):
+  - `cd AndroidDemo && ./gradlew :bridge:assembleDebug`
+5. Open `AndroidDemo` in Android Studio, run the app.
+6. You should see the imported test wallet address and its balance. QuickJS consumers load the native interpreter automatically when `QuickJsWalletKitEngine` is instantiated.
+
+### Additional tasks
+
+- Instrumentation smoke test for the QuickJS bridge: `./gradlew :bridge:connectedDebugAndroidTest`
+- Release-ready artifacts: `./gradlew :bridge:assembleRelease :storage:assembleRelease`
 
 ## Extending to TON Connect Flows
 

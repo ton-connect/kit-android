@@ -1,11 +1,13 @@
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.Exec
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinCompose)
+    alias(libs.plugins.spotless)
 }
 
 android {
@@ -48,26 +50,62 @@ val walletKitDistDir =
         .toPath()
         .resolve("../dist-android")
         .toFile()
+val walletKitQuickJsDistDir =
+    rootProject.rootDir
+        .toPath()
+        .resolve("../dist-android-quickjs")
+        .toFile()
 val walletKitAssetsDir = layout.projectDirectory.dir("src/main/assets/walletkit").asFile
 
-val syncWalletKitAssets =
-    tasks.register<Copy>("syncWalletKitAssets") {
+// Task to build both WebView and QuickJS bundles using pnpm
+val buildWalletKitBundles =
+    tasks.register<Exec>("buildWalletKitBundles") {
         group = "walletkit"
-        description = "Copy WalletKit Web bundle into Android assets."
+        description = "Build both WebView and QuickJS WalletKit bundles using pnpm"
+        workingDir = rootProject.rootDir.parentFile
+        commandLine("sh", "-c", "pnpm run --filter androidkit build:all")
+    }
+
+// Task to copy WebView bundle
+val syncWalletKitWebViewAssets =
+    tasks.register<Copy>("syncWalletKitWebViewAssets") {
+        group = "walletkit"
+        description = "Copy WalletKit WebView bundle into Android assets."
+        dependsOn(buildWalletKitBundles)
         from(walletKitDistDir)
         into(walletKitAssetsDir)
         includeEmptyDirs = false
         doFirst {
             if (!walletKitDistDir.exists()) {
                 throw GradleException(
-                    "WalletKit bundle not found at $walletKitDistDir. Run `pnpm -w --filter androidkit build` before building the Android demo.",
+                    "WebView bundle not found at $walletKitDistDir after build.",
+                )
+            }
+        }
+    }
+
+// Task to copy QuickJS bundle
+val syncWalletKitQuickJsAssets =
+    tasks.register<Copy>("syncWalletKitQuickJsAssets") {
+        group = "walletkit"
+        description = "Copy WalletKit QuickJS bundle into Android assets."
+        dependsOn(buildWalletKitBundles)
+        from(walletKitQuickJsDistDir) {
+            include("walletkit.quickjs.js")
+            rename("walletkit.quickjs.js", "index.js")
+        }
+        into(walletKitAssetsDir.resolve("quickjs"))
+        doFirst {
+            if (!walletKitQuickJsDistDir.exists()) {
+                throw GradleException(
+                    "QuickJS bundle not found at $walletKitQuickJsDistDir after build.",
                 )
             }
         }
     }
 
 tasks.named("preBuild").configure {
-    dependsOn(syncWalletKitAssets)
+    dependsOn(syncWalletKitWebViewAssets, syncWalletKitQuickJsAssets)
 }
 
 dependencies {

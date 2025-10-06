@@ -362,6 +362,31 @@ class WebViewWalletKitEngine(
         }
     }
 
+    private fun handleReady(payload: JSONObject) {
+        payload.optNullableString("network")?.let { currentNetwork = it }
+        payload.optNullableString("tonApiUrl")?.let { apiBaseUrl = it }
+        if (!ready.isCompleted) {
+            Log.d(logTag, "bridge ready")
+            ready.complete(Unit)
+        }
+        val data = JSONObject()
+        val keys = payload.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            if (key == "kind") continue
+            if (payload.isNull(key)) {
+                data.put(key, JSONObject.NULL)
+            } else {
+                data.put(key, payload.get(key))
+            }
+        }
+        val readyEvent = JSONObject().apply {
+            put("type", "ready")
+            put("data", data)
+        }
+        handleEvent(readyEvent)
+    }
+
     private fun JSONObject.optNullableString(key: String): String? {
         val value = opt(key)
         return when (value) {
@@ -376,11 +401,7 @@ class WebViewWalletKitEngine(
             try {
                 val payload = JSONObject(json)
                 when (payload.optString("kind")) {
-                    "ready" ->
-                        if (!ready.isCompleted) {
-                            Log.d(logTag, "bridge ready")
-                            ready.complete(Unit)
-                        }
+                    "ready" -> handleReady(payload)
                     "event" -> payload.optJSONObject("event")?.let { handleEvent(it) }
                     "response" -> handleResponse(payload.optString("id"), payload)
                 }

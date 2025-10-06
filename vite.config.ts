@@ -6,6 +6,7 @@ export default defineConfig({
     outDir: 'dist-android',
     emptyOutDir: true,
     manifest: true,
+    minify: false,
     rollupOptions: {
       input: 'index.html',
       output: {

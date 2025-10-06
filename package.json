@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@ton/walletkit": "workspace:*",
+    "@tonconnect/bridge-sdk": "^0.2.4",
     "buffer": "^6.0.3",
     "whatwg-url": "^13.0.0"
   },

@@ -19,6 +19,9 @@ type WalletKitBridgeEvent = {
 type WalletKitBridgeInitConfig = {
   network?: 'mainnet' | 'testnet';
   apiUrl?: string;
+  apiBaseUrl?: string;
+  tonApiUrl?: string;
+  tonClientEndpoint?: string;
   bridgeUrl?: string;
   bridgeName?: string;
   allowMemoryStorage?: boolean;
@@ -47,10 +50,14 @@ interface WalletKitBridgeApi {
   onEvent: (handler: (event: WalletKitBridgeEvent) => void) => () => void;
 }
 
-interface Window {
-  AndroidBridge?: AndroidBridgeType;
-  WalletKitNative?: WalletKitNativeBridgeType;
-  walletkitBridge?: WalletKitBridgeApi;
-  walletkit_request?: (json: string) => void;
-  __walletkitCall?: (id: string, method: string, paramsJson?: string | null) => void;
+declare global {
+  interface Window {
+    AndroidBridge?: AndroidBridgeType;
+    WalletKitNative?: WalletKitNativeBridgeType;
+    walletkitBridge?: WalletKitBridgeApi;
+    walletkit_request?: (json: string) => void;
+    __walletkitCall?: (id: string, method: string, paramsJson?: string | null) => void;
+  }
 }
+
+export {};

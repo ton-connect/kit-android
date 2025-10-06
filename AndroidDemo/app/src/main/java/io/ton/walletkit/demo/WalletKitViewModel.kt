@@ -128,7 +128,6 @@ class WalletKitViewModel(
                 _state.update {
                     it.copy(
                         wallets = wallets,
-                        status = if (wallets.isEmpty()) "No wallets yet" else "WalletKit ready",
                         lastUpdated = now,
                         error = null,
                     )
@@ -508,14 +507,21 @@ class WalletKitViewModel(
 
     private suspend fun loadWalletSummaries(): List<WalletSummary> {
         val accounts = engine.getWallets()
+        Log.d(LOG_TAG, "loadWalletSummaries: got ${accounts.size} accounts")
         val knownAddresses = accounts.map { it.address }.toSet()
         walletMetadata.keys.retainAll(knownAddresses)
 
         val result = mutableListOf<WalletSummary>()
         for (account in accounts) {
             val metadata = ensureMetadata(account)
-            val state = runCatching { engine.getWalletState(account.address) }.getOrNull()
+            Log.d(LOG_TAG, "loadWalletSummaries: fetching state for ${account.address}")
+            val state = runCatching {
+                engine.getWalletState(account.address)
+            }.onFailure {
+                Log.e(LOG_TAG, "loadWalletSummaries: getWalletState failed for ${account.address}", it)
+            }.getOrNull()
             val balance = state?.balance
+            Log.d(LOG_TAG, "loadWalletSummaries: balance for ${account.address} = $balance")
             val formatted = balance?.let(::formatTon)
             val summary = WalletSummary(
                 address = account.address,
@@ -680,6 +686,49 @@ class WalletKitViewModel(
 
     private fun onBridgeEvent(event: WalletKitEvent) {
         when (event.type) {
+            "ready" -> {
+                val wasInitialized = state.value.initialized
+                val networkValue = event.data.optNullableString("network")
+                val resolvedNetwork = networkValue?.let { TonNetwork.fromBridge(it) }
+                resolvedNetwork?.let { currentNetwork = it }
+                val networkLabel = resolvedNetwork?.name
+                    ?.lowercase(Locale.getDefault())
+                    ?.replaceFirstChar { char ->
+                        if (char.isLowerCase()) char.titlecase(Locale.getDefault()) else char.toString()
+                    }
+                val tonApiUrl = event.data.optNullableString("tonApiUrl")
+                val tonClientEndpoint = event.data.optNullableString("tonClientEndpoint")
+                    ?: event.data.optNullableString("apiUrl")
+                val statusMessage = buildString {
+                    append("WalletKit ready")
+                    networkLabel?.let {
+                        append(" • ")
+                        append(it)
+                    }
+                }
+                val shouldRefresh = !wasInitialized || state.value.wallets.isEmpty()
+                _state.update {
+                    it.copy(
+                        initialized = true,
+                        status = statusMessage,
+                        error = null,
+                    )
+                }
+                val extraDetails = buildList {
+                    networkLabel?.let { add(it) }
+                    tonApiUrl?.let { add("tonapi: $it") }
+                    tonClientEndpoint?.let { add("rpc: $it") }
+                }.takeIf { it.isNotEmpty() }
+                if (extraDetails != null) {
+                    logEvent("WalletKit ready (${extraDetails.joinToString(" · ")})")
+                } else {
+                    logEvent("WalletKit ready")
+                }
+                if (shouldRefresh) {
+                    refreshAll()
+                }
+            }
+
             "connectRequest" -> parseConnectRequest(event.data)?.let { request ->
                 setSheet(SheetState.Connect(request))
                 logEvent("Connect request from ${request.dAppName}")

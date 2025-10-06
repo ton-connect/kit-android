@@ -11,6 +11,9 @@ export type WalletKitBridgeEvent = {
 export type WalletKitBridgeInitConfig = {
   network?: 'mainnet' | 'testnet';
   apiUrl?: string;
+  apiBaseUrl?: string;
+  tonApiUrl?: string;
+  tonClientEndpoint?: string;
   bridgeUrl?: string;
   bridgeName?: string;
   allowMemoryStorage?: boolean;

@@ -3,13 +3,13 @@ package io.ton.walletkit.bridge
 import android.content.Context
 import android.util.Base64
 import android.util.Log
-import app.cash.quickjs.QuickJs
 import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
 import io.ton.walletkit.bridge.listener.WalletKitEngineListener
 import io.ton.walletkit.bridge.model.WalletAccount
 import io.ton.walletkit.bridge.model.WalletKitEvent
 import io.ton.walletkit.bridge.model.WalletSession
 import io.ton.walletkit.bridge.model.WalletState
+import io.ton.walletkit.quickjs.QuickJs
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +29,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okio.BufferedSource
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -46,6 +47,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.jvm.java
 
 /**
  * QuickJS-backed implementation of [WalletKitEngine]. Executes the WalletKit JavaScript bundle
@@ -53,21 +55,25 @@ import kotlin.coroutines.resumeWithException
  */
 class QuickJsWalletKitEngine(
     context: Context,
-    private val assetPath: String = "walletkit/quickjs/index.js",
+    private val assetPath: String = DEFAULT_BUNDLE_ASSET,
     private val httpClient: OkHttpClient = defaultHttpClient(),
 ) : WalletKitEngine {
     override val kind: WalletKitEngineKind = WalletKitEngineKind.QUICKJS
 
-    private val logTag = "QuickJsWalletKitEngine"
+    internal val logTag = "QuickJsWalletKitEngine"
     private val appContext = context.applicationContext
+    internal val applicationContext: Context get() = appContext
     private val assetManager = appContext.assets
     private val listeners = CopyOnWriteArraySet<WalletKitEngineListener>()
     private val ready = CompletableDeferred<Unit>()
     private val pending = ConcurrentHashMap<String, CompletableDeferred<BridgeResponse>>()
-    private val timerIdGenerator = AtomicInteger(1)
+    internal val timerIdGenerator = AtomicInteger(1)
     private val timers = ConcurrentHashMap<Int, TimerHandle>()
-    private val fetchIdGenerator = AtomicInteger(1)
-    private val activeFetchCalls = ConcurrentHashMap<Int, Call>()
+    internal val fetchIdGenerator = AtomicInteger(1)
+    internal val activeFetchCalls = ConcurrentHashMap<Int, Call>()
+    internal val eventSourceIdGenerator = AtomicInteger(1)
+    private val eventSources = ConcurrentHashMap<Int, EventSourceConnection>()
+    private val scriptCache = ConcurrentHashMap<String, String>()
 
     private val jsExecutor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "WalletKitQuickJs").apply { isDaemon = true }
@@ -87,6 +93,11 @@ class QuickJsWalletKitEngine(
     private val random = SecureRandom()
     private val jsEvaluateMutex = Mutex()
 
+    // Native helper instances
+    internal val nativeFetch = NativeFetch()
+    internal val nativeEventSource = NativeEventSource()
+    internal val nativeTimers = NativeTimers()
+
     @Volatile private var currentNetwork: String = "testnet"
 
     @Volatile private var apiBaseUrl: String = "https://testnet.tonapi.io"
@@ -96,12 +107,20 @@ class QuickJsWalletKitEngine(
     init {
         jsScope.launch {
             try {
+                Log.d(logTag, "Creating QuickJS instance...")
                 val quickJs = QuickJs.create()
+                Log.d(logTag, "Installing native bindings...")
                 installNativeBindings(quickJs)
+                Log.d(logTag, "Evaluating bootstrap...")
                 evaluateBootstrap(quickJs)
+                Log.d(logTag, "Installing text encoding shim...")
+                installTextEncodingShim(quickJs)
+                Log.d(logTag, "Loading bundle...")
                 loadBundle(quickJs)
+                Log.d(logTag, "Bundle loaded successfully")
                 quickJsInstance = quickJs
                 quickJsDeferred.complete(quickJs)
+                Log.d(logTag, "QuickJS initialization complete, waiting for ready event...")
             } catch (err: Throwable) {
                 Log.e(logTag, "Failed to initialise QuickJS runtime", err)
                 quickJsDeferred.completeExceptionally(err)
@@ -158,34 +177,41 @@ class QuickJsWalletKitEngine(
     }
 
     override suspend fun getWallets(): List<WalletAccount> {
+        Log.d(logTag, "getWallets() called")
         val result = call("getWallets")
+        Log.d(logTag, "getWallets result: $result")
         val items = result.optJSONArray("items") ?: JSONArray()
+        Log.d(logTag, "getWallets items count: ${items.length()}")
         return buildList(items.length()) {
             for (index in 0 until items.length()) {
                 val entry = items.optJSONObject(index) ?: continue
-                add(
-                    WalletAccount(
-                        address = entry.optString("address"),
-                        publicKey = entry.optNullableString("publicKey"),
-                        version = entry.optString("version", "unknown"),
-                        network = entry.optString("network", currentNetwork),
-                        index = entry.optInt("index", index),
-                    ),
+                val account = WalletAccount(
+                    address = entry.optString("address"),
+                    publicKey = entry.optNullableString("publicKey"),
+                    version = entry.optString("version", "unknown"),
+                    network = entry.optString("network", currentNetwork),
+                    index = entry.optInt("index", index),
                 )
+                Log.d(logTag, "getWallets account: ${account.address}")
+                add(account)
             }
         }
     }
 
     override suspend fun getWalletState(address: String): WalletState {
+        Log.d(logTag, "getWalletState called for address: $address")
         val params = JSONObject().apply { put("address", address) }
+        Log.d(logTag, "getWalletState calling JavaScript...")
         val result = call("getWalletState", params)
+        Log.d(logTag, "getWalletState result: $result")
+        val balance = when {
+            result.has("balance") -> result.optString("balance")
+            result.has("value") -> result.optString("value")
+            else -> null
+        }
+        Log.d(logTag, "getWalletState balance: $balance")
         return WalletState(
-            balance =
-            when {
-                result.has("balance") -> result.optString("balance")
-                result.has("value") -> result.optString("value")
-                else -> null
-            },
+            balance = balance,
             transactions = result.optJSONArray("transactions") ?: JSONArray(),
         )
     }
@@ -309,6 +335,7 @@ class QuickJsWalletKitEngine(
         params: JSONObject? = null,
     ): JSONObject {
         ready.await()
+        Log.d(logTag, "call: method=$method, params=$params")
         val callId = UUID.randomUUID().toString()
         val deferred = CompletableDeferred<BridgeResponse>()
         pending[callId] = deferred
@@ -319,12 +346,14 @@ class QuickJsWalletKitEngine(
             if (payload == null) {
                 "globalThis.__walletkitCall($idLiteral,$methodLiteral,null)"
             } else {
-                val payloadBase64 = Base64.encodeToString(payload.toByteArray(StandardCharsets.UTF_8), Base64.NO_WRAP)
-                val payloadLiteral = JSONObject.quote(payloadBase64)
-                "globalThis.__walletkitCall($idLiteral,$methodLiteral, atob($payloadLiteral))"
+                val payloadLiteral = JSONObject.quote(payload)
+                "globalThis.__walletkitCall($idLiteral,$methodLiteral,$payloadLiteral)"
             }
+        Log.d(logTag, "call: evaluating script...")
         evaluate(script, "walletkit-call.js")
+        Log.d(logTag, "call: waiting for response...")
         val response = deferred.await()
+        Log.d(logTag, "call: got response")
         return response.result
     }
 
@@ -333,36 +362,149 @@ class QuickJsWalletKitEngine(
         withContext(jsDispatcher) {
             jsEvaluateMutex.withLock {
                 quickJs.evaluate(script, filename)
+                drainPendingJobsLocked(quickJs)
+            }
+        }
+    }
+
+    private fun drainPendingJobsLocked(runtime: QuickJs) {
+        while (true) {
+            val jobsProcessed = try {
+                runtime.executePendingJob()
+            } catch (err: Throwable) {
+                Log.e(logTag, "QuickJS pending job failed", err)
+                return
+            }
+            if (jobsProcessed <= 0) {
+                return
+            }
+        }
+    }
+
+    private fun readJsAsset(relativePath: String): String = scriptCache.getOrPut(relativePath) {
+        assetManager.open(relativePath).bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
+    }
+
+    private fun failPendingRequests(message: String) {
+        pending.values.forEach { deferred ->
+            if (!deferred.isCompleted) {
+                deferred.completeExceptionally(WalletKitBridgeException(message))
             }
         }
     }
 
     private fun installNativeBindings(quickJs: QuickJs) {
-        quickJs.set("WalletKitNative", NativeBridge::class.java, NativeBridge())
-        quickJs.set("WalletKitConsole", NativeConsole::class.java, NativeConsole())
-        quickJs.set("WalletKitBase64", NativeBase64::class.java, NativeBase64())
-        quickJs.set("WalletKitCrypto", NativeCrypto::class.java, NativeCrypto())
-        quickJs.set("WalletKitTimers", NativeTimers::class.java, NativeTimers())
-        quickJs.set("WalletKitFetch", NativeFetch::class.java, NativeFetch())
+        Log.d(logTag, "Setting WalletKitNative (class, no @JvmStatic, let QuickJS instantiate)...")
+        // Set engine reference BEFORE registering with QuickJS
+        QuickJsNativeHost.engine = this
+
+        // DEBUG: Try calling the method directly from Kotlin to verify it works
+        Log.d(logTag, "Direct Kotlin call test:")
+        val testInstance = QuickJsNativeHost()
+        val directResult = testInstance.cryptoRandomBytes("32")
+        Log.d(logTag, "Direct call returned: $directResult (${directResult.length} chars)")
+
+        // Register class - let QuickJS create its own instance via reflection
+        quickJs.set("WalletKitNative", QuickJsNativeHost::class.java, testInstance)
+
+        Log.d(logTag, "All native bindings installed via unified host")
     }
 
     private fun evaluateBootstrap(quickJs: QuickJs) {
-        quickJs.evaluate(JS_BOOTSTRAP, "walletkit-bootstrap.js")
+        // Test the unified host
+        Log.d(logTag, "Testing unified WalletKitNative host...")
+
+        // Test 1: Check if functions are different objects
+        val identityTest = quickJs.evaluate(
+            """
+            (function() {
+              return 'base64Decode === cryptoRandomBytes: ' + (WalletKitNative.base64Decode === WalletKitNative.cryptoRandomBytes);
+            })();
+            """.trimIndent(),
+            "test-identity.js",
+        )
+        Log.d(logTag, "Identity test = $identityTest")
+
+        // Test 2: Check object structure
+        val structureTest = quickJs.evaluate(
+            """
+            (function() {
+              var keys = Object.keys(WalletKitNative).sort();
+              return 'Methods: ' + keys.join(', ');
+            })();
+            """.trimIndent(),
+            "test-structure.js",
+        )
+        Log.d(logTag, "Structure test = $structureTest")
+
+        // Test 3: Call base64Decode explicitly
+        val base64Test = quickJs.evaluate(
+            """WalletKitNative.base64Decode('aGVsbG8=')""",
+            "test-base64.js",
+        )
+        Log.d(logTag, "base64Decode('aGVsbG8=') = '$base64Test'")
+
+        // Test 4: Call base64Encode explicitly
+        val encodeTest = quickJs.evaluate(
+            """WalletKitNative.base64Encode('hello')""",
+            "test-encode.js",
+        )
+        Log.d(logTag, "base64Encode('hello') = '$encodeTest'")
+
+        // Test 5: Call cryptoRandomBytes explicitly
+        val cryptoTest = quickJs.evaluate(
+            """WalletKitNative.cryptoRandomBytes('32')""",
+            "test-crypto.js",
+        )
+        Log.d(logTag, "cryptoRandomBytes('32') = '$cryptoTest' (len=${cryptoTest.toString().length})")
+
+        quickJs.evaluate(readJsAsset(BOOTSTRAP_SCRIPT_ASSET), "walletkit-bootstrap.js")
+        drainPendingJobsLocked(quickJs)
+
+        Log.d(logTag, "Bootstrap evaluation complete")
+    }
+
+    private fun installTextEncodingShim(quickJs: QuickJs) {
+        quickJs.evaluate(readJsAsset(TEXT_ENCODING_ASSET), "walletkit-text-encoding.js")
+        drainPendingJobsLocked(quickJs)
     }
 
     private fun loadBundle(quickJs: QuickJs) {
-        val source = assetManager.open(assetPath).bufferedReader(Charsets.UTF_8).use { it.readText() }
+        quickJs.evaluate(readJsAsset(ENVIRONMENT_SHIM_ASSET), "walletkit-environment.js")
+        val source = readJsAsset(assetPath)
         quickJs.evaluate(source, assetPath)
+        // Drain pending jobs to execute any initialization code
+        Log.d(logTag, "Draining pending jobs after bundle load...")
+        drainPendingJobsLocked(quickJs)
+        Log.d(logTag, "Pending jobs drained")
     }
 
-    private fun handleReady() {
+    internal fun handleReady(payload: JSONObject) {
+        payload.optNullableString("network")?.let { currentNetwork = it }
+        payload.optNullableString("tonApiUrl")?.let { apiBaseUrl = it }
         if (!ready.isCompleted) {
-            ready.complete(Unit)
             Log.d(logTag, "QuickJS bridge ready")
+            ready.complete(Unit)
         }
+        val data = JSONObject()
+        val keys = payload.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            if (key == "kind") continue
+            if (payload.isNull(key)) {
+                data.put(key, JSONObject.NULL)
+            } else {
+                data.put(key, payload.get(key))
+            }
+        }
+        val readyEvent = JSONObject().apply {
+            put("type", "ready")
+            put("data", data)
+        }
+        handleEvent(readyEvent)
     }
 
-    private fun handleResponse(
+    internal fun handleResponse(
         id: String,
         payload: JSONObject,
     ) {
@@ -370,6 +512,7 @@ class QuickJsWalletKitEngine(
         val error = payload.optJSONObject("error")
         if (error != null) {
             val message = error.optString("message", "WalletKit bridge error")
+            Log.e(logTag, "handleResponse error: $error")
             deferred.completeExceptionally(WalletKitBridgeException(message))
             return
         }
@@ -384,7 +527,7 @@ class QuickJsWalletKitEngine(
         deferred.complete(BridgeResponse(data))
     }
 
-    private fun handleEvent(event: JSONObject) {
+    internal fun handleEvent(event: JSONObject) {
         val type = event.optString("type", "unknown")
         val walletEvent = WalletKitEvent(type, event.optJSONObject("data") ?: JSONObject(), event)
         listeners.forEach { listener ->
@@ -413,61 +556,133 @@ class QuickJsWalletKitEngine(
     }
 
     private inner class NativeBridge {
-        fun postMessage(json: String) {
+        fun postMessage(json: Any?) {
+            Log.v(logTag, ">>> NativeBridge.postMessage CALLED with type: ${json?.javaClass?.simpleName}")
             try {
-                val payload = JSONObject(json)
-                when (payload.optString("kind")) {
-                    "ready" -> handleReady()
+                Log.d(logTag, "NativeBridge.postMessage called with type: ${json?.javaClass?.simpleName}, value: ${if (json is String) json.take(200) else json}")
+
+                // Convert to string if needed (QuickJS might pass different types)
+                val jsonString = when (json) {
+                    is String -> json
+                    is Number -> {
+                        Log.w(logTag, "postMessage received number: $json (likely a char code or unexpected value) - ignoring")
+                        return // Ignore numeric values
+                    }
+                    null -> {
+                        Log.w(logTag, "postMessage received null - ignoring")
+                        return
+                    }
+                    else -> {
+                        Log.w(logTag, "postMessage received unexpected type: ${json::class.java.simpleName}, value: $json - converting to string")
+                        json.toString()
+                    }
+                }
+
+                val payload = JSONObject(jsonString)
+                val kind = payload.optString("kind")
+                Log.d(logTag, "postMessage payload kind: $kind")
+
+                when (kind) {
+                    "ready" -> handleReady(payload)
                     "event" -> payload.optJSONObject("event")?.let { handleEvent(it) }
                     "response" -> handleResponse(payload.optString("id"), payload)
                 }
             } catch (err: JSONException) {
-                Log.e(logTag, "Malformed payload from QuickJS", err)
-                pending.values.forEach { deferred ->
-                    if (!deferred.isCompleted) {
-                        deferred.completeExceptionally(
-                            WalletKitBridgeException("Malformed payload: ${err.message}"),
-                        )
-                    }
-                }
+                Log.e(logTag, "Malformed payload from QuickJS: $json", err)
+                // Don't fail pending requests for malformed payloads during initialization
+            } catch (err: Throwable) {
+                Log.e(logTag, "NativeBridge.postMessage error", err)
+                // Don't rethrow - this would break QuickJS initialization
             }
         }
     }
 
     private inner class NativeConsole {
-        fun log(level: String, message: String) {
-            when (level.lowercase()) {
-                "error" -> Log.e(logTag, message)
-                "warn" -> Log.w(logTag, message)
-                else -> Log.d(logTag, message)
+        fun log(level: String, message: String): String {
+            System.out.println(">>> NativeConsole.log CALLED: level=$level, message=$message")
+            Log.v(logTag, ">>> NativeConsole.log CALLED: level=$level, message=$message")
+            try {
+                when (level.lowercase()) {
+                    "error" -> Log.e(logTag, message)
+                    "warn" -> Log.w(logTag, message)
+                    else -> Log.d(logTag, message)
+                }
+            } catch (err: Throwable) {
+                Log.e(logTag, "NativeConsole.log error", err)
             }
+            return "logged-ok"
         }
     }
 
     private inner class NativeBase64 {
-        fun encode(value: String): String {
+        fun encode(value: String): String = try {
             val bytes = value.toByteArray(Charsets.ISO_8859_1)
-            return Base64.encodeToString(bytes, Base64.NO_WRAP)
+            Base64.encodeToString(bytes, Base64.NO_WRAP)
+        } catch (err: Throwable) {
+            Log.w(logTag, "NativeBase64.encode failed for input: '${value.take(100)}': ${err.message}")
+            "" // Return empty string on error
         }
 
         fun decode(value: String): String {
-            val bytes = Base64.decode(value, Base64.NO_WRAP)
-            return String(bytes, Charsets.ISO_8859_1)
+            return try {
+                // Handle empty or whitespace-only strings
+                if (value.isBlank()) {
+                    return ""
+                }
+                val bytes = Base64.decode(value, Base64.NO_WRAP)
+                String(bytes, Charsets.ISO_8859_1)
+            } catch (err: Throwable) {
+                // Log as warning, not error - this can happen with invalid input and is handled gracefully
+                Log.w(logTag, "NativeBase64.decode failed for input: '${value.take(100)}' (length: ${value.length}): ${err.message}")
+                "" // Return empty string on error
+            }
         }
     }
 
     private inner class NativeCrypto {
-        fun randomBytes(length: Int): String {
+        fun randomBytes(length: Int): String = try {
             val buffer = ByteArray(length.coerceAtLeast(0))
             random.nextBytes(buffer)
-            return Base64.encodeToString(buffer, Base64.NO_WRAP)
+            Base64.encodeToString(buffer, Base64.NO_WRAP)
+        } catch (err: Throwable) {
+            Log.e(logTag, "NativeCrypto.randomBytes error", err)
+            ""
         }
 
-        fun randomUuid(): String = UUID.randomUUID().toString()
+        fun randomUuid(): String = try {
+            UUID.randomUUID().toString()
+        } catch (err: Throwable) {
+            Log.e(logTag, "NativeCrypto.randomUuid error", err)
+            ""
+        }
+
+        fun pbkdf2Sha512(keyBase64: String, saltBase64: String, iterations: Int, keyLen: Int): String {
+            Log.d(logTag, "NativeCrypto.pbkdf2Sha512 called: iterations=$iterations, keyLen=$keyLen")
+            return try {
+                val key = Base64.decode(keyBase64, Base64.NO_WRAP)
+                val salt = Base64.decode(saltBase64, Base64.NO_WRAP)
+
+                val spec = javax.crypto.spec.PBEKeySpec(
+                    String(key, Charsets.UTF_8).toCharArray(),
+                    salt,
+                    iterations,
+                    keyLen * 8,
+                )
+                val factory = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
+                val derived = factory.generateSecret(spec).encoded
+
+                val result = Base64.encodeToString(derived, Base64.NO_WRAP)
+                Log.d(logTag, "NativeCrypto.pbkdf2Sha512 success, result length=${result.length}")
+                result
+            } catch (err: Throwable) {
+                Log.e(logTag, "NativeCrypto.pbkdf2Sha512 error", err)
+                ""
+            }
+        }
     }
 
-    private inner class NativeTimers {
-        fun request(delayMs: Double, repeat: Boolean): Int {
+    internal inner class NativeTimers {
+        fun request(delayMs: Double, repeat: Boolean): Int = try {
             val id = timerIdGenerator.getAndIncrement()
             val delay =
                 when {
@@ -476,25 +691,33 @@ class QuickJsWalletKitEngine(
                     else -> delayMs.toLong()
                 }
             createTimer(id, delay, repeat)
-            return id
+            id
+        } catch (err: Throwable) {
+            Log.e(logTag, "NativeTimers.request error", err)
+            -1
         }
 
         fun clear(id: Int) {
-            cancelTimer(id)
+            try {
+                cancelTimer(id)
+            } catch (err: Throwable) {
+                Log.e(logTag, "NativeTimers.clear error", err)
+            }
         }
     }
 
-    private inner class NativeFetch {
+    internal inner class NativeFetch {
         fun perform(requestJson: String): Int {
             val requestId = fetchIdGenerator.getAndIncrement()
             try {
                 val json = JSONObject(requestJson)
                 val url = json.optString("url")
+                val method = json.optString("method", "GET").ifBlank { "GET" }
+                Log.d(logTag, "NativeFetch.perform: id=$requestId, method=$method, url=${url.take(100)}")
                 if (url.isNullOrBlank()) {
                     deliverFetchError(requestId, "Missing URL")
                     return requestId
                 }
-                val method = json.optString("method", "GET").ifBlank { "GET" }
                 val headers = json.optJSONArray("headers")
                 val headersBuilder = Headers.Builder()
                 if (headers != null) {
@@ -526,8 +749,12 @@ class QuickJsWalletKitEngine(
         }
 
         fun abort(id: Int) {
-            activeFetchCalls.remove(id)?.cancel()
-            deliverFetchError(id, "Aborted")
+            try {
+                activeFetchCalls.remove(id)?.cancel()
+                deliverFetchError(id, "Aborted")
+            } catch (err: Throwable) {
+                Log.e(logTag, "NativeFetch.abort error", err)
+            }
         }
     }
 
@@ -556,7 +783,19 @@ class QuickJsWalletKitEngine(
         val call = httpClient.newCall(request)
         activeFetchCalls[id] = call
         try {
+            Log.d(logTag, "executeFetch: id=$id, executing ${request.method} ${request.url}")
+            // Log headers and body for bridge requests
+            if (request.url.toString().contains("bridge.tonapi.io")) {
+                Log.d(logTag, "executeFetch: id=$id, Bridge POST - headers: ${request.headers}")
+                request.body?.let { body ->
+                    val buffer = okio.Buffer()
+                    body.writeTo(buffer)
+                    val bodyString = buffer.readUtf8()
+                    Log.d(logTag, "executeFetch: id=$id, Bridge POST - body: ${bodyString.take(200)}")
+                }
+            }
             val response = suspendCancellableCall(call)
+            Log.d(logTag, "executeFetch: id=$id, got response status=${response.code}")
             val bodyBytes = response.body?.bytes()
             val base64Body =
                 if (bodyBytes != null && bodyBytes.isNotEmpty()) {
@@ -577,6 +816,7 @@ class QuickJsWalletKitEngine(
             deliverFetchSuccess(id, meta.toString(), base64Body)
             response.close()
         } catch (err: Throwable) {
+            Log.e(logTag, "executeFetch: id=$id, error: ${err.message}", err)
             deliverFetchError(id, err.message ?: "Network error")
         } finally {
             activeFetchCalls.remove(id)
@@ -619,7 +859,7 @@ class QuickJsWalletKitEngine(
         }
     }
 
-    private fun deliverFetchError(
+    internal fun deliverFetchError(
         id: Int,
         message: String,
     ) {
@@ -664,6 +904,59 @@ class QuickJsWalletKitEngine(
         handle.future = timerExecutor.schedule(handle.task, handle.delayMillis, TimeUnit.MILLISECONDS)
     }
 
+    private fun deliverEventSourceOpen(id: Int) {
+        jsScope.launch {
+            try {
+                evaluate("globalThis.__walletkitEventSourceOnOpen($id)", "walletkit-eventsource-open.js")
+            } catch (err: Throwable) {
+                Log.e(logTag, "Failed to deliver EventSource open", err)
+            }
+        }
+    }
+
+    private fun deliverEventSourceMessage(
+        id: Int,
+        eventType: String,
+        data: String,
+        lastEventId: String?,
+    ) {
+        jsScope.launch {
+            val typeLiteral = JSONObject.quote(eventType)
+            val dataLiteral = JSONObject.quote(data)
+            val idLiteral = lastEventId?.let { JSONObject.quote(it) } ?: "null"
+            val script = "globalThis.__walletkitEventSourceOnMessage($id,$typeLiteral,$dataLiteral,$idLiteral)"
+            try {
+                evaluate(script, "walletkit-eventsource-message.js")
+            } catch (err: Throwable) {
+                Log.e(logTag, "Failed to deliver EventSource message", err)
+            }
+        }
+    }
+
+    internal fun deliverEventSourceError(id: Int, message: String?) {
+        jsScope.launch {
+            val messageLiteral = message?.let { JSONObject.quote(it) } ?: "null"
+            val script = "globalThis.__walletkitEventSourceOnError($id,$messageLiteral)"
+            try {
+                evaluate(script, "walletkit-eventsource-error.js")
+            } catch (err: Throwable) {
+                Log.e(logTag, "Failed to deliver EventSource error", err)
+            }
+        }
+    }
+
+    internal fun deliverEventSourceClosed(id: Int, reason: String?) {
+        jsScope.launch {
+            val reasonLiteral = reason?.let { JSONObject.quote(it) } ?: "null"
+            val script = "globalThis.__walletkitEventSourceOnClose($id,$reasonLiteral)"
+            try {
+                evaluate(script, "walletkit-eventsource-close.js")
+            } catch (err: Throwable) {
+                Log.e(logTag, "Failed to deliver EventSource close", err)
+            }
+        }
+    }
+
     private fun cancelTimer(id: Int) {
         timers.remove(id)?.future?.cancel(true)
     }
@@ -676,194 +969,492 @@ class QuickJsWalletKitEngine(
         @Volatile var future: ScheduledFuture<*>? = null,
     )
 
+    internal inner class NativeEventSource {
+        fun open(url: String?, withCredentials: Boolean): Int {
+            val id = eventSourceIdGenerator.getAndIncrement()
+            return try {
+                val normalized = url?.takeIf { it.isNotBlank() }
+                if (normalized == null) {
+                    Log.e(logTag, "EventSource open rejected due to empty URL")
+                    deliverEventSourceError(id, "Invalid EventSource URL")
+                    deliverEventSourceClosed(id, "invalid-url")
+                    return id
+                }
+                val connection = EventSourceConnection(id, normalized, withCredentials)
+                eventSources[id] = connection
+                ioScope.launch { connection.start() }
+                id
+            } catch (err: Throwable) {
+                Log.e(logTag, "NativeEventSource.open error", err)
+                deliverEventSourceError(id, err.message ?: "EventSource open failed")
+                deliverEventSourceClosed(id, err::class.java.simpleName)
+                id
+            }
+        }
+
+        fun close(id: Int) {
+            try {
+                eventSources.remove(id)?.close()
+            } catch (err: Throwable) {
+                Log.e(logTag, "NativeEventSource.close error", err)
+            }
+        }
+    }
+
+    private inner class EventSourceConnection(
+        private val id: Int,
+        private val url: String,
+        private val withCredentials: Boolean,
+    ) {
+        @Volatile private var call: Call? = null
+
+        @Volatile private var closed: Boolean = false
+
+        suspend fun start() {
+            try {
+                val requestBuilder =
+                    Request.Builder()
+                        .url(url)
+                        .header("Accept", "text/event-stream")
+                        .header("Cache-Control", "no-cache")
+                        .header("Connection", "keep-alive")
+                if (!withCredentials) {
+                    requestBuilder.header("Cookie", "")
+                }
+                val request = requestBuilder.build()
+                val call = httpClient.newCall(request)
+                this.call = call
+                val response = call.execute()
+                if (!response.isSuccessful) {
+                    deliverEventSourceError(id, "HTTP ${response.code}")
+                    response.close()
+                    deliverEventSourceClosed(id, "http")
+                    return
+                }
+                val body = response.body
+                if (body == null) {
+                    deliverEventSourceError(id, "Empty EventSource body")
+                    response.close()
+                    deliverEventSourceClosed(id, "empty")
+                    return
+                }
+                deliverEventSourceOpen(id)
+                try {
+                    readEventStream(body.source())
+                } finally {
+                    body.close()
+                    response.close()
+                }
+                if (!closed) {
+                    deliverEventSourceClosed(id, null)
+                }
+            } catch (err: Throwable) {
+                if (!closed) {
+                    deliverEventSourceError(id, err.message ?: "EventSource error")
+                    deliverEventSourceClosed(id, err::class.java.simpleName)
+                }
+            } finally {
+                eventSources.remove(id, this)
+            }
+        }
+
+        fun close() {
+            closed = true
+            call?.cancel()
+        }
+
+        private fun readEventStream(source: BufferedSource) {
+            var eventType = "message"
+            val dataBuilder = StringBuilder()
+            var lastEventId: String? = null
+            while (!closed) {
+                val line =
+                    try {
+                        source.readUtf8Line()
+                    } catch (err: IOException) {
+                        if (!closed) {
+                            throw err
+                        }
+                        null
+                    }
+                        ?: break
+
+                if (line.isEmpty()) {
+                    if (dataBuilder.isNotEmpty()) {
+                        val payload =
+                            if (dataBuilder[dataBuilder.length - 1] == '\n') {
+                                dataBuilder.substring(0, dataBuilder.length - 1)
+                            } else {
+                                dataBuilder.toString()
+                            }
+                        deliverEventSourceMessage(id, eventType.ifBlank { "message" }, payload, lastEventId)
+                        dataBuilder.setLength(0)
+                    }
+                    eventType = "message"
+                    continue
+                }
+
+                if (line.startsWith(":")) {
+                    continue
+                }
+
+                val delimiterIndex = line.indexOf(':')
+                val field: String
+                var value = ""
+                if (delimiterIndex == -1) {
+                    field = line
+                } else {
+                    field = line.substring(0, delimiterIndex)
+                    value = line.substring(delimiterIndex + 1)
+                    if (value.startsWith(" ")) {
+                        value = value.substring(1)
+                    }
+                }
+
+                when (field) {
+                    "event" -> eventType = value.ifBlank { "message" }
+                    "data" -> {
+                        dataBuilder.append(value)
+                        dataBuilder.append('\n')
+                    }
+                    "id" -> lastEventId = value
+                    "retry" -> Unit
+                }
+            }
+
+            if (dataBuilder.isNotEmpty()) {
+                val payload =
+                    if (dataBuilder[dataBuilder.length - 1] == '\n') {
+                        dataBuilder.substring(0, dataBuilder.length - 1)
+                    } else {
+                        dataBuilder.toString()
+                    }
+                deliverEventSourceMessage(id, eventType.ifBlank { "message" }, payload, lastEventId)
+                dataBuilder.setLength(0)
+            }
+        }
+    }
+
     private data class BridgeResponse(val result: JSONObject)
 
     companion object {
-        private val JS_BOOTSTRAP: String =
-            """
-			(function(global) {
-			  if (typeof global.window === 'undefined') global.window = global;
-			  if (typeof global.self === 'undefined') global.self = global;
-			  if (typeof global.global === 'undefined') global.global = global;
-
-			  const consoleLevels = ['log', 'info', 'warn', 'error', 'debug'];
-			  global.console = global.console || {};
-			  consoleLevels.forEach(level => {
-				global.console[level] = (...args) => {
-				  const message = args.map(item => {
-					try {
-					  if (typeof item === 'string') return item;
-					  return JSON.stringify(item);
-					} catch (_) {
-					  return String(item);
-					}
-				  }).join(' ');
-				  WalletKitConsole.log(level, message);
-				};
-			  });
-			  global.console.trace = global.console.trace || global.console.debug;
-
-			  global.btoa = global.btoa || ((value) => WalletKitBase64.encode(value));
-			  global.atob = global.atob || ((value) => WalletKitBase64.decode(value));
-
-			  const timerCallbacks = new Map();
-			  global.__walletkitRunTimer = (id) => {
-				const entry = timerCallbacks.get(id);
-				if (!entry) return;
-				try {
-				  entry.callback(...entry.args);
-				} finally {
-				  if (!entry.repeat) {
-					timerCallbacks.delete(id);
-				  }
-				}
-			  };
-			  global.setTimeout = (cb, delay = 0, ...args) => {
-				if (typeof cb !== 'function') throw new TypeError('setTimeout expects a function');
-				const id = WalletKitTimers.request(delay, false);
-				timerCallbacks.set(id, { callback: cb, args, repeat: false });
-				return id;
-			  };
-			  global.clearTimeout = (id) => {
-				if (timerCallbacks.delete(id)) WalletKitTimers.clear(id);
-			  };
-			  global.setInterval = (cb, delay = 0, ...args) => {
-				if (typeof cb !== 'function') throw new TypeError('setInterval expects a function');
-				const id = WalletKitTimers.request(delay, true);
-				timerCallbacks.set(id, { callback: cb, args, repeat: true });
-				return id;
-			  };
-			  global.clearInterval = (id) => {
-				if (timerCallbacks.delete(id)) WalletKitTimers.clear(id);
-			  };
-			  global.queueMicrotask = global.queueMicrotask || (fn => Promise.resolve().then(fn));
-
-			  const fetchResolvers = new Map();
-			  global.__walletkitResolveFetch = (id, metaJson, bodyBase64) => {
-				const entry = fetchResolvers.get(id);
-				if (!entry) return;
-				fetchResolvers.delete(id);
-				if (!metaJson) {
-				  entry.reject(new Error('Fetch failed'));
-				  return;
-				}
-				const meta = JSON.parse(metaJson);
-				const headers = new Map((meta.headers || []).map(([name, value]) => [String(name).toLowerCase(), String(value)]));
-				const bodyString = bodyBase64 ? atob(bodyBase64) : '';
-				const bodyBytes = new Uint8Array(bodyString.length);
-				for (let i = 0; i < bodyString.length; i++) {
-				  bodyBytes[i] = bodyString.charCodeAt(i) & 0xff;
-				}
-				const response = {
-				  ok: meta.status >= 200 && meta.status < 300,
-				  status: meta.status,
-				  statusText: meta.statusText || '',
-				  headers: {
-					get(name) { return headers.get(String(name).toLowerCase()) ?? null; },
-					has(name) { return headers.has(String(name).toLowerCase()); },
-					forEach(callback) { headers.forEach((value, key) => callback(value, key)); },
-					entries() { return headers.entries(); },
-					[Symbol.iterator]() { return headers.entries(); },
-				  },
-				  clone() { return this; },
-				  text: async () => bodyString,
-				  json: async () => {
-					if (!bodyString) return null;
-					return JSON.parse(bodyString);
-				  },
-				  arrayBuffer: async () => bodyBytes.buffer.slice(bodyBytes.byteOffset, bodyBytes.byteOffset + bodyBytes.byteLength),
-				};
-				entry.resolve(response);
-			  };
-			  global.__walletkitRejectFetch = (id, message) => {
-				const entry = fetchResolvers.get(id);
-				if (!entry) return;
-				fetchResolvers.delete(id);
-				entry.reject(new Error(message || 'Fetch request failed'));
-			  };
-
-			  global.fetch = (input, init = {}) => {
-				const request = { headers: [], method: 'GET' };
-				if (typeof input === 'string') {
-				  request.url = input;
-				} else if (input && typeof input === 'object') {
-				  request.url = input.url;
-				  if (input.method) init.method = input.method;
-				  if (input.headers && !init.headers) init.headers = input.headers;
-				  if (input.body && init.body === undefined) init.body = input.body;
-				}
-				if (!request.url) throw new TypeError('fetch requires a URL');
-				if (init.method) request.method = init.method;
-				const headersInit = init.headers;
-				if (headersInit) {
-				  if (Array.isArray(headersInit)) {
-					headersInit.forEach(([name, value]) => request.headers.push([String(name), String(value)]));
-				  } else if (typeof headersInit.forEach === 'function') {
-					headersInit.forEach((value, name) => request.headers.push([String(name), String(value)]));
-				  } else {
-					Object.entries(headersInit).forEach(([name, value]) => request.headers.push([String(name), String(value)]));
-				  }
-				}
-				if (init.body != null) {
-				  if (init.body instanceof Uint8Array || ArrayBuffer.isView(init.body)) {
-					let binary = '';
-					for (let i = 0; i < init.body.length; i++) {
-					  binary += String.fromCharCode(init.body[i]);
-					}
-					request.bodyBase64 = btoa(binary);
-				  } else if (init.body instanceof ArrayBuffer) {
-					const view = new Uint8Array(init.body);
-					let binary = '';
-					for (let i = 0; i < view.length; i++) {
-					  binary += String.fromCharCode(view[i]);
-					}
-					request.bodyBase64 = btoa(binary);
-				  } else if (typeof init.body === 'string') {
-					request.bodyBase64 = btoa(init.body);
-				  } else {
-					request.bodyBase64 = btoa(JSON.stringify(init.body));
-					const hasContentType = request.headers.some(([name]) => name.toLowerCase() === 'content-type');
-					if (!hasContentType) {
-					  request.headers.push(['Content-Type', 'application/json']);
-					}
-				  }
-				}
-								const id = WalletKitFetch.perform(JSON.stringify(request));
-								if (init.signal && typeof init.signal === 'object') {
-									if (init.signal.aborted) {
-										WalletKitFetch.abort(id);
-										return Promise.reject(new Error('Aborted'));
-									}
-									if (typeof init.signal.addEventListener === 'function') {
-										init.signal.addEventListener('abort', () => WalletKitFetch.abort(id));
-									}
-								}
-								return new Promise((resolve, reject) => {
-									fetchResolvers.set(id, { resolve, reject });
-								});
-			  };
-
-			  if (!global.crypto) {
-				global.crypto = {};
-			  }
-			  global.crypto.getRandomValues = (array) => {
-				const length = array.length >>> 0;
-				const base64 = WalletKitCrypto.randomBytes(length);
-				const decoded = atob(base64);
-				for (let i = 0; i < length && i < decoded.length; i++) {
-				  array[i] = decoded.charCodeAt(i) & 0xff;
-				}
-				return array;
-			  };
-			  global.crypto.randomUUID = global.crypto.randomUUID || (() => WalletKitCrypto.randomUuid());
-
-			})(typeof globalThis !== 'undefined' ? globalThis : this);
-            """.trimIndent()
+        private const val QUICKJS_ASSET_DIR = "walletkit/quickjs/"
+        private const val DEFAULT_BUNDLE_ASSET = QUICKJS_ASSET_DIR + "index.js"
+        private const val BOOTSTRAP_SCRIPT_ASSET = QUICKJS_ASSET_DIR + "bootstrap.js"
+        private const val ENVIRONMENT_SHIM_ASSET = QUICKJS_ASSET_DIR + "environment.js"
+        private const val TEXT_ENCODING_ASSET = QUICKJS_ASSET_DIR + "text-encoding.js"
 
         private fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()
             .followRedirects(true)
             .followSslRedirects(true)
             .retryOnConnectionFailure(true)
+            .readTimeout(0, java.util.concurrent.TimeUnit.SECONDS) // Disable read timeout for EventSource
             .build()
+    }
+}
+
+// Unified Native Host for QuickJS
+// Final attempt: Regular class, no constructor params, instance methods (not static)
+// Let QuickJS create its own instance via reflection
+class QuickJsNativeHost {
+    private val random = SecureRandom()
+
+    companion object {
+
+        var engine: QuickJsWalletKitEngine? = null
+    }
+
+    // ============ Bridge Methods ============
+    fun postMessage(json: String) {
+        val eng = engine ?: return
+        try {
+            // Check if this is a formatted log message (starts with [level])
+            if (json.startsWith("[") && json.contains("]")) {
+                val closeBracket = json.indexOf(']')
+                if (closeBracket > 0 && closeBracket < 20) {
+                    val level = json.substring(1, closeBracket)
+                    val message = json.substring(closeBracket + 1).trim()
+                    when (level) {
+                        "error" -> Log.e(eng.logTag, message)
+                        "warn" -> Log.w(eng.logTag, message)
+                        "info" -> Log.i(eng.logTag, message)
+                        "debug" -> Log.d(eng.logTag, message)
+                        else -> Log.d(eng.logTag, json)
+                    }
+                    return
+                }
+            }
+
+            // Try parsing as JSON
+            val payload = JSONObject(json)
+            val kind = payload.optString("kind")
+
+            when (kind) {
+                "ready" -> eng.handleReady(payload)
+                "event" -> payload.optJSONObject("event")?.let { eng.handleEvent(it) }
+                "response" -> eng.handleResponse(payload.optString("id"), payload)
+            }
+        } catch (err: JSONException) {
+            Log.d(eng.logTag, "Non-JSON message from QuickJS: ${json.take(200)}")
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "NativeHost.postMessage error", err)
+        }
+    }
+
+    // ============ Console Methods ============
+
+    fun consoleLog(message: String) {
+        postMessage(message)
+    }
+
+    // ============ Base64 Methods ============
+
+    fun base64Encode(value: String): String = try {
+        val bytes = value.toByteArray(Charsets.ISO_8859_1)
+        Base64.encodeToString(bytes, Base64.NO_WRAP)
+    } catch (err: Throwable) {
+        engine?.logTag?.let { Log.w(it, "base64Encode failed: ${err.message}") }
+        ""
+    }
+
+    fun base64Decode(value: String): String {
+        return try {
+            if (value.isBlank()) return ""
+            val bytes = Base64.decode(value, Base64.NO_WRAP)
+            String(bytes, Charsets.ISO_8859_1)
+        } catch (err: Throwable) {
+            engine?.logTag?.let { Log.w(it, "base64Decode failed: ${err.message}") }
+            ""
+        }
+    }
+
+    // ============ Crypto Methods ============
+
+    fun cryptoRandomBytes(lengthStr: String): String {
+        Log.d("QuickJsNativeHost", "cryptoRandomBytes called with: $lengthStr")
+        val eng = engine
+        if (eng == null) {
+            Log.e("QuickJsNativeHost", "engine is null!")
+            return ""
+        }
+        Log.d(eng.logTag, "cryptoRandomBytes: engine is set, processing...")
+        return try {
+            val length = lengthStr.toIntOrNull() ?: 32
+            Log.d(eng.logTag, "cryptoRandomBytes parsed length: $length")
+            val buffer = ByteArray(length.coerceAtLeast(0))
+            random.nextBytes(buffer)
+            val result = Base64.encodeToString(buffer, Base64.NO_WRAP)
+            Log.d(eng.logTag, "cryptoRandomBytes returning ${result.length} chars")
+            result
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "cryptoRandomBytes error", err)
+            ""
+        }
+    }
+
+    fun cryptoRandomUuid(): String = try {
+        UUID.randomUUID().toString()
+    } catch (err: Throwable) {
+        engine?.logTag?.let { Log.e(it, "cryptoRandomUuid error", err) }
+        ""
+    }
+
+    fun cryptoPbkdf2Sha512(keyBase64: String, saltBase64: String, iterations: Int, keyLen: Int): String {
+        val eng = engine ?: return ""
+        Log.d(eng.logTag, "cryptoPbkdf2Sha512 called: iterations=$iterations, keyLen=$keyLen")
+        return try {
+            val key = Base64.decode(keyBase64, Base64.NO_WRAP)
+            val salt = Base64.decode(saltBase64, Base64.NO_WRAP)
+
+            val spec = javax.crypto.spec.PBEKeySpec(
+                String(key, Charsets.UTF_8).toCharArray(),
+                salt,
+                iterations,
+                keyLen * 8,
+            )
+            val factory = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
+            val derived = factory.generateSecret(spec).encoded
+
+            val result = Base64.encodeToString(derived, Base64.NO_WRAP)
+            Log.d(eng.logTag, "cryptoPbkdf2Sha512 success, result length=${result.length}")
+            result
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "cryptoPbkdf2Sha512 error", err)
+            ""
+        }
+    }
+
+    fun cryptoHmacSha512(keyBase64: String, dataBase64: String): String {
+        val eng = engine ?: return ""
+        return try {
+            val key = Base64.decode(keyBase64, Base64.NO_WRAP)
+            val data = Base64.decode(dataBase64, Base64.NO_WRAP)
+
+            val mac = javax.crypto.Mac.getInstance("HmacSHA512")
+            val secretKey = javax.crypto.spec.SecretKeySpec(key, "HmacSHA512")
+            mac.init(secretKey)
+            val result = mac.doFinal(data)
+
+            Base64.encodeToString(result, Base64.NO_WRAP)
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "cryptoHmacSha512 error", err)
+            ""
+        }
+    }
+
+    fun cryptoSha256(dataBase64: String): String {
+        val eng = engine ?: return ""
+        return try {
+            val data = Base64.decode(dataBase64, Base64.NO_WRAP)
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            val result = digest.digest(data)
+            Base64.encodeToString(result, Base64.NO_WRAP)
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "cryptoSha256 error", err)
+            ""
+        }
+    }
+
+    // ============ Timer Methods ============
+
+    fun timerRequest(paramsJson: String): String {
+        val eng = engine ?: return "-1"
+        return try {
+            val params = JSONObject(paramsJson)
+            val delayMs = params.optDouble("delay", 0.0)
+            val repeat = params.optBoolean("repeat", false)
+            eng.nativeTimers.request(delayMs, repeat).toString()
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "timerRequest error", err)
+            "-1"
+        }
+    }
+
+    fun timerClear(idStr: String) {
+        val eng = engine ?: return
+        try {
+            val id = idStr.toIntOrNull() ?: return
+            eng.nativeTimers.clear(id)
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "timerClear error", err)
+        }
+    }
+
+    // ============ Fetch Methods ============
+
+    fun fetchPerform(requestJson: String): String {
+        val eng = engine ?: return "-1"
+        return try {
+            eng.nativeFetch.perform(requestJson).toString()
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "fetchPerform error", err)
+            val requestId = eng.fetchIdGenerator.getAndIncrement()
+            eng.deliverFetchError(requestId, err.message ?: "Fetch request failed")
+            requestId.toString()
+        }
+    }
+
+    fun fetchAbort(idStr: String) {
+        val eng = engine ?: return
+        try {
+            val id = idStr.toIntOrNull() ?: return
+            eng.nativeFetch.abort(id)
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "fetchAbort error", err)
+        }
+    }
+
+    // ============ EventSource Methods ============
+
+    fun eventSourceOpen(paramsJson: String): String {
+        val eng = engine ?: return "-1"
+        return try {
+            val params = JSONObject(paramsJson)
+            val url = params.optString("url")
+            val withCredentials = params.optBoolean("withCredentials", false)
+            eng.nativeEventSource.open(url, withCredentials).toString()
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "eventSourceOpen error", err)
+            val id = eng.eventSourceIdGenerator.getAndIncrement()
+            eng.deliverEventSourceError(id, err.message ?: "EventSource open failed")
+            eng.deliverEventSourceClosed(id, err::class.java.simpleName)
+            id.toString()
+        }
+    }
+
+    fun eventSourceClose(idStr: String) {
+        val eng = engine ?: return
+        try {
+            val id = idStr.toIntOrNull() ?: return
+            eng.nativeEventSource.close(id)
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "eventSourceClose error", err)
+        }
+    }
+
+    // ============ LocalStorage Methods ============
+
+    fun localStorageGetItem(key: String): String? {
+        val eng = engine ?: return null
+        return try {
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            prefs.getString(key, null)
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "localStorageGetItem error", err)
+            null
+        }
+    }
+
+    fun localStorageSetItem(key: String, value: String) {
+        val eng = engine ?: return
+        try {
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            prefs.edit().putString(key, value).apply()
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "localStorageSetItem error", err)
+        }
+    }
+
+    fun localStorageRemoveItem(key: String) {
+        val eng = engine ?: return
+        try {
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            prefs.edit().remove(key).apply()
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "localStorageRemoveItem error", err)
+        }
+    }
+
+    fun localStorageClear() {
+        val eng = engine ?: return
+        try {
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            prefs.edit().clear().apply()
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "localStorageClear error", err)
+        }
+    }
+
+    fun localStorageKey(index: Int): String? {
+        val eng = engine ?: return null
+        return try {
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            val keys = prefs.all.keys.toList()
+            if (index >= 0 && index < keys.size) keys[index] else null
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "localStorageKey error", err)
+            null
+        }
+    }
+
+    fun localStorageLength(): Int {
+        val eng = engine ?: return 0
+        return try {
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            prefs.all.size
+        } catch (err: Throwable) {
+            Log.e(eng.logTag, "localStorageLength error", err)
+            0
+        }
     }
 }
