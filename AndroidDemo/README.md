@@ -54,29 +54,29 @@ Native Compose demo showcasing the dual-engine WalletKit architecture. The proje
 - Android Studio Hedgehog (2023.1.1) or later
 - JDK 17 or later
 - Android SDK with API 24+ (minSdk 24, compileSdk 36)
-- Android NDK 25+ (for QuickJS native compilation)
-- Node.js 18+ and pnpm
+- Android NDK 25+ (automatically installed)
+- Node.js 18+ and pnpm (only for building from source)
 
 ### Quick Start
 
-1. **Build JavaScript bundles** (from repository root `kit/`):
-   ```bash
-   pnpm -w --filter androidkit install
-   pnpm -w --filter androidkit build:all
-   ```
-
-2. **Open in Android Studio**:
+1. **Open in Android Studio**:
    - File → Open → Select `AndroidDemo/`
    - Wait for Gradle sync
    - Run `app` configuration on API 24+ device/emulator
 
-3. **Or build from command line**:
+2. **Or build from command line**:
    ```bash
    cd AndroidDemo
    ./gradlew :app:installDebug
    ```
 
-The `preBuild` task automatically builds and copies bundles into assets. First build takes 2-5 minutes.
+**What happens automatically**: The bridge module's `preBuild` task:
+- Builds JavaScript bundles via `pnpm run --filter androidkit build:all`
+- Copies bundles into `bridge/src/main/assets/walletkit/`
+- Packages them into the bridge AAR
+- App module inherits assets from bridge dependency
+
+First build takes 2-5 minutes.
 
 ### Demo Features
 

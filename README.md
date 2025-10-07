@@ -78,43 +78,63 @@ apps/androidkit/
 
 ## Quick Start
 
+### For SDK Users (Partners)
+
+To integrate WalletKit into your Android app:
+
+1. **Add the AAR dependencies** to your `build.gradle.kts`:
+   ```kotlin
+   dependencies {
+       implementation(files("libs/bridge-release.aar"))
+       implementation(files("libs/storage-release.aar"))
+       // Add required transitive dependencies (see INTEGRATION.md)
+   }
+   ```
+
+2. **That's it!** The JavaScript bundles are automatically included in the AAR. See [INTEGRATION.md](INTEGRATION.md) for full usage guide.
+
+### For SDK Developers (Building from Source)
+
 1. **Install JS dependencies**
    ```bash
    pnpm -w --filter androidkit install
    ```
-2. **Build both adapter bundles** (WebView and QuickJS)
-   ```bash
-   pnpm -w --filter androidkit run build:all
-   ```
-   - WebView bundle lands in `apps/androidkit/dist-android/` (HTML + modular JS)
-   - QuickJS bundle emits to `apps/androidkit/dist-android-quickjs/walletkit.quickjs.js` (single-file)
-3. **Build the Android bridge module** (produces `.aar` with both engines + native libraries)
+
+2. **Build the bridge AAR** (automatically builds and includes JS bundles)
    ```bash
    cd AndroidDemo
    ./gradlew :bridge:assembleDebug :storage:assembleDebug
    ```
-   Use `assembleRelease` for production-ready `.aar` artifacts.
-4. **Run the demo app**
+   
+   **What happens**: The bridge module's `preBuild` task automatically:
+   - Runs `pnpm run --filter androidkit build:all` to build both JS bundles
+   - Copies WebView bundle to `bridge/src/main/assets/walletkit/`
+   - Copies QuickJS bundle to `bridge/src/main/assets/walletkit/quickjs/`
+   - Packages everything into the AAR
+
+3. **Run the demo app**
    ```bash
    ./gradlew :app:assembleDebug
    ```
-   or open the project in Android Studio and run the `app` configuration on an API 24+ emulator/device.
+   or open in Android Studio and run the `app` configuration.
 
-### Alternative: Build bundles separately
+### Build Bundles Separately (Optional)
 
-```bash
-pnpm -w --filter androidkit run build            # WebView bundle only
-pnpm -w --filter androidkit run build:quickjs    # QuickJS bundle only
-```
-
-### Optional verification
+If you want to build bundles without assembling the AAR:
 
 ```bash
-./gradlew :bridge:connectedDebugAndroidTest   # Exercises the QuickJS bridge on a device/emulator
-pnpm -w --filter androidkit run copy:demo     # Manually sync bundles into demo app assets
+pnpm -w --filter androidkit run build:all       # Both bundles
+pnpm -w --filter androidkit run build            # WebView only
+pnpm -w --filter androidkit run build:quickjs    # QuickJS only
 ```
 
-**Note**: The app's Gradle build automatically runs `syncWalletKitWebViewAssets` and `syncWalletKitQuickJsAssets` during `preBuild`, so bundles are copied into assets automatically.
+**Output**:
+- WebView: `apps/androidkit/dist-android/` (HTML + modular JS)
+- QuickJS: `apps/androidkit/dist-android-quickjs/walletkit.quickjs.js`
+
+**Output**:
+- WebView: `apps/androidkit/dist-android/` (HTML + modular JS)
+- QuickJS: `apps/androidkit/dist-android-quickjs/walletkit.quickjs.js`
 
 ## Execution Engines
 
@@ -275,7 +295,7 @@ val engine: WalletKitEngine = when (preferredEngine) {
 }
 ```
 
-All higher-level SDK APIs remain unchanged. The demo app defaults to **QuickJS** for performance, with a performance comparison activity to benchmark both engines side-by-side.
+All higher-level SDK APIs remain unchanged. The demo app defaults to **WebView** for performance, with a performance comparison activity to benchmark both engines side-by-side.
 
 ## Bridge Architecture
 

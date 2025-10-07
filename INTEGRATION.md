@@ -17,69 +17,20 @@ WalletKit Android consists of three main components:
    - Interface for mnemonic/key management
    - Demo implementations (in-memory, SharedPreferences)
 
-## 1. Build & Bundle Workflow
+## 1. Integration Steps
 
 ### Prerequisites
-- Node.js 18+ and pnpm
+- Node.js 18+ and pnpm (only needed if building from source)
 - Android Studio Hedgehog or later
 - Android SDK with API 24+ (minSdk 24, targetSdk 36)
-- NDK 25+ (for QuickJS native compilation)
+- NDK 25+ (automatically installed by Android Studio)
 
-### Build JavaScript Bundles
+### Option A: Use Pre-built AAR (Recommended for Partners)
 
-From the repository root:
-
-```bash
-# Install dependencies
-pnpm -w --filter androidkit install
-
-# Build both bundles (recommended)
-pnpm -w --filter androidkit build:all
-
-# Or build separately:
-pnpm -w --filter androidkit build            # WebView bundle only
-pnpm -w --filter androidkit build:quickjs    # QuickJS bundle only
-```
-
-**Output**:
-- WebView: `apps/androidkit/dist-android/` (index.html, assets/*.js, manifest.json)
-- QuickJS: `apps/androidkit/dist-android-quickjs/walletkit.quickjs.js`
-
-### Build Native Bridge
-
-```bash
-cd apps/androidkit/AndroidDemo
-
-# Debug AAR (for development)
-./gradlew :bridge:assembleDebug :storage:assembleDebug
-
-# Release AAR (for distribution)
-./gradlew :bridge:assembleRelease :storage:assembleRelease
-```
-
-**Output**:
-- `bridge/build/outputs/aar/bridge-debug.aar` (or `bridge-release.aar`)
-- `storage/build/outputs/aar/storage-debug.aar` (or `storage-release.aar`)
-
-Both AARs include:
-- WebView engine Kotlin code
-- QuickJS engine Kotlin code
-- Native libraries (`libwalletkitquickjs.so`) for all ABIs: arm64-v8a, armeabi-v7a, x86, x86_64
-
-### Integrate into Your App
-
-1. **Copy bundles to your app's assets**:
-   ```bash
-   # From apps/androidkit/
-   mkdir -p YourApp/src/main/assets/walletkit
-   cp -R dist-android/* YourApp/src/main/assets/walletkit/
-   mkdir -p YourApp/src/main/assets/walletkit/quickjs
-   cp dist-android-quickjs/walletkit.quickjs.js YourApp/src/main/assets/walletkit/quickjs/index.js
-   ```
-
-2. **Add AAR dependencies** in your app's `build.gradle.kts`:
+1. **Add AAR dependencies** to your app's `build.gradle.kts`:
    ```kotlin
    dependencies {
+       // WalletKit SDK modules
        implementation(files("libs/bridge-release.aar"))
        implementation(files("libs/storage-release.aar"))
        
@@ -92,26 +43,58 @@ Both AARs include:
    }
    ```
 
-3. **Automate bundle sync** (optional but recommended):
-   ```kotlin
-   // In your app/build.gradle.kts
-   val walletKitDistDir = file("path/to/androidkit/dist-android")
-   val walletKitQuickJsDistDir = file("path/to/androidkit/dist-android-quickjs")
-   
-   val syncWalletKitAssets = tasks.register<Copy>("syncWalletKitAssets") {
-       from(walletKitDistDir)
-       into(layout.projectDirectory.dir("src/main/assets/walletkit"))
-       
-       from(walletKitQuickJsDistDir) {
-           include("walletkit.quickjs.js")
-           rename { "index.js" }
-       }.into(layout.projectDirectory.dir("src/main/assets/walletkit/quickjs"))
-   }
-   
-   tasks.named("preBuild").configure {
-       dependsOn(syncWalletKitAssets)
-   }
-   ```
+2. **Sync Gradle** and you're ready to use WalletKit!
+
+**That's it!** The JavaScript bundles are automatically included in the `bridge.aar` assets, so no manual copying is needed.
+
+### Option B: Build from Source (For Development)
+
+If you want to modify the SDK or build it yourself:
+
+#### 1. Build JavaScript Bundles
+
+From the repository root:
+
+```bash
+# Install dependencies
+pnpm -w --filter androidkit install
+
+# Build both bundles
+pnpm -w --filter androidkit build:all
+```
+
+**Output**:
+- WebView: `apps/androidkit/dist-android/` (index.html, assets/*.js, manifest.json)
+- QuickJS: `apps/androidkit/dist-android-quickjs/walletkit.quickjs.js`
+
+#### 2. Build Bridge AAR
+
+The bridge module automatically builds and includes the JavaScript bundles:
+
+```bash
+cd apps/androidkit/AndroidDemo
+
+# Debug AAR (for development)
+./gradlew :bridge:assembleDebug :storage:assembleDebug
+
+# Release AAR (for distribution)
+./gradlew :bridge:assembleRelease :storage:assembleRelease
+```
+
+**What happens automatically**:
+1. `preBuild` task triggers bundle build via `pnpm run --filter androidkit build:all`
+2. Bundles are copied into `bridge/src/main/assets/walletkit/`
+3. Assets are packaged inside the AAR during assembly
+
+**Output**:
+- `bridge/build/outputs/aar/bridge-debug.aar` (or `bridge-release.aar`)
+- `storage/build/outputs/aar/storage-debug.aar` (or `storage-release.aar`)
+
+The bridge AAR includes:
+- ✅ JavaScript bundles (WebView HTML/JS + QuickJS single-file)
+- ✅ WebView engine Kotlin code
+- ✅ QuickJS engine Kotlin code
+- ✅ Native libraries (`libwalletkitquickjs.so`) for arm64-v8a, armeabi-v7a, x86, x86_64
 
 ## 2. Engine Selection & Initialization
 

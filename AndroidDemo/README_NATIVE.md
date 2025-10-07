@@ -141,11 +141,6 @@ apps/androidkit/
     
     app/                  # Demo application
       src/main/
-        assets/walletkit/                     # Copied JS bundles
-          ├── index.html                      # WebView entry point
-          ├── assets/*.js                     # WebView bundle modules
-          └── quickjs/
-              └── index.js                    # QuickJS single-file bundle
         java/io/ton/walletkit/demo/
           ├── WalletKitDemoApp.kt             # Application class (engine factory)
           ├── WalletKitViewModel.kt           # Main ViewModel (wallet state)
@@ -156,7 +151,17 @@ apps/androidkit/
               ├── PerformanceActivity.kt      # Performance comparison UI
               └── screen/                     # Compose screens
         res/                                  # Android resources
-      build.gradle.kts                        # App build config (auto-copies bundles)
+      build.gradle.kts                        # App build config
+```
+
+**Note**: JavaScript bundles are packaged inside the `bridge` AAR's assets. The bridge module's `preBuild` task automatically:
+1. Runs `pnpm run --filter androidkit build:all` to build both JS bundles
+2. Copies WebView bundle to `bridge/src/main/assets/walletkit/`
+3. Copies QuickJS bundle to `bridge/src/main/assets/walletkit/quickjs/`
+4. Packages them in the AAR during assembly
+
+Partners just add the AAR dependency - no manual asset copying needed!
+
 ```
 
 ## Components
