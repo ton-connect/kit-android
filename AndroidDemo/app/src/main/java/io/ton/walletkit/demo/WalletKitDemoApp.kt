@@ -11,9 +11,10 @@ import io.ton.walletkit.storage.impl.DebugSharedPrefsStorage
 class WalletKitDemoApp : Application() {
     val defaultEngineKind: WalletKitEngineKind = WalletKitEngineKind.WEBVIEW
 
+    @Suppress("DEPRECATION") // QuickJS kept for PerformanceActivity benchmarking only
     fun obtainEngine(kind: WalletKitEngineKind = defaultEngineKind): WalletKitEngine = when (kind) {
         WalletKitEngineKind.WEBVIEW -> WebViewWalletKitEngine(this)
-        WalletKitEngineKind.QUICKJS -> QuickJsWalletKitEngine(this)
+        WalletKitEngineKind.QUICKJS -> QuickJsWalletKitEngine(this) // Deprecated but kept for comparison
     }
 
     val storage: WalletKitStorage by lazy {

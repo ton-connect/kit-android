@@ -1,6 +1,6 @@
 declare module '@ton/walletkit' {
   export const TonWalletKit: any;
-  export const WalletInitConfigMnemonic: any;
+  export const createWalletInitConfigMnemonic: any;
 }
 
 declare module 'whatwg-url';

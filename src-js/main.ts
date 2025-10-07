@@ -57,8 +57,8 @@ const api = {
   async addWalletFromMnemonic(args: { words: string[]; version: 'v5r1' | 'v4r2'; network?: 'mainnet' | 'testnet' }) {
     if (!walletKit) throw new Error('not initialized');
   // @ts-ignore ambient type
-  const { WalletInitConfigMnemonic } = await import('@ton/walletkit');
-    const config = new WalletInitConfigMnemonic({
+  const { createWalletInitConfigMnemonic } = await import('@ton/walletkit');
+    const config = createWalletInitConfigMnemonic({
       mnemonic: args.words,
       version: args.version,
       mnemonicType: 'ton',

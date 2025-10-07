@@ -1,17 +1,20 @@
 # Android WalletKit Integration Guide
 
-This guide explains how to integrate WalletKit Android into your application. The SDK provides a dual-engine architecture supporting both WebView and QuickJS runtimes, giving you flexibility to choose based on your app's requirements.
+> **⚠️ QUICKJS DEPRECATION NOTICE**: As of October 2025, the QuickJS engine is **deprecated** due to performance issues (2x slower than WebView). **Use WebView for all production applications.** QuickJS documentation is preserved for reference only.
+
+This guide explains how to integrate WalletKit Android into your application. The SDK provides WebView as the primary runtime, with a deprecated QuickJS option preserved for potential future optimization experiments.
 
 ## Architecture Overview
 
 WalletKit Android consists of three main components:
 
 1. **JavaScript Bundles** (`src-js/`): TypeScript/JavaScript code built with Vite
-   - WebView bundle: Modular HTML + JS for browser environment
-   - QuickJS bundle: Single-file JS with all dependencies bundled
+   - WebView bundle: Modular HTML + JS for browser environment ✅ **RECOMMENDED**
+   - QuickJS bundle: Single-file JS ⚠️ **DEPRECATED** (preserved for reference)
 2. **Native Bridge** (`bridge/`): Kotlin + C++ module packaged as AAR
-   - `WalletKitEngine` interface with WebView and QuickJS implementations
-   - Native QuickJS runtime (quickjs-ng v0.10.1)
+   - `WalletKitEngine` interface with WebView implementation ✅ **ACTIVELY MAINTAINED**
+   - QuickJS implementation ⚠️ **DEPRECATED** (no longer maintained)
+   - Native QuickJS runtime (quickjs-ng v0.10.1) ⚠️ **DEPRECATED**
    - Polyfill backends for fetch, timers, EventSource
 3. **Storage** (`storage/`): Pluggable persistence layer
    - Interface for mnemonic/key management
@@ -64,8 +67,8 @@ pnpm -w --filter androidkit build:all
 ```
 
 **Output**:
-- WebView: `apps/androidkit/dist-android/` (index.html, assets/*.js, manifest.json)
-- QuickJS: `apps/androidkit/dist-android-quickjs/walletkit.quickjs.js`
+- WebView: `apps/androidkit/dist-android/` (index.html, assets/*.js, manifest.json) ✅
+- QuickJS: `apps/androidkit/dist-android-quickjs/walletkit.quickjs.js` ⚠️ **DEPRECATED**
 
 #### 2. Build Bridge AAR
 
@@ -91,16 +94,71 @@ cd apps/androidkit/AndroidDemo
 - `storage/build/outputs/aar/storage-debug.aar` (or `storage-release.aar`)
 
 The bridge AAR includes:
-- ✅ JavaScript bundles (WebView HTML/JS + QuickJS single-file)
-- ✅ WebView engine Kotlin code
-- ✅ QuickJS engine Kotlin code
-- ✅ Native libraries (`libwalletkitquickjs.so`) for arm64-v8a, armeabi-v7a, x86, x86_64
+- ✅ JavaScript bundles (WebView HTML/JS + QuickJS single-file for compatibility)
+- ✅ WebView engine Kotlin code **[ACTIVELY MAINTAINED]**
+- ⚠️ QuickJS engine Kotlin code **[DEPRECATED - preserved for reference]**
+- ⚠️ Native libraries (`libwalletkitquickjs.so`) **[DEPRECATED - no longer maintained]**
 
 ## 2. Engine Selection & Initialization
 
-### Choosing an Engine
+### Recommended: WebView Engine Only
 
-#### WebView Engine (`WebViewWalletKitEngine`)
+**For all production applications, use WebView:**
+
+### Recommended: WebView Engine Only
+
+**For all production applications, use WebView:**
+
+```kotlin
+import io.ton.walletkit.bridge.*
+import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+
+class YourApplication : Application() {
+    lateinit var walletEngine: WalletKitEngine
+    
+    override fun onCreate() {
+        super.onCreate()
+        
+        // Use WebView - the only recommended engine
+        walletEngine = WebViewWalletKitEngine(this)
+        
+        // Initialize in background
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val config = WalletKitBridgeConfig(
+                    network = "testnet", // or "mainnet"
+                    apiBaseUrl = "https://testnet.tonapi.io",
+                    tonApiKey = "YOUR_API_KEY" // optional
+                )
+                walletEngine.init(config)
+                Log.i("WalletKit", "Engine initialized successfully")
+            } catch (e: Exception) {
+                Log.e("WalletKit", "Initialization failed", e)
+            }
+        }
+    }
+    
+    override fun onTerminate() {
+        super.onTerminate()
+        // Clean up engine resources
+        CoroutineScope(Dispatchers.IO).launch {
+            walletEngine.destroy()
+        }
+    }
+}
+```
+
+---
+
+## DEPRECATED: Engine Comparison Reference
+
+> **⚠️ The following sections document the deprecated QuickJS engine. Do not use QuickJS in production. This information is preserved for historical reference and potential future optimization experiments only.**
+
+### Choosing an Engine (DEPRECATED DECISION - USE WEBVIEW)
+
+#### WebView Engine (`WebViewWalletKitEngine`) — ✅ **RECOMMENDED**
 
 **Use WebView when:**
 - **Performance is critical**: 2x faster cold start (917ms vs 1881ms average)
@@ -120,7 +178,9 @@ The bridge AAR includes:
 
 **Polyfills needed**: 6 (TextEncoder, Buffer, URL, URLSearchParams, AbortController, fetch fallback)
 
-#### QuickJS Engine (`QuickJsWalletKitEngine`)
+#### QuickJS Engine (`QuickJsWalletKitEngine`) — ⚠️ **DEPRECATED - DO NOT USE**
+
+> **DEPRECATED**: This engine is 2x slower than WebView (1881ms vs 917ms cold start) and is no longer maintained. Code preserved for potential future optimization experiments only. **Do not use in production under any circumstances.**
 
 **Use QuickJS when:**
 - **Memory is critical**: ~2-4MB footprint vs WebView's ~20-30MB (5-10x smaller)
@@ -165,19 +225,22 @@ The bridge AAR includes:
 
 ### Recommendation Summary
 
-**Choose WebView** for most production apps (recommended):
-- 2x faster cold start (critical for UX)
-- Better wallet operation performance (Init, Add Wallet)
-- Simpler architecture, smaller APK, easier debugging
-- Trade-offs: higher memory usage (~20-30MB)
+**Use WebView for all applications. QuickJS is deprecated.**
 
-**Choose QuickJS** for:
-- Memory-constrained devices or apps (2-4MB vs 20-30MB)
-- Background/headless execution requirements
-- Apps needing WebView independence
-- Trade-offs: 2x slower cold start, larger APK, native code complexity
+WebView is the only supported engine:
+- ✅ 2x faster cold start (917ms vs 1881ms)
+- ✅ Better wallet operation performance
+- ✅ Simpler architecture, smaller APK
+- ✅ Actively maintained and supported
+- ✅ Chrome DevTools debugging
 
-### Basic Initialization
+**Do not use QuickJS.** Even for memory-constrained scenarios, the 2x performance penalty is unacceptable. Modern Android devices handle WebView's memory footprint without issue.
+
+---
+
+### Basic Initialization (DEPRECATED - SEE ABOVE FOR CURRENT GUIDANCE)
+
+> **⚠️ The example below shows QuickJS which is deprecated. Use `WebViewWalletKitEngine` instead as shown in the recommended section above.**
 
 ```kotlin
 import io.ton.walletkit.bridge.*

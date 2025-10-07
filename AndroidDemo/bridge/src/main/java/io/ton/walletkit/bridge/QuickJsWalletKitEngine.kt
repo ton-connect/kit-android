@@ -52,7 +52,25 @@ import kotlin.jvm.java
 /**
  * QuickJS-backed implementation of [WalletKitEngine]. Executes the WalletKit JavaScript bundle
  * inside the embedded QuickJS runtime and bridges JSON-RPC calls/events to Kotlin.
+ *
+ * @deprecated QuickJS engine is deprecated as of October 2025 due to poor performance (2x slower than WebView).
+ * Use [WebViewWalletKitEngine] instead. This implementation is preserved for reference and potential
+ * future optimization experiments only. See QUICKJS_DEPRECATION.md for details.
+ *
+ * Performance comparison (cold start):
+ * - QuickJS: 1881ms average (slower crypto operations)
+ * - WebView: 917ms average (2x faster)
+ *
+ * Migration: Replace `QuickJsWalletKitEngine(context)` with `WebViewWalletKitEngine(context)`.
  */
+@Deprecated(
+    message = "QuickJS is 2x slower than WebView and is no longer maintained. Use WebViewWalletKitEngine instead.",
+    replaceWith = ReplaceWith(
+        "WebViewWalletKitEngine(context, assetPath, httpClient)",
+        "io.ton.walletkit.bridge.WebViewWalletKitEngine"
+    ),
+    level = DeprecationLevel.WARNING
+)
 class QuickJsWalletKitEngine(
     context: Context,
     private val assetPath: String = DEFAULT_BUNDLE_ASSET,
@@ -104,6 +122,11 @@ class QuickJsWalletKitEngine(
 
     @Volatile private var tonApiKey: String? = null
 
+    // Auto-initialization state
+    @Volatile private var isWalletKitInitialized = false
+    private val walletKitInitMutex = Mutex()
+    private var pendingInitConfig: WalletKitBridgeConfig? = null
+
     init {
         jsScope.launch {
             try {
@@ -140,7 +163,48 @@ class QuickJsWalletKitEngine(
         return Closeable { listeners.remove(listener) }
     }
 
-    override suspend fun init(config: WalletKitBridgeConfig): JSONObject {
+    /**
+     * Ensures WalletKit is initialized. If not already initialized, performs initialization
+     * with the provided config or defaults. This is called automatically by all public methods
+     * that require initialization, enabling auto-init behavior.
+     *
+     * @param config Configuration to use for initialization if not already initialized
+     */
+    private suspend fun ensureWalletKitInitialized(config: WalletKitBridgeConfig = WalletKitBridgeConfig()) {
+        // Fast path: already initialized
+        if (isWalletKitInitialized) {
+            return
+        }
+
+        walletKitInitMutex.withLock {
+            // Double-check after acquiring lock
+            if (isWalletKitInitialized) {
+                return@withLock
+            }
+
+            Log.d(logTag, "Auto-initializing WalletKit with config: network=${config.network}")
+            
+            // Use pending config if init was called explicitly, otherwise use provided config
+            val effectiveConfig = pendingInitConfig ?: config
+            pendingInitConfig = null
+
+            try {
+                performInitialization(effectiveConfig)
+                isWalletKitInitialized = true
+                Log.d(logTag, "WalletKit auto-initialization completed successfully")
+            } catch (err: Throwable) {
+                Log.e(logTag, "WalletKit auto-initialization failed", err)
+                throw WalletKitBridgeException(
+                    "Failed to auto-initialize WalletKit: ${err.message}"
+                )
+            }
+        }
+    }
+
+    /**
+     * Performs the actual initialization by calling the JavaScript init method.
+     */
+    private suspend fun performInitialization(config: WalletKitBridgeConfig) {
         currentNetwork = config.network
         val tonClientEndpoint =
             config.tonClientEndpoint?.ifBlank { null }
@@ -148,6 +212,7 @@ class QuickJsWalletKitEngine(
                 ?: defaultTonClientEndpoint(config.network)
         apiBaseUrl = config.tonApiUrl?.ifBlank { null } ?: defaultTonApiBase(config.network)
         tonApiKey = config.apiKey
+
         val payload =
             JSONObject().apply {
                 put("network", config.network)
@@ -159,7 +224,22 @@ class QuickJsWalletKitEngine(
                 config.allowMemoryStorage?.let { put("allowMemoryStorage", it) }
                 tonApiKey?.let { put("apiKey", it) }
             }
-        return call("init", payload)
+
+        call("init", payload)
+    }
+
+    override suspend fun init(config: WalletKitBridgeConfig): JSONObject {
+        // Store config for use during auto-init if this is called before any other method
+        walletKitInitMutex.withLock {
+            if (!isWalletKitInitialized) {
+                pendingInitConfig = config
+            }
+        }
+        
+        // Ensure initialization happens with this config
+        ensureWalletKitInitialized(config)
+        
+        return JSONObject().apply { put("ok", true) }
     }
 
     override suspend fun addWalletFromMnemonic(
@@ -167,6 +247,7 @@ class QuickJsWalletKitEngine(
         version: String,
         network: String?,
     ): JSONObject {
+        ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("words", JSONArray(words))
@@ -177,6 +258,7 @@ class QuickJsWalletKitEngine(
     }
 
     override suspend fun getWallets(): List<WalletAccount> {
+        ensureWalletKitInitialized()
         Log.d(logTag, "getWallets() called")
         val result = call("getWallets")
         Log.d(logTag, "getWallets result: $result")
@@ -198,7 +280,17 @@ class QuickJsWalletKitEngine(
         }
     }
 
+    override suspend fun removeWallet(address: String): JSONObject {
+        ensureWalletKitInitialized()
+        Log.d(logTag, "removeWallet called for address: $address")
+        val params = JSONObject().apply { put("address", address) }
+        val result = call("removeWallet", params)
+        Log.d(logTag, "removeWallet result: $result")
+        return result
+    }
+
     override suspend fun getWalletState(address: String): WalletState {
+        ensureWalletKitInitialized()
         Log.d(logTag, "getWalletState called for address: $address")
         val params = JSONObject().apply { put("address", address) }
         Log.d(logTag, "getWalletState calling JavaScript...")
@@ -216,15 +308,46 @@ class QuickJsWalletKitEngine(
         )
     }
 
+    override suspend fun getRecentTransactions(address: String, limit: Int): JSONArray {
+        ensureWalletKitInitialized()
+        val params = JSONObject().apply {
+            put("address", address)
+            put("limit", limit)
+        }
+        val result = call("getRecentTransactions", params)
+        return result.optJSONArray("items") ?: JSONArray()
+    }
+
     override suspend fun handleTonConnectUrl(url: String): JSONObject {
+        ensureWalletKitInitialized()
         val params = JSONObject().apply { put("url", url) }
         return call("handleTonConnectUrl", params)
+    }
+
+    override suspend fun sendTransaction(
+        walletAddress: String,
+        recipient: String,
+        amount: String,
+        comment: String?,
+    ): JSONObject {
+        ensureWalletKitInitialized()
+        val params =
+            JSONObject().apply {
+                put("walletAddress", walletAddress)
+                put("toAddress", recipient)
+                put("amount", amount)
+                if (!comment.isNullOrBlank()) {
+                    put("comment", comment)
+                }
+            }
+        return call("sendTransaction", params)
     }
 
     override suspend fun approveConnect(
         requestId: Any,
         walletAddress: String,
     ): JSONObject {
+        ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
@@ -237,6 +360,7 @@ class QuickJsWalletKitEngine(
         requestId: Any,
         reason: String?,
     ): JSONObject {
+        ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
@@ -246,6 +370,7 @@ class QuickJsWalletKitEngine(
     }
 
     override suspend fun approveTransaction(requestId: Any): JSONObject {
+        ensureWalletKitInitialized()
         val params = JSONObject().apply { put("requestId", requestId) }
         return call("approveTransactionRequest", params)
     }
@@ -254,6 +379,7 @@ class QuickJsWalletKitEngine(
         requestId: Any,
         reason: String?,
     ): JSONObject {
+        ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
@@ -263,6 +389,7 @@ class QuickJsWalletKitEngine(
     }
 
     override suspend fun approveSignData(requestId: Any): JSONObject {
+        ensureWalletKitInitialized()
         val params = JSONObject().apply { put("requestId", requestId) }
         return call("approveSignDataRequest", params)
     }
@@ -271,6 +398,7 @@ class QuickJsWalletKitEngine(
         requestId: Any,
         reason: String?,
     ): JSONObject {
+        ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
@@ -280,6 +408,7 @@ class QuickJsWalletKitEngine(
     }
 
     override suspend fun listSessions(): List<WalletSession> {
+        ensureWalletKitInitialized()
         val result = call("listSessions")
         val items = result.optJSONArray("items") ?: JSONArray()
         return buildList(items.length()) {
@@ -302,9 +431,15 @@ class QuickJsWalletKitEngine(
     }
 
     override suspend fun disconnectSession(sessionId: String?): JSONObject {
+        ensureWalletKitInitialized()
         val params = JSONObject()
         sessionId?.let { params.put("sessionId", it) }
         return call("disconnectSession", if (params.length() == 0) null else params)
+    }
+    
+    override suspend fun injectSignDataRequest(requestData: JSONObject): JSONObject {
+        ensureWalletKitInitialized()
+        return call("injectSignDataRequest", requestData)
     }
 
     override suspend fun destroy() {

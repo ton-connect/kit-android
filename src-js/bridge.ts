@@ -3,17 +3,17 @@ import type { WalletKitBridgeEvent, WalletKitBridgeInitConfig } from './types';
 const walletKitModulePromise = import('@ton/walletkit');
 
 let TonWalletKit: any;
-let WalletInitConfigMnemonic: any;
+let createWalletInitConfigMnemonic: any;
 let currentNetwork: 'mainnet' | 'testnet' = 'testnet';
 let currentApiBase = 'https://testnet.tonapi.io';
 
 async function ensureWalletKitLoaded() {
-  if (TonWalletKit && WalletInitConfigMnemonic) {
+  if (TonWalletKit && createWalletInitConfigMnemonic) {
     return;
   }
   const module = await walletKitModulePromise;
   TonWalletKit = (module as any).TonWalletKit;
-  WalletInitConfigMnemonic = (module as any).WalletInitConfigMnemonic;
+  createWalletInitConfigMnemonic = (module as any).createWalletInitConfigMnemonic;
 }
 
 type WalletKitApiMethod = keyof typeof api;
@@ -360,7 +360,7 @@ const api = {
     emitCallCheckpoint(context, 'addWalletFromMnemonic:after-ensureWalletKitLoaded');
     requireWalletKit();
     emitCallCheckpoint(context, 'addWalletFromMnemonic:after-requireWalletKit');
-    const config = new WalletInitConfigMnemonic({
+    const config = createWalletInitConfigMnemonic({
       mnemonic: args.words,
       version: args.version,
       mnemonicType: 'ton',

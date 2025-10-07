@@ -20,33 +20,25 @@ The demo includes **two activities** showcasing different aspects of the SDK:
   - Auto-refresh balance every 15 seconds
 
 ### PerformanceActivity – Engine Comparison
-- **Purpose**: Side-by-side performance benchmarking of WebView vs QuickJS engines
-- **Metrics measured**:
-  - Engine creation time
-  - `init()` call duration
-  - `addWalletFromMnemonic()` execution time
-  - `getWallets()` response time
-  - `getWalletState()` (balance fetch) duration
-  - Total end-to-end workflow time
-- **Features**:
-  - Run 1, 3, or 5 benchmark iterations per engine
-  - Real-time progress display
-  - Statistical summary (min/avg/max) for each operation
-  - Export results as CSV or plain text
-  - Copy to clipboard for analysis
+- **Purpose**: Historical performance benchmarking that led to QuickJS deprecation
+- **Result**: Demonstrated that WebView is 2x faster (917ms vs 1881ms cold start)
+- **Current use**: Reference tool for understanding why QuickJS was deprecated
+- **Note**: QuickJS remains functional for experimental optimization attempts
 
 ### Engine Selection
 Both activities use the engine specified in `WalletKitDemoApp.defaultEngineKind`:
 ```kotlin
-val defaultEngineKind: WalletKitEngineKind = WalletKitEngineKind.WebView
+val defaultEngineKind: WalletKitEngineKind = WalletKitEngineKind.WebView // RECOMMENDED
 ```
-Change to `QuickJS` to test the QuickJS engine.
+**Do not change to QuickJS** - it is deprecated and 2x slower.
 
 ## Project Layout
 
 # Android WalletKit Integration
 
-Android counterpart to the iOS WalletKit demo. It mirrors the MyTonWallet architecture with a modern dual-engine approach: JavaScript bundles exposing WalletKit Web APIs, a bridge library supporting both WebView and QuickJS runtimes, pluggable storage, and a Compose demo app with performance benchmarking.
+Android counterpart to the iOS WalletKit demo. It mirrors the MyTonWallet architecture with WebView as the primary runtime, plus a deprecated QuickJS option preserved for potential future optimization.
+
+> **⚠️ QUICKJS DEPRECATION NOTICE**: As of October 2025, QuickJS is **deprecated** due to performance issues (2x slower than WebView). **Use WebView for all production applications.** QuickJS code and documentation preserved for reference and potential future optimization only. See [QUICKJS_DEPRECATION.md](QUICKJS_DEPRECATION.md) for full details.
 
 ## Project Layout
 
@@ -58,20 +50,20 @@ apps/androidkit/
 │   ├── bridge.ts           # WalletKit wiring + JSON RPC handlers
 │   └── types.ts            # TypeScript type definitions
 ├── AndroidDemo/            # Gradle project with multiple modules
-│   ├── bridge/             # `walletkit-bridge` AAR (dual-engine architecture)
+│   ├── bridge/             # `walletkit-bridge` AAR
 │   │   ├── src/main/java/  # Kotlin bridge implementations
 │   │   │   ├── WalletKitEngine.kt          # Common engine interface
-│   │   │   ├── WebViewWalletKitEngine.kt   # WebView implementation
-│   │   │   └── QuickJsWalletKitEngine.kt   # QuickJS implementation
-│   │   └── src/main/cpp/   # Native QuickJS runtime (C++)
-│   │       ├── quickjs_bridge.cpp          # JNI bindings
-│   │       └── third_party/quickjs-ng/     # Embedded quickjs-ng v0.10.1
+│   │   │   ├── WebViewWalletKitEngine.kt   # WebView implementation ✅ RECOMMENDED
+│   │   │   └── QuickJsWalletKitEngine.kt   # QuickJS implementation ⚠️ DEPRECATED
+│   │   └── src/main/cpp/   # Native QuickJS runtime (C++) ⚠️ DEPRECATED
+│   │       ├── quickjs_bridge.cpp          # JNI bindings ⚠️ DEPRECATED
+│   │       └── third_party/quickjs-ng/     # Embedded quickjs-ng v0.10.1 ⚠️ DEPRECATED
 │   ├── storage/            # Pluggable storage abstraction (in-memory & SharedPrefs)
 │   └── app/                # Compose demo app with dual activities
-│       ├── ui/MainActivity.kt          # Main wallet demo
-│       └── ui/PerformanceActivity.kt   # Engine performance comparison
-├── dist-android/           # Generated WebView bundle (HTML + JS assets)
-├── dist-android-quickjs/   # Generated QuickJS single-file bundle
+│       ├── ui/MainActivity.kt          # Main wallet demo (uses WebView)
+│       └── ui/PerformanceActivity.kt   # Engine performance comparison (historical)
+├── dist-android/           # Generated WebView bundle (HTML + JS assets) ✅ ACTIVE
+├── dist-android-quickjs/   # Generated QuickJS single-file bundle ⚠️ DEPRECATED
 ├── INTEGRATION.md          # Detailed integration guide
 └── README.md               # This file
 ```
@@ -129,20 +121,22 @@ pnpm -w --filter androidkit run build:quickjs    # QuickJS only
 ```
 
 **Output**:
-- WebView: `apps/androidkit/dist-android/` (HTML + modular JS)
-- QuickJS: `apps/androidkit/dist-android-quickjs/walletkit.quickjs.js`
+- WebView: `apps/androidkit/dist-android/` (HTML + modular JS) ✅ **ACTIVE**
+- QuickJS: `apps/androidkit/dist-android-quickjs/walletkit.quickjs.js` ⚠️ **DEPRECATED**
 
-**Output**:
-- WebView: `apps/androidkit/dist-android/` (HTML + modular JS)
-- QuickJS: `apps/androidkit/dist-android-quickjs/walletkit.quickjs.js`
+**Note**: QuickJS bundle still generated for compatibility but should not be used.
 
 ## Execution Engines
 
-WalletKit Android ships **two interchangeable runtimes** behind a unified coroutine-based `WalletKitEngine` interface. Both engines execute the same JavaScript bundle and expose identical Kotlin APIs—the choice is purely operational.
+> **⚠️ DEPRECATION NOTICE**: The QuickJS engine is **deprecated** as of October 2025. Performance benchmarks showed it to be 2x slower than WebView for wallet operations (1881ms vs 917ms cold start). While the code remains available for future optimization experiments, **we strongly recommend using WebView for all production applications**. QuickJS-specific documentation is preserved below for reference only.
 
-### WebView Engine (`WebViewWalletKitEngine`)
+WalletKit Android ships **two interchangeable runtimes** behind a unified coroutine-based `WalletKitEngine` interface. **WebView is the recommended and actively maintained engine.** QuickJS remains available but is no longer under active development.
+
+### WebView Engine (`WebViewWalletKitEngine`) — **RECOMMENDED**
 
 **Runtime**: Loads the WalletKit bundle inside an invisible, headless `WebView`
+
+**Status**: ✅ **Actively maintained and recommended for all production use**
 
 **Communication**: JavaScript-to-Kotlin bridge via `WalletKitNative.postMessage` and `window.__walletkitCall`
 
@@ -170,9 +164,13 @@ WalletKit Android ships **two interchangeable runtimes** behind a unified corout
 **Polyfills needed**: 6 polyfills
 - `TextEncoder`, `Buffer`, `URL`, `URLSearchParams`, `AbortController`, fetch fallback
 
-### QuickJS Engine (`QuickJsWalletKitEngine`)
+### QuickJS Engine (`QuickJsWalletKitEngine`) — **⚠️ DEPRECATED**
+
+> **DEPRECATED**: This engine is 2x slower than WebView and is no longer maintained. Preserved for potential future optimization only. **Do not use in production.**
 
 **Runtime**: Embedded `quickjs-ng` v0.10.1 interpreter compiled from C++ sources
+
+**Status**: ⚠️ **Deprecated** - Not recommended for any use case. Code preserved for reference.
 
 **Communication**: JNI bindings in `quickjs_bridge.cpp` with JSON serialization
 
@@ -249,26 +247,18 @@ WalletKit Android ships **two interchangeable runtimes** behind a unified corout
 
 ### Recommendation
 
-- **Use WebView** if you need:
-  - **Fast cold start and wallet operations** (2x faster - critical for UX)
-  - Minimal APK size overhead
-  - Full Web API compatibility without polyfills
-  - Easier third-party JS library integration
-  - Simpler build process (no NDK)
-  - Chrome DevTools debugging
-  
-- **Use QuickJS** if you need:
-  - **Minimal memory footprint** (2-4MB vs 20-30MB - critical for resource-constrained devices)
-  - Background/headless execution
-  - Independence from system WebView versions
-  - Native integration via JNI (custom crypto, storage implementations)
-  - Sandboxed/offline execution
+**Use WebView for all applications.** It is:
+- ✅ 2x faster (917ms vs 1881ms cold start)
+- ✅ Simpler architecture (no NDK maintenance)
+- ✅ Smaller APK size (~0.04 MiB vs 3+ MiB)
+- ✅ Better developer experience (Chrome DevTools debugging)
+- ✅ Actively maintained and supported
 
-**General recommendation**: Use **WebView** for most production wallet apps. The 2x performance advantage, simpler architecture, and better developer experience outweigh the memory overhead. Only choose QuickJS if memory constraints are critical or you need background execution capabilities.
+**QuickJS is deprecated** and should not be used. Even for memory-constrained scenarios, the performance penalty (2x slower) outweighs the memory benefits (2-4MB vs 20-30MB). Modern Android devices can easily handle the WebView memory footprint.
 
 ### Architecture
 
-Both engines implement the same `WalletKitEngine` interface:
+Both engines implement the same `WalletKitEngine` interface. **WebView is the only actively maintained implementation.**
 
 ```kotlin
 interface WalletKitEngine {
@@ -283,19 +273,16 @@ interface WalletKitEngine {
 }
 ```
 
-### Switching Engines
+### Engine Selection
 
-Select your engine during initialization:
+**Use WebView for all applications:**
 
 ```kotlin
 // In your Application class or dependency injection setup
-val engine: WalletKitEngine = when (preferredEngine) {
-    WalletKitEngineKind.WEBVIEW -> WebViewWalletKitEngine(context)
-    WalletKitEngineKind.QUICKJS -> QuickJsWalletKitEngine(context)
-}
+val engine: WalletKitEngine = WebViewWalletKitEngine(context)
 ```
 
-All higher-level SDK APIs remain unchanged. The demo app defaults to **WebView** for performance, with a performance comparison activity to benchmark both engines side-by-side.
+The demo app uses WebView by default. PerformanceActivity allows comparing both engines for benchmark purposes only.
 
 ## Bridge Architecture
 
@@ -326,18 +313,21 @@ All higher-level SDK APIs remain unchanged. The demo app defaults to **WebView**
 ### Native Layer (Kotlin + C++)
 
 #### Common Interface
-- **`WalletKitEngine`**: Abstract interface for both engines
+- **`WalletKitEngine`**: Abstract interface for all engines
 - **`WalletKitEngineListener`**: Event callback interface
 - **Data models**: `WalletAccount`, `WalletState`, `WalletSession`, `WalletKitEvent`
 
-#### WebView Implementation
+#### WebView Implementation — ✅ **ACTIVELY MAINTAINED**
 - **`WebViewWalletKitEngine.kt`**: 
   - Hosts invisible WebView with `WebViewAssetLoader`
   - Loads `walletkit/index.html` from assets
   - Bidirectional bridge via `@JavascriptInterface` and `evaluateJavascript`
   - Chrome DevTools debugging enabled
 
-#### QuickJS Implementation
+#### QuickJS Implementation — ⚠️ **DEPRECATED**
+
+> **DEPRECATED**: The following QuickJS implementation details are preserved for reference only. Do not use in production.
+
 - **`QuickJsWalletKitEngine.kt`**:
   - Manages QuickJS runtime lifecycle
   - Implements polyfill backends:
@@ -375,13 +365,13 @@ All higher-level SDK APIs remain unchanged. The demo app defaults to **WebView**
 - **ProGuard/R8**: Add consumer ProGuard rules for AAR distribution
 - **Error handling**: Enhance error propagation and user-facing error messages
 - **Logging**: Implement structured logging and crash reporting
-- **Testing**: Expand instrumentation test coverage for both engines
+- **Testing**: Expand instrumentation test coverage for WebView engine
 
-### Performance Optimization
+### Performance Optimization (WebView Only)
 - **Bundle size**: Analyze and optimize JavaScript bundle size
-- **QuickJS tuning**: Experiment with memory limits and garbage collection settings
 - **Asset loading**: Implement asset caching and preloading strategies
 - **Background execution**: Optimize for Android Doze mode and background restrictions
+- ~~**QuickJS tuning**~~: ⚠️ QuickJS deprecated - focus on WebView optimization
 
 ### Documentation
 - Add API reference documentation (KDoc)
@@ -393,5 +383,32 @@ All higher-level SDK APIs remain unchanged. The demo app defaults to **WebView**
 - Publish bridge AAR to Maven Central or GitHub Packages
 - Version and release strategy aligned with WalletKit Web
 - Changelog and migration guides for breaking changes
+
+---
+
+## QuickJS Deprecation Summary
+
+As of October 2025, the QuickJS engine has been **deprecated** due to performance benchmarks showing it is **2x slower** than WebView for critical wallet operations. Key changes:
+
+✅ **What Remains**:
+- QuickJS code preserved in repository for potential future optimization
+- QuickJS bundle still generated for compatibility
+- All QuickJS documentation preserved for reference
+- PerformanceActivity available to compare engines
+
+⚠️ **What Changed**:
+- **No active maintenance** for QuickJS (WebView only)
+- **Not recommended** for any production use case
+- **All documentation updated** to recommend WebView
+- **No support commitment** for QuickJS users
+
+📋 **Action Required**:
+- **New projects**: Use `WebViewWalletKitEngine` 
+- **Existing QuickJS users**: Migrate to `WebViewWalletKitEngine` (one line change)
+- **Performance-sensitive apps**: WebView is 2x faster (917ms vs 1881ms cold start)
+
+📖 **Learn More**:
+- See [QUICKJS_DEPRECATION.md](QUICKJS_DEPRECATION.md) for full deprecation details
+- See [INTEGRATION.md](INTEGRATION.md) for WebView integration guide
 
 See [INTEGRATION.md](INTEGRATION.md) for deep integration notes and SOW alignment.
