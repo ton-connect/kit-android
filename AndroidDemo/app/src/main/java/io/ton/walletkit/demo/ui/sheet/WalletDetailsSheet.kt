@@ -141,7 +141,7 @@ fun WalletDetailsSheet(
                     }
 
                     wallet.transactions?.let { transactions ->
-                        if (transactions.length() > 0) {
+                        if (transactions.isNotEmpty()) {
                             HorizontalDivider()
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -154,7 +154,7 @@ fun WalletDetailsSheet(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Text(
-                                    text = "${transactions.length()} total",
+                                    text = "${transactions.size} total",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
                                 )

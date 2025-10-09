@@ -16,7 +16,7 @@ import kotlin.test.assertNull
 
 /**
  * Unit tests for SecureWalletKitStorage raw key-value methods.
- * 
+ *
  * These methods are used by SecureBridgeStorageAdapter to provide
  * storage for the bridge module.
  */
@@ -232,7 +232,7 @@ class SecureWalletKitStorageRawMethodsTest {
         // Verify updated one
         assertEquals(
             """[{"address":"EQD1"},{"address":"EQD2"}]""",
-            storage.getRawValue("bridge:wallets")
+            storage.getRawValue("bridge:wallets"),
         )
     }
 

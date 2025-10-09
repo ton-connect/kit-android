@@ -9,11 +9,9 @@ import io.ton.walletkit.storage.WalletKitStorage
 import io.ton.walletkit.storage.encryption.CryptoManager
 import io.ton.walletkit.storage.model.StoredBridgeConfig
 import io.ton.walletkit.storage.model.StoredSessionData
-import io.ton.walletkit.storage.model.StoredSessionHint
 import io.ton.walletkit.storage.model.StoredUserPreferences
 import io.ton.walletkit.storage.model.StoredWalletRecord
 import io.ton.walletkit.storage.util.toJson
-import io.ton.walletkit.storage.util.toStoredSessionHint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -77,8 +75,6 @@ class SecureWalletKitStorage(
     }
 
     private fun walletKey(accountId: String) = "wallet:$accountId"
-
-    private fun hintKey(key: String) = "hint:$key"
 
     override suspend fun saveWallet(
         accountId: String,
@@ -170,57 +166,6 @@ class SecureWalletKitStorage(
                 Log.d(TAG, "Wallet cleared: $accountId")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to clear wallet: $accountId", e)
-            }
-        }
-    }
-
-    override suspend fun saveSessionHint(
-        key: String,
-        hint: StoredSessionHint,
-    ) {
-        withContext(Dispatchers.IO) {
-            try {
-                // Validate and sanitize URLs
-                val sanitizedHint =
-                    StoredSessionHint(
-                        manifestUrl = hint.manifestUrl?.take(MAX_URL_LENGTH)?.let { sanitizeUrl(it) },
-                        dAppUrl = hint.dAppUrl?.take(MAX_URL_LENGTH)?.let { sanitizeUrl(it) },
-                        iconUrl = hint.iconUrl?.take(MAX_URL_LENGTH)?.let { sanitizeUrl(it) },
-                    )
-
-                encryptedPrefs.edit().putString(hintKey(key), sanitizedHint.toJson().toString()).apply()
-                Log.d(TAG, "Session hint saved: $key")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to save session hint: $key", e)
-            }
-        }
-    }
-
-    override suspend fun loadSessionHints(): Map<String, StoredSessionHint> {
-        return withContext(Dispatchers.IO) {
-            try {
-                encryptedPrefs.all
-                    .mapNotNull { (key, value) ->
-                        if (!key.startsWith("hint:")) return@mapNotNull null
-                        val hintKey = key.removePrefix("hint:")
-                        val hint = (value as? String)?.toStoredSessionHint()
-                        if (hint != null) hintKey to hint else null
-                    }
-                    .toMap()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to load session hints", e)
-                emptyMap()
-            }
-        }
-    }
-
-    override suspend fun clearSessionHint(key: String) {
-        withContext(Dispatchers.IO) {
-            try {
-                encryptedPrefs.edit().remove(hintKey(key)).apply()
-                Log.d(TAG, "Session hint cleared: $key")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to clear session hint: $key", e)
             }
         }
     }
@@ -627,15 +572,14 @@ class SecureWalletKitStorage(
      * @param key The storage key
      * @return The stored value, or null if not found
      */
-    suspend fun getRawValue(key: String): String? =
-        withContext(Dispatchers.IO) {
-            try {
-                encryptedPrefs.getString(key, null)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to get raw value: $key", e)
-                null
-            }
+    suspend fun getRawValue(key: String): String? = withContext(Dispatchers.IO) {
+        try {
+            encryptedPrefs.getString(key, null)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get raw value: $key", e)
+            null
         }
+    }
 
     /**
      * Set a raw value in encrypted storage (used by BridgeStorageAdapter).

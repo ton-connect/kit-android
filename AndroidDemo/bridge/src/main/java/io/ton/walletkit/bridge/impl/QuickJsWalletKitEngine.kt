@@ -1,14 +1,24 @@
-package io.ton.walletkit.bridge
+package io.ton.walletkit.bridge.impl
 
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import io.ton.walletkit.bridge.WalletKitBridgeException
+import io.ton.walletkit.bridge.WalletKitEngine
+import io.ton.walletkit.bridge.WalletKitEngineKind
 import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
-import io.ton.walletkit.bridge.listener.WalletKitEngineListener
+import io.ton.walletkit.bridge.event.WalletKitEvent
+import io.ton.walletkit.bridge.listener.WalletKitEventHandler
+import io.ton.walletkit.bridge.model.DAppInfo
+import io.ton.walletkit.bridge.model.SignDataResult
+import io.ton.walletkit.bridge.model.Transaction
+import io.ton.walletkit.bridge.model.TransactionType
 import io.ton.walletkit.bridge.model.WalletAccount
-import io.ton.walletkit.bridge.model.WalletKitEvent
 import io.ton.walletkit.bridge.model.WalletSession
 import io.ton.walletkit.bridge.model.WalletState
+import io.ton.walletkit.bridge.request.ConnectRequest
+import io.ton.walletkit.bridge.request.SignDataRequest
+import io.ton.walletkit.bridge.request.TransactionRequest
 import io.ton.walletkit.quickjs.QuickJs
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CompletableDeferred
@@ -23,12 +33,15 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import okio.Buffer
 import okio.BufferedSource
 import org.json.JSONArray
 import org.json.JSONException
@@ -36,6 +49,7 @@ import org.json.JSONObject
 import java.io.Closeable
 import java.io.IOException
 import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -45,12 +59,16 @@ import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import javax.crypto.Mac
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.SecretKeySpec
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.jvm.java
 
 /**
- * QuickJS-backed implementation of [WalletKitEngine]. Executes the WalletKit JavaScript bundle
+ * QuickJS-backed implementation of [io.ton.walletkit.bridge.WalletKitEngine]. Executes the WalletKit JavaScript bundle
  * inside the embedded QuickJS runtime and bridges JSON-RPC calls/events to Kotlin.
  *
  * @deprecated QuickJS engine is deprecated as of October 2025 due to poor performance (2x slower than WebView).
@@ -67,7 +85,7 @@ import kotlin.jvm.java
     message = "QuickJS is 2x slower than WebView and is no longer maintained. Use WebViewWalletKitEngine instead.",
     replaceWith = ReplaceWith(
         "WebViewWalletKitEngine(context, assetPath, httpClient)",
-        "io.ton.walletkit.bridge.WebViewWalletKitEngine",
+        "io.ton.walletkit.bridge.impl.WebViewWalletKitEngine",
     ),
     level = DeprecationLevel.WARNING,
 )
@@ -82,7 +100,7 @@ class QuickJsWalletKitEngine(
     private val appContext = context.applicationContext
     internal val applicationContext: Context get() = appContext
     private val assetManager = appContext.assets
-    private val listeners = CopyOnWriteArraySet<WalletKitEngineListener>()
+    private val eventHandlers = CopyOnWriteArraySet<WalletKitEventHandler>()
     private val ready = CompletableDeferred<Unit>()
     private val pending = ConcurrentHashMap<String, CompletableDeferred<BridgeResponse>>()
     internal val timerIdGenerator = AtomicInteger(1)
@@ -158,9 +176,9 @@ class QuickJsWalletKitEngine(
         }
     }
 
-    override fun addListener(listener: WalletKitEngineListener): Closeable {
-        listeners.add(listener)
-        return Closeable { listeners.remove(listener) }
+    override fun addEventHandler(handler: WalletKitEventHandler): Closeable {
+        eventHandlers.add(handler)
+        return Closeable { eventHandlers.remove(handler) }
     }
 
     /**
@@ -229,7 +247,7 @@ class QuickJsWalletKitEngine(
         call("init", payload)
     }
 
-    override suspend fun init(config: WalletKitBridgeConfig): JSONObject {
+    override suspend fun init(config: WalletKitBridgeConfig) {
         // Store config for use during auto-init if this is called before any other method
         walletKitInitMutex.withLock {
             if (!isWalletKitInitialized) {
@@ -239,23 +257,33 @@ class QuickJsWalletKitEngine(
 
         // Ensure initialization happens with this config
         ensureWalletKitInitialized(config)
-
-        return JSONObject().apply { put("ok", true) }
     }
 
     override suspend fun addWalletFromMnemonic(
         words: List<String>,
+        name: String?,
         version: String,
         network: String?,
-    ): JSONObject {
+    ): WalletAccount {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("words", JSONArray(words))
                 put("version", version)
                 network?.let { put("network", it) }
+                name?.let { put("name", it) }
             }
-        return call("addWalletFromMnemonic", params)
+        val result = call("addWalletFromMnemonic", params)
+
+        // Parse the result into WalletAccount
+        return WalletAccount(
+            address = result.optString("address"),
+            publicKey = result.optNullableString("publicKey"),
+            name = result.optNullableString("name") ?: name,
+            version = result.optString("version", version),
+            network = result.optString("network", network ?: currentNetwork),
+            index = result.optInt("index", 0),
+        )
     }
 
     override suspend fun getWallets(): List<WalletAccount> {
@@ -281,13 +309,24 @@ class QuickJsWalletKitEngine(
         }
     }
 
-    override suspend fun removeWallet(address: String): JSONObject {
+    override suspend fun removeWallet(address: String) {
         ensureWalletKitInitialized()
         Log.d(logTag, "removeWallet called for address: $address")
         val params = JSONObject().apply { put("address", address) }
         val result = call("removeWallet", params)
         Log.d(logTag, "removeWallet result: $result")
-        return result
+
+        // Check if removal was successful
+        val removed = when {
+            result.has("removed") -> result.optBoolean("removed", false)
+            result.has("ok") -> result.optBoolean("ok", true)
+            result.has("value") -> result.optBoolean("value", true)
+            else -> true
+        }
+
+        if (!removed) {
+            throw WalletKitBridgeException("Failed to remove wallet: $address")
+        }
     }
 
     override suspend fun getWalletState(address: String): WalletState {
@@ -305,24 +344,124 @@ class QuickJsWalletKitEngine(
         Log.d(logTag, "getWalletState balance: $balance")
         return WalletState(
             balance = balance,
-            transactions = result.optJSONArray("transactions") ?: JSONArray(),
+            transactions = parseTransactions(result.optJSONArray("transactions")),
         )
     }
 
-    override suspend fun getRecentTransactions(address: String, limit: Int): JSONArray {
+    override suspend fun getRecentTransactions(address: String, limit: Int): List<Transaction> {
         ensureWalletKitInitialized()
         val params = JSONObject().apply {
             put("address", address)
             put("limit", limit)
         }
         val result = call("getRecentTransactions", params)
-        return result.optJSONArray("items") ?: JSONArray()
+        return parseTransactions(result.optJSONArray("items"))
     }
 
-    override suspend fun handleTonConnectUrl(url: String): JSONObject {
+    /**
+     * Parse JSONArray of transactions into typed Transaction list.
+     */
+    private fun parseTransactions(jsonArray: JSONArray?): List<Transaction> {
+        if (jsonArray == null) return emptyList()
+
+        return buildList(jsonArray.length()) {
+            for (i in 0 until jsonArray.length()) {
+                val txJson = jsonArray.optJSONObject(i) ?: continue
+
+                // Get messages
+                val inMsg = txJson.optJSONObject("in_msg")
+                val outMsgs = txJson.optJSONArray("out_msgs")
+
+                // Filter out jetton/token transactions
+                // Jetton transactions have op_code in their messages or have a message body/payload
+                val isJettonOrTokenTx = when {
+                    // Check incoming message for jetton markers
+                    inMsg != null -> {
+                        val opCode = inMsg.optString("op_code")?.takeIf { it.isNotEmpty() }
+                        val body = inMsg.optString("body")?.takeIf { it.isNotEmpty() }
+                        val message = inMsg.optString("message")?.takeIf { it.isNotEmpty() }
+                        // Has op_code or has complex body (not just a comment)
+                        opCode != null || (body != null && body != "te6ccgEBAQEAAgAAAA==") ||
+                            (message != null && message.length > 200)
+                    }
+                    // Check outgoing messages for jetton markers
+                    outMsgs != null && outMsgs.length() > 0 -> {
+                        var hasJettonMarkers = false
+                        for (j in 0 until outMsgs.length()) {
+                            val msg = outMsgs.optJSONObject(j) ?: continue
+                            val opCode = msg.optString("op_code")?.takeIf { it.isNotEmpty() }
+                            val body = msg.optString("body")?.takeIf { it.isNotEmpty() }
+                            val message = msg.optString("message")?.takeIf { it.isNotEmpty() }
+                            if (opCode != null || (body != null && body != "te6ccgEBAQEAAgAAAA==") ||
+                                (message != null && message.length > 200)
+                            ) {
+                                hasJettonMarkers = true
+                                break
+                            }
+                        }
+                        hasJettonMarkers
+                    }
+                    else -> false
+                }
+
+                // Skip non-TON transactions
+                if (isJettonOrTokenTx) {
+                    Log.d(logTag, "Skipping jetton/token transaction: ${txJson.optString("hash", "unknown")}")
+                    continue
+                }
+
+                // Determine transaction type based on incoming/outgoing value
+                // Check if incoming message has value (meaning we received funds)
+                val incomingValue = inMsg?.optString("value")?.toLongOrNull() ?: 0L
+                val hasIncomingValue = incomingValue > 0
+
+                // Check if we have outgoing messages with value
+                var outgoingValue = 0L
+                if (outMsgs != null) {
+                    for (j in 0 until outMsgs.length()) {
+                        val msg = outMsgs.optJSONObject(j)
+                        val value = msg?.optString("value")?.toLongOrNull() ?: 0L
+                        outgoingValue += value
+                    }
+                }
+                val hasOutgoingValue = outgoingValue > 0
+
+                // Transaction is INCOMING if we received value, OUTGOING if we only sent value
+                // Note: Many incoming transactions also have outgoing messages (fees, change, etc.)
+                val type = when {
+                    hasIncomingValue -> TransactionType.INCOMING
+                    hasOutgoingValue -> TransactionType.OUTGOING
+                    else -> TransactionType.UNKNOWN
+                }
+
+                add(
+                    Transaction(
+                        hash = txJson.optString("hash", ""),
+                        timestamp = txJson.optLong("utime", 0L) * 1000, // Convert to milliseconds
+                        amount = when (type) {
+                            TransactionType.INCOMING -> incomingValue.toString()
+                            TransactionType.OUTGOING -> outgoingValue.toString()
+                            else -> "0"
+                        },
+                        fee = txJson.optString("fee"),
+                        comment = when (type) {
+                            TransactionType.INCOMING -> inMsg?.optString("message")
+                            TransactionType.OUTGOING -> outMsgs?.optJSONObject(0)?.optString("message")
+                            else -> null
+                        },
+                        sender = inMsg?.optString("source"),
+                        recipient = outMsgs?.optJSONObject(0)?.optString("destination"),
+                        type = type,
+                    ),
+                )
+            }
+        }
+    }
+
+    override suspend fun handleTonConnectUrl(url: String) {
         ensureWalletKitInitialized()
         val params = JSONObject().apply { put("url", url) }
-        return call("handleTonConnectUrl", params)
+        call("handleTonConnectUrl", params)
     }
 
     override suspend fun sendTransaction(
@@ -330,7 +469,7 @@ class QuickJsWalletKitEngine(
         recipient: String,
         amount: String,
         comment: String?,
-    ): JSONObject {
+    ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
@@ -341,71 +480,85 @@ class QuickJsWalletKitEngine(
                     put("comment", comment)
                 }
             }
-        return call("sendTransaction", params)
+        call("sendTransaction", params)
     }
 
     override suspend fun approveConnect(
         requestId: Any,
         walletAddress: String,
-    ): JSONObject {
+    ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
                 put("walletAddress", walletAddress)
             }
-        return call("approveConnectRequest", params)
+        call("approveConnectRequest", params)
     }
 
     override suspend fun rejectConnect(
         requestId: Any,
         reason: String?,
-    ): JSONObject {
+    ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
                 reason?.let { put("reason", it) }
             }
-        return call("rejectConnectRequest", params)
+        call("rejectConnectRequest", params)
     }
 
-    override suspend fun approveTransaction(requestId: Any): JSONObject {
+    override suspend fun approveTransaction(requestId: Any) {
         ensureWalletKitInitialized()
         val params = JSONObject().apply { put("requestId", requestId) }
-        return call("approveTransactionRequest", params)
+        call("approveTransactionRequest", params)
     }
 
     override suspend fun rejectTransaction(
         requestId: Any,
         reason: String?,
-    ): JSONObject {
+    ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
                 reason?.let { put("reason", it) }
             }
-        return call("rejectTransactionRequest", params)
+        call("rejectTransactionRequest", params)
     }
 
-    override suspend fun approveSignData(requestId: Any): JSONObject {
+    override suspend fun approveSignData(requestId: Any): SignDataResult {
         ensureWalletKitInitialized()
         val params = JSONObject().apply { put("requestId", requestId) }
-        return call("approveSignDataRequest", params)
+        val result = call("approveSignDataRequest", params)
+
+        Log.d(logTag, "approveSignData raw result: $result")
+
+        // Extract signature from the response
+        // The result might be nested in a 'result' object or directly accessible
+        val signature = result.optNullableString("signature")
+            ?: result.optJSONObject("result")?.optNullableString("signature")
+            ?: result.optJSONObject("data")?.optNullableString("signature")
+
+        if (signature.isNullOrEmpty()) {
+            throw WalletKitBridgeException("No signature in approveSignData response: $result")
+        }
+
+        return SignDataResult(signature = signature)
     }
 
     override suspend fun rejectSignData(
         requestId: Any,
         reason: String?,
-    ): JSONObject {
+    ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
                 reason?.let { put("reason", it) }
             }
-        return call("rejectSignDataRequest", params)
+        call("rejectSignDataRequest", params)
     }
 
     override suspend fun listSessions(): List<WalletSession> {
@@ -431,11 +584,11 @@ class QuickJsWalletKitEngine(
         }
     }
 
-    override suspend fun disconnectSession(sessionId: String?): JSONObject {
+    override suspend fun disconnectSession(sessionId: String?) {
         ensureWalletKitInitialized()
         val params = JSONObject()
         sessionId?.let { params.put("sessionId", it) }
-        return call("disconnectSession", if (params.length() == 0) null else params)
+        call("disconnectSession", if (params.length() == 0) null else params)
     }
 
     override suspend fun injectSignDataRequest(requestData: JSONObject): JSONObject {
@@ -665,10 +818,159 @@ class QuickJsWalletKitEngine(
 
     internal fun handleEvent(event: JSONObject) {
         val type = event.optString("type", "unknown")
-        val walletEvent = WalletKitEvent(type, event.optJSONObject("data") ?: JSONObject(), event)
-        listeners.forEach { listener ->
-            mainScope.launch { listener.onEvent(walletEvent) }
+        val data = event.optJSONObject("data") ?: JSONObject()
+
+        // Typed event handlers (sealed class)
+        val typedEvent = parseTypedEvent(type, data, event)
+        if (typedEvent != null) {
+            eventHandlers.forEach { handler ->
+                mainScope.launch { handler.handleEvent(typedEvent) }
+            }
         }
+    }
+
+    private fun parseTypedEvent(type: String, data: JSONObject, raw: JSONObject): WalletKitEvent? {
+        return when (type) {
+            "connectRequest" -> {
+                val requestId = data.opt("id") ?: return null
+                val dAppInfo = parseDAppInfo(data)
+                val permissions = parsePermissions(data)
+                val request = ConnectRequest(
+                    requestId = requestId,
+                    dAppInfo = dAppInfo,
+                    permissions = permissions,
+                    engine = this,
+                )
+                WalletKitEvent.ConnectRequestEvent(request)
+            }
+
+            "transactionRequest" -> {
+                val requestId = data.opt("id") ?: return null
+                val dAppInfo = parseDAppInfo(data)
+                val txRequest = parseTransactionRequest(data)
+                val request = TransactionRequest(
+                    requestId = requestId,
+                    dAppInfo = dAppInfo,
+                    request = txRequest,
+                    engine = this,
+                )
+                WalletKitEvent.TransactionRequestEvent(request)
+            }
+
+            "signDataRequest" -> {
+                val requestId = data.opt("id") ?: return null
+                val dAppInfo = parseDAppInfo(data)
+                val signRequest = parseSignDataRequest(data)
+                val request = SignDataRequest(
+                    requestId = requestId,
+                    dAppInfo = dAppInfo,
+                    request = signRequest,
+                    engine = this,
+                )
+                WalletKitEvent.SignDataRequestEvent(request)
+            }
+
+            "disconnect" -> {
+                val sessionId = data.optNullableString("sessionId")
+                    ?: data.optNullableString("id")
+                    ?: return null
+                WalletKitEvent.DisconnectEvent(sessionId)
+            }
+
+            "stateChanged", "walletStateChanged" -> {
+                val address = data.optNullableString("address")
+                    ?: data.optJSONObject("wallet")?.optNullableString("address")
+                    ?: return null
+                WalletKitEvent.StateChangedEvent(address)
+            }
+
+            "sessionsChanged" -> {
+                WalletKitEvent.SessionsChangedEvent
+            }
+
+            else -> null // Unknown event type
+        }
+    }
+
+    private fun parseDAppInfo(data: JSONObject): DAppInfo? {
+        // Try to get dApp name from multiple sources
+        val dAppName = data.optNullableString("dAppName")
+            ?: data.optJSONObject("manifest")?.optNullableString("name")
+            ?: data.optJSONObject("preview")?.optJSONObject("manifest")?.optNullableString("name")
+
+        // Try to get URLs from multiple sources
+        val manifest = data.optJSONObject("preview")?.optJSONObject("manifest")
+            ?: data.optJSONObject("manifest")
+
+        val dAppUrl = data.optNullableString("dAppUrl")
+            ?: manifest?.optNullableString("url")
+            ?: ""
+
+        val iconUrl = data.optNullableString("dAppIconUrl")
+            ?: manifest?.optNullableString("iconUrl")
+
+        val manifestUrl = data.optNullableString("manifestUrl")
+            ?: manifest?.optNullableString("url")
+
+        // Only return null if we have absolutely no dApp information
+        if (dAppName == null && dAppUrl.isEmpty()) {
+            return null
+        }
+
+        return DAppInfo(
+            name = dAppName ?: dAppUrl.takeIf { it.isNotEmpty() } ?: "Unknown dApp",
+            url = dAppUrl,
+            iconUrl = iconUrl,
+            manifestUrl = manifestUrl,
+        )
+    }
+
+    private fun parsePermissions(data: JSONObject): List<String> {
+        val permissions = data.optJSONArray("permissions") ?: return emptyList()
+        return List(permissions.length()) { i ->
+            permissions.optString(i)
+        }
+    }
+
+    private fun parseTransactionRequest(data: JSONObject): io.ton.walletkit.bridge.model.TransactionRequest = io.ton.walletkit.bridge.model.TransactionRequest(
+        recipient = data.optNullableString("to") ?: data.optNullableString("recipient") ?: "",
+        amount = data.optNullableString("amount") ?: data.optNullableString("value") ?: "0",
+        comment = data.optNullableString("comment") ?: data.optNullableString("text"),
+        payload = data.optNullableString("payload"),
+    )
+
+    private fun parseSignDataRequest(data: JSONObject): io.ton.walletkit.bridge.model.SignDataRequest {
+        // Parse params array - params[0] contains stringified JSON with schema_crc and payload
+        var payload = data.optNullableString("payload") ?: data.optNullableString("data") ?: ""
+        var schema: String? = data.optNullableString("schema")
+
+        // Check if params array exists (newer format from bridge)
+        val paramsArray = data.optJSONArray("params")
+        if (paramsArray != null && paramsArray.length() > 0) {
+            val paramsString = paramsArray.optString(0)
+            if (paramsString.isNotEmpty()) {
+                try {
+                    val paramsObj = JSONObject(paramsString)
+                    payload = paramsObj.optNullableString("payload") ?: payload
+
+                    // Convert schema_crc to human-readable schema type
+                    val schemaCrc = paramsObj.optInt("schema_crc", -1)
+                    schema = when (schemaCrc) {
+                        0 -> "text"
+                        1 -> "binary"
+                        2 -> "cell"
+                        else -> schema
+                    }
+                } catch (e: Exception) {
+                    Log.e(logTag, "Failed to parse params for sign data", e)
+                }
+            }
+        }
+
+        return io.ton.walletkit.bridge.model.SignDataRequest(
+            payload = payload,
+            schema = schema,
+        )
     }
 
     private fun JSONObject.optNullableString(key: String): String? {
@@ -798,13 +1100,13 @@ class QuickJsWalletKitEngine(
                 val key = Base64.decode(keyBase64, Base64.NO_WRAP)
                 val salt = Base64.decode(saltBase64, Base64.NO_WRAP)
 
-                val spec = javax.crypto.spec.PBEKeySpec(
+                val spec = PBEKeySpec(
                     String(key, Charsets.UTF_8).toCharArray(),
                     salt,
                     iterations,
                     keyLen * 8,
                 )
-                val factory = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
+                val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
                 val derived = factory.generateSecret(spec).encoded
 
                 val result = Base64.encodeToString(derived, Base64.NO_WRAP)
@@ -924,7 +1226,7 @@ class QuickJsWalletKitEngine(
             if (request.url.toString().contains("bridge.tonapi.io")) {
                 Log.d(logTag, "executeFetch: id=$id, Bridge POST - headers: ${request.headers}")
                 request.body?.let { body ->
-                    val buffer = okio.Buffer()
+                    val buffer = Buffer()
                     body.writeTo(buffer)
                     val bodyString = buffer.readUtf8()
                     Log.d(logTag, "executeFetch: id=$id, Bridge POST - body: ${bodyString.take(200)}")
@@ -959,10 +1261,10 @@ class QuickJsWalletKitEngine(
         }
     }
 
-    private suspend fun suspendCancellableCall(call: Call): okhttp3.Response = suspendCancellableCoroutine { continuation: CancellableContinuation<okhttp3.Response> ->
+    private suspend fun suspendCancellableCall(call: Call): Response = suspendCancellableCoroutine { continuation: CancellableContinuation<Response> ->
         continuation.invokeOnCancellation { call.cancel() }
         call.enqueue(
-            object : okhttp3.Callback {
+            object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     if (continuation.isCancelled) {
                         return
@@ -970,7 +1272,7 @@ class QuickJsWalletKitEngine(
                     continuation.resumeWithException(e)
                 }
 
-                override fun onResponse(call: Call, response: okhttp3.Response) {
+                override fun onResponse(call: Call, response: Response) {
                     continuation.resume(response)
                 }
             },
@@ -1284,7 +1586,7 @@ class QuickJsWalletKitEngine(
             .followRedirects(true)
             .followSslRedirects(true)
             .retryOnConnectionFailure(true)
-            .readTimeout(0, java.util.concurrent.TimeUnit.SECONDS) // Disable read timeout for EventSource
+            .readTimeout(0, TimeUnit.SECONDS) // Disable read timeout for EventSource
             .build()
     }
 }
@@ -1402,13 +1704,13 @@ class QuickJsNativeHost {
             val key = Base64.decode(keyBase64, Base64.NO_WRAP)
             val salt = Base64.decode(saltBase64, Base64.NO_WRAP)
 
-            val spec = javax.crypto.spec.PBEKeySpec(
+            val spec = PBEKeySpec(
                 String(key, Charsets.UTF_8).toCharArray(),
                 salt,
                 iterations,
                 keyLen * 8,
             )
-            val factory = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
+            val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
             val derived = factory.generateSecret(spec).encoded
 
             val result = Base64.encodeToString(derived, Base64.NO_WRAP)
@@ -1426,8 +1728,8 @@ class QuickJsNativeHost {
             val key = Base64.decode(keyBase64, Base64.NO_WRAP)
             val data = Base64.decode(dataBase64, Base64.NO_WRAP)
 
-            val mac = javax.crypto.Mac.getInstance("HmacSHA512")
-            val secretKey = javax.crypto.spec.SecretKeySpec(key, "HmacSHA512")
+            val mac = Mac.getInstance("HmacSHA512")
+            val secretKey = SecretKeySpec(key, "HmacSHA512")
             mac.init(secretKey)
             val result = mac.doFinal(data)
 
@@ -1442,7 +1744,7 @@ class QuickJsNativeHost {
         val eng = engine ?: return ""
         return try {
             val data = Base64.decode(dataBase64, Base64.NO_WRAP)
-            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            val digest = MessageDigest.getInstance("SHA-256")
             val result = digest.digest(data)
             Base64.encodeToString(result, Base64.NO_WRAP)
         } catch (err: Throwable) {
@@ -1533,7 +1835,7 @@ class QuickJsNativeHost {
     fun localStorageGetItem(key: String): String? {
         val eng = engine ?: return null
         return try {
-            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", Context.MODE_PRIVATE)
             prefs.getString(key, null)
         } catch (err: Throwable) {
             Log.e(eng.logTag, "localStorageGetItem error", err)
@@ -1544,7 +1846,7 @@ class QuickJsNativeHost {
     fun localStorageSetItem(key: String, value: String) {
         val eng = engine ?: return
         try {
-            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", Context.MODE_PRIVATE)
             prefs.edit().putString(key, value).apply()
         } catch (err: Throwable) {
             Log.e(eng.logTag, "localStorageSetItem error", err)
@@ -1554,7 +1856,7 @@ class QuickJsNativeHost {
     fun localStorageRemoveItem(key: String) {
         val eng = engine ?: return
         try {
-            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", Context.MODE_PRIVATE)
             prefs.edit().remove(key).apply()
         } catch (err: Throwable) {
             Log.e(eng.logTag, "localStorageRemoveItem error", err)
@@ -1564,7 +1866,7 @@ class QuickJsNativeHost {
     fun localStorageClear() {
         val eng = engine ?: return
         try {
-            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", Context.MODE_PRIVATE)
             prefs.edit().clear().apply()
         } catch (err: Throwable) {
             Log.e(eng.logTag, "localStorageClear error", err)
@@ -1574,7 +1876,7 @@ class QuickJsNativeHost {
     fun localStorageKey(index: Int): String? {
         val eng = engine ?: return null
         return try {
-            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", Context.MODE_PRIVATE)
             val keys = prefs.all.keys.toList()
             if (index >= 0 && index < keys.size) keys[index] else null
         } catch (err: Throwable) {
@@ -1586,7 +1888,7 @@ class QuickJsNativeHost {
     fun localStorageLength(): Int {
         val eng = engine ?: return 0
         return try {
-            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", android.content.Context.MODE_PRIVATE)
+            val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", Context.MODE_PRIVATE)
             prefs.all.size
         } catch (err: Throwable) {
             Log.e(eng.logTag, "localStorageLength error", err)

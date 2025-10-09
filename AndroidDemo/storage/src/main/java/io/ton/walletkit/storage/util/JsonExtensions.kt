@@ -17,15 +17,6 @@ fun String.toStoredWalletRecord(): StoredWalletRecord? = runCatching {
     )
 }.getOrNull()
 
-fun String.toStoredSessionHint(): StoredSessionHint? = runCatching {
-    val json = JSONObject(this)
-    StoredSessionHint(
-        manifestUrl = json.stringOrNull("manifestUrl"),
-        dAppUrl = json.stringOrNull("dAppUrl"),
-        iconUrl = json.stringOrNull("iconUrl"),
-    )
-}.getOrNull()
-
 fun JSONObject.stringOrNull(key: String): String? {
     if (!has(key) || isNull(key)) return null
     return optString(key)

@@ -1,99 +1,221 @@
 package io.ton.walletkit.bridge
 
 import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
-import io.ton.walletkit.bridge.listener.WalletKitEngineListener
+import io.ton.walletkit.bridge.listener.WalletKitEventHandler
+import io.ton.walletkit.bridge.model.SignDataResult
+import io.ton.walletkit.bridge.model.Transaction
 import io.ton.walletkit.bridge.model.WalletAccount
 import io.ton.walletkit.bridge.model.WalletSession
 import io.ton.walletkit.bridge.model.WalletState
-import org.json.JSONArray
-import org.json.JSONObject
 import java.io.Closeable
 
 /**
  * Abstraction over a runtime that can execute the WalletKit JavaScript bundle and expose
  * the wallet APIs to Android callers. Implementations may back the runtime with a WebView or
  * an embedded JavaScript engine such as QuickJS. Every implementation must provide the same
- * JSON-RPC surface as the historical [WalletKitBridge] class.
+ * JSON-RPC surface as the historical [io.ton.walletkit.bridge.impl.WalletKitBridge] class.
  *
  * **Auto-Initialization:**
  * All methods that require WalletKit initialization will automatically initialize the SDK
  * if it hasn't been initialized yet. This means calling [init] explicitly is optional -
  * you can call any method and initialization will happen automatically with default settings.
  * If you need custom configuration, call [init] with your config before other methods.
+ *
+ * **Event Handling:**
+ * Supports [addEventHandler] with [WalletKitEventHandler] for type-safe sealed events.
  */
 interface WalletKitEngine {
     val kind: WalletKitEngineKind
 
-    fun addListener(listener: WalletKitEngineListener): Closeable
+    /**
+     * Add an event handler for type-safe event handling.
+     * Use this for exhaustive when() expressions with the sealed WalletKitEvent class.
+     *
+     * @param handler Event handler that receives typed WalletKitEvent sealed class instances
+     * @return Closeable to remove the handler
+     */
+    fun addEventHandler(handler: WalletKitEventHandler): Closeable
 
     /**
      * Initialize WalletKit with custom configuration. This method is optional - if not called,
      * initialization will happen automatically on first use with default settings.
      *
      * @param config Configuration for the WalletKit SDK
-     * @return JSONObject with initialization result
+     * @throws WalletKitBridgeException if initialization fails
      */
-    suspend fun init(config: WalletKitBridgeConfig = WalletKitBridgeConfig()): JSONObject
+    suspend fun init(config: WalletKitBridgeConfig = WalletKitBridgeConfig())
 
+    /**
+     * Add a new wallet from mnemonic phrase.
+     *
+     * @param words Mnemonic phrase as a list of words
+     * @param name Optional user-assigned name for the wallet
+     * @param version Wallet version (e.g., "v5r1", "v4r2")
+     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
+     * @return The newly added wallet account
+     * @throws WalletKitBridgeException if wallet creation fails
+     */
     suspend fun addWalletFromMnemonic(
         words: List<String>,
+        name: String? = null,
         version: String,
         network: String? = null,
-    ): JSONObject
+    ): WalletAccount
 
+    /**
+     * Get all wallets managed by this engine.
+     *
+     * @return List of wallet accounts
+     */
     suspend fun getWallets(): List<WalletAccount>
 
-    suspend fun removeWallet(address: String): JSONObject
+    /**
+     * Remove a wallet by address.
+     *
+     * @param address Wallet address to remove
+     * @throws WalletKitBridgeException if removal fails
+     */
+    suspend fun removeWallet(address: String)
 
+    /**
+     * Get the current state of a wallet.
+     *
+     * @param address Wallet address
+     * @return Current wallet state including balance and transactions
+     * @throws WalletKitBridgeException if state retrieval fails
+     */
     suspend fun getWalletState(address: String): WalletState
 
-    suspend fun getRecentTransactions(address: String, limit: Int = 10): JSONArray
+    /**
+     * Get recent transactions for a wallet.
+     *
+     * @param address Wallet address
+     * @param limit Maximum number of transactions to return (default 10)
+     * @return List of recent transactions
+     * @throws WalletKitBridgeException if transaction retrieval fails
+     */
+    suspend fun getRecentTransactions(address: String, limit: Int = 10): List<Transaction>
 
-    suspend fun handleTonConnectUrl(url: String): JSONObject
+    /**
+     * Handle a TON Connect URL (e.g., from QR code scan or deep link).
+     * This will trigger appropriate events (connect request, transaction request, etc.)
+     *
+     * @param url TON Connect URL to handle
+     * @throws WalletKitBridgeException if URL handling fails
+     */
+    suspend fun handleTonConnectUrl(url: String)
 
+    /**
+     * Create a new transaction request.
+     * This will trigger a transaction request event that needs to be approved via [approveTransaction].
+     *
+     * @param walletAddress Source wallet address
+     * @param recipient Recipient address
+     * @param amount Amount in nanoTON
+     * @param comment Optional comment/message
+     * @throws WalletKitBridgeException if transaction creation fails
+     */
     suspend fun sendTransaction(
         walletAddress: String,
         recipient: String,
         amount: String,
         comment: String? = null,
-    ): JSONObject
+    )
 
+    /**
+     * Approve a connection request from a dApp.
+     *
+     * @param requestId Request ID from the connect request event
+     * @param walletAddress Wallet address to connect with
+     * @throws WalletKitBridgeException if approval fails
+     */
     suspend fun approveConnect(
         requestId: Any,
         walletAddress: String,
-    ): JSONObject
+    )
 
+    /**
+     * Reject a connection request from a dApp.
+     *
+     * @param requestId Request ID from the connect request event
+     * @param reason Optional reason for rejection
+     * @throws WalletKitBridgeException if rejection fails
+     */
     suspend fun rejectConnect(
         requestId: Any,
         reason: String? = null,
-    ): JSONObject
+    )
 
-    suspend fun approveTransaction(requestId: Any): JSONObject
+    /**
+     * Approve and sign a transaction request.
+     *
+     * @param requestId Request ID from the transaction request event
+     * @throws WalletKitBridgeException if approval or signing fails
+     */
+    suspend fun approveTransaction(requestId: Any)
 
+    /**
+     * Reject a transaction request.
+     *
+     * @param requestId Request ID from the transaction request event
+     * @param reason Optional reason for rejection
+     * @throws WalletKitBridgeException if rejection fails
+     */
     suspend fun rejectTransaction(
         requestId: Any,
         reason: String? = null,
-    ): JSONObject
+    )
 
-    suspend fun approveSignData(requestId: Any): JSONObject
+    /**
+     * Approve and sign a data signing request.
+     *
+     * @param requestId Request ID from the sign data request event
+     * @return Signature result containing the base64-encoded signature
+     * @throws WalletKitBridgeException if approval or signing fails
+     */
+    suspend fun approveSignData(requestId: Any): SignDataResult
 
+    /**
+     * Reject a data signing request.
+     *
+     * @param requestId Request ID from the sign data request event
+     * @param reason Optional reason for rejection
+     * @throws WalletKitBridgeException if rejection fails
+     */
     suspend fun rejectSignData(
         requestId: Any,
         reason: String? = null,
-    ): JSONObject
+    )
 
+    /**
+     * Get all active TON Connect sessions.
+     *
+     * @return List of active sessions
+     */
     suspend fun listSessions(): List<WalletSession>
 
-    suspend fun disconnectSession(sessionId: String? = null): JSONObject
+    /**
+     * Disconnect a TON Connect session.
+     *
+     * @param sessionId Session ID to disconnect, or null to disconnect all sessions
+     * @throws WalletKitBridgeException if disconnection fails
+     */
+    suspend fun disconnectSession(sessionId: String? = null)
 
+    /**
+     * Destroy the engine and release all resources.
+     */
     suspend fun destroy()
 
     /**
      * Test API: Inject a sign data request for testing purposes.
      * This simulates receiving a sign data request from a dApp and will trigger
      * the normal sign data flow including actual cryptographic signing.
+     *
+     * @param requestData Request data as JSONObject (test API, not yet typed)
+     * @return JSONObject response (test API, not yet typed)
      */
-    suspend fun injectSignDataRequest(requestData: JSONObject): JSONObject
+    suspend fun injectSignDataRequest(requestData: org.json.JSONObject): org.json.JSONObject
 }
 
 /**

@@ -134,7 +134,7 @@ dependencies {
     implementation(libs.kotlinxCoroutinesAndroid)
     implementation(libs.androidxWebkit)
     implementation(libs.okhttp)
-    
+
     // Storage module for persistent wallet/session data
     implementation(project(":storage"))
 

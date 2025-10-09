@@ -6,11 +6,9 @@ import androidx.core.content.edit
 import io.ton.walletkit.storage.WalletKitStorage
 import io.ton.walletkit.storage.model.StoredBridgeConfig
 import io.ton.walletkit.storage.model.StoredSessionData
-import io.ton.walletkit.storage.model.StoredSessionHint
 import io.ton.walletkit.storage.model.StoredUserPreferences
 import io.ton.walletkit.storage.model.StoredWalletRecord
 import io.ton.walletkit.storage.util.toJson
-import io.ton.walletkit.storage.util.toStoredSessionHint
 import io.ton.walletkit.storage.util.toStoredWalletRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,8 +20,6 @@ class DebugSharedPrefsStorage(
     private val prefs = context.getSharedPreferences("walletkit-demo", Context.MODE_PRIVATE)
 
     private fun walletKey(accountId: String) = "wallet:$accountId"
-
-    private fun hintKey(key: String) = "hint:$key"
 
     private fun sessionKey(sessionId: String) = "session:$sessionId"
 
@@ -62,32 +58,6 @@ class DebugSharedPrefsStorage(
                 remove(walletKey(accountId))
                 remove(accountId)
             }
-        }
-    }
-
-    override suspend fun saveSessionHint(
-        key: String,
-        hint: StoredSessionHint,
-    ) {
-        withContext(Dispatchers.IO) {
-            prefs.edit {
-                putString(hintKey(key), hint.toJson().toString())
-            }
-        }
-    }
-
-    override suspend fun loadSessionHints(): Map<String, StoredSessionHint> = withContext(Dispatchers.IO) {
-        prefs.all
-            .mapNotNull { (key, value) ->
-                if (!key.startsWith("hint:")) return@mapNotNull null
-                val hint = (value as? String)?.toStoredSessionHint()
-                if (hint != null) key.removePrefix("hint:") to hint else null
-            }.toMap()
-    }
-
-    override suspend fun clearSessionHint(key: String) {
-        withContext(Dispatchers.IO) {
-            prefs.edit { remove(hintKey(key)) }
         }
     }
 

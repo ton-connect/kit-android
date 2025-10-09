@@ -3,14 +3,12 @@ package io.ton.walletkit.storage.impl
 import io.ton.walletkit.storage.WalletKitStorage
 import io.ton.walletkit.storage.model.StoredBridgeConfig
 import io.ton.walletkit.storage.model.StoredSessionData
-import io.ton.walletkit.storage.model.StoredSessionHint
 import io.ton.walletkit.storage.model.StoredUserPreferences
 import io.ton.walletkit.storage.model.StoredWalletRecord
 import java.util.HashMap
 
 class InMemoryWalletKitStorage : WalletKitStorage {
     private val store = HashMap<String, StoredWalletRecord>()
-    private val hintStore = HashMap<String, StoredSessionHint>()
     private val sessionStore = HashMap<String, StoredSessionData>()
     private var bridgeConfig: StoredBridgeConfig? = null
     private var userPreferences: StoredUserPreferences? = null
@@ -28,19 +26,6 @@ class InMemoryWalletKitStorage : WalletKitStorage {
 
     override suspend fun clear(accountId: String) {
         store.remove(accountId)
-    }
-
-    override suspend fun saveSessionHint(
-        key: String,
-        hint: StoredSessionHint,
-    ) {
-        hintStore[key] = hint
-    }
-
-    override suspend fun loadSessionHints(): Map<String, StoredSessionHint> = HashMap(hintStore)
-
-    override suspend fun clearSessionHint(key: String) {
-        hintStore.remove(key)
     }
 
     override suspend fun saveSessionData(

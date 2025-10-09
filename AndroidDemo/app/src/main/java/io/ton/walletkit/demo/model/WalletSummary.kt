@@ -1,6 +1,6 @@
 package io.ton.walletkit.demo.model
 
-import org.json.JSONArray
+import io.ton.walletkit.bridge.model.Transaction
 
 data class WalletSummary(
     val address: String,
@@ -10,7 +10,7 @@ data class WalletSummary(
     val publicKey: String?,
     val balanceNano: String?,
     val balance: String?,
-    val transactions: JSONArray?,
+    val transactions: List<Transaction>?,
     val lastUpdated: Long?,
     val connectedSessions: List<SessionSummary> = emptyList(), // Sessions connected to this wallet
 )

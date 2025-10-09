@@ -1,5 +1,6 @@
 package io.ton.walletkit.demo.model
 
+import io.ton.walletkit.bridge.request.TransactionRequest
 import org.json.JSONObject
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -12,6 +13,7 @@ data class TransactionRequestUi(
     val messages: List<TransactionMessageUi>,
     val preview: String?,
     val raw: JSONObject,
+    val iosStyleRequest: TransactionRequest? = null, // Request object with approve/reject helpers
 ) {
     /**
      * Parse preview to extract fee information

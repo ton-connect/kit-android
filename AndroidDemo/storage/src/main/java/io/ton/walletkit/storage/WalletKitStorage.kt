@@ -2,7 +2,6 @@ package io.ton.walletkit.storage
 
 import io.ton.walletkit.storage.model.StoredBridgeConfig
 import io.ton.walletkit.storage.model.StoredSessionData
-import io.ton.walletkit.storage.model.StoredSessionHint
 import io.ton.walletkit.storage.model.StoredUserPreferences
 import io.ton.walletkit.storage.model.StoredWalletRecord
 
@@ -15,16 +14,6 @@ interface WalletKitStorage {
     suspend fun loadAllWallets(): Map<String, StoredWalletRecord>
 
     suspend fun clear(accountId: String)
-
-    // Session hints (deprecated - use session data)
-    @Deprecated("Use saveSessionData instead")
-    suspend fun saveSessionHint(key: String, hint: StoredSessionHint)
-
-    @Deprecated("Use loadSessionData instead")
-    suspend fun loadSessionHints(): Map<String, StoredSessionHint>
-
-    @Deprecated("Use clearSessionData instead")
-    suspend fun clearSessionHint(key: String)
 
     // Session data (with private keys)
     suspend fun saveSessionData(sessionId: String, session: StoredSessionData)

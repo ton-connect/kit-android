@@ -25,15 +25,14 @@ class SecureBridgeStorageAdapter(
     private val appContext = context.applicationContext
     private val secureStorage = SecureWalletKitStorage(appContext, "walletkit_bridge_storage")
 
-    override suspend fun get(key: String): String? =
-        withContext(Dispatchers.IO) {
-            try {
-                secureStorage.getRawValue(bridgeKey(key))
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to get value for key: $key", e)
-                null
-            }
+    override suspend fun get(key: String): String? = withContext(Dispatchers.IO) {
+        try {
+            secureStorage.getRawValue(bridgeKey(key))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get value for key: $key", e)
+            null
         }
+    }
 
     override suspend fun set(
         key: String,

@@ -2,8 +2,8 @@ package io.ton.walletkit.bridge.storage
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import io.ton.walletkit.bridge.WebViewWalletKitEngine
 import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
+import io.ton.walletkit.bridge.impl.WebViewWalletKitEngine
 import io.ton.walletkit.storage.bridge.SecureBridgeStorageAdapter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
@@ -19,13 +19,13 @@ import kotlin.test.assertTrue
 
 /**
  * Integration tests for bridge storage persistence.
- * 
+ *
  * These tests verify end-to-end functionality:
  * - Wallet persistence across engine recreations
  * - Session persistence across app restarts
  * - Data integrity and encryption
  * - Migration scenarios
- * 
+ *
  * Note: These tests require the JavaScript bundle to support AndroidStorageAdapter.
  * If tests fail, ensure the JS bundle has been updated with Android storage support.
  */
@@ -40,7 +40,7 @@ class BridgePersistenceIntegrationTest {
         // Test mnemonic (DO NOT use in production!)
         private val TEST_MNEMONIC = listOf(
             "abandon", "abandon", "abandon", "abandon", "abandon", "abandon",
-            "abandon", "abandon", "abandon", "abandon", "abandon", "about"
+            "abandon", "abandon", "abandon", "abandon", "abandon", "about",
         )
 
         private const val TEST_WALLET_VERSION = "v4R2"
@@ -93,7 +93,7 @@ class BridgePersistenceIntegrationTest {
             val addResult = engine1.addWalletFromMnemonic(
                 words = TEST_MNEMONIC,
                 version = TEST_WALLET_VERSION,
-                network = TEST_NETWORK
+                network = TEST_NETWORK,
             )
 
             // Get wallets from first engine
@@ -123,14 +123,13 @@ class BridgePersistenceIntegrationTest {
             // Note: This test depends on JavaScript bundle supporting AndroidStorageAdapter
             // If the bundle doesn't support it yet, wallets won't persist automatically
             // This test documents the expected behavior once JS support is added
-            
+
             // For now, just verify the engine initializes correctly
             assertTrue(true, "Second engine initialized successfully")
-            
+
             // TODO: Uncomment when JS bundle supports AndroidStorageAdapter
             // assertTrue(wallets2.isNotEmpty(), "Second engine should restore wallets")
             // assertEquals(firstWalletAddress, wallets2.first().address, "Wallet address should match")
-
         } finally {
             engine1?.destroy()
             engine2?.destroy()
@@ -158,7 +157,6 @@ class BridgePersistenceIntegrationTest {
             assertEquals(testValue, retrieved, "Storage should work for JS operations")
 
             storage.remove(testKey)
-
         } finally {
             engine.destroy()
         }
@@ -178,18 +176,17 @@ class BridgePersistenceIntegrationTest {
 
             val altMnemonic = listOf(
                 "quality", "quality", "quality", "quality", "quality", "quality",
-                "quality", "quality", "quality", "quality", "quality", "vendor"
+                "quality", "quality", "quality", "quality", "quality", "vendor",
             )
             engine.addWalletFromMnemonic(altMnemonic, TEST_WALLET_VERSION, TEST_NETWORK)
 
             val wallets = engine.getWallets()
-            
+
             // For now, just verify we can add multiple wallets
             assertTrue(true, "Multiple wallets can be added")
-            
+
             // TODO: Uncomment when JS bundle supports AndroidStorageAdapter
             // assertTrue(wallets.size >= 2, "Should have at least 2 wallets")
-
         } finally {
             engine.destroy()
         }
@@ -209,7 +206,7 @@ class BridgePersistenceIntegrationTest {
 
             engine1.addWalletFromMnemonic(TEST_MNEMONIC, TEST_WALLET_VERSION, TEST_NETWORK)
             val wallets1 = engine1.getWallets()
-            
+
             if (wallets1.isNotEmpty()) {
                 val address = wallets1.first().address
 
@@ -219,7 +216,7 @@ class BridgePersistenceIntegrationTest {
 
                 // Verify removed
                 val walletsAfterRemoval = engine1.getWallets()
-                
+
                 // TODO: Uncomment when JS bundle supports AndroidStorageAdapter
                 // assertTrue(walletsAfterRemoval.isEmpty(), "Wallet should be removed")
 
@@ -235,13 +232,12 @@ class BridgePersistenceIntegrationTest {
                 delay(500)
 
                 val wallets2 = engine2.getWallets()
-                
+
                 // TODO: Uncomment when JS bundle supports AndroidStorageAdapter
                 // assertTrue(wallets2.isEmpty(), "Wallet removal should persist")
             }
 
             assertTrue(true, "Wallet removal test completed")
-
         } finally {
             engine1?.destroy()
             engine2?.destroy()
@@ -271,7 +267,6 @@ class BridgePersistenceIntegrationTest {
             // Verify cleared
             assertEquals(null, storage.get("test_key1"))
             assertEquals(null, storage.get("test_key2"))
-
         } finally {
             engine.destroy()
         }

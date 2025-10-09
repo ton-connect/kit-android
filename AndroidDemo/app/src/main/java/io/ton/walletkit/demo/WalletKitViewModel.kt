@@ -7,25 +7,27 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.bridge.WalletKitEngine
 import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
-import io.ton.walletkit.bridge.listener.WalletKitBridgeListener
+import io.ton.walletkit.bridge.event.WalletKitEvent
+import io.ton.walletkit.bridge.listener.WalletKitEventHandler
 import io.ton.walletkit.bridge.model.WalletAccount
-import io.ton.walletkit.bridge.model.WalletKitEvent
+import io.ton.walletkit.demo.cache.TransactionCache
 import io.ton.walletkit.demo.model.ConnectPermissionUi
 import io.ton.walletkit.demo.model.ConnectRequestUi
 import io.ton.walletkit.demo.model.PendingWalletRecord
 import io.ton.walletkit.demo.model.SessionSummary
 import io.ton.walletkit.demo.model.SignDataRequestUi
 import io.ton.walletkit.demo.model.TonNetwork
+import io.ton.walletkit.demo.model.TransactionDetailUi
 import io.ton.walletkit.demo.model.TransactionMessageUi
 import io.ton.walletkit.demo.model.TransactionRequestUi
 import io.ton.walletkit.demo.model.WalletMetadata
 import io.ton.walletkit.demo.model.WalletSummary
 import io.ton.walletkit.demo.state.SheetState
 import io.ton.walletkit.demo.state.WalletUiState
-import io.ton.walletkit.demo.util.optNullableString
+import io.ton.walletkit.demo.util.TransactionDiffUtil
 import io.ton.walletkit.storage.WalletKitStorage
 import io.ton.walletkit.storage.impl.InMemoryWalletKitStorage
-import io.ton.walletkit.storage.model.StoredSessionHint
+import io.ton.walletkit.storage.model.StoredUserPreferences
 import io.ton.walletkit.storage.model.StoredWalletRecord
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -44,6 +46,7 @@ import java.time.Instant
 import java.util.Locale
 import java.util.TimeZone
 import kotlin.collections.ArrayDeque
+import kotlin.collections.firstOrNull
 
 class WalletKitViewModel(
     private val engine: WalletKitEngine,
@@ -63,7 +66,9 @@ class WalletKitViewModel(
 
     private val walletMetadata = mutableMapOf<String, WalletMetadata>()
     private val pendingWallets = ArrayDeque<PendingWalletRecord>()
-    private val sessionHints = mutableMapOf<String, SessionHint>()
+
+    // Transaction cache for efficient list updates
+    private val transactionCache = TransactionCache()
 
     init {
         viewModelScope.launch { bootstrap() }
@@ -72,20 +77,15 @@ class WalletKitViewModel(
     private suspend fun bootstrap() {
         _state.update { it.copy(status = "Initializing WalletKit…", error = null) }
 
-        // Load session hints from legacy storage for migration
-        val storedSessionHints = storage.loadSessionHints()
-        storedSessionHints.forEach { (key, hint) ->
-            val normalized = normalizeHint(SessionHint(hint.manifestUrl, hint.dAppUrl, hint.iconUrl))
-            if (normalized != null) {
-                Log.d(LOG_TAG, "Restored session hint key=$key manifest=${normalized.manifestUrl} url=${normalized.dAppUrl}")
-                sessionHints[key] = normalized
-            }
-        }
-        
+        // Load user preferences (including active wallet address)
+        val userPrefs = storage.loadUserPreferences()
+        val savedActiveWallet = userPrefs?.activeWalletAddress
+        Log.d(LOG_TAG, "Loaded saved active wallet: $savedActiveWallet")
+
         // Initialize bridge with default network (wallets will be auto-restored by bridge)
         currentNetwork = DEFAULT_NETWORK
 
-        val initResult = runCatching { 
+        val initResult = runCatching {
             engine.init(
                 WalletKitBridgeConfig(
                     network = currentNetwork.asBridgeValue(),
@@ -94,7 +94,7 @@ class WalletKitViewModel(
                     bridgeUrl = networkEndpoints(currentNetwork).bridgeUrl,
                     bridgeName = networkEndpoints(currentNetwork).bridgeName,
                     // Storage is always persistent - no allowMemoryStorage parameter
-                )
+                ),
             )
         }
 
@@ -111,10 +111,29 @@ class WalletKitViewModel(
         // Restore wallets from secure storage into the bridge if needed
         migrateLegacyWallets()
 
-        bridgeListener = engine.addListener(WalletKitBridgeListener(::onBridgeEvent))
+        // Use typed event handler
+        bridgeListener = engine.addEventHandler(object : WalletKitEventHandler {
+            override fun handleEvent(event: WalletKitEvent) {
+                onBridgeEvent(event)
+            }
+        })
         _state.update { it.copy(initialized = true, status = "WalletKit ready", error = null) }
 
         refreshAll()
+
+        // Restore saved active wallet after wallets are loaded
+        if (savedActiveWallet != null) {
+            _state.update { it.copy(activeWalletAddress = savedActiveWallet) }
+            Log.d(LOG_TAG, "Restored active wallet selection: $savedActiveWallet")
+            // Fetch transactions for the restored active wallet
+            refreshTransactions(savedActiveWallet)
+        } else {
+            // Fetch transactions for the first wallet if no saved wallet
+            state.value.activeWalletAddress?.let { address ->
+                refreshTransactions(address)
+            }
+        }
+
         startBalancePolling()
     }
 
@@ -125,7 +144,7 @@ class WalletKitViewModel(
     private suspend fun migrateLegacyWallets() {
         try {
             val storedWallets = storage.loadAllWallets()
-            
+
             if (storedWallets.isEmpty()) {
                 Log.d(LOG_TAG, "No legacy wallets to migrate")
                 return
@@ -139,7 +158,7 @@ class WalletKitViewModel(
                 LOG_TAG,
                 "Restoring ${storedWallets.size} wallets from secure storage (bridge has ${existingAddresses.size})",
             )
-            
+
             var migratedCount = 0
             storedWallets.forEach { (address, record) ->
                 try {
@@ -159,6 +178,7 @@ class WalletKitViewModel(
                         // Add to bridge (keep data in secure storage for future restores)
                         engine.addWalletFromMnemonic(
                             words = record.mnemonic,
+                            name = displayName,
                             version = version,
                             network = network.asBridgeValue(),
                         )
@@ -171,7 +191,7 @@ class WalletKitViewModel(
                     walletMetadata[address] = WalletMetadata(
                         name = displayName,
                         network = network,
-                        version = version
+                        version = version,
                     )
                 } catch (e: Exception) {
                     Log.e(LOG_TAG, "Failed to migrate wallet: $address", e)
@@ -213,12 +233,14 @@ class WalletKitViewModel(
             summaries.onSuccess { wallets ->
                 val now = System.currentTimeMillis()
 
-                // Set active wallet if not set and wallets exist
+                // Set active wallet based on saved preference or default to first
                 val activeAddress = state.value.activeWalletAddress
                 val newActiveAddress = when {
                     wallets.isEmpty() -> null
-                    activeAddress == null || wallets.none { it.address == activeAddress } -> wallets.firstOrNull()?.address
-                    else -> activeAddress
+                    // Keep current active wallet if it still exists
+                    activeAddress != null && wallets.any { it.address == activeAddress } -> activeAddress
+                    // Otherwise use first wallet
+                    else -> wallets.firstOrNull()?.address
                 }
 
                 _state.update {
@@ -239,119 +261,37 @@ class WalletKitViewModel(
     fun refreshSessions() {
         viewModelScope.launch {
             _state.update { it.copy(isLoadingSessions = true) }
-            hydrateSessionHintsFromStorage()
             val result = runCatching { engine.listSessions() }
             result.onSuccess { sessions ->
-                val persistedHints = try {
-                    storage.loadSessionHints()
-                } catch (error: Throwable) {
-                    Log.w(LOG_TAG, "Failed to load persisted session hints", error)
-                    emptyMap()
-                }
-
-                fun resolveHintForKey(rawKey: String?): SessionHint? {
-                    if (rawKey.isNullOrBlank()) return null
-                    sessionHints[rawKey]?.let { return it }
-                    val stored = persistedHints[rawKey] ?: return null
-                    val normalized = normalizeHint(SessionHint(stored.manifestUrl, stored.dAppUrl, stored.iconUrl)) ?: return null
-                    sessionHints[rawKey] = normalized
-                    return normalized
-                }
-
-                fun resolveHint(vararg keys: String?): SessionHint? {
-                    keys.forEach { key ->
-                        val hint = resolveHintForKey(key)
-                        if (hint != null) return hint
-                    }
-                    return null
-                }
-
-                fun resolvePersistedHint(vararg keys: String?): SessionHint? {
-                    keys.forEach { key ->
-                        if (key.isNullOrBlank()) return@forEach
-                        val stored = persistedHints[key] ?: return@forEach
-                        val normalized = normalizeHint(SessionHint(stored.manifestUrl, stored.dAppUrl, stored.iconUrl))
-                        if (normalized != null) {
-                            sessionHints[key] = normalized
-                            return normalized
-                        }
-                    }
-                    return null
-                }
-
-                if (sessionHints.isNotEmpty()) {
-                    Log.d(
-                        LOG_TAG,
-                        "Session hints cache has ${sessionHints.size} entries: ${sessionHints.keys.joinToString()}",
-                    )
-                    sessionHints.forEach { (key, hintValue) ->
-                        Log.d(
-                            LOG_TAG,
-                            "hint[$key]: manifest=${hintValue.manifestUrl} url=${hintValue.dAppUrl} icon=${hintValue.iconUrl}",
-                        )
-                    }
-                } else {
-                    Log.d(LOG_TAG, "Session hints cache is empty before mapping sessions")
-                }
+                Log.d(LOG_TAG, "Loaded ${sessions.size} sessions from bridge")
                 sessions.forEach { session ->
                     Log.d(
                         LOG_TAG,
-                        "Raw session from bridge: id=${session.sessionId}, dApp=${session.dAppName}, " +
+                        "Session: id=${session.sessionId}, dApp=${session.dAppName}, " +
                             "wallet=${session.walletAddress}, url=${session.dAppUrl}, manifest=${session.manifestUrl}, " +
-                            "icon=${session.iconUrl}, urlIsNull=${session.dAppUrl == null}, urlLength=${session.dAppUrl?.length}",
+                            "icon=${session.iconUrl}",
                     )
                 }
                 val mapped = sessions.mapNotNull { session ->
-                    val nameTrimmed = session.dAppName.trim()
-                    val walletTrimmed = session.walletAddress.trim()
-                    val nameLower = nameTrimmed.lowercase()
-                    val walletLower = walletTrimmed.lowercase()
-                    val hintKey = sessionHintKey(nameTrimmed, walletTrimmed)
-                    val sessionIdKey = session.sessionId
-                    val hintKeys = arrayOf(
-                        sessionIdKey,
-                        hintKey,
-                        sessionHintKey(nameTrimmed, null),
-                        sessionHintKey(nameLower, walletTrimmed),
-                        sessionHintKey(nameLower, walletLower),
-                        sessionHintKey(nameTrimmed, walletLower),
-                    )
-                    val hint = resolveHint(*hintKeys)
-                        ?: resolvePersistedHint(*hintKeys)
-                    if (hint != null) {
-                        Log.d(LOG_TAG, "Resolved hint for session ${session.sessionId}: url=${hint.dAppUrl} manifest=${hint.manifestUrl}")
-                    } else {
-                        Log.w(
-                            LOG_TAG,
-                            "No hint resolved for session ${session.sessionId} (keys checked: ${hintKeys.joinToString()})",
-                        )
-                    }
-                    val hintUrl = sanitizeUrl(hint?.dAppUrl)
-                    val hintManifest = sanitizeUrl(hint?.manifestUrl)
-                    val hintIcon = sanitizeUrl(hint?.iconUrl)
                     val sessionUrl = sanitizeUrl(session.dAppUrl)
                     val sessionManifest = sanitizeUrl(session.manifestUrl)
                     val sessionIcon = sanitizeUrl(session.iconUrl)
-                    val appearsDisconnected = sessionUrl == null && sessionManifest == null && hintUrl == null && hintManifest == null
+
+                    // Skip sessions with no metadata (appears disconnected)
+                    val appearsDisconnected = sessionUrl == null && sessionManifest == null
                     if (appearsDisconnected && session.sessionId.isNotBlank()) {
                         Log.d(
                             LOG_TAG,
                             "Bridge returned empty metadata for session ${session.sessionId}; removing stale entry",
                         )
-                        removeSessionHintKeys(session.sessionId)
                         viewModelScope.launch { runCatching { engine.disconnectSession(session.sessionId) } }
                         return@mapNotNull null
                     }
 
-                    Log.d(
-                        LOG_TAG,
-                        "Merging session ${session.sessionId}: sessionUrl=$sessionUrl hintUrl=$hintUrl " +
-                            "sessionManifest=$sessionManifest hintManifest=$hintManifest",
-                    )
-                    val mergedUrl = sessionUrl ?: hintUrl
-                    val mergedManifest = sessionManifest ?: hintManifest
-                    val mergedIcon = sessionIcon ?: hintIcon
-                    val summary = SessionSummary(
+                    val mergedUrl = sessionUrl
+                    val mergedManifest = sessionManifest
+                    val mergedIcon = sessionIcon
+                    SessionSummary(
                         sessionId = session.sessionId,
                         dAppName = session.dAppName.ifBlank { "Unknown dApp" },
                         walletAddress = session.walletAddress,
@@ -361,22 +301,6 @@ class WalletKitViewModel(
                         createdAt = parseTimestamp(session.createdAtIso),
                         lastActivity = parseTimestamp(session.lastActivityIso),
                     )
-                    Log.d(
-                        LOG_TAG,
-                        "Summary built for session ${session.sessionId}: url=$mergedUrl manifest=$mergedManifest " +
-                            "(fallback url=${hint?.dAppUrl})",
-                    )
-                    val derivedHint = SessionHint(
-                        manifestUrl = mergedManifest,
-                        dAppUrl = mergedUrl,
-                        iconUrl = mergedIcon,
-                    )
-                    if (sessionIdKey.isNotBlank()) {
-                        updateSessionHint(sessionIdKey, derivedHint)
-                    }
-                    updateSessionHint(hintKey, derivedHint)
-                    updateSessionHint(sessionHintKey(session.dAppName, null), derivedHint)
-                    summary
                 }
                 val finalSessions = mapped
                 finalSessions.forEach { summary ->
@@ -433,11 +357,25 @@ class WalletKitViewModel(
             switchNetworkIfNeeded(network)
             pendingWallets.addLast(pending)
             val result = runCatching {
-                engine.addWalletFromMnemonic(cleaned, version, network.asBridgeValue())
+                engine.addWalletFromMnemonic(
+                    words = cleaned,
+                    name = pending.metadata.name,
+                    version = version,
+                    network = network.asBridgeValue(),
+                )
             }
             if (result.isSuccess) {
+                val newWalletAccount = result.getOrNull()
                 refreshWallets()
                 dismissSheet()
+
+                // Automatically switch to the newly imported wallet
+                if (newWalletAccount != null) {
+                    _state.update { it.copy(activeWalletAddress = newWalletAccount.address) }
+                    saveActiveWalletPreference(newWalletAccount.address)
+                    Log.d(LOG_TAG, "Auto-switched to newly imported wallet: ${newWalletAccount.address}")
+                }
+
                 logEvent("Imported wallet '${pending.metadata.name}' (version: $version)")
             } else {
                 pendingWallets.removeLastOrNull()
@@ -456,11 +394,25 @@ class WalletKitViewModel(
             switchNetworkIfNeeded(network)
             pendingWallets.addLast(pending)
             val result = runCatching {
-                engine.addWalletFromMnemonic(words, version, network.asBridgeValue())
+                engine.addWalletFromMnemonic(
+                    words = words,
+                    name = pending.metadata.name,
+                    version = version,
+                    network = network.asBridgeValue(),
+                )
             }
             if (result.isSuccess) {
+                val newWalletAccount = result.getOrNull()
                 refreshWallets()
                 dismissSheet()
+
+                // Automatically switch to the newly generated wallet
+                if (newWalletAccount != null) {
+                    _state.update { it.copy(activeWalletAddress = newWalletAccount.address) }
+                    saveActiveWalletPreference(newWalletAccount.address)
+                    Log.d(LOG_TAG, "Auto-switched to newly generated wallet: ${newWalletAccount.address}")
+                }
+
                 logEvent("Generated wallet '${pending.metadata.name}' (version: $version)")
             } else {
                 pendingWallets.removeLastOrNull()
@@ -507,7 +459,11 @@ class WalletKitViewModel(
 
     fun approveConnect(request: ConnectRequestUi, wallet: WalletSummary) {
         viewModelScope.launch {
-            val result = runCatching { engine.approveConnect(request.id, wallet.address) }
+            val result = runCatching {
+                request.connectRequest?.approve(wallet.address)
+                    ?: error("Request object not available")
+            }
+
             result.onSuccess {
                 dismissSheet()
                 refreshSessions()
@@ -520,7 +476,11 @@ class WalletKitViewModel(
 
     fun rejectConnect(request: ConnectRequestUi, reason: String = "User rejected") {
         viewModelScope.launch {
-            val result = runCatching { engine.rejectConnect(request.id, reason) }
+            val result = runCatching {
+                request.connectRequest?.reject(reason)
+                    ?: error("Request object not available")
+            }
+
             result.onSuccess {
                 dismissSheet()
                 logEvent("Rejected connect for ${request.dAppName}")
@@ -532,7 +492,11 @@ class WalletKitViewModel(
 
     fun approveTransaction(request: TransactionRequestUi) {
         viewModelScope.launch {
-            val result = runCatching { engine.approveTransaction(request.id) }
+            val result = runCatching {
+                request.iosStyleRequest?.approve()
+                    ?: error("Request object not available")
+            }
+
             result.onSuccess {
                 dismissSheet()
                 refreshWallets() // Refresh to show updated balance after transaction is sent
@@ -546,7 +510,11 @@ class WalletKitViewModel(
 
     fun rejectTransaction(request: TransactionRequestUi, reason: String = "User rejected") {
         viewModelScope.launch {
-            val result = runCatching { engine.rejectTransaction(request.id, reason) }
+            val result = runCatching {
+                request.iosStyleRequest?.reject(reason)
+                    ?: error("Request object not available")
+            }
+
             result.onSuccess {
                 dismissSheet()
                 logEvent("Rejected transaction ${request.id}")
@@ -559,25 +527,16 @@ class WalletKitViewModel(
     fun approveSignData(request: SignDataRequestUi) {
         viewModelScope.launch {
             Log.d(LOG_TAG, "Approving sign data request ID: ${request.id}")
-            val result = runCatching { engine.approveSignData(request.id) }
-            result.onSuccess { jsonResult ->
+
+            val result = runCatching {
+                request.iosStyleRequest?.approve()
+                    ?: error("Request object not available")
+            }
+
+            result.onSuccess { signResult ->
                 dismissSheet()
 
-                Log.d(LOG_TAG, "approveSignData result: $jsonResult")
-
-                // Check if the result is successful
-                val success = jsonResult.optBoolean("success", false)
-                if (!success) {
-                    val errorMessage = jsonResult.optString("message", "Unknown error")
-                    Log.e(LOG_TAG, "❌ Sign data approval failed: $errorMessage")
-                    logEvent("❌ Sign data approval failed: $errorMessage")
-                    _state.update { it.copy(error = errorMessage) }
-                    return@onSuccess
-                }
-
-                // Extract signature details from result object
-                val resultObj = jsonResult.optJSONObject("result")
-                val signature = resultObj?.optString("signature", "") ?: ""
+                val signature = signResult.signature
 
                 // Log full details to Android logcat
                 Log.d(LOG_TAG, "========================================")
@@ -586,7 +545,6 @@ class WalletKitViewModel(
                 Log.d(LOG_TAG, "Request ID: ${request.id}")
                 Log.d(LOG_TAG, "Payload Type: ${request.payloadType}")
                 Log.d(LOG_TAG, "Signature: $signature")
-                Log.d(LOG_TAG, "Full JSON: $jsonResult")
                 Log.d(LOG_TAG, "========================================")
 
                 logEvent("✅ Sign data approved - Signature: ${signature.take(20)}...")
@@ -621,7 +579,11 @@ class WalletKitViewModel(
 
     fun rejectSignData(request: SignDataRequestUi, reason: String = "User rejected") {
         viewModelScope.launch {
-            val result = runCatching { engine.rejectSignData(request.id, reason) }
+            val result = runCatching {
+                request.iosStyleRequest?.reject(reason)
+                    ?: error("Request object not available")
+            }
+
             result.onSuccess {
                 dismissSheet()
                 Log.d(LOG_TAG, "❌ Rejected sign request ${request.id}: $reason")
@@ -978,17 +940,8 @@ class WalletKitViewModel(
             result.onSuccess {
                 refreshSessions()
                 logEvent("Disconnected session $sessionId")
-                sessionHints.remove(sessionId)
-                storage.clearSessionHint(sessionId)
-                val summary = state.value.sessions.firstOrNull { it.sessionId == sessionId }
-                if (summary != null) {
-                    val keyByWallet = sessionHintKey(summary.dAppName, summary.walletAddress)
-                    sessionHints.remove(keyByWallet)
-                    storage.clearSessionHint(keyByWallet)
-                    val fallbackKey = sessionHintKey(summary.dAppName, null)
-                    sessionHints.remove(fallbackKey)
-                    storage.clearSessionHint(fallbackKey)
-                }
+                // Clear session data from storage
+                storage.clearSessionData(sessionId)
             }.onFailure { error ->
                 _state.update { it.copy(error = error.message ?: "Failed to disconnect session") }
             }
@@ -1077,10 +1030,32 @@ class WalletKitViewModel(
                 )
             }
 
+            // Save active wallet preference
+            saveActiveWalletPreference(address)
+
             // Refresh wallet state to get latest balance and transactions
             refreshWallets()
             logEvent("Switched to wallet: ${wallet.name}")
             refreshTransactions(address)
+        }
+    }
+
+    /**
+     * Save the active wallet address to persistent storage.
+     */
+    private fun saveActiveWalletPreference(address: String) {
+        viewModelScope.launch {
+            try {
+                val currentPrefs = storage.loadUserPreferences()
+                val updatedPrefs = StoredUserPreferences(
+                    activeWalletAddress = address,
+                    lastSelectedNetwork = currentPrefs?.lastSelectedNetwork ?: currentNetwork.asBridgeValue(),
+                )
+                storage.saveUserPreferences(updatedPrefs)
+                Log.d(LOG_TAG, "Saved active wallet preference: $address")
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Failed to save active wallet preference", e)
+            }
         }
     }
 
@@ -1089,12 +1064,42 @@ class WalletKitViewModel(
         viewModelScope.launch {
             val refreshErrorMessage = "Failed to refresh transactions"
             _state.update { it.copy(isLoadingTransactions = true) }
-            val result = runCatching { engine.getRecentTransactions(targetAddress, limit) }
-            result.onSuccess { transactions ->
+
+            // Try to get cached transactions first for immediate display
+            val cachedTransactions = transactionCache.get(targetAddress)
+            if (cachedTransactions != null) {
+                Log.d(LOG_TAG, "Using cached transactions for $targetAddress: ${cachedTransactions.size} items")
                 _state.update { current ->
                     val updatedWallets = current.wallets.map { summary ->
                         if (summary.address == targetAddress) {
-                            summary.copy(transactions = transactions)
+                            summary.copy(transactions = cachedTransactions)
+                        } else {
+                            summary
+                        }
+                    }
+                    current.copy(wallets = updatedWallets)
+                }
+            }
+
+            // Fetch fresh transactions from network
+            val result = runCatching { engine.getRecentTransactions(targetAddress, limit) }
+            result.onSuccess { newTransactions ->
+                // Update cache with new transactions (merges with existing)
+                val mergedTransactions = transactionCache.update(targetAddress, newTransactions)
+
+                // Calculate diff for logging/debugging
+                val oldList = cachedTransactions ?: emptyList()
+                if (oldList.isNotEmpty()) {
+                    val newItems = TransactionDiffUtil.getNewTransactions(oldList, mergedTransactions)
+                    if (newItems.isNotEmpty()) {
+                        Log.d(LOG_TAG, "Found ${newItems.size} new transactions for $targetAddress")
+                    }
+                }
+
+                _state.update { current ->
+                    val updatedWallets = current.wallets.map { summary ->
+                        if (summary.address == targetAddress) {
+                            summary.copy(transactions = mergedTransactions)
                         } else {
                             summary
                         }
@@ -1107,6 +1112,7 @@ class WalletKitViewModel(
                     )
                 }
             }.onFailure { error ->
+                Log.e(LOG_TAG, "Failed to refresh transactions for $targetAddress", error)
                 _state.update {
                     it.copy(
                         isLoadingTransactions = false,
@@ -1122,103 +1128,30 @@ class WalletKitViewModel(
         val transactions = wallet.transactions ?: return
 
         // Find the transaction by hash
-        for (i in 0 until transactions.length()) {
-            val tx = transactions.optJSONObject(i) ?: continue
-            if (tx.optString("hash") == transactionHash) {
-                // Parse transaction details
-                val detail = parseTransactionDetail(tx, walletAddress)
-                _state.update { it.copy(sheetState = SheetState.TransactionDetail(detail)) }
-                return
-            }
-        }
+        val tx = transactions.firstOrNull { it.hash == transactionHash } ?: return
+
+        // Parse transaction details
+        val detail = parseTransactionDetail(tx, walletAddress)
+        _state.update { it.copy(sheetState = SheetState.TransactionDetail(detail)) }
     }
 
-    private fun parseTransactionDetail(tx: JSONObject, walletAddress: String): io.ton.walletkit.demo.model.TransactionDetailUi {
-        val isOutgoing = tx.optJSONArray("out_msgs")?.length() ?: 0 > 0
-        val timestamp = tx.optLong("now", 0L)
-        // Prefer hex hash if available (converted by bridge), fallback to base64
-        val hash = tx.optString("hash_hex").takeIf { it.isNotEmpty() }
-            ?: tx.optString("hash", "")
-        val lt = tx.optString("lt", "0")
-        val blockSeqno = tx.optInt("mc_block_seqno", 0)
+    private fun parseTransactionDetail(tx: io.ton.walletkit.bridge.model.Transaction, walletAddress: String): TransactionDetailUi {
+        val isOutgoing = tx.type == io.ton.walletkit.bridge.model.TransactionType.OUTGOING
 
-        // Calculate amount
-        val amount = if (isOutgoing) {
-            val outMsgs = tx.optJSONArray("out_msgs")
-            var total = 0L
-            if (outMsgs != null) {
-                for (i in 0 until outMsgs.length()) {
-                    val msg = outMsgs.optJSONObject(i)
-                    val value = msg?.optString("value")?.toLongOrNull() ?: 0L
-                    total += value
-                }
-            }
-            formatNanoTon(total.toString())
-        } else {
-            val inMsg = tx.optJSONObject("in_msg")
-            val value = inMsg?.optString("value") ?: "0"
-            formatNanoTon(value)
-        }
-
-        // Get fee
-        val totalFees = tx.optString("total_fees", "0")
-        val fee = formatNanoTon(totalFees)
-
-        // Get addresses - prefer user-friendly format if available
-        val fromAddress = if (isOutgoing) {
-            walletAddress
-        } else {
-            val inMsg = tx.optJSONObject("in_msg")
-            // Try friendly address first, fallback to raw
-            inMsg?.optString("source_friendly")?.takeIf { it.isNotEmpty() }
-                ?: inMsg?.optString("source")
-        }
-
-        val toAddress = if (isOutgoing) {
-            val outMsg = tx.optJSONArray("out_msgs")?.optJSONObject(0)
-            // Try friendly address first, fallback to raw
-            outMsg?.optString("destination_friendly")?.takeIf { it.isNotEmpty() }
-                ?: outMsg?.optString("destination")
-        } else {
-            walletAddress
-        }
-
-        // Extract comment - check for comment field added by bridge
-        val comment = if (isOutgoing) {
-            tx.optJSONArray("out_msgs")?.optJSONObject(0)?.optString("comment")?.takeIf { it.isNotEmpty() }
-        } else {
-            tx.optJSONObject("in_msg")?.optString("comment")?.takeIf { it.isNotEmpty() }
-        }
-
-        // Determine status
-        val description = tx.optJSONObject("description")
-        val computePhase = description?.optJSONObject("compute_ph")
-        val success = computePhase?.optBoolean("success", true) ?: true
-        val aborted = description?.optBoolean("aborted", false) ?: false
-        val status = when {
-            aborted -> "Failed"
-            !success -> "Failed"
-            else -> "Success"
-        }
-
-        return io.ton.walletkit.demo.model.TransactionDetailUi(
-            hash = hash,
-            timestamp = timestamp,
+        // Transaction already has parsed data from the bridge
+        return TransactionDetailUi(
+            hash = tx.hash,
+            timestamp = tx.timestamp,
+            amount = formatNanoTon(tx.amount),
+            fee = tx.fee?.let { formatNanoTon(it) } ?: "0 TON",
+            fromAddress = tx.sender ?: (if (isOutgoing) walletAddress else "Unknown"),
+            toAddress = tx.recipient ?: (if (!isOutgoing) walletAddress else "Unknown"),
+            comment = tx.comment,
+            status = "Success", // Transactions from bridge are already filtered/successful
+            lt = tx.lt ?: "0",
+            blockSeqno = tx.blockSeqno ?: 0,
             isOutgoing = isOutgoing,
-            amount = amount,
-            fee = fee,
-            fromAddress = fromAddress,
-            toAddress = toAddress,
-            comment = comment,
-            status = status,
-            blockSeqno = blockSeqno,
-            lt = lt,
         )
-    }
-
-    private fun extractComment(tx: JSONObject, isOutgoing: Boolean): String? {
-        // This is now handled in the bridge with proper BOC parsing
-        return null
     }
 
     private fun formatNanoTon(nanoTon: String): String = try {
@@ -1238,15 +1171,7 @@ class WalletKitViewModel(
             }
 
             val removeResult = runCatching { engine.removeWallet(address) }
-            val removalOutcome = removeResult.getOrNull()
-            val removed = when {
-                removalOutcome == null -> removeResult.isSuccess
-                removalOutcome.has("removed") -> removalOutcome.optBoolean("removed", false)
-                removalOutcome.has("ok") -> removalOutcome.optBoolean("ok", true)
-                removalOutcome.has("value") -> removalOutcome.optBoolean("value", true)
-                else -> true
-            }
-            if (removeResult.isFailure || !removed) {
+            if (removeResult.isFailure) {
                 val reason = removeResult.exceptionOrNull()?.message ?: "Failed to remove wallet"
                 _state.update { it.copy(error = reason) }
                 return@launch
@@ -1255,6 +1180,9 @@ class WalletKitViewModel(
             runCatching { storage.clear(address) }.onFailure {
                 Log.w(LOG_TAG, "removeWallet: failed to clear storage for $address", it)
             }
+
+            // Clear transaction cache for removed wallet
+            transactionCache.clear(address)
 
             walletMetadata.remove(address)
 
@@ -1326,11 +1254,24 @@ class WalletKitViewModel(
             val balance = state?.balance
             Log.d(LOG_TAG, "loadWalletSummaries: balance for ${account.address} = $balance")
             val formatted = balance?.let(::formatTon)
+
+            // Try to get transactions from cache first
+            val cachedTransactions = transactionCache.get(account.address)
+
+            // Fetch fresh transactions from network
             val transactions = runCatching {
                 engine.getRecentTransactions(account.address, TRANSACTION_FETCH_LIMIT)
             }.onFailure {
                 Log.w(LOG_TAG, "loadWalletSummaries: getRecentTransactions failed for ${account.address}", it)
-            }.getOrNull() ?: state?.transactions
+            }.getOrNull()
+
+            // Update cache and use merged result
+            val finalTransactions = if (transactions != null) {
+                transactionCache.update(account.address, transactions)
+            } else {
+                // If fetch failed, use cached transactions or state transactions as fallback
+                cachedTransactions ?: state?.transactions
+            }
 
             // Get sessions connected to this wallet
             val walletSessions = _state.value.sessions.filter { session ->
@@ -1345,7 +1286,7 @@ class WalletKitViewModel(
                 publicKey = account.publicKey,
                 balanceNano = balance,
                 balance = formatted,
-                transactions = transactions,
+                transactions = finalTransactions,
                 lastUpdated = System.currentTimeMillis(),
                 connectedSessions = walletSessions,
             )
@@ -1415,7 +1356,12 @@ class WalletKitViewModel(
         val pendingRecord = PendingWalletRecord(metadata = metadata, mnemonic = DEMO_MNEMONIC)
         pendingWallets.addLast(pendingRecord)
         runCatching {
-            engine.addWalletFromMnemonic(DEMO_MNEMONIC, DEFAULT_WALLET_VERSION, currentNetwork.asBridgeValue())
+            engine.addWalletFromMnemonic(
+                words = DEMO_MNEMONIC,
+                name = DEMO_WALLET_NAME,
+                version = DEFAULT_WALLET_VERSION,
+                network = currentNetwork.asBridgeValue(),
+            )
         }.onFailure { error ->
             pendingWallets.remove(pendingRecord)
             _state.update { it.copy(error = error.message ?: "Failed to prepare demo wallet") }
@@ -1435,7 +1381,6 @@ class WalletKitViewModel(
     private suspend fun reinitializeForNetwork(
         target: TonNetwork,
         storedOverride: Map<String, StoredWalletRecord>? = null,
-        storedHintsOverride: Map<String, StoredSessionHint>? = null,
     ) {
         val endpoints = networkEndpoints(target)
         engine.init(
@@ -1452,21 +1397,6 @@ class WalletKitViewModel(
         currentNetwork = target
         walletMetadata.clear()
         pendingWallets.clear()
-        sessionHints.clear()
-        
-        // Restore session hints from storage
-        val hints = storedHintsOverride ?: storage.loadSessionHints()
-        hints.forEach { (key, hint) ->
-            val normalized = normalizeHint(SessionHint(hint.manifestUrl, hint.dAppUrl, hint.iconUrl))
-            if (normalized != null) {
-                sessionHints[key] = normalized
-            }
-        }
-        if (sessionHints.isNotEmpty()) {
-            Log.d(LOG_TAG, "Hydrated ${sessionHints.size} session hints for ${target.name.lowercase()} -> ${sessionHints.keys.joinToString()}")
-        } else {
-            Log.d(LOG_TAG, "No persisted session hints available for ${target.name.lowercase()}")
-        }
 
         // Wallets are automatically restored by bridge - no manual restoration needed
         // Just ensure we have at least one wallet for demo purposes
@@ -1483,223 +1413,141 @@ class WalletKitViewModel(
         _state.update { it.copy(sheetState = sheet) }
     }
 
+    /**
+     * Event handler using sealed class pattern.
+     * This provides type-safe, exhaustive when() expressions.
+     */
     private fun onBridgeEvent(event: WalletKitEvent) {
-        when (event.type) {
-            "ready" -> {
-                val wasInitialized = state.value.initialized
-                val networkValue = event.data.optNullableString("network")
-                val resolvedNetwork = networkValue?.let { TonNetwork.fromBridge(it, currentNetwork) }
-                resolvedNetwork?.let { currentNetwork = it }
-                val networkLabel = resolvedNetwork?.name
-                    ?.lowercase(Locale.getDefault())
-                    ?.replaceFirstChar { char ->
-                        if (char.isLowerCase()) char.titlecase(Locale.getDefault()) else char.toString()
-                    }
-                val tonApiUrl = event.data.optNullableString("tonApiUrl")
-                val tonClientEndpoint = event.data.optNullableString("tonClientEndpoint")
-                    ?: event.data.optNullableString("apiUrl")
-                val statusMessage = buildString {
-                    append("WalletKit ready")
-                    networkLabel?.let {
-                        append(" • ")
-                        append(it)
-                    }
-                }
-                val shouldRefresh = !wasInitialized || state.value.wallets.isEmpty()
-                _state.update {
-                    it.copy(
-                        initialized = true,
-                        status = statusMessage,
-                        error = null,
-                    )
-                }
-                val extraDetails = buildList {
-                    networkLabel?.let { add(it) }
-                    tonApiUrl?.let { add("tonapi: $it") }
-                    tonClientEndpoint?.let { add("rpc: $it") }
-                }.takeIf { it.isNotEmpty() }
-                if (extraDetails != null) {
-                    logEvent("WalletKit ready (${extraDetails.joinToString(" · ")})")
-                } else {
-                    logEvent("WalletKit ready")
-                }
-                if (shouldRefresh) {
-                    refreshAll()
-                }
+        when (event) {
+            is WalletKitEvent.ConnectRequestEvent -> {
+                // Request object contains all data plus approve/reject methods
+                val request = event.request
+                val dAppInfo = request.dAppInfo
+
+                // Convert to UI model for existing sheets
+                val uiRequest = ConnectRequestUi(
+                    id = request.requestId.toString(),
+                    dAppName = dAppInfo?.name ?: "Unknown dApp",
+                    dAppUrl = dAppInfo?.url ?: "",
+                    manifestUrl = dAppInfo?.manifestUrl ?: "",
+                    iconUrl = dAppInfo?.iconUrl,
+                    permissions = request.permissions.map { permission ->
+                        ConnectPermissionUi(
+                            name = permission,
+                            title = permission.replaceFirstChar { it.uppercase() },
+                            description = "Allow access to $permission",
+                        )
+                    },
+                    requestedItems = request.permissions,
+                    raw = org.json.JSONObject(), // Not needed with this API
+                    connectRequest = request, // Store for direct approve/reject
+                )
+
+                setSheet(SheetState.Connect(uiRequest))
+                logEvent("Connect request from ${dAppInfo?.name ?: "Unknown dApp"}")
             }
 
-            "connectRequest" -> parseConnectRequest(event.data)?.let { request ->
-                setSheet(SheetState.Connect(request))
-                logEvent("Connect request from ${request.dAppName}")
+            is WalletKitEvent.TransactionRequestEvent -> {
+                // Request object contains all data plus approve/reject methods
+                val request = event.request
+                val dAppInfo = request.dAppInfo
+                val txRequest = request.request
+
+                // Extract wallet address from the raw event data if available
+                // Otherwise use the active wallet address
+                val walletAddress = state.value.activeWalletAddress ?: ""
+
+                // Convert to UI model
+                val messages = listOf(
+                    TransactionMessageUi(
+                        to = txRequest.recipient,
+                        amount = txRequest.amount,
+                        comment = txRequest.comment,
+                        payload = txRequest.payload,
+                        stateInit = null,
+                    ),
+                )
+
+                val uiRequest = TransactionRequestUi(
+                    id = request.requestId.toString(),
+                    walletAddress = walletAddress,
+                    dAppName = dAppInfo?.name ?: "Unknown dApp",
+                    validUntil = null,
+                    messages = messages,
+                    preview = null,
+                    raw = org.json.JSONObject(),
+                    iosStyleRequest = request, // Store for direct approve/reject
+                )
+
+                setSheet(SheetState.Transaction(uiRequest))
+                logEvent("Transaction request ${request.requestId}")
             }
 
-            "transactionRequest" -> parseTransactionRequest(event.data)?.let { request ->
-                setSheet(SheetState.Transaction(request))
-                logEvent("Transaction request ${request.id}")
-            }
+            is WalletKitEvent.SignDataRequestEvent -> {
+                // Request object contains all data plus approve/reject methods
+                val request = event.request
+                val dAppInfo = request.dAppInfo
+                val signRequest = request.request
 
-            "signDataRequest" -> parseSignDataRequest(event.data)?.let { request ->
-                setSheet(SheetState.SignData(request))
-                logEvent("Sign data request ${request.id}")
-            }
-
-            "disconnect" -> {
-                Log.d(LOG_TAG, "Received disconnect event: ${event.data}")
-                viewModelScope.launch {
-                    val sessionId = event.data.optNullableString("sessionId")
-                        ?: event.data.optNullableString("id")
-                    val walletAddress = event.data.optJSONObject("wallet")?.optNullableString("address")
-                        ?: event.data.optNullableString("walletAddress")
-
-                    val sessionIdsToClear = mutableSetOf<String>()
-                    if (!sessionId.isNullOrBlank()) {
-                        sessionIdsToClear += sessionId
-                    }
-                    if (!walletAddress.isNullOrBlank()) {
-                        state.value.sessions.filter {
-                            it.walletAddress.equals(walletAddress, ignoreCase = true)
-                        }.forEach { summary ->
-                            sessionIdsToClear += summary.sessionId
+                // Generate preview based on schema type
+                val preview = when (signRequest.schema) {
+                    "text" -> {
+                        // For text payloads, show the text directly
+                        signRequest.payload.take(200).let {
+                            if (signRequest.payload.length > 200) "$it..." else it
                         }
                     }
-
-                    sessionIdsToClear.forEach { removeSessionHintKeys(it) }
-
-                    sessionIdsToClear.forEach { id ->
-                        runCatching { engine.disconnectSession(id) }
+                    "binary" -> {
+                        // For binary payloads, show base64 preview
+                        "Binary data (${signRequest.payload.length} chars)\n${signRequest.payload.take(100)}..."
                     }
+                    "cell" -> {
+                        // For cell payloads, show BOC preview
+                        "Cell BOC (${signRequest.payload.length} chars)\n${signRequest.payload.take(100)}..."
+                    }
+                    else -> {
+                        // Unknown type - show payload preview
+                        signRequest.payload.take(100).let {
+                            if (signRequest.payload.length > 100) "$it..." else it
+                        }
+                    }
+                }
 
+                val uiRequest = SignDataRequestUi(
+                    id = request.requestId.toString(),
+                    walletAddress = "", // Not available in new API
+                    payloadType = signRequest.schema ?: "unknown",
+                    payloadContent = signRequest.payload,
+                    preview = preview,
+                    raw = org.json.JSONObject(),
+                    iosStyleRequest = request, // Store for direct approve/reject
+                )
+
+                setSheet(SheetState.SignData(uiRequest))
+                logEvent("Sign data request ${request.requestId}")
+            }
+
+            is WalletKitEvent.DisconnectEvent -> {
+                Log.d(LOG_TAG, "Received disconnect event: sessionId=${event.sessionId}")
+                viewModelScope.launch {
+                    // Clear session data from storage
+                    storage.clearSessionData(event.sessionId)
+                    runCatching { engine.disconnectSession(event.sessionId) }
                     refreshSessions()
                     logEvent("Session disconnected")
                 }
             }
-        }
-    }
 
-    private fun parseConnectRequest(json: JSONObject): ConnectRequestUi? {
-        val id = json.opt("id")?.toString() ?: json.opt("requestId")?.toString() ?: return null
-        val preview = json.optJSONObject("preview")
-        val manifest = preview?.optJSONObject("manifest")
-        val permissionsSource = preview?.optJSONArray("permissions") ?: json.optJSONArray("permissions")
-        val requestedItemsSource = preview?.optJSONArray("requestedItems") ?: json.optJSONArray("requestedItems")
+            is WalletKitEvent.StateChangedEvent -> {
+                Log.d(LOG_TAG, "Wallet state changed: ${event.address}")
+                refreshWallets()
+            }
 
-        val permissions = buildList {
-            if (permissionsSource != null) {
-                for (index in 0 until permissionsSource.length()) {
-                    val item = permissionsSource.optJSONObject(index) ?: continue
-                    add(
-                        ConnectPermissionUi(
-                            name = item.optString("name"),
-                            title = item.optString("title"),
-                            description = item.optString("description"),
-                        ),
-                    )
-                }
+            is WalletKitEvent.SessionsChangedEvent -> {
+                Log.d(LOG_TAG, "Sessions changed")
+                refreshSessions()
             }
         }
-
-        val requestedItems = buildList {
-            if (requestedItemsSource != null) {
-                for (index in 0 until requestedItemsSource.length()) {
-                    add(requestedItemsSource.optString(index))
-                }
-            }
-        }
-
-        val manifestUrl = manifest?.optNullableString("url")
-        val request = ConnectRequestUi(
-            id = id,
-            dAppName = json.optString("dAppName", manifest?.optString("name") ?: "Unknown dApp"),
-            dAppUrl = json.optString("dAppUrl", manifestUrl ?: ""),
-            manifestUrl = json.optString("manifestUrl", manifestUrl ?: ""),
-            iconUrl = json.optNullableString("dAppIconUrl") ?: manifest?.optNullableString("iconUrl"),
-            permissions = permissions,
-            requestedItems = requestedItems,
-            raw = json,
-        )
-        Log.d(
-            LOG_TAG,
-            "Connect request received: id=${request.id}, dApp=${request.dAppName}, " +
-                "url=${request.dAppUrl}, manifest=${request.manifestUrl}, icon=${request.iconUrl}",
-        )
-        val hintKey = sessionHintKey(request.dAppName, null)
-        val hint = SessionHint(
-            manifestUrl = request.manifestUrl.takeIf { it.isNotBlank() },
-            dAppUrl = request.dAppUrl.takeIf { it.isNotBlank() },
-            iconUrl = request.iconUrl,
-        )
-        updateSessionHint(hintKey, hint)
-        return request
-    }
-
-    private fun parseTransactionRequest(json: JSONObject): TransactionRequestUi? {
-        Log.d(LOG_TAG, "parseTransactionRequest: RAW JSON = ${json.toString(2)}")
-        val id = json.opt("id")?.toString() ?: return null
-
-        // Try to get messages from both locations: top-level and request.messages
-        var messages = json.optJSONArray("messages")
-        if (messages == null) {
-            val request = json.optJSONObject("request")
-            messages = request?.optJSONArray("messages")
-            Log.d(LOG_TAG, "parseTransactionRequest: messages from request object")
-        } else {
-            Log.d(LOG_TAG, "parseTransactionRequest: messages from top level")
-        }
-
-        val preview = json.optJSONObject("preview")
-        Log.d(LOG_TAG, "parseTransactionRequest: preview = ${preview?.toString(2)}")
-
-        val parsedMessages = buildList {
-            if (messages != null) {
-                for (index in 0 until messages.length()) {
-                    val item = messages.optJSONObject(index) ?: continue
-                    val payload = item.optNullableString("payload")
-                    val stateInit = item.optNullableString("stateInit")
-                    val comment = item.optNullableString("comment")
-
-                    // Try both "to" and "address" fields (TON Connect uses "address")
-                    val toAddress = item.optString("to").takeIf { it.isNotBlank() }
-                        ?: item.optString("address")
-
-                    add(
-                        TransactionMessageUi(
-                            to = toAddress,
-                            amount = item.optString("amount"),
-                            comment = comment,
-                            payload = payload,
-                            stateInit = stateInit,
-                        ),
-                    )
-                }
-            }
-        }
-
-        val previewJson = preview?.toString(2) ?: json.optJSONObject("request")?.toString(2)
-
-        return TransactionRequestUi(
-            id = id,
-            walletAddress = json.optString("walletAddress"),
-            dAppName = json.optString("dAppName", "Unknown dApp"),
-            validUntil = json.optLong("validUntil", 0L).takeIf { it > 0 },
-            messages = parsedMessages,
-            preview = previewJson,
-            raw = json,
-        )
-    }
-
-    private fun parseSignDataRequest(json: JSONObject): SignDataRequestUi? {
-        val id = json.opt("id")?.toString() ?: return null
-        val preview = json.optJSONObject("preview")
-        val request = json.optJSONObject("request") ?: JSONObject()
-
-        return SignDataRequestUi(
-            id = id,
-            walletAddress = json.optString("walletAddress", ""),
-            payloadType = request.optString("type", "unknown"),
-            payloadContent = request.toString(2),
-            preview = preview?.toString(2),
-            raw = json,
-        )
     }
 
     private fun logEvent(message: String) {
@@ -1808,74 +1656,7 @@ class WalletKitViewModel(
         val bridgeName: String,
     )
 
-    private data class SessionHint(
-        val manifestUrl: String?,
-        val dAppUrl: String?,
-        val iconUrl: String?,
-    )
-
-    private fun sessionHintKey(dAppName: String, walletAddress: String?): String {
-        val normalizedName = dAppName.trim()
-        val normalizedWallet = walletAddress?.trim().orEmpty()
-        return listOf(normalizedName, normalizedWallet).joinToString("::")
-    }
-
-    private fun updateSessionHint(key: String, newHint: SessionHint?) {
-        val normalizedNew = normalizeHint(newHint)
-        val normalizedExisting = normalizeHint(sessionHints[key])
-        val merged = SessionHint(
-            manifestUrl = normalizedNew?.manifestUrl ?: normalizedExisting?.manifestUrl,
-            dAppUrl = normalizedNew?.dAppUrl ?: normalizedExisting?.dAppUrl,
-            iconUrl = normalizedNew?.iconUrl ?: normalizedExisting?.iconUrl,
-        )
-        if (merged.manifestUrl == null && merged.dAppUrl == null && merged.iconUrl == null) {
-            return
-        }
-        sessionHints[key] = merged
-        viewModelScope.launch {
-            val record = StoredSessionHint(merged.manifestUrl, merged.dAppUrl, merged.iconUrl)
-            runCatching { storage.saveSessionHint(key, record) }
-        }
-    }
-
-    private suspend fun hydrateSessionHintsFromStorage() {
-        if (sessionHints.isNotEmpty()) return
-        val persisted = runCatching { storage.loadSessionHints() }.getOrDefault(emptyMap())
-        if (persisted.isEmpty()) return
-        persisted.forEach { (key, hint) ->
-            val normalized = normalizeHint(SessionHint(hint.manifestUrl, hint.dAppUrl, hint.iconUrl))
-            if (normalized != null) {
-                sessionHints[key] = normalized
-            }
-        }
-        Log.d(LOG_TAG, "Hydrated session hints from storage at runtime: ${sessionHints.keys.joinToString()}")
-    }
-
-    private fun removeSessionHintKeys(sessionId: String) {
-        val summary = state.value.sessions.firstOrNull { it.sessionId == sessionId }
-        val keys = buildList {
-            add(sessionId)
-            summary?.let {
-                add(sessionHintKey(it.dAppName, it.walletAddress))
-                add(sessionHintKey(it.dAppName, null))
-            }
-        }
-        keys.forEach { key ->
-            sessionHints.remove(key)
-            viewModelScope.launch { storage.clearSessionHint(key) }
-        }
-    }
-
     private fun generateMnemonic(): List<String> = List(24) { DEMO_WORDS.random() }
-
-    private fun normalizeHint(hint: SessionHint?): SessionHint? {
-        if (hint == null) return null
-        val manifest = sanitizeUrl(hint.manifestUrl)
-        val dApp = sanitizeUrl(hint.dAppUrl)
-        val icon = sanitizeUrl(hint.iconUrl)
-        if (manifest == null && dApp == null && icon == null) return null
-        return SessionHint(manifest, dApp, icon)
-    }
 
     private fun sanitizeUrl(value: String?): String? {
         if (value.isNullOrBlank()) return null

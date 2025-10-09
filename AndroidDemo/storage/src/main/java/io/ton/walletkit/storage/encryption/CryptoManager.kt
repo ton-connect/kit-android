@@ -182,13 +182,13 @@ class CryptoManager(
                 try {
                     val strongBoxBuilder = KeyGenParameterSpec.Builder(
                         keystoreAlias,
-                        KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+                        KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
                     )
                         .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                         .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                         .setKeySize(256)
                         .setIsStrongBoxBacked(true) // Request StrongBox
-                    
+
                     keyGenerator.init(strongBoxBuilder.build())
                     keyGenerator.generateKey()
                     strongBoxSuccess = true

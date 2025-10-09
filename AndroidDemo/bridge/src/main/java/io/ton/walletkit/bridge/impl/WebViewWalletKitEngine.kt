@@ -1,10 +1,11 @@
-package io.ton.walletkit.bridge
+package io.ton.walletkit.bridge.impl
 
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
 import android.util.Log
+import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -13,16 +14,27 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
+import io.ton.walletkit.bridge.WalletKitBridgeException
+import io.ton.walletkit.bridge.WalletKitEngine
+import io.ton.walletkit.bridge.WalletKitEngineKind
 import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
-import io.ton.walletkit.bridge.listener.WalletKitEngineListener
+import io.ton.walletkit.bridge.event.WalletKitEvent
+import io.ton.walletkit.bridge.listener.WalletKitEventHandler
+import io.ton.walletkit.bridge.model.DAppInfo
+import io.ton.walletkit.bridge.model.SignDataRequest
+import io.ton.walletkit.bridge.model.SignDataResult
+import io.ton.walletkit.bridge.model.Transaction
+import io.ton.walletkit.bridge.model.TransactionRequest
+import io.ton.walletkit.bridge.model.TransactionType
 import io.ton.walletkit.bridge.model.WalletAccount
-import io.ton.walletkit.bridge.model.WalletKitEvent
 import io.ton.walletkit.bridge.model.WalletSession
 import io.ton.walletkit.bridge.model.WalletState
+import io.ton.walletkit.bridge.request.ConnectRequest
 import io.ton.walletkit.storage.bridge.BridgeStorageAdapter
 import io.ton.walletkit.storage.bridge.SecureBridgeStorageAdapter
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -37,7 +49,7 @@ import java.util.concurrent.CopyOnWriteArraySet
 /**
  * WebView-backed WalletKit engine. Hosts the WalletKit bundle inside a hidden WebView and uses the
  * established JS bridge to communicate with the Kotlin layer.
- * 
+ *
  * **Persistent Storage**: By default, this engine persists wallet and session data
  * using secure encrypted storage. Data is automatically restored on app restart.
  * Storage can be disabled via config for testing or privacy-focused use cases.
@@ -50,13 +62,13 @@ class WebViewWalletKitEngine(
 
     private val logTag = "WebViewWalletKitEngine"
     private val appContext = context.applicationContext
-    
+
     // Secure storage adapter for the bridge (conditionally enabled based on config)
     private val storageAdapter: BridgeStorageAdapter = SecureBridgeStorageAdapter(appContext)
-    
+
     // Whether persistent storage is enabled (set during init)
     @Volatile private var persistentStorageEnabled: Boolean = true
-    
+
     private val assetLoader =
         WebViewAssetLoader
             .Builder()
@@ -67,7 +79,7 @@ class WebViewWalletKitEngine(
     private val webView: WebView = WebView(appContext)
     private val ready = CompletableDeferred<Unit>()
     private val pending = ConcurrentHashMap<String, CompletableDeferred<BridgeResponse>>()
-    private val listeners = CopyOnWriteArraySet<WalletKitEngineListener>()
+    private val eventHandlers = CopyOnWriteArraySet<WalletKitEventHandler>()
 
     @Volatile private var currentNetwork: String = "testnet"
 
@@ -124,18 +136,18 @@ class WebViewWalletKitEngine(
     }
 
     /** Attach the WebView to a parent view so it can be inspected/debugged if needed. */
-    fun attachTo(parent: android.view.ViewGroup) {
+    fun attachTo(parent: ViewGroup) {
         if (webView.parent !== parent) {
-            (webView.parent as? android.view.ViewGroup)?.removeView(webView)
+            (webView.parent as? ViewGroup)?.removeView(webView)
             parent.addView(webView)
         }
     }
 
     fun asView(): WebView = webView
 
-    override fun addListener(listener: WalletKitEngineListener): Closeable {
-        listeners.add(listener)
-        return Closeable { listeners.remove(listener) }
+    override fun addEventHandler(handler: WalletKitEventHandler): Closeable {
+        eventHandlers.add(handler)
+        return Closeable { eventHandlers.remove(handler) }
     }
 
     /**
@@ -182,7 +194,7 @@ class WebViewWalletKitEngine(
     private suspend fun performInitialization(config: WalletKitBridgeConfig) {
         currentNetwork = config.network
         persistentStorageEnabled = config.enablePersistentStorage
-        
+
         val tonClientEndpoint =
             config.tonClientEndpoint?.ifBlank { null }
                 ?: config.apiUrl?.ifBlank { null }
@@ -207,7 +219,7 @@ class WebViewWalletKitEngine(
         call("init", payload)
     }
 
-    override suspend fun init(config: WalletKitBridgeConfig): JSONObject {
+    override suspend fun init(config: WalletKitBridgeConfig) {
         // Store config for use during auto-init if this is called before any other method
         walletKitInitMutex.withLock {
             if (!isWalletKitInitialized) {
@@ -217,8 +229,6 @@ class WebViewWalletKitEngine(
 
         // Ensure initialization happens with this config
         ensureWalletKitInitialized(config)
-
-        return JSONObject().apply { put("ok", true) }
     }
 
     private fun defaultTonClientEndpoint(network: String): String = if (network.equals("mainnet", ignoreCase = true)) {
@@ -235,17 +245,29 @@ class WebViewWalletKitEngine(
 
     override suspend fun addWalletFromMnemonic(
         words: List<String>,
+        name: String?,
         version: String,
         network: String?,
-    ): JSONObject {
+    ): WalletAccount {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("words", JSONArray(words))
                 put("version", version)
                 network?.let { put("network", it) }
+                name?.let { put("name", it) }
             }
-        return call("addWalletFromMnemonic", params)
+        val result = call("addWalletFromMnemonic", params)
+
+        // Parse the result into WalletAccount
+        return WalletAccount(
+            address = result.optString("address"),
+            publicKey = result.optNullableString("publicKey"),
+            name = result.optNullableString("name") ?: name,
+            version = result.optString("version", version),
+            network = result.optString("network", network ?: currentNetwork),
+            index = result.optInt("index", 0),
+        )
     }
 
     override suspend fun getWallets(): List<WalletAccount> {
@@ -259,6 +281,7 @@ class WebViewWalletKitEngine(
                     WalletAccount(
                         address = entry.optString("address"),
                         publicKey = entry.optNullableString("publicKey"),
+                        name = entry.optNullableString("name"),
                         version = entry.optString("version", "unknown"),
                         network = entry.optString("network", currentNetwork),
                         index = entry.optInt("index", index),
@@ -268,12 +291,23 @@ class WebViewWalletKitEngine(
         }
     }
 
-    override suspend fun removeWallet(address: String): JSONObject {
+    override suspend fun removeWallet(address: String) {
         ensureWalletKitInitialized()
         val params = JSONObject().apply { put("address", address) }
         val result = call("removeWallet", params)
         Log.d(logTag, "removeWallet result: $result")
-        return result
+
+        // Check if removal was successful
+        val removed = when {
+            result.has("removed") -> result.optBoolean("removed", false)
+            result.has("ok") -> result.optBoolean("ok", true)
+            result.has("value") -> result.optBoolean("value", true)
+            else -> true
+        }
+
+        if (!removed) {
+            throw WalletKitBridgeException("Failed to remove wallet: $address")
+        }
     }
 
     override suspend fun getWalletState(address: String): WalletState {
@@ -287,24 +321,166 @@ class WebViewWalletKitEngine(
                 result.has("value") -> result.optString("value")
                 else -> null
             },
-            transactions = result.optJSONArray("transactions") ?: JSONArray(),
+            transactions = parseTransactions(result.optJSONArray("transactions")),
         )
     }
 
-    override suspend fun getRecentTransactions(address: String, limit: Int): JSONArray {
+    override suspend fun getRecentTransactions(address: String, limit: Int): List<Transaction> {
         ensureWalletKitInitialized()
         val params = JSONObject().apply {
             put("address", address)
             put("limit", limit)
         }
         val result = call("getRecentTransactions", params)
-        return result.optJSONArray("items") ?: JSONArray()
+        return parseTransactions(result.optJSONArray("items"))
     }
 
-    override suspend fun handleTonConnectUrl(url: String): JSONObject {
+    /**
+     * Parse JSONArray of transactions into typed Transaction list.
+     * Filters out jetton/token transactions, only showing native TON transfers.
+     */
+    private fun parseTransactions(jsonArray: JSONArray?): List<Transaction> {
+        if (jsonArray == null) return emptyList()
+
+        return buildList(jsonArray.length()) {
+            for (i in 0 until jsonArray.length()) {
+                val txJson = jsonArray.optJSONObject(i) ?: continue
+
+                // Get messages
+                val inMsg = txJson.optJSONObject("in_msg")
+                val outMsgs = txJson.optJSONArray("out_msgs")
+
+                // Filter out jetton/token transactions
+                // Jetton transactions have op_code in their messages (like 0xf8a7ea5 for transfer)
+                // or have a message body/payload
+                val isJettonOrTokenTx = when {
+                    // Check incoming message for jetton markers
+                    inMsg != null -> {
+                        val opCode = inMsg.optString("op_code")?.takeIf { it.isNotEmpty() }
+                        val body = inMsg.optString("body")?.takeIf { it.isNotEmpty() }
+                        val message = inMsg.optString("message")?.takeIf { it.isNotEmpty() }
+                        // Has op_code or has complex body (not just a comment)
+                        opCode != null || (body != null && body != "te6ccgEBAQEAAgAAAA==") ||
+                            (message != null && message.length > 200)
+                    }
+                    // Check outgoing messages for jetton markers
+                    outMsgs != null && outMsgs.length() > 0 -> {
+                        var hasJettonMarkers = false
+                        for (j in 0 until outMsgs.length()) {
+                            val msg = outMsgs.optJSONObject(j) ?: continue
+                            val opCode = msg.optString("op_code")?.takeIf { it.isNotEmpty() }
+                            val body = msg.optString("body")?.takeIf { it.isNotEmpty() }
+                            val message = msg.optString("message")?.takeIf { it.isNotEmpty() }
+                            if (opCode != null || (body != null && body != "te6ccgEBAQEAAgAAAA==") ||
+                                (message != null && message.length > 200)
+                            ) {
+                                hasJettonMarkers = true
+                                break
+                            }
+                        }
+                        hasJettonMarkers
+                    }
+                    else -> false
+                }
+
+                // Skip non-TON transactions
+                if (isJettonOrTokenTx) {
+                    Log.d(logTag, "Skipping jetton/token transaction: ${txJson.optString("hash_hex", "unknown")}")
+                    continue
+                }
+
+                // Determine transaction type based on incoming/outgoing value
+                // Check if incoming message has value (meaning we received funds)
+                val incomingValue = inMsg?.optString("value")?.toLongOrNull() ?: 0L
+                val hasIncomingValue = incomingValue > 0
+
+                // Check if we have outgoing messages with value
+                var outgoingValue = 0L
+                if (outMsgs != null) {
+                    for (j in 0 until outMsgs.length()) {
+                        val msg = outMsgs.optJSONObject(j)
+                        val value = msg?.optString("value")?.toLongOrNull() ?: 0L
+                        outgoingValue += value
+                    }
+                }
+                val hasOutgoingValue = outgoingValue > 0
+
+                // Transaction is INCOMING if we received value, OUTGOING if we only sent value
+                // Note: Many incoming transactions also have outgoing messages (fees, change, etc.)
+                val type = when {
+                    hasIncomingValue -> TransactionType.INCOMING
+                    hasOutgoingValue -> TransactionType.OUTGOING
+                    else -> TransactionType.UNKNOWN
+                }
+
+                // Get amount based on transaction type (already calculated above)
+                val amount = when (type) {
+                    TransactionType.INCOMING -> incomingValue.toString()
+                    TransactionType.OUTGOING -> outgoingValue.toString()
+                    else -> "0"
+                }
+
+                // Get fee from total_fees field
+                val fee = txJson.optString("total_fees")?.takeIf { it.isNotEmpty() }
+
+                // Get comment from messages
+                val comment = when (type) {
+                    TransactionType.INCOMING -> inMsg?.optString("comment")?.takeIf { it.isNotEmpty() }
+                    TransactionType.OUTGOING -> outMsgs?.optJSONObject(0)?.optString("comment")?.takeIf { it.isNotEmpty() }
+                    else -> null
+                }
+
+                // Get sender - prefer friendly address
+                val sender = if (type == TransactionType.INCOMING) {
+                    inMsg?.optString("source_friendly")?.takeIf { it.isNotEmpty() }
+                        ?: inMsg?.optString("source")
+                } else {
+                    null
+                }
+
+                // Get recipient - prefer friendly address
+                val recipient = if (type == TransactionType.OUTGOING) {
+                    outMsgs?.optJSONObject(0)?.let { msg ->
+                        msg.optString("destination_friendly")?.takeIf { it.isNotEmpty() }
+                            ?: msg.optString("destination")
+                    }
+                } else {
+                    null
+                }
+
+                // Get hash - prefer hex format
+                val hash = txJson.optString("hash_hex")?.takeIf { it.isNotEmpty() }
+                    ?: txJson.optString("hash", "")
+
+                // Get timestamp - use 'now' field and convert to milliseconds
+                val timestamp = txJson.optLong("now", 0L) * 1000
+
+                // Get logical time and block sequence number
+                val lt = txJson.optString("lt")?.takeIf { it.isNotEmpty() }
+                val blockSeqno = txJson.optInt("mc_block_seqno", -1).takeIf { it >= 0 }
+
+                add(
+                    Transaction(
+                        hash = hash,
+                        timestamp = timestamp,
+                        amount = amount,
+                        fee = fee,
+                        comment = comment,
+                        sender = sender,
+                        recipient = recipient,
+                        type = type,
+                        lt = lt,
+                        blockSeqno = blockSeqno,
+                    ),
+                )
+            }
+        }
+    }
+
+    override suspend fun handleTonConnectUrl(url: String) {
         ensureWalletKitInitialized()
         val params = JSONObject().apply { put("url", url) }
-        return call("handleTonConnectUrl", params)
+        call("handleTonConnectUrl", params)
     }
 
     override suspend fun sendTransaction(
@@ -312,7 +488,7 @@ class WebViewWalletKitEngine(
         recipient: String,
         amount: String,
         comment: String?,
-    ): JSONObject {
+    ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
@@ -323,71 +499,85 @@ class WebViewWalletKitEngine(
                     put("comment", comment)
                 }
             }
-        return call("sendTransaction", params)
+        call("sendTransaction", params)
     }
 
     override suspend fun approveConnect(
         requestId: Any,
         walletAddress: String,
-    ): JSONObject {
+    ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
                 put("walletAddress", walletAddress)
             }
-        return call("approveConnectRequest", params)
+        call("approveConnectRequest", params)
     }
 
     override suspend fun rejectConnect(
         requestId: Any,
         reason: String?,
-    ): JSONObject {
+    ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
                 reason?.let { put("reason", it) }
             }
-        return call("rejectConnectRequest", params)
+        call("rejectConnectRequest", params)
     }
 
-    override suspend fun approveTransaction(requestId: Any): JSONObject {
+    override suspend fun approveTransaction(requestId: Any) {
         ensureWalletKitInitialized()
         val params = JSONObject().apply { put("requestId", requestId) }
-        return call("approveTransactionRequest", params)
+        call("approveTransactionRequest", params)
     }
 
     override suspend fun rejectTransaction(
         requestId: Any,
         reason: String?,
-    ): JSONObject {
+    ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
                 reason?.let { put("reason", it) }
             }
-        return call("rejectTransactionRequest", params)
+        call("rejectTransactionRequest", params)
     }
 
-    override suspend fun approveSignData(requestId: Any): JSONObject {
+    override suspend fun approveSignData(requestId: Any): SignDataResult {
         ensureWalletKitInitialized()
         val params = JSONObject().apply { put("requestId", requestId) }
-        return call("approveSignDataRequest", params)
+        val result = call("approveSignDataRequest", params)
+
+        Log.d(logTag, "approveSignData raw result: $result")
+
+        // Extract signature from the response
+        // The result might be nested in a 'result' object or directly accessible
+        val signature = result.optNullableString("signature")
+            ?: result.optJSONObject("result")?.optNullableString("signature")
+            ?: result.optJSONObject("data")?.optNullableString("signature")
+
+        if (signature.isNullOrEmpty()) {
+            throw WalletKitBridgeException("No signature in approveSignData response: $result")
+        }
+
+        return SignDataResult(signature = signature)
     }
 
     override suspend fun rejectSignData(
         requestId: Any,
         reason: String?,
-    ): JSONObject {
+    ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", requestId)
                 reason?.let { put("reason", it) }
             }
-        return call("rejectSignDataRequest", params)
+        call("rejectSignDataRequest", params)
     }
 
     override suspend fun listSessions(): List<WalletSession> {
@@ -413,16 +603,16 @@ class WebViewWalletKitEngine(
         }
     }
 
-    override suspend fun disconnectSession(sessionId: String?): JSONObject {
+    override suspend fun disconnectSession(sessionId: String?) {
         ensureWalletKitInitialized()
         val params = JSONObject()
         sessionId?.let { params.put("sessionId", it) }
-        return call("disconnectSession", if (params.length() == 0) null else params)
+        call("disconnectSession", if (params.length() == 0) null else params)
     }
 
     override suspend fun destroy() {
         withContext(Dispatchers.Main) {
-            (webView.parent as? android.view.ViewGroup)?.removeView(webView)
+            (webView.parent as? ViewGroup)?.removeView(webView)
             webView.removeJavascriptInterface("WalletKitNative")
             webView.stopLoading()
             webView.destroy()
@@ -486,10 +676,180 @@ class WebViewWalletKitEngine(
         val type = event.optString("type", "unknown")
         val data = event.optJSONObject("data") ?: JSONObject()
         Log.d(logTag, "event[$type]")
-        val walletEvent = WalletKitEvent(type, data, event)
-        listeners.forEach { listener ->
-            mainHandler.post { listener.onEvent(walletEvent) }
+
+        // Typed event handlers (sealed class)
+        val typedEvent = parseTypedEvent(type, data, event)
+        if (typedEvent != null) {
+            eventHandlers.forEach { handler ->
+                mainHandler.post { handler.handleEvent(typedEvent) }
+            }
         }
+    }
+
+    private fun parseTypedEvent(type: String, data: JSONObject, raw: JSONObject): WalletKitEvent? {
+        return when (type) {
+            "connectRequest" -> {
+                val requestId = data.opt("id") ?: return null
+                val dAppInfo = parseDAppInfo(data)
+                val permissions = parsePermissions(data)
+                val request = ConnectRequest(
+                    requestId = requestId,
+                    dAppInfo = dAppInfo,
+                    permissions = permissions,
+                    engine = this,
+                )
+                WalletKitEvent.ConnectRequestEvent(request)
+            }
+
+            "transactionRequest" -> {
+                val requestId = data.opt("id") ?: return null
+                val dAppInfo = parseDAppInfo(data)
+                val txRequest = parseTransactionRequest(data)
+                val request = io.ton.walletkit.bridge.request.TransactionRequest(
+                    requestId = requestId,
+                    dAppInfo = dAppInfo,
+                    request = txRequest,
+                    engine = this,
+                )
+                WalletKitEvent.TransactionRequestEvent(request)
+            }
+
+            "signDataRequest" -> {
+                val requestId = data.opt("id") ?: return null
+                val dAppInfo = parseDAppInfo(data)
+                val signRequest = parseSignDataRequest(data)
+                val request = io.ton.walletkit.bridge.request.SignDataRequest(
+                    requestId = requestId,
+                    dAppInfo = dAppInfo,
+                    request = signRequest,
+                    engine = this,
+                )
+                WalletKitEvent.SignDataRequestEvent(request)
+            }
+
+            "disconnect" -> {
+                val sessionId = data.optNullableString("sessionId")
+                    ?: data.optNullableString("id")
+                    ?: return null
+                WalletKitEvent.DisconnectEvent(sessionId)
+            }
+
+            "stateChanged", "walletStateChanged" -> {
+                val address = data.optNullableString("address")
+                    ?: data.optJSONObject("wallet")?.optNullableString("address")
+                    ?: return null
+                WalletKitEvent.StateChangedEvent(address)
+            }
+
+            "sessionsChanged" -> {
+                WalletKitEvent.SessionsChangedEvent
+            }
+
+            else -> null // Unknown event type
+        }
+    }
+
+    private fun parseDAppInfo(data: JSONObject): DAppInfo? {
+        // Try to get dApp name from multiple sources
+        val dAppName = data.optNullableString("dAppName")
+            ?: data.optJSONObject("manifest")?.optNullableString("name")
+            ?: data.optJSONObject("preview")?.optJSONObject("manifest")?.optNullableString("name")
+
+        // Try to get URLs from multiple sources
+        val manifest = data.optJSONObject("preview")?.optJSONObject("manifest")
+            ?: data.optJSONObject("manifest")
+
+        val dAppUrl = data.optNullableString("dAppUrl")
+            ?: manifest?.optNullableString("url")
+            ?: ""
+
+        val iconUrl = data.optNullableString("dAppIconUrl")
+            ?: manifest?.optNullableString("iconUrl")
+
+        val manifestUrl = data.optNullableString("manifestUrl")
+            ?: manifest?.optNullableString("url")
+
+        // Only return null if we have absolutely no dApp information
+        if (dAppName == null && dAppUrl.isEmpty()) {
+            return null
+        }
+
+        return DAppInfo(
+            name = dAppName ?: dAppUrl.takeIf { it.isNotEmpty() } ?: "Unknown dApp",
+            url = dAppUrl,
+            iconUrl = iconUrl,
+            manifestUrl = manifestUrl,
+        )
+    }
+
+    private fun parsePermissions(data: JSONObject): List<String> {
+        val permissions = data.optJSONArray("permissions") ?: return emptyList()
+        return List(permissions.length()) { i ->
+            permissions.optString(i)
+        }
+    }
+
+    private fun parseTransactionRequest(data: JSONObject): TransactionRequest {
+        // Try to parse from messages array first (TON Connect format)
+        val messages = data.optJSONArray("messages")
+        if (messages != null && messages.length() > 0) {
+            val firstMessage = messages.optJSONObject(0)
+            if (firstMessage != null) {
+                return TransactionRequest(
+                    recipient = firstMessage.optNullableString("address")
+                        ?: firstMessage.optNullableString("to")
+                        ?: "",
+                    amount = firstMessage.optNullableString("amount")
+                        ?: firstMessage.optNullableString("value")
+                        ?: "0",
+                    comment = firstMessage.optNullableString("comment")
+                        ?: firstMessage.optNullableString("text"),
+                    payload = firstMessage.optNullableString("payload"),
+                )
+            }
+        }
+
+        // Fallback to direct fields (legacy format or direct send)
+        return TransactionRequest(
+            recipient = data.optNullableString("to") ?: data.optNullableString("recipient") ?: "",
+            amount = data.optNullableString("amount") ?: data.optNullableString("value") ?: "0",
+            comment = data.optNullableString("comment") ?: data.optNullableString("text"),
+            payload = data.optNullableString("payload"),
+        )
+    }
+
+    private fun parseSignDataRequest(data: JSONObject): SignDataRequest {
+        // Parse params array - params[0] contains stringified JSON with schema_crc and payload
+        var payload = data.optNullableString("payload") ?: data.optNullableString("data") ?: ""
+        var schema: String? = data.optNullableString("schema")
+
+        // Check if params array exists (newer format from bridge)
+        val paramsArray = data.optJSONArray("params")
+        if (paramsArray != null && paramsArray.length() > 0) {
+            val paramsString = paramsArray.optString(0)
+            if (paramsString.isNotEmpty()) {
+                try {
+                    val paramsObj = JSONObject(paramsString)
+                    payload = paramsObj.optNullableString("payload") ?: payload
+
+                    // Convert schema_crc to human-readable schema type
+                    val schemaCrc = paramsObj.optInt("schema_crc", -1)
+                    schema = when (schemaCrc) {
+                        0 -> "text"
+                        1 -> "binary"
+                        2 -> "cell"
+                        else -> schema
+                    }
+                } catch (e: Exception) {
+                    Log.e(logTag, "Failed to parse params for sign data", e)
+                }
+            }
+        }
+
+        return SignDataRequest(
+            payload = payload,
+            schema = schema,
+        )
     }
 
     private fun handleReady(payload: JSONObject) {
@@ -549,7 +909,7 @@ class WebViewWalletKitEngine(
          * Storage adapter methods called by JavaScript bundle to persist data.
          * These methods enable the JS bundle to use Android secure storage instead of
          * ephemeral WebView LocalStorage.
-         * 
+         *
          * If persistent storage is disabled, these methods become no-ops (return null/empty).
          */
         @JavascriptInterface
@@ -557,11 +917,11 @@ class WebViewWalletKitEngine(
             if (!persistentStorageEnabled) {
                 return null // Return null when storage is disabled
             }
-            
+
             return try {
                 // Note: This is synchronous from JS perspective but async in Kotlin
                 // We use runBlocking here as JavascriptInterface requires synchronous return
-                kotlinx.coroutines.runBlocking {
+                runBlocking {
                     storageAdapter.get(key)
                 }
             } catch (e: Exception) {
@@ -578,9 +938,9 @@ class WebViewWalletKitEngine(
             if (!persistentStorageEnabled) {
                 return // No-op when storage is disabled
             }
-            
+
             try {
-                kotlinx.coroutines.runBlocking {
+                runBlocking {
                     storageAdapter.set(key, value)
                 }
             } catch (e: Exception) {
@@ -593,9 +953,9 @@ class WebViewWalletKitEngine(
             if (!persistentStorageEnabled) {
                 return // No-op when storage is disabled
             }
-            
+
             try {
-                kotlinx.coroutines.runBlocking {
+                runBlocking {
                     storageAdapter.remove(key)
                 }
             } catch (e: Exception) {
@@ -608,9 +968,9 @@ class WebViewWalletKitEngine(
             if (!persistentStorageEnabled) {
                 return // No-op when storage is disabled
             }
-            
+
             try {
-                kotlinx.coroutines.runBlocking {
+                runBlocking {
                     storageAdapter.clear()
                 }
             } catch (e: Exception) {

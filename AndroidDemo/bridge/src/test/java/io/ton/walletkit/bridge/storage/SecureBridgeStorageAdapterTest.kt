@@ -17,7 +17,7 @@ import kotlin.test.assertNull
 
 /**
  * Unit tests for SecureBridgeStorageAdapter.
- * 
+ *
  * Tests verify:
  * - Basic CRUD operations (Create, Read, Update, Delete)
  * - Data persistence and encryption
@@ -200,7 +200,7 @@ class SecureBridgeStorageAdapterTest {
         // Verify updated one
         assertEquals(
             """[{"address":"EQD1"},{"address":"EQD2"}]""",
-            storage.get("wallets")
+            storage.get("wallets"),
         )
     }
 

@@ -28,11 +28,11 @@ fun SignDataSheet(
         Text("Sign Data Request", style = MaterialTheme.typography.titleLarge)
         Text("Wallet: ${request.walletAddress.abbreviated()}", style = MaterialTheme.typography.bodyMedium)
         Text("Type: ${request.payloadType}", style = MaterialTheme.typography.bodyMedium)
-        CodeBlock(request.payloadContent)
-        request.preview?.let {
-            Text("Preview", style = MaterialTheme.typography.titleSmall)
-            CodeBlock(it)
-        }
+
+        // Show preview if available (human-readable), otherwise show raw payload
+        Text("Data to Sign", style = MaterialTheme.typography.titleSmall)
+        CodeBlock(request.preview ?: request.payloadContent)
+
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             TextButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text("Reject") }
             Button(onClick = onApprove, modifier = Modifier.weight(1f)) { Text("Sign") }

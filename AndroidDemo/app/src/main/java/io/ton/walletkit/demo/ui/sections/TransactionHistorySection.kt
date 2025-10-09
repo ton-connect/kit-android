@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,7 +38,7 @@ import java.util.Locale
 
 @Composable
 fun TransactionHistorySection(
-    transactions: JSONArray?,
+    transactions: List<io.ton.walletkit.bridge.model.Transaction>?,
     walletAddress: String,
     isRefreshing: Boolean,
     onRefreshTransactions: () -> Unit,
@@ -58,7 +59,7 @@ fun TransactionHistorySection(
                 Spacer(modifier = Modifier.width(8.dp))
                 transactions?.let {
                     Text(
-                        "${it.length()}",
+                        "${it.size}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -80,20 +81,24 @@ fun TransactionHistorySection(
             }
         }
 
-        if (transactions == null || transactions.length() == 0) {
+        if (transactions.isNullOrEmpty()) {
             EmptyStateCard(
                 title = "No transactions",
                 description = "Your transaction history will appear here.",
             )
         } else {
+            // Use Column with key() composable for efficient recomposition
+            // Limited to 10 items, so no need for LazyColumn (which would cause infinite constraints)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                for (i in 0 until minOf(transactions.length(), 10)) {
-                    val tx = transactions.optJSONObject(i) ?: continue
-                    TransactionItem(
-                        transaction = tx,
-                        walletAddress = walletAddress,
-                        onClick = { onTransactionClick(tx.optString("hash", "")) },
-                    )
+                for (tx in transactions.take(10)) {
+                    // Use key() to provide stable identity for efficient recomposition
+                    key(tx.hash) {
+                        TransactionItem(
+                            transaction = tx,
+                            walletAddress = walletAddress,
+                            onClick = { onTransactionClick(tx.hash) },
+                        )
+                    }
                 }
             }
         }
@@ -102,14 +107,14 @@ fun TransactionHistorySection(
 
 @Composable
 private fun TransactionItem(
-    transaction: JSONObject,
+    transaction: io.ton.walletkit.bridge.model.Transaction,
     walletAddress: String,
     onClick: () -> Unit,
 ) {
-    val isOutgoing = isOutgoingTransaction(transaction, walletAddress)
-    val amount = getTransactionAmount(transaction, isOutgoing)
-    val timestamp = transaction.optLong("now", 0L) // Changed from "utime" to "now"
-    val hash = transaction.optString("hash", "")
+    val isOutgoing = transaction.type == io.ton.walletkit.bridge.model.TransactionType.OUTGOING
+    val amount = formatNanoTon(transaction.amount)
+    val timestamp = transaction.timestamp
+    val hash = transaction.hash
 
     Card(
         modifier = Modifier
@@ -233,7 +238,8 @@ private fun formatTimestamp(timestamp: Long): String = try {
     if (timestamp == 0L) {
         "Unknown time"
     } else {
-        val date = Date(timestamp * 1000)
+        // Timestamp is already in milliseconds from the bridge
+        val date = Date(timestamp)
         val sdf = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
         sdf.format(date)
     }
