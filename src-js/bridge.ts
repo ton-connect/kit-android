@@ -411,6 +411,12 @@ async function initTonWalletKit(config?: WalletKitBridgeInitConfig, context?: Ca
 
   walletKit = new TonWalletKit(kitOptions);
 
+  if (typeof walletKit.ensureInitialized === 'function') {
+    emitCallCheckpoint(context, 'initTonWalletKit:before-walletKit.ensureInitialized');
+    await walletKit.ensureInitialized();
+    emitCallCheckpoint(context, 'initTonWalletKit:after-walletKit.ensureInitialized');
+  }
+
   walletKit.onConnectRequest((event: any) => {
     if (event && typeof event === 'object' && event.id != null) {
       pendingConnectRequests.set(event.id, event);
@@ -497,6 +503,11 @@ const api = {
     emitCallCheckpoint(context, 'getWallets:enter');
     requireWalletKit();
     emitCallCheckpoint(context, 'getWallets:after-requireWalletKit');
+    if (typeof walletKit.ensureInitialized === 'function') {
+      emitCallCheckpoint(context, 'getWallets:before-walletKit.ensureInitialized');
+      await walletKit.ensureInitialized();
+      emitCallCheckpoint(context, 'getWallets:after-walletKit.ensureInitialized');
+    }
     const wallets = walletKit.getWallets?.() || [];
     emitCallCheckpoint(context, 'getWallets:after-walletKit.getWallets');
     return wallets.map((wallet: any, index: number) => ({

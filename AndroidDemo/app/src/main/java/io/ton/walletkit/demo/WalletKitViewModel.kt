@@ -72,7 +72,7 @@ class WalletKitViewModel(
     private suspend fun bootstrap() {
         _state.update { it.copy(status = "Initializing WalletKit…", error = null) }
 
-        val storedWallets = storage.loadAllWallets()
+        // Load session hints from legacy storage for migration
         val storedSessionHints = storage.loadSessionHints()
         storedSessionHints.forEach { (key, hint) ->
             val normalized = normalizeHint(SessionHint(hint.manifestUrl, hint.dAppUrl, hint.iconUrl))
@@ -81,10 +81,22 @@ class WalletKitViewModel(
                 sessionHints[key] = normalized
             }
         }
-        val initialNetwork = storedWallets.values.firstOrNull()?.network?.let { TonNetwork.fromBridge(it, DEFAULT_NETWORK) } ?: DEFAULT_NETWORK
-        currentNetwork = initialNetwork
+        
+        // Initialize bridge with default network (wallets will be auto-restored by bridge)
+        currentNetwork = DEFAULT_NETWORK
 
-        val initResult = runCatching { reinitializeForNetwork(initialNetwork, storedWallets, storedSessionHints) }
+        val initResult = runCatching { 
+            engine.init(
+                WalletKitBridgeConfig(
+                    network = currentNetwork.asBridgeValue(),
+                    tonClientEndpoint = networkEndpoints(currentNetwork).tonClientEndpoint,
+                    tonApiUrl = networkEndpoints(currentNetwork).tonApiUrl,
+                    bridgeUrl = networkEndpoints(currentNetwork).bridgeUrl,
+                    bridgeName = networkEndpoints(currentNetwork).bridgeName,
+                    // Storage is always persistent - no allowMemoryStorage parameter
+                )
+            )
+        }
 
         if (initResult.isFailure) {
             _state.update {
@@ -96,11 +108,85 @@ class WalletKitViewModel(
             return
         }
 
+        // Restore wallets from secure storage into the bridge if needed
+        migrateLegacyWallets()
+
         bridgeListener = engine.addListener(WalletKitBridgeListener(::onBridgeEvent))
         _state.update { it.copy(initialized = true, status = "WalletKit ready", error = null) }
 
         refreshAll()
         startBalancePolling()
+    }
+
+    /**
+     * Restore wallets that were persisted in secure Android storage.
+     * Runs on every initialization to ensure wallets survive bridge resets.
+     */
+    private suspend fun migrateLegacyWallets() {
+        try {
+            val storedWallets = storage.loadAllWallets()
+            
+            if (storedWallets.isEmpty()) {
+                Log.d(LOG_TAG, "No legacy wallets to migrate")
+                return
+            }
+
+            // Check if bridge already has wallets
+            val bridgeWallets = runCatching { engine.getWallets() }.getOrDefault(emptyList())
+            val existingAddresses = bridgeWallets.mapTo(mutableSetOf()) { it.address }
+
+            Log.d(
+                LOG_TAG,
+                "Restoring ${storedWallets.size} wallets from secure storage (bridge has ${existingAddresses.size})",
+            )
+            
+            var migratedCount = 0
+            storedWallets.forEach { (address, record) ->
+                try {
+                    if (record.mnemonic.isEmpty()) {
+                        Log.w(LOG_TAG, "Skipping wallet with empty mnemonic: $address")
+                        return@forEach
+                    }
+
+                    val network = TonNetwork.fromBridge(record.network, currentNetwork)
+                    val version = record.version ?: DEFAULT_WALLET_VERSION
+
+                    val displayName = record.name ?: defaultWalletName(walletMetadata.size)
+
+                    if (existingAddresses.contains(address)) {
+                        Log.d(LOG_TAG, "Wallet already present in bridge, skipping add: $address")
+                    } else {
+                        // Add to bridge (keep data in secure storage for future restores)
+                        engine.addWalletFromMnemonic(
+                            words = record.mnemonic,
+                            version = version,
+                            network = network.asBridgeValue(),
+                        )
+                        migratedCount++
+                        existingAddresses.add(address)
+                        Log.d(LOG_TAG, "Restored wallet: $address (${record.name ?: "unnamed"})")
+                    }
+
+                    // Store metadata for UI
+                    walletMetadata[address] = WalletMetadata(
+                        name = displayName,
+                        network = network,
+                        version = version
+                    )
+                } catch (e: Exception) {
+                    Log.e(LOG_TAG, "Failed to migrate wallet: $address", e)
+                }
+            }
+
+            if (migratedCount > 0) {
+                Log.d(
+                    LOG_TAG,
+                    "Restoration complete: $migratedCount/${storedWallets.size} wallets added to bridge",
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Migration failed", e)
+        }
     }
 
     private fun startBalancePolling() {
@@ -1336,34 +1422,14 @@ class WalletKitViewModel(
         }
     }
 
+    /**
+     * @deprecated No longer needed - bridge automatically restores wallets from persistent storage.
+     * Kept for reference only. Remove in future version.
+     */
+    @Deprecated("Bridge handles wallet restoration automatically")
     private suspend fun restorePersistedWallets(stored: Map<String, StoredWalletRecord>) {
-        if (stored.isEmpty()) return
-        val existing = runCatching { engine.getWallets() }.getOrDefault(emptyList())
-        val existingAddresses = existing.map { it.address }.toSet()
-
-        stored.forEach { (accountId, record) ->
-            if (existingAddresses.contains(accountId)) {
-                return@forEach
-            }
-            if (record.mnemonic.isEmpty()) {
-                return@forEach
-            }
-            val network = TonNetwork.fromBridge(record.network, currentNetwork)
-            val pendingRecord = PendingWalletRecord(
-                metadata = WalletMetadata(
-                    name = record.name ?: defaultWalletName(state.value.wallets.size + pendingWallets.size),
-                    network = network,
-                    version = record.version ?: DEFAULT_WALLET_VERSION,
-                ),
-                mnemonic = record.mnemonic,
-            )
-            pendingWallets.addLast(pendingRecord)
-            runCatching {
-                engine.addWalletFromMnemonic(record.mnemonic, record.version ?: DEFAULT_WALLET_VERSION, network.asBridgeValue())
-            }.onFailure {
-                pendingWallets.remove(pendingRecord)
-            }
-        }
+        // This function is no longer used - bridge handles persistence automatically
+        Log.w(LOG_TAG, "restorePersistedWallets called but is deprecated - bridge handles this automatically")
     }
 
     private suspend fun reinitializeForNetwork(
@@ -1379,7 +1445,7 @@ class WalletKitViewModel(
                 tonApiUrl = endpoints.tonApiUrl,
                 bridgeUrl = endpoints.bridgeUrl,
                 bridgeName = endpoints.bridgeName,
-                allowMemoryStorage = true,
+                // Storage is always persistent - allowMemoryStorage removed
             ),
         )
 
@@ -1387,6 +1453,8 @@ class WalletKitViewModel(
         walletMetadata.clear()
         pendingWallets.clear()
         sessionHints.clear()
+        
+        // Restore session hints from storage
         val hints = storedHintsOverride ?: storage.loadSessionHints()
         hints.forEach { (key, hint) ->
             val normalized = normalizeHint(SessionHint(hint.manifestUrl, hint.dAppUrl, hint.iconUrl))
@@ -1400,9 +1468,8 @@ class WalletKitViewModel(
             Log.d(LOG_TAG, "No persisted session hints available for ${target.name.lowercase()}")
         }
 
-        val stored = storedOverride ?: storage.loadAllWallets()
-        val filtered = stored.filter { TonNetwork.fromBridge(it.value.network, target) == target }
-        restorePersistedWallets(filtered)
+        // Wallets are automatically restored by bridge - no manual restoration needed
+        // Just ensure we have at least one wallet for demo purposes
         ensureWallet()
     }
 

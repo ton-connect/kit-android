@@ -95,7 +95,7 @@ class AutoInitTest {
                 tonApiUrl = "https://tonapi.io",
                 bridgeUrl = "https://bridge.example",
                 bridgeName = "custom",
-                allowMemoryStorage = false,
+                enablePersistentStorage = false,
             )
 
         engine.init(customConfig)
@@ -106,7 +106,7 @@ class AutoInitTest {
         assertEquals("https://tonapi.io", payload.optString("tonApiUrl"))
         assertEquals("https://bridge.example", payload.optString("bridgeUrl"))
         assertEquals("custom", payload.optString("bridgeName"))
-        assertFalse(payload.optBoolean("allowMemoryStorage", true))
+        // Note: enablePersistentStorage is not passed to JS payload, it's handled in Android
         assertTrue(getPrivateField<Boolean>(engine, "isWalletKitInitialized"))
     }
 

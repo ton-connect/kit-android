@@ -1,15 +1,24 @@
 package io.ton.walletkit.storage.impl
 
 import io.ton.walletkit.storage.WalletKitStorage
+import io.ton.walletkit.storage.model.StoredBridgeConfig
+import io.ton.walletkit.storage.model.StoredSessionData
 import io.ton.walletkit.storage.model.StoredSessionHint
+import io.ton.walletkit.storage.model.StoredUserPreferences
 import io.ton.walletkit.storage.model.StoredWalletRecord
 import java.util.HashMap
 
 class InMemoryWalletKitStorage : WalletKitStorage {
     private val store = HashMap<String, StoredWalletRecord>()
     private val hintStore = HashMap<String, StoredSessionHint>()
+    private val sessionStore = HashMap<String, StoredSessionData>()
+    private var bridgeConfig: StoredBridgeConfig? = null
+    private var userPreferences: StoredUserPreferences? = null
 
-    override suspend fun saveWallet(accountId: String, record: StoredWalletRecord) {
+    override suspend fun saveWallet(
+        accountId: String,
+        record: StoredWalletRecord,
+    ) {
         store[accountId] = record
     }
 
@@ -21,7 +30,10 @@ class InMemoryWalletKitStorage : WalletKitStorage {
         store.remove(accountId)
     }
 
-    override suspend fun saveSessionHint(key: String, hint: StoredSessionHint) {
+    override suspend fun saveSessionHint(
+        key: String,
+        hint: StoredSessionHint,
+    ) {
         hintStore[key] = hint
     }
 
@@ -29,5 +41,49 @@ class InMemoryWalletKitStorage : WalletKitStorage {
 
     override suspend fun clearSessionHint(key: String) {
         hintStore.remove(key)
+    }
+
+    override suspend fun saveSessionData(
+        sessionId: String,
+        session: StoredSessionData,
+    ) {
+        sessionStore[sessionId] = session
+    }
+
+    override suspend fun loadSessionData(sessionId: String): StoredSessionData? = sessionStore[sessionId]
+
+    override suspend fun loadAllSessionData(): Map<String, StoredSessionData> = HashMap(sessionStore)
+
+    override suspend fun clearSessionData(sessionId: String) {
+        sessionStore.remove(sessionId)
+    }
+
+    override suspend fun updateSessionActivity(
+        sessionId: String,
+        timestamp: String,
+    ) {
+        sessionStore[sessionId]?.let { session ->
+            sessionStore[sessionId] = session.copy(lastActivityAt = timestamp)
+        }
+    }
+
+    override suspend fun saveBridgeConfig(config: StoredBridgeConfig) {
+        bridgeConfig = config
+    }
+
+    override suspend fun loadBridgeConfig(): StoredBridgeConfig? = bridgeConfig
+
+    override suspend fun clearBridgeConfig() {
+        bridgeConfig = null
+    }
+
+    override suspend fun saveUserPreferences(prefs: StoredUserPreferences) {
+        userPreferences = prefs
+    }
+
+    override suspend fun loadUserPreferences(): StoredUserPreferences? = userPreferences
+
+    override suspend fun clearUserPreferences() {
+        userPreferences = null
     }
 }

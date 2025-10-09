@@ -37,4 +37,13 @@ kotlin {
 dependencies {
     implementation(libs.androidxDatastorePreferences)
     implementation(libs.androidxCoreKtx)
+    implementation(libs.androidxSecurityCrypto)
+    implementation(libs.kotlinxCoroutinesAndroid)
+
+    // Testing dependencies
+    testImplementation(libs.junit)
+    testImplementation(kotlin("test"))
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidxTestCore)
+    testImplementation(libs.kotlinxCoroutinesTest)
 }

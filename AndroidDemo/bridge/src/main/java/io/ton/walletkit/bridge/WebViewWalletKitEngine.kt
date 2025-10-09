@@ -19,6 +19,8 @@ import io.ton.walletkit.bridge.model.WalletAccount
 import io.ton.walletkit.bridge.model.WalletKitEvent
 import io.ton.walletkit.bridge.model.WalletSession
 import io.ton.walletkit.bridge.model.WalletState
+import io.ton.walletkit.storage.bridge.BridgeStorageAdapter
+import io.ton.walletkit.storage.bridge.SecureBridgeStorageAdapter
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -35,6 +37,10 @@ import java.util.concurrent.CopyOnWriteArraySet
 /**
  * WebView-backed WalletKit engine. Hosts the WalletKit bundle inside a hidden WebView and uses the
  * established JS bridge to communicate with the Kotlin layer.
+ * 
+ * **Persistent Storage**: By default, this engine persists wallet and session data
+ * using secure encrypted storage. Data is automatically restored on app restart.
+ * Storage can be disabled via config for testing or privacy-focused use cases.
  */
 class WebViewWalletKitEngine(
     context: Context,
@@ -44,6 +50,13 @@ class WebViewWalletKitEngine(
 
     private val logTag = "WebViewWalletKitEngine"
     private val appContext = context.applicationContext
+    
+    // Secure storage adapter for the bridge (conditionally enabled based on config)
+    private val storageAdapter: BridgeStorageAdapter = SecureBridgeStorageAdapter(appContext)
+    
+    // Whether persistent storage is enabled (set during init)
+    @Volatile private var persistentStorageEnabled: Boolean = true
+    
     private val assetLoader =
         WebViewAssetLoader
             .Builder()
@@ -168,6 +181,8 @@ class WebViewWalletKitEngine(
      */
     private suspend fun performInitialization(config: WalletKitBridgeConfig) {
         currentNetwork = config.network
+        persistentStorageEnabled = config.enablePersistentStorage
+        
         val tonClientEndpoint =
             config.tonClientEndpoint?.ifBlank { null }
                 ?: config.apiUrl?.ifBlank { null }
@@ -184,9 +199,11 @@ class WebViewWalletKitEngine(
                 config.tonApiUrl?.let { put("tonApiUrl", config.tonApiUrl) }
                 config.bridgeUrl?.let { put("bridgeUrl", it) }
                 config.bridgeName?.let { put("bridgeName", it) }
-                config.allowMemoryStorage?.let { put("allowMemoryStorage", it) }
+                // Note: Persistent storage is controlled by enablePersistentStorage flag
+                // When disabled, storage operations return immediately without persisting
             }
 
+        Log.d(logTag, "Initializing WalletKit with persistent storage: $persistentStorageEnabled")
         call("init", payload)
     }
 
@@ -525,6 +542,79 @@ class WebViewWalletKitEngine(
                         deferred.completeExceptionally(WalletKitBridgeException("Malformed payload: ${err.message}"))
                     }
                 }
+            }
+        }
+
+        /**
+         * Storage adapter methods called by JavaScript bundle to persist data.
+         * These methods enable the JS bundle to use Android secure storage instead of
+         * ephemeral WebView LocalStorage.
+         * 
+         * If persistent storage is disabled, these methods become no-ops (return null/empty).
+         */
+        @JavascriptInterface
+        fun storageGet(key: String): String? {
+            if (!persistentStorageEnabled) {
+                return null // Return null when storage is disabled
+            }
+            
+            return try {
+                // Note: This is synchronous from JS perspective but async in Kotlin
+                // We use runBlocking here as JavascriptInterface requires synchronous return
+                kotlinx.coroutines.runBlocking {
+                    storageAdapter.get(key)
+                }
+            } catch (e: Exception) {
+                Log.e(logTag, "Storage get failed for key: $key", e)
+                null
+            }
+        }
+
+        @JavascriptInterface
+        fun storageSet(
+            key: String,
+            value: String,
+        ) {
+            if (!persistentStorageEnabled) {
+                return // No-op when storage is disabled
+            }
+            
+            try {
+                kotlinx.coroutines.runBlocking {
+                    storageAdapter.set(key, value)
+                }
+            } catch (e: Exception) {
+                Log.e(logTag, "Storage set failed for key: $key", e)
+            }
+        }
+
+        @JavascriptInterface
+        fun storageRemove(key: String) {
+            if (!persistentStorageEnabled) {
+                return // No-op when storage is disabled
+            }
+            
+            try {
+                kotlinx.coroutines.runBlocking {
+                    storageAdapter.remove(key)
+                }
+            } catch (e: Exception) {
+                Log.e(logTag, "Storage remove failed for key: $key", e)
+            }
+        }
+
+        @JavascriptInterface
+        fun storageClear() {
+            if (!persistentStorageEnabled) {
+                return // No-op when storage is disabled
+            }
+            
+            try {
+                kotlinx.coroutines.runBlocking {
+                    storageAdapter.clear()
+                }
+            } catch (e: Exception) {
+                Log.e(logTag, "Storage clear failed", e)
             }
         }
     }

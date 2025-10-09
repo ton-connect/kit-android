@@ -6,7 +6,7 @@ import io.ton.walletkit.bridge.WalletKitEngine
 import io.ton.walletkit.bridge.WalletKitEngineKind
 import io.ton.walletkit.bridge.WebViewWalletKitEngine
 import io.ton.walletkit.storage.WalletKitStorage
-import io.ton.walletkit.storage.impl.DebugSharedPrefsStorage
+import io.ton.walletkit.storage.impl.SecureWalletKitStorage
 
 class WalletKitDemoApp : Application() {
     val defaultEngineKind: WalletKitEngineKind = WalletKitEngineKind.WEBVIEW
@@ -18,6 +18,7 @@ class WalletKitDemoApp : Application() {
     }
 
     val storage: WalletKitStorage by lazy {
-        DebugSharedPrefsStorage(this)
+        // Production-ready secure storage using Android Keystore + EncryptedSharedPreferences
+        SecureWalletKitStorage(this)
     }
 }

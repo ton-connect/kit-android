@@ -221,7 +221,8 @@ class QuickJsWalletKitEngine(
                 config.tonApiUrl?.let { put("tonApiUrl", it) }
                 config.bridgeUrl?.let { put("bridgeUrl", it) }
                 config.bridgeName?.let { put("bridgeName", it) }
-                config.allowMemoryStorage?.let { put("allowMemoryStorage", it) }
+                // Note: QuickJS engine doesn't support persistent storage yet
+                // Storage parameter removed from config
                 tonApiKey?.let { put("apiKey", it) }
             }
 
