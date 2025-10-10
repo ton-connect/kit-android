@@ -11,7 +11,7 @@ import org.robolectric.Shadows
 
 /**
  * Common test utilities and helper functions for bridge tests.
- * 
+ *
  * This object provides reusable testing infrastructure including:
  * - Engine creation with mocked WebView
  * - Response formatting utilities
@@ -25,7 +25,7 @@ object BridgeTestHelper {
      */
     fun createTestEngine(
         context: android.content.Context,
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebViewWalletKitEngine {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
@@ -39,7 +39,7 @@ object BridgeTestHelper {
      */
     fun createWebViewStub(
         engine: WebViewWalletKitEngine,
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebView {
         val webView = mockk<WebView>(relaxed = true)
         every { webView.evaluateJavascript(any(), any()) } answers {
@@ -57,16 +57,14 @@ object BridgeTestHelper {
     /**
      * Create a successful RPC response with the given data.
      */
-    fun successResponse(data: Map<String, Any>): JSONObject = 
-        JSONObject().apply { put("result", JSONObject(data)) }
+    fun successResponse(data: Map<String, Any>): JSONObject = JSONObject().apply { put("result", JSONObject(data)) }
 
     /**
      * Create an error RPC response with the given message.
      */
-    fun errorResponse(message: String): JSONObject = 
-        JSONObject().apply {
-            put("error", JSONObject().apply { put("message", message) })
-        }
+    fun errorResponse(message: String): JSONObject = JSONObject().apply {
+        put("error", JSONObject().apply { put("message", message) })
+    }
 
     /**
      * Parse a JavaScript call script to extract call ID, method, and payload.
@@ -115,7 +113,7 @@ object BridgeTestHelper {
     fun invokeHandleResponse(
         engine: WebViewWalletKitEngine,
         callId: String,
-        response: JSONObject
+        response: JSONObject,
     ) {
         val method = engine::class.java.getDeclaredMethod("handleResponse", String::class.java, JSONObject::class.java)
         method.isAccessible = true
@@ -127,7 +125,7 @@ object BridgeTestHelper {
      */
     fun invokeHandleEvent(
         engine: WebViewWalletKitEngine,
-        event: JSONObject
+        event: JSONObject,
     ) {
         val method = engine::class.java.getDeclaredMethod("handleEvent", JSONObject::class.java)
         method.isAccessible = true

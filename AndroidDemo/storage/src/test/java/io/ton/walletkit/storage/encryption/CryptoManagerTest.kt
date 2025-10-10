@@ -9,10 +9,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowAndroidKeyStore
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
-import kotlin.test.assertFailsWith
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33], shadows = [ShadowAndroidKeyStore::class])

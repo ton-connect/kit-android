@@ -69,9 +69,12 @@ class EventHandlingTest {
 
         val eventJson = JSONObject().apply {
             put("type", "stateChanged")
-            put("data", JSONObject().apply {
-                put("address", "EQTest")
-            })
+            put(
+                "data",
+                JSONObject().apply {
+                    put("address", "EQTest")
+                },
+            )
         }
         invokeHandleEvent(engine, eventJson)
         flushMainThread()
@@ -97,13 +100,13 @@ class EventHandlingTest {
                 handler1Called = true
             }
         })
-        
+
         engine.addEventHandler(object : WalletKitEventHandler {
             override fun handleEvent(event: WalletKitEvent) {
                 handler2Called = true
             }
         })
-        
+
         engine.addEventHandler(object : WalletKitEventHandler {
             override fun handleEvent(event: WalletKitEvent) {
                 handler3Called = true
@@ -174,16 +177,22 @@ class EventHandlingTest {
 
         val eventJson = JSONObject().apply {
             put("type", "connectRequest")
-            put("data", JSONObject().apply {
-                put("id", "connect_req_123")
-                put("dAppName", "Test dApp")
-                put("dAppUrl", "https://test.com")
-                put("dAppIconUrl", "https://test.com/icon.png")
-                put("permissions", JSONArray().apply {
-                    put("ton_addr")
-                    put("ton_proof")
-                })
-            })
+            put(
+                "data",
+                JSONObject().apply {
+                    put("id", "connect_req_123")
+                    put("dAppName", "Test dApp")
+                    put("dAppUrl", "https://test.com")
+                    put("dAppIconUrl", "https://test.com/icon.png")
+                    put(
+                        "permissions",
+                        JSONArray().apply {
+                            put("ton_addr")
+                            put("ton_proof")
+                        },
+                    )
+                },
+            )
         }
         invokeHandleEvent(engine, eventJson)
         flushMainThread()
@@ -214,17 +223,25 @@ class EventHandlingTest {
 
         val eventJson = JSONObject().apply {
             put("type", "transactionRequest")
-            put("data", JSONObject().apply {
-                put("id", "tx_123")
-                put("dAppName", "DeFi App")
-                put("messages", JSONArray().apply {
-                    put(JSONObject().apply {
-                        put("address", "EQRecipient")
-                        put("amount", "5000000000")
-                        put("comment", "Payment for NFT")
-                    })
-                })
-            })
+            put(
+                "data",
+                JSONObject().apply {
+                    put("id", "tx_123")
+                    put("dAppName", "DeFi App")
+                    put(
+                        "messages",
+                        JSONArray().apply {
+                            put(
+                                JSONObject().apply {
+                                    put("address", "EQRecipient")
+                                    put("amount", "5000000000")
+                                    put("comment", "Payment for NFT")
+                                },
+                            )
+                        },
+                    )
+                },
+            )
         }
         invokeHandleEvent(engine, eventJson)
         flushMainThread()
@@ -254,11 +271,14 @@ class EventHandlingTest {
 
         val eventJson = JSONObject().apply {
             put("type", "signDataRequest")
-            put("data", JSONObject().apply {
-                put("id", "sign_123")
-                put("payload", "SGVsbG8gV29ybGQ=")
-                put("schema", "text")
-            })
+            put(
+                "data",
+                JSONObject().apply {
+                    put("id", "sign_123")
+                    put("payload", "SGVsbG8gV29ybGQ=")
+                    put("schema", "text")
+                },
+            )
         }
         invokeHandleEvent(engine, eventJson)
         flushMainThread()
@@ -288,9 +308,12 @@ class EventHandlingTest {
 
         val eventJson = JSONObject().apply {
             put("type", "disconnect")
-            put("data", JSONObject().apply {
-                put("sessionId", "session_to_disconnect")
-            })
+            put(
+                "data",
+                JSONObject().apply {
+                    put("sessionId", "session_to_disconnect")
+                },
+            )
         }
         invokeHandleEvent(engine, eventJson)
         flushMainThread()
@@ -319,9 +342,12 @@ class EventHandlingTest {
 
         val eventJson = JSONObject().apply {
             put("type", "stateChanged")
-            put("data", JSONObject().apply {
-                put("address", "EQWalletChanged")
-            })
+            put(
+                "data",
+                JSONObject().apply {
+                    put("address", "EQWalletChanged")
+                },
+            )
         }
         invokeHandleEvent(engine, eventJson)
         flushMainThread()
@@ -379,7 +405,7 @@ class EventHandlingTest {
             put("type", "unknownEventType")
             put("data", JSONObject())
         }
-        
+
         // Should not crash
         invokeHandleEvent(engine, eventJson)
         flushMainThread()
@@ -400,7 +426,7 @@ class EventHandlingTest {
         val testCases = listOf(
             0 to "text",
             1 to "binary",
-            2 to "cell"
+            2 to "cell",
         )
 
         for ((schemaCrc, expectedSchema) in testCases) {
@@ -413,31 +439,42 @@ class EventHandlingTest {
 
             val eventJson = JSONObject().apply {
                 put("type", "signDataRequest")
-                put("data", JSONObject().apply {
-                    put("id", "sign_$schemaCrc")
-                    put("params", JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("payload", "test_payload")
-                            put("schema_crc", schemaCrc)
-                        }.toString())
-                    })
-                })
+                put(
+                    "data",
+                    JSONObject().apply {
+                        put("id", "sign_$schemaCrc")
+                        put(
+                            "params",
+                            JSONArray().apply {
+                                put(
+                                    JSONObject().apply {
+                                        put("payload", "test_payload")
+                                        put("schema_crc", schemaCrc)
+                                    }.toString(),
+                                )
+                            },
+                        )
+                    },
+                )
             }
-            
+
             invokeHandleEvent(engine, eventJson)
             flushMainThread()
 
             assertNotNull(capturedEvent)
             assertIs<WalletKitEvent.SignDataRequestEvent>(capturedEvent)
             val event = capturedEvent as WalletKitEvent.SignDataRequestEvent
-            assertEquals(expectedSchema, event.request.request.schema, 
-                "schema_crc $schemaCrc should map to $expectedSchema")
+            assertEquals(
+                expectedSchema,
+                event.request.request.schema,
+                "schema_crc $schemaCrc should map to $expectedSchema",
+            )
         }
     }
 
     // Helper functions
     private fun createEngine(
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebViewWalletKitEngine {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
@@ -448,7 +485,7 @@ class EventHandlingTest {
 
     private fun createWebViewStub(
         engine: WebViewWalletKitEngine,
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebView {
         val webView = mockk<WebView>(relaxed = true)
         every { webView.evaluateJavascript(any(), any()) } answers {
@@ -463,8 +500,7 @@ class EventHandlingTest {
         return webView
     }
 
-    private fun successResponse(data: Map<String, Any>): JSONObject = 
-        JSONObject().apply { put("result", JSONObject(data)) }
+    private fun successResponse(data: Map<String, Any>): JSONObject = JSONObject().apply { put("result", JSONObject(data)) }
 
     private fun flushMainThread() {
         Shadows.shadowOf(Looper.getMainLooper()).runToEndOfTasks()
@@ -483,7 +519,7 @@ class EventHandlingTest {
     private fun invokeHandleResponse(
         engine: WebViewWalletKitEngine,
         callId: String,
-        response: JSONObject
+        response: JSONObject,
     ) {
         val method = engine::class.java.getDeclaredMethod("handleResponse", String::class.java, JSONObject::class.java)
         method.isAccessible = true
@@ -492,7 +528,7 @@ class EventHandlingTest {
 
     private fun invokeHandleEvent(
         engine: WebViewWalletKitEngine,
-        event: JSONObject
+        event: JSONObject,
     ) {
         val method = engine::class.java.getDeclaredMethod("handleEvent", JSONObject::class.java)
         method.isAccessible = true

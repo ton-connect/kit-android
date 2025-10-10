@@ -60,18 +60,20 @@ class WalletStateAndTransactionsTest {
                 "getWalletState" -> {
                     val json = JSONObject(payload!!)
                     assertEquals("EQTestAddress", json.getString("address"))
-                    
-                    successResponse(mapOf(
-                        "balance" to "1000000000",
-                        "transactions" to JSONArray()
-                    ))
+
+                    successResponse(
+                        mapOf(
+                            "balance" to "1000000000",
+                            "transactions" to JSONArray(),
+                        ),
+                    )
                 }
                 else -> successResponse(emptyMap<String, Any>())
             }
         }
 
         val state = engine.getWalletState("EQTestAddress")
-        
+
         assertNotNull(state)
         assertEquals("1000000000", state.balance)
         assertTrue(state.transactions.isEmpty())
@@ -82,16 +84,18 @@ class WalletStateAndTransactionsTest {
         val engine = createEngine { _, method, _ ->
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
-                "getWalletState" -> successResponse(mapOf(
-                    "balance" to "0",
-                    "transactions" to JSONArray()
-                ))
+                "getWalletState" -> successResponse(
+                    mapOf(
+                        "balance" to "0",
+                        "transactions" to JSONArray(),
+                    ),
+                )
                 else -> successResponse(emptyMap<String, Any>())
             }
         }
 
         val state = engine.getWalletState("EQNewWallet")
-        
+
         assertEquals("0", state.balance)
     }
 
@@ -100,15 +104,17 @@ class WalletStateAndTransactionsTest {
         val engine = createEngine { _, method, _ ->
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
-                "getRecentTransactions" -> successResponse(mapOf(
-                    "items" to JSONArray()
-                ))
+                "getRecentTransactions" -> successResponse(
+                    mapOf(
+                        "items" to JSONArray(),
+                    ),
+                )
                 else -> successResponse(emptyMap<String, Any>())
             }
         }
 
         val transactions = engine.getRecentTransactions("EQEmptyWallet", limit = 10)
-        
+
         assertTrue(transactions.isEmpty())
     }
 
@@ -120,16 +126,18 @@ class WalletStateAndTransactionsTest {
                 "getRecentTransactions" -> {
                     val json = JSONObject(payload!!)
                     assertEquals(5, json.getInt("limit"))
-                    
+
                     val txArray = JSONArray()
                     repeat(5) { i ->
-                        txArray.put(createTransactionJson(
-                            hash = "hash$i",
-                            value = "100000000",
-                            isIncoming = i % 2 == 0
-                        ))
+                        txArray.put(
+                            createTransactionJson(
+                                hash = "hash$i",
+                                value = "100000000",
+                                isIncoming = i % 2 == 0,
+                            ),
+                        )
                     }
-                    
+
                     successResponse(mapOf("items" to txArray))
                 }
                 else -> successResponse(emptyMap<String, Any>())
@@ -137,7 +145,7 @@ class WalletStateAndTransactionsTest {
         }
 
         val transactions = engine.getRecentTransactions("EQTestAddress", limit = 5)
-        
+
         assertEquals(5, transactions.size)
     }
 
@@ -148,12 +156,14 @@ class WalletStateAndTransactionsTest {
                 "init" -> successResponse(mapOf("ok" to true))
                 "getRecentTransactions" -> {
                     val txArray = JSONArray().apply {
-                        put(createTransactionJson(
-                            hash = "incoming_tx",
-                            value = "500000000",
-                            isIncoming = true,
-                            source = "EQSenderAddress"
-                        ))
+                        put(
+                            createTransactionJson(
+                                hash = "incoming_tx",
+                                value = "500000000",
+                                isIncoming = true,
+                                source = "EQSenderAddress",
+                            ),
+                        )
                     }
                     successResponse(mapOf("items" to txArray))
                 }
@@ -162,7 +172,7 @@ class WalletStateAndTransactionsTest {
         }
 
         val transactions = engine.getRecentTransactions("EQTestAddress")
-        
+
         assertEquals(1, transactions.size)
         val tx = transactions[0]
         assertEquals(TransactionType.INCOMING, tx.type)
@@ -178,12 +188,14 @@ class WalletStateAndTransactionsTest {
                 "init" -> successResponse(mapOf("ok" to true))
                 "getRecentTransactions" -> {
                     val txArray = JSONArray().apply {
-                        put(createTransactionJson(
-                            hash = "outgoing_tx",
-                            value = "300000000",
-                            isIncoming = false,
-                            destination = "EQRecipientAddress"
-                        ))
+                        put(
+                            createTransactionJson(
+                                hash = "outgoing_tx",
+                                value = "300000000",
+                                isIncoming = false,
+                                destination = "EQRecipientAddress",
+                            ),
+                        )
                     }
                     successResponse(mapOf("items" to txArray))
                 }
@@ -192,7 +204,7 @@ class WalletStateAndTransactionsTest {
         }
 
         val transactions = engine.getRecentTransactions("EQTestAddress")
-        
+
         assertEquals(1, transactions.size)
         val tx = transactions[0]
         assertEquals(TransactionType.OUTGOING, tx.type)
@@ -208,18 +220,23 @@ class WalletStateAndTransactionsTest {
                 "init" -> successResponse(mapOf("ok" to true))
                 "getRecentTransactions" -> {
                     val txArray = JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("hash_hex", "abc123def456")
-                            put("now", 1696800000L) // Unix timestamp in seconds
-                            put("in_msg", JSONObject().apply {
-                                put("value", "1000000000")
-                                put("comment", "Payment for services")
-                                put("source_friendly", "EQSender123")
-                            })
-                            put("total_fees", "5000000")
-                            put("lt", "47123456789000")
-                            put("mc_block_seqno", 12345678)
-                        })
+                        put(
+                            JSONObject().apply {
+                                put("hash_hex", "abc123def456")
+                                put("now", 1696800000L) // Unix timestamp in seconds
+                                put(
+                                    "in_msg",
+                                    JSONObject().apply {
+                                        put("value", "1000000000")
+                                        put("comment", "Payment for services")
+                                        put("source_friendly", "EQSender123")
+                                    },
+                                )
+                                put("total_fees", "5000000")
+                                put("lt", "47123456789000")
+                                put("mc_block_seqno", 12345678)
+                            },
+                        )
                     }
                     successResponse(mapOf("items" to txArray))
                 }
@@ -228,10 +245,10 @@ class WalletStateAndTransactionsTest {
         }
 
         val transactions = engine.getRecentTransactions("EQTestAddress")
-        
+
         assertEquals(1, transactions.size)
         val tx = transactions[0]
-        
+
         assertEquals("abc123def456", tx.hash)
         assertEquals(1696800000000L, tx.timestamp) // Converted to milliseconds
         assertEquals("1000000000", tx.amount)
@@ -249,21 +266,28 @@ class WalletStateAndTransactionsTest {
                 "getRecentTransactions" -> {
                     val txArray = JSONArray().apply {
                         // Regular TON transaction
-                        put(createTransactionJson(
-                            hash = "ton_tx",
-                            value = "100000000",
-                            isIncoming = true
-                        ))
-                        
+                        put(
+                            createTransactionJson(
+                                hash = "ton_tx",
+                                value = "100000000",
+                                isIncoming = true,
+                            ),
+                        )
+
                         // Jetton transaction (has op_code)
-                        put(JSONObject().apply {
-                            put("hash_hex", "jetton_tx")
-                            put("now", 1696800000L)
-                            put("in_msg", JSONObject().apply {
-                                put("value", "0")
-                                put("op_code", "0xf8a7ea5") // Jetton transfer op code
-                            })
-                        })
+                        put(
+                            JSONObject().apply {
+                                put("hash_hex", "jetton_tx")
+                                put("now", 1696800000L)
+                                put(
+                                    "in_msg",
+                                    JSONObject().apply {
+                                        put("value", "0")
+                                        put("op_code", "0xf8a7ea5") // Jetton transfer op code
+                                    },
+                                )
+                            },
+                        )
                     }
                     successResponse(mapOf("items" to txArray))
                 }
@@ -272,7 +296,7 @@ class WalletStateAndTransactionsTest {
         }
 
         val transactions = engine.getRecentTransactions("EQTestAddress")
-        
+
         // Should only return the TON transaction, jetton filtered out
         assertEquals(1, transactions.size)
         assertEquals("ton_tx", transactions[0].hash)
@@ -289,7 +313,7 @@ class WalletStateAndTransactionsTest {
                     assertEquals("EQRecipient", json.getString("toAddress"))
                     assertEquals("1000000000", json.getString("amount"))
                     assertEquals("Test payment", json.getString("comment"))
-                    
+
                     successResponse(mapOf("ok" to true))
                 }
                 else -> successResponse(emptyMap<String, Any>())
@@ -301,7 +325,7 @@ class WalletStateAndTransactionsTest {
             walletAddress = "EQWalletAddress",
             recipient = "EQRecipient",
             amount = "1000000000",
-            comment = "Test payment"
+            comment = "Test payment",
         )
     }
 
@@ -317,7 +341,7 @@ class WalletStateAndTransactionsTest {
                     assertEquals("500000000", json.getString("amount"))
                     // Comment should not be present
                     assertTrue(!json.has("comment"))
-                    
+
                     successResponse(mapOf("ok" to true))
                 }
                 else -> successResponse(emptyMap<String, Any>())
@@ -328,7 +352,7 @@ class WalletStateAndTransactionsTest {
             walletAddress = "EQWalletAddress",
             recipient = "EQRecipient",
             amount = "500000000",
-            comment = null
+            comment = null,
         )
     }
 
@@ -339,33 +363,44 @@ class WalletStateAndTransactionsTest {
         isIncoming: Boolean,
         source: String? = null,
         destination: String? = null,
-        comment: String? = null
+        comment: String? = null,
     ): JSONObject = JSONObject().apply {
         put("hash_hex", hash)
         put("now", System.currentTimeMillis() / 1000)
-        
+
         if (isIncoming) {
-            put("in_msg", JSONObject().apply {
-                put("value", value)
-                source?.let { put("source_friendly", it) }
-                comment?.let { put("comment", it) }
-            })
-        } else {
-            put("in_msg", JSONObject().apply {
-                put("value", "0")
-            })
-            put("out_msgs", JSONArray().apply {
-                put(JSONObject().apply {
+            put(
+                "in_msg",
+                JSONObject().apply {
                     put("value", value)
-                    destination?.let { put("destination_friendly", it) }
+                    source?.let { put("source_friendly", it) }
                     comment?.let { put("comment", it) }
-                })
-            })
+                },
+            )
+        } else {
+            put(
+                "in_msg",
+                JSONObject().apply {
+                    put("value", "0")
+                },
+            )
+            put(
+                "out_msgs",
+                JSONArray().apply {
+                    put(
+                        JSONObject().apply {
+                            put("value", value)
+                            destination?.let { put("destination_friendly", it) }
+                            comment?.let { put("comment", it) }
+                        },
+                    )
+                },
+            )
         }
     }
 
     private fun createEngine(
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebViewWalletKitEngine {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
@@ -376,7 +411,7 @@ class WalletStateAndTransactionsTest {
 
     private fun createWebViewStub(
         engine: WebViewWalletKitEngine,
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebView {
         val webView = mockk<WebView>(relaxed = true)
         every { webView.evaluateJavascript(any(), any()) } answers {
@@ -391,8 +426,7 @@ class WalletStateAndTransactionsTest {
         return webView
     }
 
-    private fun successResponse(data: Map<String, Any>): JSONObject = 
-        JSONObject().apply { put("result", JSONObject(data)) }
+    private fun successResponse(data: Map<String, Any>): JSONObject = JSONObject().apply { put("result", JSONObject(data)) }
 
     private fun flushMainThread() {
         Shadows.shadowOf(Looper.getMainLooper()).runToEndOfTasks()
@@ -411,7 +445,7 @@ class WalletStateAndTransactionsTest {
     private fun invokeHandleResponse(
         engine: WebViewWalletKitEngine,
         callId: String,
-        response: JSONObject
+        response: JSONObject,
     ) {
         val method = engine::class.java.getDeclaredMethod("handleResponse", String::class.java, JSONObject::class.java)
         method.isAccessible = true

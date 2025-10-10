@@ -1184,6 +1184,21 @@ class WalletKitViewModel(
             // Clear transaction cache for removed wallet
             transactionCache.clear(address)
 
+            // Remove all sessions associated with this wallet address
+            runCatching {
+                val allSessions = engine.listSessions()
+                val sessionsToRemove = allSessions.filter { it.walletAddress == address }
+                sessionsToRemove.forEach { session ->
+                    Log.d(LOG_TAG, "Clearing session data for removed wallet: sessionId=${session.sessionId}")
+                    storage.clearSessionData(session.sessionId)
+                }
+                if (sessionsToRemove.isNotEmpty()) {
+                    Log.d(LOG_TAG, "Cleared ${sessionsToRemove.size} session(s) for wallet $address")
+                }
+            }.onFailure {
+                Log.w(LOG_TAG, "removeWallet: failed to clear session data for $address", it)
+            }
+
             walletMetadata.remove(address)
 
             _state.update {
@@ -1201,6 +1216,7 @@ class WalletKitViewModel(
             }
 
             refreshWallets()
+            refreshSessions() // Refresh to update UI with removed sessions
 
             logEvent("Removed wallet: ${wallet.name}")
         }
@@ -1464,7 +1480,7 @@ class WalletKitViewModel(
                     dAppName = dAppInfo?.name ?: "Unknown dApp",
                     validUntil = null,
                     messages = messages,
-                    preview = null,
+                    preview = request.preview, // Pass preview data from bridge
                     raw = org.json.JSONObject(),
                     iosStyleRequest = request, // Store for direct approve/reject
                 )

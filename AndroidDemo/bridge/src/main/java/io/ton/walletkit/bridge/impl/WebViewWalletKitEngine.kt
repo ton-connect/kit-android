@@ -705,10 +705,15 @@ class WebViewWalletKitEngine(
                 val requestId = data.opt("id") ?: return null
                 val dAppInfo = parseDAppInfo(data)
                 val txRequest = parseTransactionRequest(data)
+
+                // Extract preview data if available
+                val preview = data.optJSONObject("preview")?.toString()
+
                 val request = io.ton.walletkit.bridge.request.TransactionRequest(
                     requestId = requestId,
                     dAppInfo = dAppInfo,
                     request = txRequest,
+                    preview = preview,
                     engine = this,
                 )
                 WalletKitEvent.TransactionRequestEvent(request)
@@ -790,8 +795,11 @@ class WebViewWalletKitEngine(
     }
 
     private fun parseTransactionRequest(data: JSONObject): TransactionRequest {
+        // Check if data is nested under "request" field
+        val requestData = data.optJSONObject("request") ?: data
+
         // Try to parse from messages array first (TON Connect format)
-        val messages = data.optJSONArray("messages")
+        val messages = requestData.optJSONArray("messages")
         if (messages != null && messages.length() > 0) {
             val firstMessage = messages.optJSONObject(0)
             if (firstMessage != null) {
@@ -811,10 +819,10 @@ class WebViewWalletKitEngine(
 
         // Fallback to direct fields (legacy format or direct send)
         return TransactionRequest(
-            recipient = data.optNullableString("to") ?: data.optNullableString("recipient") ?: "",
-            amount = data.optNullableString("amount") ?: data.optNullableString("value") ?: "0",
-            comment = data.optNullableString("comment") ?: data.optNullableString("text"),
-            payload = data.optNullableString("payload"),
+            recipient = requestData.optNullableString("to") ?: requestData.optNullableString("recipient") ?: "",
+            amount = requestData.optNullableString("amount") ?: requestData.optNullableString("value") ?: "0",
+            comment = requestData.optNullableString("comment") ?: requestData.optNullableString("text"),
+            payload = requestData.optNullableString("payload"),
         )
     }
 

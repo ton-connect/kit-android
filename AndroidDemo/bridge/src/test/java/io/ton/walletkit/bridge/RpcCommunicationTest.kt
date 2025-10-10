@@ -55,10 +55,12 @@ class RpcCommunicationTest {
         val engine = createEngine { _, method, _ ->
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
-                "getWalletState" -> successResponse(mapOf(
-                    "balance" to "5000000000",
-                    "status" to "active"
-                ))
+                "getWalletState" -> successResponse(
+                    mapOf(
+                        "balance" to "5000000000",
+                        "status" to "active",
+                    ),
+                )
                 else -> successResponse(emptyMap<String, Any>())
             }
         }
@@ -95,7 +97,7 @@ class RpcCommunicationTest {
                 "init" -> successResponse(mapOf("ok" to true))
                 "removeWallet" -> {
                     // Primitive result wrapped in "value" key
-                    JSONObject().apply { 
+                    JSONObject().apply {
                         put("result", true)
                     }
                 }
@@ -120,7 +122,7 @@ class RpcCommunicationTest {
         try {
             engine.addWalletFromMnemonic(
                 words = listOf("invalid"),
-                version = "v4R2"
+                version = "v4R2",
             )
             throw AssertionError("Expected WalletKitBridgeException")
         } catch (e: WalletKitBridgeException) {
@@ -131,10 +133,10 @@ class RpcCommunicationTest {
     @Test
     fun `concurrent RPC calls with unique IDs`() = runTest {
         val receivedCallIds = mutableSetOf<String>()
-        
+
         val engine = createEngine { callId, method, _ ->
             receivedCallIds.add(callId)
-            
+
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
                 "getWallets" -> successResponse(mapOf("items" to JSONArray()))
@@ -163,7 +165,7 @@ class RpcCommunicationTest {
     fun `base64 payload encoding for large payloads`() = runTest {
         var capturedPayload: String? = null
         var wasBase64Encoded = false
-        
+
         val engine = createEngine { _, method, payload ->
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
@@ -173,10 +175,12 @@ class RpcCommunicationTest {
                     assertNotNull(payload)
                     val json = JSONObject(payload)
                     assertTrue(json.has("words"))
-                    successResponse(mapOf(
-                        "address" to "EQTest",
-                        "version" to "v4R2"
-                    ))
+                    successResponse(
+                        mapOf(
+                            "address" to "EQTest",
+                            "version" to "v4R2",
+                        ),
+                    )
                 }
                 else -> successResponse(emptyMap<String, Any>())
             }
@@ -196,10 +200,10 @@ class RpcCommunicationTest {
     @Test
     fun `handle 20 concurrent RPC calls successfully`() = runTest {
         val callCounts = mutableMapOf<String, Int>()
-        
+
         val engine = createEngine { _, method, _ ->
             callCounts[method] = (callCounts[method] ?: 0) + 1
-            
+
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
                 "getWallets" -> successResponse(mapOf("items" to JSONArray()))
@@ -229,10 +233,10 @@ class RpcCommunicationTest {
     @Test
     fun `RPC calls wait for ready state`() = runTest {
         var readyCompleted = false
-        
+
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
-        
+
         // Don't complete ready yet
         val webView = mockk<WebView>(relaxed = true)
         every { webView.evaluateJavascript(any(), any()) } answers {
@@ -248,7 +252,7 @@ class RpcCommunicationTest {
             @Suppress("UNCHECKED_CAST")
             val ready = readyField.get(engine) as CompletableDeferred<Unit>
             ready.complete(Unit)
-            
+
             // Now complete the call
             val pending = getPrivateField<Any>(engine, "pending")
             // Simulate response
@@ -256,14 +260,14 @@ class RpcCommunicationTest {
 
         delay(100) // Give time for the call to start waiting
         completeReady(engine)
-        
+
         job.await()
     }
 
     @Test
     fun `response routing matches correct call ID`() = runTest {
         val responseMap = mutableMapOf<String, JSONObject>()
-        
+
         val engine = createEngine { callId, method, _ ->
             val response = when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
@@ -284,7 +288,7 @@ class RpcCommunicationTest {
 
     // Helper functions
     private fun createEngine(
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebViewWalletKitEngine {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
@@ -295,7 +299,7 @@ class RpcCommunicationTest {
 
     private fun createWebViewStub(
         engine: WebViewWalletKitEngine,
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebView {
         val webView = mockk<WebView>(relaxed = true)
         every { webView.evaluateJavascript(any(), any()) } answers {
@@ -310,13 +314,11 @@ class RpcCommunicationTest {
         return webView
     }
 
-    private fun successResponse(data: Map<String, Any>): JSONObject = 
-        JSONObject().apply { put("result", JSONObject(data)) }
+    private fun successResponse(data: Map<String, Any>): JSONObject = JSONObject().apply { put("result", JSONObject(data)) }
 
-    private fun errorResponse(message: String): JSONObject = 
-        JSONObject().apply {
-            put("error", JSONObject().apply { put("message", message) })
-        }
+    private fun errorResponse(message: String): JSONObject = JSONObject().apply {
+        put("error", JSONObject().apply { put("message", message) })
+    }
 
     private fun flushMainThread() {
         Shadows.shadowOf(Looper.getMainLooper()).runToEndOfTasks()
@@ -335,7 +337,7 @@ class RpcCommunicationTest {
     private fun invokeHandleResponse(
         engine: WebViewWalletKitEngine,
         callId: String,
-        response: JSONObject
+        response: JSONObject,
     ) {
         val method = engine::class.java.getDeclaredMethod("handleResponse", String::class.java, JSONObject::class.java)
         method.isAccessible = true

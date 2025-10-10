@@ -11,11 +11,13 @@ import io.ton.walletkit.bridge.model.TransactionRequest as TransactionRequestDat
  * @property requestId Unique identifier for this request
  * @property dAppInfo Information about the requesting dApp
  * @property request Transaction request details (recipient, amount, etc.)
+ * @property preview Optional preview/emulation data (JSON string)
  */
 class TransactionRequest internal constructor(
     val requestId: Any,
     val dAppInfo: DAppInfo?,
     val request: TransactionRequestData,
+    val preview: String? = null,
     private val engine: WalletKitEngine,
 ) {
     /**

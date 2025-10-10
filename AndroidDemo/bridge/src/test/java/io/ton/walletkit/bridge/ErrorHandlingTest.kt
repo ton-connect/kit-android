@@ -61,7 +61,7 @@ class ErrorHandlingTest {
         val exception = assertFailsWith<WalletKitBridgeException> {
             engine.addWalletFromMnemonic(
                 words = listOf("invalid", "mnemonic"),
-                version = "v4R2"
+                version = "v4R2",
             )
         }
 
@@ -98,7 +98,7 @@ class ErrorHandlingTest {
         assertFailsWith<WalletKitBridgeException> {
             engine.addWalletFromMnemonic(
                 words = emptyList(),
-                version = "v4R2"
+                version = "v4R2",
             )
         }
     }
@@ -123,7 +123,7 @@ class ErrorHandlingTest {
             walletAddress = "EQWallet",
             recipient = "EQRecipient",
             amount = "1000000",
-            comment = null
+            comment = null,
         )
     }
 
@@ -146,7 +146,7 @@ class ErrorHandlingTest {
             walletAddress = "EQWallet",
             recipient = "EQRecipient",
             amount = "1000000",
-            comment = ""
+            comment = "",
         )
     }
 
@@ -176,17 +176,22 @@ class ErrorHandlingTest {
                 "getRecentTransactions" -> {
                     val json = JSONObject(payload!!)
                     assertEquals(1000, json.getInt("limit"))
-                    
+
                     // Return reasonable number (API limit)
                     val txArray = JSONArray()
                     repeat(100) { i ->
-                        txArray.put(JSONObject().apply {
-                            put("hash_hex", "hash$i")
-                            put("now", System.currentTimeMillis() / 1000)
-                            put("in_msg", JSONObject().apply {
-                                put("value", "1000000")
-                            })
-                        })
+                        txArray.put(
+                            JSONObject().apply {
+                                put("hash_hex", "hash$i")
+                                put("now", System.currentTimeMillis() / 1000)
+                                put(
+                                    "in_msg",
+                                    JSONObject().apply {
+                                        put("value", "1000000")
+                                    },
+                                )
+                            },
+                        )
                     }
                     successResponse(mapOf("items" to txArray))
                 }
@@ -219,14 +224,14 @@ class ErrorHandlingTest {
         engine.sendTransaction(
             walletAddress = "EQWallet",
             recipient = "EQRecipient",
-            amount = "999999999999999999"
+            amount = "999999999999999999",
         )
     }
 
     @Test
     fun `very long comment is handled`() = runTest {
         val longComment = "A".repeat(2000)
-        
+
         val engine = createEngine { _, method, payload ->
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
@@ -244,7 +249,7 @@ class ErrorHandlingTest {
             walletAddress = "EQWallet",
             recipient = "EQRecipient",
             amount = "1000000",
-            comment = longComment
+            comment = longComment,
         )
     }
 
@@ -260,7 +265,7 @@ class ErrorHandlingTest {
         // Simulate malformed JSON message from JS
         val jsBinding = getPrivateField<Any>(getPrivateField<WebView>(engine, "webView"), "WalletKitNative")
         val postMessageMethod = jsBinding.javaClass.getMethod("postMessage", String::class.java)
-        
+
         // Should not crash
         try {
             postMessageMethod.invoke(jsBinding, "{malformed json}")
@@ -296,13 +301,19 @@ class ErrorHandlingTest {
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
                 "getWallets" -> JSONObject().apply {
-                    put("error", JSONObject().apply {
-                        put("code", 404)
-                        put("message", "Wallets not found")
-                        put("data", JSONObject().apply {
-                            put("details", "Storage is empty")
-                        })
-                    })
+                    put(
+                        "error",
+                        JSONObject().apply {
+                            put("code", 404)
+                            put("message", "Wallets not found")
+                            put(
+                                "data",
+                                JSONObject().apply {
+                                    put("details", "Storage is empty")
+                                },
+                            )
+                        },
+                    )
                 }
                 else -> successResponse(emptyMap<String, Any>())
             }
@@ -350,7 +361,7 @@ class ErrorHandlingTest {
 
     // Helper functions
     private fun createEngine(
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebViewWalletKitEngine {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
@@ -361,7 +372,7 @@ class ErrorHandlingTest {
 
     private fun createWebViewStub(
         engine: WebViewWalletKitEngine,
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebView {
         val webView = mockk<WebView>(relaxed = true)
         every { webView.evaluateJavascript(any(), any()) } answers {
@@ -376,13 +387,11 @@ class ErrorHandlingTest {
         return webView
     }
 
-    private fun successResponse(data: Map<String, Any>): JSONObject = 
-        JSONObject().apply { put("result", JSONObject(data)) }
+    private fun successResponse(data: Map<String, Any>): JSONObject = JSONObject().apply { put("result", JSONObject(data)) }
 
-    private fun errorResponse(message: String): JSONObject = 
-        JSONObject().apply {
-            put("error", JSONObject().apply { put("message", message) })
-        }
+    private fun errorResponse(message: String): JSONObject = JSONObject().apply {
+        put("error", JSONObject().apply { put("message", message) })
+    }
 
     private fun flushMainThread() {
         Shadows.shadowOf(Looper.getMainLooper()).runToEndOfTasks()
@@ -401,7 +410,7 @@ class ErrorHandlingTest {
     private fun invokeHandleResponse(
         engine: WebViewWalletKitEngine,
         callId: String,
-        response: JSONObject
+        response: JSONObject,
     ) {
         val method = engine::class.java.getDeclaredMethod("handleResponse", String::class.java, JSONObject::class.java)
         method.isAccessible = true

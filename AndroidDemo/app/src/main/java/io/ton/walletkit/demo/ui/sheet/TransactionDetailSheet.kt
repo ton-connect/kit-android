@@ -234,7 +234,7 @@ private fun formatFullTimestamp(timestamp: Long): String = try {
     if (timestamp == 0L) {
         "Unknown time"
     } else {
-        val date = Date(timestamp * 1000)
+        val date = Date(timestamp) // Already in milliseconds from bridge
         val sdf = SimpleDateFormat("MMMM dd, yyyy 'at' HH:mm:ss", Locale.getDefault())
         sdf.format(date)
     }

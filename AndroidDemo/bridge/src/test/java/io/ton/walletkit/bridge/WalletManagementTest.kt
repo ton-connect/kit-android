@@ -56,7 +56,7 @@ class WalletManagementTest {
             "abandon", "ability", "able", "about", "above", "absent",
             "absorb", "abstract", "absurd", "abuse", "access", "accident",
             "account", "accuse", "achieve", "acid", "acoustic", "acquire",
-            "across", "act", "action", "actor", "actress", "actual"
+            "across", "act", "action", "actor", "actress", "actual",
         )
 
         val engine = createEngine { _, method, payload ->
@@ -66,14 +66,16 @@ class WalletManagementTest {
                     val json = JSONObject(payload!!)
                     val words = json.getJSONArray("words")
                     assertEquals(24, words.length())
-                    
-                    successResponse(mapOf(
-                        "address" to "EQDKbjIcfM6ezt8KjKJJLshZJJSqX7XOA4ff-W72r5gqPrHF",
-                        "publicKey" to "82a0b2e3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1",
-                        "version" to "v4R2",
-                        "network" to "testnet",
-                        "index" to 0
-                    ))
+
+                    successResponse(
+                        mapOf(
+                            "address" to "EQDKbjIcfM6ezt8KjKJJLshZJJSqX7XOA4ff-W72r5gqPrHF",
+                            "publicKey" to "82a0b2e3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1",
+                            "version" to "v4R2",
+                            "network" to "testnet",
+                            "index" to 0,
+                        ),
+                    )
                 }
                 else -> successResponse(emptyMap<String, Any>())
             }
@@ -82,7 +84,7 @@ class WalletManagementTest {
         val wallet = engine.addWalletFromMnemonic(
             words = testMnemonic,
             version = "v4R2",
-            network = "testnet"
+            network = "testnet",
         )
 
         assertNotNull(wallet)
@@ -95,7 +97,7 @@ class WalletManagementTest {
     fun `add wallet from valid 12-word mnemonic`() = runTest {
         val testMnemonic = listOf(
             "abandon", "ability", "able", "about", "above", "absent",
-            "absorb", "abstract", "absurd", "abuse", "access", "accident"
+            "absorb", "abstract", "absurd", "abuse", "access", "accident",
         )
 
         val engine = createEngine { _, method, payload ->
@@ -105,12 +107,14 @@ class WalletManagementTest {
                     val json = JSONObject(payload!!)
                     val words = json.getJSONArray("words")
                     assertEquals(12, words.length())
-                    
-                    successResponse(mapOf(
-                        "address" to "EQTest12WordAddress",
-                        "version" to "v4R2",
-                        "network" to "testnet"
-                    ))
+
+                    successResponse(
+                        mapOf(
+                            "address" to "EQTest12WordAddress",
+                            "version" to "v4R2",
+                            "network" to "testnet",
+                        ),
+                    )
                 }
                 else -> successResponse(emptyMap<String, Any>())
             }
@@ -118,7 +122,7 @@ class WalletManagementTest {
 
         val wallet = engine.addWalletFromMnemonic(
             words = testMnemonic,
-            version = "v4R2"
+            version = "v4R2",
         )
 
         assertNotNull(wallet)
@@ -135,12 +139,14 @@ class WalletManagementTest {
                 "addWalletFromMnemonic" -> {
                     val json = JSONObject(payload!!)
                     assertEquals("v5r1", json.getString("version"))
-                    
-                    successResponse(mapOf(
-                        "address" to "EQV5R1WalletAddress",
-                        "version" to "v5r1",
-                        "network" to "testnet"
-                    ))
+
+                    successResponse(
+                        mapOf(
+                            "address" to "EQV5R1WalletAddress",
+                            "version" to "v5r1",
+                            "network" to "testnet",
+                        ),
+                    )
                 }
                 else -> successResponse(emptyMap<String, Any>())
             }
@@ -148,7 +154,7 @@ class WalletManagementTest {
 
         val wallet = engine.addWalletFromMnemonic(
             words = testMnemonic,
-            version = "v5r1"
+            version = "v5r1",
         )
 
         assertEquals("v5r1", wallet.version)
@@ -164,12 +170,14 @@ class WalletManagementTest {
                 "addWalletFromMnemonic" -> {
                     val json = JSONObject(payload!!)
                     assertEquals("My Main Wallet", json.getString("name"))
-                    
-                    successResponse(mapOf(
-                        "address" to "EQTestAddress",
-                        "name" to "My Main Wallet",
-                        "version" to "v4R2"
-                    ))
+
+                    successResponse(
+                        mapOf(
+                            "address" to "EQTestAddress",
+                            "name" to "My Main Wallet",
+                            "version" to "v4R2",
+                        ),
+                    )
                 }
                 else -> successResponse(emptyMap<String, Any>())
             }
@@ -178,7 +186,7 @@ class WalletManagementTest {
         val wallet = engine.addWalletFromMnemonic(
             words = testMnemonic,
             name = "My Main Wallet",
-            version = "v4R2"
+            version = "v4R2",
         )
 
         assertEquals("My Main Wallet", wallet.name)
@@ -194,12 +202,14 @@ class WalletManagementTest {
                 "addWalletFromMnemonic" -> {
                     val json = JSONObject(payload!!)
                     assertEquals("mainnet", json.getString("network"))
-                    
-                    successResponse(mapOf(
-                        "address" to "EQMainnetAddress",
-                        "version" to "v4R2",
-                        "network" to "mainnet"
-                    ))
+
+                    successResponse(
+                        mapOf(
+                            "address" to "EQMainnetAddress",
+                            "version" to "v4R2",
+                            "network" to "mainnet",
+                        ),
+                    )
                 }
                 else -> successResponse(emptyMap<String, Any>())
             }
@@ -208,7 +218,7 @@ class WalletManagementTest {
         val wallet = engine.addWalletFromMnemonic(
             words = testMnemonic,
             version = "v4R2",
-            network = "mainnet"
+            network = "mainnet",
         )
 
         assertEquals("mainnet", wallet.network)
@@ -229,7 +239,7 @@ class WalletManagementTest {
         assertFailsWith<WalletKitBridgeException> {
             engine.addWalletFromMnemonic(
                 words = invalidMnemonic,
-                version = "v4R2"
+                version = "v4R2",
             )
         }
     }
@@ -255,25 +265,37 @@ class WalletManagementTest {
                 "init" -> successResponse(mapOf("ok" to true))
                 "getWallets" -> {
                     val walletsArray = JSONArray().apply {
-                        put(JSONObject(mapOf(
-                            "address" to "EQWallet1",
-                            "version" to "v4R2",
-                            "network" to "testnet",
-                            "index" to 0
-                        )))
-                        put(JSONObject(mapOf(
-                            "address" to "EQWallet2",
-                            "version" to "v5r1",
-                            "network" to "mainnet",
-                            "index" to 1
-                        )))
-                        put(JSONObject(mapOf(
-                            "address" to "EQWallet3",
-                            "name" to "My Wallet",
-                            "version" to "v4R2",
-                            "network" to "testnet",
-                            "index" to 2
-                        )))
+                        put(
+                            JSONObject(
+                                mapOf(
+                                    "address" to "EQWallet1",
+                                    "version" to "v4R2",
+                                    "network" to "testnet",
+                                    "index" to 0,
+                                ),
+                            ),
+                        )
+                        put(
+                            JSONObject(
+                                mapOf(
+                                    "address" to "EQWallet2",
+                                    "version" to "v5r1",
+                                    "network" to "mainnet",
+                                    "index" to 1,
+                                ),
+                            ),
+                        )
+                        put(
+                            JSONObject(
+                                mapOf(
+                                    "address" to "EQWallet3",
+                                    "name" to "My Wallet",
+                                    "version" to "v4R2",
+                                    "network" to "testnet",
+                                    "index" to 2,
+                                ),
+                            ),
+                        )
                     }
                     successResponse(mapOf("items" to walletsArray))
                 }
@@ -324,7 +346,7 @@ class WalletManagementTest {
 
     // Helper functions
     private fun createEngine(
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebViewWalletKitEngine {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
@@ -335,7 +357,7 @@ class WalletManagementTest {
 
     private fun createWebViewStub(
         engine: WebViewWalletKitEngine,
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebView {
         val webView = mockk<WebView>(relaxed = true)
         every { webView.evaluateJavascript(any(), any()) } answers {
@@ -350,13 +372,11 @@ class WalletManagementTest {
         return webView
     }
 
-    private fun successResponse(data: Map<String, Any>): JSONObject = 
-        JSONObject().apply { put("result", JSONObject(data)) }
+    private fun successResponse(data: Map<String, Any>): JSONObject = JSONObject().apply { put("result", JSONObject(data)) }
 
-    private fun errorResponse(message: String): JSONObject = 
-        JSONObject().apply {
-            put("error", JSONObject().apply { put("message", message) })
-        }
+    private fun errorResponse(message: String): JSONObject = JSONObject().apply {
+        put("error", JSONObject().apply { put("message", message) })
+    }
 
     private fun flushMainThread() {
         Shadows.shadowOf(Looper.getMainLooper()).runToEndOfTasks()
@@ -375,7 +395,7 @@ class WalletManagementTest {
     private fun invokeHandleResponse(
         engine: WebViewWalletKitEngine,
         callId: String,
-        response: JSONObject
+        response: JSONObject,
     ) {
         val method = engine::class.java.getDeclaredMethod("handleResponse", String::class.java, JSONObject::class.java)
         method.isAccessible = true

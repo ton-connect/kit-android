@@ -56,29 +56,35 @@ class TonConnectIntegrationTest {
     fun `handle TonConnect URL triggers connect request event`() = runTest {
         var capturedEvent: WalletKitEvent? = null
         var engineRef: WebViewWalletKitEngine? = null
-        
+
         val engine = createEngine { _, method, payload ->
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
                 "handleTonConnectUrl" -> {
                     val json = JSONObject(payload!!)
                     assertEquals("tc://connect?...", json.getString("url"))
-                    
+
                     // Simulate event emission
                     val eventJson = JSONObject().apply {
                         put("type", "connectRequest")
-                        put("data", JSONObject().apply {
-                            put("id", "request_123")
-                            put("dAppName", "Test dApp")
-                            put("dAppUrl", "https://test-dapp.com")
-                            put("permissions", JSONArray().apply {
-                                put("ton_addr")
-                                put("ton_proof")
-                            })
-                        })
+                        put(
+                            "data",
+                            JSONObject().apply {
+                                put("id", "request_123")
+                                put("dAppName", "Test dApp")
+                                put("dAppUrl", "https://test-dapp.com")
+                                put(
+                                    "permissions",
+                                    JSONArray().apply {
+                                        put("ton_addr")
+                                        put("ton_proof")
+                                    },
+                                )
+                            },
+                        )
                     }
                     engineRef?.let { invokeHandleEvent(it, eventJson) }
-                    
+
                     successResponse(mapOf("ok" to true))
                 }
                 else -> successResponse(emptyMap<String, Any>())
@@ -95,7 +101,7 @@ class TonConnectIntegrationTest {
         engine.handleTonConnectUrl("tc://connect?...")
 
         flushMainThread()
-        
+
         assertNotNull(capturedEvent)
         assertIs<WalletKitEvent.ConnectRequestEvent>(capturedEvent)
         val connectEvent = capturedEvent as WalletKitEvent.ConnectRequestEvent
@@ -112,7 +118,7 @@ class TonConnectIntegrationTest {
                     val json = JSONObject(payload!!)
                     assertEquals("request_123", json.get("requestId"))
                     assertEquals("EQMyWallet", json.getString("walletAddress"))
-                    
+
                     successResponse(mapOf("ok" to true))
                 }
                 else -> successResponse(emptyMap<String, Any>())
@@ -121,7 +127,7 @@ class TonConnectIntegrationTest {
 
         engine.approveConnect(
             requestId = "request_123",
-            walletAddress = "EQMyWallet"
+            walletAddress = "EQMyWallet",
         )
     }
 
@@ -134,7 +140,7 @@ class TonConnectIntegrationTest {
                     val json = JSONObject(payload!!)
                     assertEquals("request_456", json.get("requestId"))
                     assertEquals("User cancelled", json.getString("reason"))
-                    
+
                     successResponse(mapOf("ok" to true))
                 }
                 else -> successResponse(emptyMap<String, Any>())
@@ -143,7 +149,7 @@ class TonConnectIntegrationTest {
 
         engine.rejectConnect(
             requestId = "request_456",
-            reason = "User cancelled"
+            reason = "User cancelled",
         )
     }
 
@@ -155,7 +161,7 @@ class TonConnectIntegrationTest {
                 "approveTransactionRequest" -> {
                     val json = JSONObject(payload!!)
                     assertEquals("tx_request_789", json.get("requestId"))
-                    
+
                     successResponse(mapOf("ok" to true))
                 }
                 else -> successResponse(emptyMap<String, Any>())
@@ -174,7 +180,7 @@ class TonConnectIntegrationTest {
                     val json = JSONObject(payload!!)
                     assertEquals("tx_request_999", json.get("requestId"))
                     assertEquals("Insufficient funds", json.getString("reason"))
-                    
+
                     successResponse(mapOf("ok" to true))
                 }
                 else -> successResponse(emptyMap<String, Any>())
@@ -183,14 +189,14 @@ class TonConnectIntegrationTest {
 
         engine.rejectTransaction(
             requestId = "tx_request_999",
-            reason = "Insufficient funds"
+            reason = "Insufficient funds",
         )
     }
 
     @Test
     fun `transaction request event parsing`() = runTest {
         var capturedEvent: WalletKitEvent? = null
-        
+
         val engine = createEngine { _, method, _ ->
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
@@ -206,19 +212,27 @@ class TonConnectIntegrationTest {
 
         val txEventJson = JSONObject().apply {
             put("type", "transactionRequest")
-            put("data", JSONObject().apply {
-                put("id", "tx_req_123")
-                put("dAppName", "DeFi App")
-                put("messages", JSONArray().apply {
-                    put(JSONObject().apply {
-                        put("address", "EQRecipient")
-                        put("amount", "1000000000")
-                        put("comment", "Payment")
-                    })
-                })
-            })
+            put(
+                "data",
+                JSONObject().apply {
+                    put("id", "tx_req_123")
+                    put("dAppName", "DeFi App")
+                    put(
+                        "messages",
+                        JSONArray().apply {
+                            put(
+                                JSONObject().apply {
+                                    put("address", "EQRecipient")
+                                    put("amount", "1000000000")
+                                    put("comment", "Payment")
+                                },
+                            )
+                        },
+                    )
+                },
+            )
         }
-        
+
         invokeHandleEvent(engine, txEventJson)
         flushMainThread()
 
@@ -238,10 +252,12 @@ class TonConnectIntegrationTest {
                 "approveSignDataRequest" -> {
                     val json = JSONObject(payload!!)
                     assertEquals("sign_req_123", json.get("requestId"))
-                    
-                    successResponse(mapOf(
-                        "signature" to "base64EncodedSignature123=="
-                    ))
+
+                    successResponse(
+                        mapOf(
+                            "signature" to "base64EncodedSignature123==",
+                        ),
+                    )
                 }
                 else -> successResponse(emptyMap<String, Any>())
             }
@@ -262,7 +278,7 @@ class TonConnectIntegrationTest {
                     val json = JSONObject(payload!!)
                     assertEquals("sign_req_456", json.get("requestId"))
                     assertEquals("User rejected", json.getString("reason"))
-                    
+
                     successResponse(mapOf("ok" to true))
                 }
                 else -> successResponse(emptyMap<String, Any>())
@@ -271,14 +287,14 @@ class TonConnectIntegrationTest {
 
         engine.rejectSignData(
             requestId = "sign_req_456",
-            reason = "User rejected"
+            reason = "User rejected",
         )
     }
 
     @Test
     fun `sign data request event parsing`() = runTest {
         var capturedEvent: WalletKitEvent? = null
-        
+
         val engine = createEngine { _, method, _ ->
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
@@ -294,18 +310,26 @@ class TonConnectIntegrationTest {
 
         val signEventJson = JSONObject().apply {
             put("type", "signDataRequest")
-            put("data", JSONObject().apply {
-                put("id", "sign_123")
-                put("dAppName", "Auth App")
-                put("params", JSONArray().apply {
-                    put(JSONObject().apply {
-                        put("payload", "SGVsbG8gV29ybGQ=")
-                        put("schema_crc", 0) // text schema
-                    }.toString())
-                })
-            })
+            put(
+                "data",
+                JSONObject().apply {
+                    put("id", "sign_123")
+                    put("dAppName", "Auth App")
+                    put(
+                        "params",
+                        JSONArray().apply {
+                            put(
+                                JSONObject().apply {
+                                    put("payload", "SGVsbG8gV29ybGQ=")
+                                    put("schema_crc", 0) // text schema
+                                }.toString(),
+                            )
+                        },
+                    )
+                },
+            )
         }
-        
+
         invokeHandleEvent(engine, signEventJson)
         flushMainThread()
 
@@ -327,7 +351,7 @@ class TonConnectIntegrationTest {
         }
 
         val sessions = engine.listSessions()
-        
+
         assertTrue(sessions.isEmpty())
     }
 
@@ -338,18 +362,22 @@ class TonConnectIntegrationTest {
                 "init" -> successResponse(mapOf("ok" to true))
                 "listSessions" -> {
                     val sessionsArray = JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("sessionId", "session_1")
-                            put("dAppName", "DApp 1")
-                            put("walletAddress", "EQWallet1")
-                            put("dAppUrl", "https://dapp1.com")
-                        })
-                        put(JSONObject().apply {
-                            put("sessionId", "session_2")
-                            put("dAppName", "DApp 2")
-                            put("walletAddress", "EQWallet2")
-                            put("iconUrl", "https://dapp2.com/icon.png")
-                        })
+                        put(
+                            JSONObject().apply {
+                                put("sessionId", "session_1")
+                                put("dAppName", "DApp 1")
+                                put("walletAddress", "EQWallet1")
+                                put("dAppUrl", "https://dapp1.com")
+                            },
+                        )
+                        put(
+                            JSONObject().apply {
+                                put("sessionId", "session_2")
+                                put("dAppName", "DApp 2")
+                                put("walletAddress", "EQWallet2")
+                                put("iconUrl", "https://dapp2.com/icon.png")
+                            },
+                        )
                     }
                     successResponse(mapOf("items" to sessionsArray))
                 }
@@ -358,7 +386,7 @@ class TonConnectIntegrationTest {
         }
 
         val sessions = engine.listSessions()
-        
+
         assertEquals(2, sessions.size)
         assertEquals("session_1", sessions[0].sessionId)
         assertEquals("DApp 1", sessions[0].dAppName)
@@ -374,7 +402,7 @@ class TonConnectIntegrationTest {
                 "disconnectSession" -> {
                     val json = JSONObject(payload!!)
                     assertEquals("session_to_disconnect", json.getString("sessionId"))
-                    
+
                     successResponse(mapOf("ok" to true))
                 }
                 else -> successResponse(emptyMap<String, Any>())
@@ -392,7 +420,7 @@ class TonConnectIntegrationTest {
                 "disconnectSession" -> {
                     // When sessionId is null, payload should be null
                     assertTrue(payload == null || payload == "{}")
-                    
+
                     successResponse(mapOf("ok" to true))
                 }
                 else -> successResponse(emptyMap<String, Any>())
@@ -404,7 +432,7 @@ class TonConnectIntegrationTest {
 
     // Helper functions
     private fun createEngine(
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebViewWalletKitEngine {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
@@ -415,7 +443,7 @@ class TonConnectIntegrationTest {
 
     private fun createWebViewStub(
         engine: WebViewWalletKitEngine,
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebView {
         val webView = mockk<WebView>(relaxed = true)
         every { webView.evaluateJavascript(any(), any()) } answers {
@@ -430,8 +458,7 @@ class TonConnectIntegrationTest {
         return webView
     }
 
-    private fun successResponse(data: Map<String, Any>): JSONObject = 
-        JSONObject().apply { put("result", JSONObject(data)) }
+    private fun successResponse(data: Map<String, Any>): JSONObject = JSONObject().apply { put("result", JSONObject(data)) }
 
     private fun flushMainThread() {
         Shadows.shadowOf(Looper.getMainLooper()).runToEndOfTasks()
@@ -450,7 +477,7 @@ class TonConnectIntegrationTest {
     private fun invokeHandleResponse(
         engine: WebViewWalletKitEngine,
         callId: String,
-        response: JSONObject
+        response: JSONObject,
     ) {
         val method = engine::class.java.getDeclaredMethod("handleResponse", String::class.java, JSONObject::class.java)
         method.isAccessible = true
@@ -459,7 +486,7 @@ class TonConnectIntegrationTest {
 
     private fun invokeHandleEvent(
         engine: WebViewWalletKitEngine,
-        event: JSONObject
+        event: JSONObject,
     ) {
         val method = engine::class.java.getDeclaredMethod("handleEvent", JSONObject::class.java)
         method.isAccessible = true

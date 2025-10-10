@@ -51,7 +51,7 @@ class ConfigurationTest {
     @Test
     fun `mainnet configuration`() = runTest {
         var capturedConfig: JSONObject? = null
-        
+
         val engine = createEngine { _, method, payload ->
             when (method) {
                 "init" -> {
@@ -64,23 +64,25 @@ class ConfigurationTest {
 
         val config = WalletKitBridgeConfig(
             network = "mainnet",
-            tonApiUrl = "https://tonapi.io"
+            tonApiUrl = "https://tonapi.io",
         )
-        
+
         engine.init(config)
 
         assertNotNull(capturedConfig)
         assertEquals("mainnet", capturedConfig!!.getString("network"))
         assertEquals("https://tonapi.io", capturedConfig!!.getString("tonApiUrl"))
         // Should use mainnet endpoint
-        assertEquals("https://toncenter.com/api/v2/jsonRPC", 
-            capturedConfig!!.getString("apiUrl"))
+        assertEquals(
+            "https://toncenter.com/api/v2/jsonRPC",
+            capturedConfig!!.getString("apiUrl"),
+        )
     }
 
     @Test
     fun `testnet configuration (default)`() = runTest {
         var capturedConfig: JSONObject? = null
-        
+
         val engine = createEngine { _, method, payload ->
             when (method) {
                 "init" -> {
@@ -97,14 +99,16 @@ class ConfigurationTest {
         assertNotNull(capturedConfig)
         assertEquals("testnet", capturedConfig!!.getString("network"))
         // Should use testnet endpoint
-        assertEquals("https://testnet.toncenter.com/api/v2/jsonRPC", 
-            capturedConfig!!.getString("apiUrl"))
+        assertEquals(
+            "https://testnet.toncenter.com/api/v2/jsonRPC",
+            capturedConfig!!.getString("apiUrl"),
+        )
     }
 
     @Test
     fun `custom API URL`() = runTest {
         var capturedConfig: JSONObject? = null
-        
+
         val engine = createEngine { _, method, payload ->
             when (method) {
                 "init" -> {
@@ -118,22 +122,26 @@ class ConfigurationTest {
         val config = WalletKitBridgeConfig(
             network = "testnet",
             tonClientEndpoint = "https://custom-toncenter.com/api/v2/jsonRPC",
-            tonApiUrl = "https://custom-tonapi.io"
+            tonApiUrl = "https://custom-tonapi.io",
         )
-        
+
         engine.init(config)
 
         assertNotNull(capturedConfig)
-        assertEquals("https://custom-toncenter.com/api/v2/jsonRPC", 
-            capturedConfig!!.getString("apiUrl"))
-        assertEquals("https://custom-tonapi.io", 
-            capturedConfig!!.getString("tonApiUrl"))
+        assertEquals(
+            "https://custom-toncenter.com/api/v2/jsonRPC",
+            capturedConfig!!.getString("apiUrl"),
+        )
+        assertEquals(
+            "https://custom-tonapi.io",
+            capturedConfig!!.getString("tonApiUrl"),
+        )
     }
 
     @Test
     fun `custom bridge URL and name`() = runTest {
         var capturedConfig: JSONObject? = null
-        
+
         val engine = createEngine { _, method, payload ->
             when (method) {
                 "init" -> {
@@ -147,16 +155,20 @@ class ConfigurationTest {
         val config = WalletKitBridgeConfig(
             network = "testnet",
             bridgeUrl = "https://custom-bridge.tonapi.io/bridge",
-            bridgeName = "my-custom-bridge"
+            bridgeName = "my-custom-bridge",
         )
-        
+
         engine.init(config)
 
         assertNotNull(capturedConfig)
-        assertEquals("https://custom-bridge.tonapi.io/bridge", 
-            capturedConfig!!.getString("bridgeUrl"))
-        assertEquals("my-custom-bridge", 
-            capturedConfig!!.getString("bridgeName"))
+        assertEquals(
+            "https://custom-bridge.tonapi.io/bridge",
+            capturedConfig!!.getString("bridgeUrl"),
+        )
+        assertEquals(
+            "my-custom-bridge",
+            capturedConfig!!.getString("bridgeName"),
+        )
     }
 
     @Test
@@ -187,7 +199,7 @@ class ConfigurationTest {
         }
 
         val config = WalletKitBridgeConfig(
-            enablePersistentStorage = false
+            enablePersistentStorage = false,
         )
         engine.init(config)
 
@@ -207,7 +219,7 @@ class ConfigurationTest {
 
         val config = WalletKitBridgeConfig(
             network = "mainnet",
-            apiKey = "my-api-key-123"
+            apiKey = "my-api-key-123",
         )
         engine.init(config)
 
@@ -219,7 +231,7 @@ class ConfigurationTest {
     @Test
     fun `all configuration options combined`() = runTest {
         var capturedConfig: JSONObject? = null
-        
+
         val engine = createEngine { _, method, payload ->
             when (method) {
                 "init" -> {
@@ -237,9 +249,9 @@ class ConfigurationTest {
             apiKey = "test-key",
             bridgeUrl = "https://bridge.custom.com",
             bridgeName = "custom-bridge",
-            enablePersistentStorage = true
+            enablePersistentStorage = true,
         )
-        
+
         engine.init(config)
 
         assertNotNull(capturedConfig)
@@ -248,18 +260,18 @@ class ConfigurationTest {
         assertEquals("https://custom-tonapi.io", capturedConfig!!.getString("tonApiUrl"))
         assertEquals("https://bridge.custom.com", capturedConfig!!.getString("bridgeUrl"))
         assertEquals("custom-bridge", capturedConfig!!.getString("bridgeName"))
-        
+
         // Storage flag is not passed to JS, only used in Android
         val storageEnabled = getPrivateField<Boolean>(engine, "persistentStorageEnabled")
         assertEquals(true, storageEnabled)
-        
+
         val apiKey = getPrivateField<String?>(engine, "tonApiKey")
         assertEquals("test-key", apiKey)
     }
 
     // Helper functions
     private fun createEngine(
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebViewWalletKitEngine {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
@@ -270,7 +282,7 @@ class ConfigurationTest {
 
     private fun createWebViewStub(
         engine: WebViewWalletKitEngine,
-        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject
+        responseProvider: (callId: String, method: String, payloadJson: String?) -> JSONObject,
     ): WebView {
         val webView = mockk<WebView>(relaxed = true)
         every { webView.evaluateJavascript(any(), any()) } answers {
@@ -285,8 +297,7 @@ class ConfigurationTest {
         return webView
     }
 
-    private fun successResponse(data: Map<String, Any>): JSONObject = 
-        JSONObject().apply { put("result", JSONObject(data)) }
+    private fun successResponse(data: Map<String, Any>): JSONObject = JSONObject().apply { put("result", JSONObject(data)) }
 
     private fun flushMainThread() {
         Shadows.shadowOf(Looper.getMainLooper()).runToEndOfTasks()
@@ -305,7 +316,7 @@ class ConfigurationTest {
     private fun invokeHandleResponse(
         engine: WebViewWalletKitEngine,
         callId: String,
-        response: JSONObject
+        response: JSONObject,
     ) {
         val method = engine::class.java.getDeclaredMethod("handleResponse", String::class.java, JSONObject::class.java)
         method.isAccessible = true
