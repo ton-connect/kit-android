@@ -37,6 +37,8 @@ build/
 # Local configuration files
 local.properties
 gradle.properties
+# But include gradle.properties for the SDK (contains required build config)
+!TONWalletKit-Android/gradle.properties
 
 # AAR files in libs folders (build artifacts)
 **/libs/*.aar

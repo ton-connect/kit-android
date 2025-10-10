@@ -1,6 +1,4 @@
 package io.ton.walletkit.bridge
-import io.ton.walletkit.presentation.WalletKitBridgeException as WalletKitException
-
 import android.content.Context
 import android.os.Looper
 import android.webkit.WebView
@@ -32,6 +30,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.fail
+import io.ton.walletkit.presentation.WalletKitBridgeException as WalletKitException
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], manifest = Config.NONE)

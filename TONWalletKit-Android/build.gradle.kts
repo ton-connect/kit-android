@@ -2,6 +2,30 @@
 plugins {
     alias(libs.plugins.androidLibrary) apply false
     alias(libs.plugins.kotlinAndroid) apply false
+    alias(libs.plugins.spotless) apply false
+}
+
+// Apply Spotless formatting to all subprojects
+subprojects {
+    apply(plugin = "com.diffplug.spotless")
+    
+    configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+        kotlin {
+            target("**/*.kt")
+            targetExclude("**/build/**/*.kt")
+            ktlint("1.0.1")
+                .editorConfigOverride(
+                    mapOf(
+                        "ktlint_standard_no-wildcard-imports" to "disabled",
+                        "ktlint_standard_filename" to "disabled",
+                    )
+                )
+        }
+        kotlinGradle {
+            target("**/*.gradle.kts")
+            ktlint("1.0.1")
+        }
+    }
 }
 
 // Task to build WebView variant only (lightweight, recommended)

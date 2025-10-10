@@ -1,4 +1,4 @@
-package io.ton.walletkit.storage.impl
+`package io.ton.walletkit.storage.impl
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
@@ -9,7 +9,6 @@ import io.ton.walletkit.data.model.StoredWalletRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before

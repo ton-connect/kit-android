@@ -14,7 +14,8 @@ data class StoredBridgeConfig(
     val network: String,
     val tonClientEndpoint: String?,
     val tonApiUrl: String?,
-    val apiKey: String?, // SENSITIVE - should be encrypted
+    // SENSITIVE - should be encrypted
+    val apiKey: String?,
     val bridgeUrl: String?,
     val bridgeName: String?,
 )

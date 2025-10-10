@@ -5,13 +5,12 @@ import android.util.Base64
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import io.ton.walletkit.storage.WalletKitStorage
-import io.ton.walletkit.data.source.local.encryption.CryptoManager
 import io.ton.walletkit.data.model.StoredBridgeConfig
 import io.ton.walletkit.data.model.StoredSessionData
 import io.ton.walletkit.data.model.StoredUserPreferences
 import io.ton.walletkit.data.model.StoredWalletRecord
-import io.ton.walletkit.storage.util.toJson
+import io.ton.walletkit.data.source.local.encryption.CryptoManager
+import io.ton.walletkit.storage.WalletKitStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject

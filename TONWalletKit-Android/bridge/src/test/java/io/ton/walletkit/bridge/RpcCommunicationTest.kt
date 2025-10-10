@@ -1,6 +1,4 @@
 package io.ton.walletkit.bridge
-import io.ton.walletkit.presentation.WalletKitBridgeException as WalletKitException
-
 import android.content.Context
 import android.os.Looper
 import android.webkit.WebView
@@ -29,6 +27,7 @@ import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import io.ton.walletkit.presentation.WalletKitBridgeException as WalletKitException
 
 /**
  * Tests for JSON-RPC bridge communication and concurrent operations.

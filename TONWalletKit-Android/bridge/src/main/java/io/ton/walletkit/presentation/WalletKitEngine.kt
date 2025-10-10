@@ -1,12 +1,12 @@
 package io.ton.walletkit.presentation
 
+import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
+import io.ton.walletkit.presentation.listener.WalletKitEventHandler
 import io.ton.walletkit.presentation.model.SignDataResult
 import io.ton.walletkit.presentation.model.Transaction
 import io.ton.walletkit.presentation.model.WalletAccount
 import io.ton.walletkit.presentation.model.WalletSession
 import io.ton.walletkit.presentation.model.WalletState
-import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
-import io.ton.walletkit.presentation.listener.WalletKitEventHandler
 import java.io.Closeable
 
 /**

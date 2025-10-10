@@ -20,7 +20,8 @@ data class StoredSessionData(
     val walletAddress: String,
     val createdAt: String,
     val lastActivityAt: String,
-    val privateKey: String, // CRITICAL - must be encrypted
+    // CRITICAL - must be encrypted
+    val privateKey: String,
     val publicKey: String,
     val dAppName: String,
     val dAppDescription: String,

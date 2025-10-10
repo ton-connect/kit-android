@@ -1,13 +1,10 @@
 package io.ton.walletkit.bridge
-import io.ton.walletkit.presentation.WalletKitBridgeException as WalletKitException
-
 import android.content.Context
 import android.os.Looper
 import android.webkit.WebView
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.every
 import io.mockk.mockk
-import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
 import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +26,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import io.ton.walletkit.presentation.WalletKitBridgeException as WalletKitException
 
 /**
  * Tests for wallet creation, retrieval, and removal functionality.

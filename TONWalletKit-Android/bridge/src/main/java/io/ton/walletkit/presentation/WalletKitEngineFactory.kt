@@ -10,12 +10,12 @@ import android.content.Context
 object WalletKitEngineFactory {
     /**
      * Create a WalletKitEngine instance for the specified kind.
-     * 
+     *
      * @param context Android application context
      * @param kind The engine kind to create (WEBVIEW or QUICKJS)
      * @return WalletKitEngine instance
      * @throws IllegalStateException if the requested engine is not available in this SDK variant
-     * 
+     *
      * @sample
      * ```kotlin
      * // Works with both webview-only and full SDK variants
@@ -35,10 +35,10 @@ object WalletKitEngineFactory {
             }
         }
     }
-    
+
     /**
      * Check if a specific engine kind is available in the current SDK variant.
-     * 
+     *
      * @param kind The engine kind to check
      * @return true if the engine is available, false otherwise
      */
@@ -56,12 +56,12 @@ object WalletKitEngineFactory {
             }
         }
     }
-    
+
     private fun createWebViewEngine(context: Context): WalletKitEngine {
         // Direct instantiation - WebViewWalletKitEngine is in the same module
         return io.ton.walletkit.presentation.impl.WebViewWalletKitEngine(context)
     }
-    
+
     private fun createQuickJsEngine(context: Context): WalletKitEngine {
         try {
             // Use reflection only for QuickJS to avoid compile-time dependency in webview variant
@@ -71,8 +71,8 @@ object WalletKitEngineFactory {
         } catch (e: ClassNotFoundException) {
             throw IllegalStateException(
                 "QuickJS engine is not available in this SDK variant. " +
-                "Use the 'full' variant AAR to access QuickJS, or use WalletKitEngineKind.WEBVIEW instead.",
-                e
+                    "Use the 'full' variant AAR to access QuickJS, or use WalletKitEngineKind.WEBVIEW instead.",
+                e,
             )
         }
     }

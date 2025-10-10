@@ -437,7 +437,8 @@ class QuickJsWalletKitEngine(
                 add(
                     Transaction(
                         hash = txJson.optString("hash", ""),
-                        timestamp = txJson.optLong("utime", 0L) * 1000, // Convert to milliseconds
+                        // Convert to milliseconds
+                        timestamp = txJson.optLong("utime", 0L) * 1000,
                         amount = when (type) {
                             TransactionType.INCOMING -> incomingValue.toString()
                             TransactionType.OUTGOING -> outgoingValue.toString()

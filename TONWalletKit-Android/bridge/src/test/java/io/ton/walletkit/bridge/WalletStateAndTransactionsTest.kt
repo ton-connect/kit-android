@@ -7,9 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.mockk.every
 import io.mockk.mockk
 import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
-import io.ton.walletkit.presentation.model.Transaction
 import io.ton.walletkit.presentation.model.TransactionType
-import io.ton.walletkit.presentation.model.WalletState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
