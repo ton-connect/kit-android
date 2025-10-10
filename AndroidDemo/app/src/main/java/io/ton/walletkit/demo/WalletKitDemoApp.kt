@@ -1,9 +1,9 @@
 package io.ton.walletkit.demo
 
 import android.app.Application
-import io.ton.walletkit.bridge.WalletKitEngine
-import io.ton.walletkit.bridge.WalletKitEngineFactory
-import io.ton.walletkit.bridge.WalletKitEngineKind
+import io.ton.walletkit.presentation.WalletKitEngine
+import io.ton.walletkit.presentation.WalletKitEngineFactory
+import io.ton.walletkit.presentation.WalletKitEngineKind
 import io.ton.walletkit.demo.storage.DemoAppStorage
 import io.ton.walletkit.demo.storage.SecureDemoAppStorage
 

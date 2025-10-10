@@ -4,7 +4,7 @@ import android.os.Looper
 import android.webkit.WebView
 import io.mockk.every
 import io.mockk.mockk
-import io.ton.walletkit.bridge.impl.WebViewWalletKitEngine
+import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
 import kotlinx.coroutines.CompletableDeferred
 import org.json.JSONObject
 import org.robolectric.Shadows

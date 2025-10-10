@@ -5,11 +5,11 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import io.ton.walletkit.bridge.WalletKitEngine
-import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
-import io.ton.walletkit.bridge.event.WalletKitEvent
-import io.ton.walletkit.bridge.listener.WalletKitEventHandler
-import io.ton.walletkit.bridge.model.WalletAccount
+import io.ton.walletkit.presentation.WalletKitEngine
+import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
+import io.ton.walletkit.presentation.event.WalletKitEvent
+import io.ton.walletkit.presentation.listener.WalletKitEventHandler
+import io.ton.walletkit.presentation.model.WalletAccount
 import io.ton.walletkit.demo.cache.TransactionCache
 import io.ton.walletkit.demo.model.ConnectPermissionUi
 import io.ton.walletkit.demo.model.ConnectRequestUi
@@ -1131,8 +1131,8 @@ class WalletKitViewModel(
         _state.update { it.copy(sheetState = SheetState.TransactionDetail(detail)) }
     }
 
-    private fun parseTransactionDetail(tx: io.ton.walletkit.bridge.model.Transaction, walletAddress: String): TransactionDetailUi {
-        val isOutgoing = tx.type == io.ton.walletkit.bridge.model.TransactionType.OUTGOING
+    private fun parseTransactionDetail(tx: io.ton.walletkit.presentation.model.Transaction, walletAddress: String): TransactionDetailUi {
+        val isOutgoing = tx.type == io.ton.walletkit.presentation.model.TransactionType.OUTGOING
 
         // Transaction already has parsed data from the bridge
         return TransactionDetailUi(

@@ -1,6 +1,6 @@
 package io.ton.walletkit.demo.model
 
-import io.ton.walletkit.bridge.request.TransactionRequest
+import io.ton.walletkit.presentation.request.TransactionRequest
 import org.json.JSONObject
 import java.math.BigDecimal
 import java.math.RoundingMode

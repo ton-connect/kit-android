@@ -6,10 +6,10 @@ import android.webkit.WebView
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.every
 import io.mockk.mockk
-import io.ton.walletkit.bridge.event.WalletKitEvent
-import io.ton.walletkit.bridge.impl.WebViewWalletKitEngine
-import io.ton.walletkit.bridge.listener.WalletKitEventHandler
-import io.ton.walletkit.bridge.model.SignDataResult
+import io.ton.walletkit.presentation.event.WalletKitEvent
+import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
+import io.ton.walletkit.presentation.listener.WalletKitEventHandler
+import io.ton.walletkit.presentation.model.SignDataResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

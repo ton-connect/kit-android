@@ -1,4 +1,5 @@
 package io.ton.walletkit.bridge
+import io.ton.walletkit.presentation.WalletKitBridgeException as WalletKitException
 
 import android.content.Context
 import android.os.Looper
@@ -6,7 +7,7 @@ import android.webkit.WebView
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.every
 import io.mockk.mockk
-import io.ton.walletkit.bridge.impl.WebViewWalletKitEngine
+import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -49,7 +50,7 @@ class ErrorHandlingTest {
     }
 
     @Test
-    fun `WalletKitBridgeException propagation from JS error`() = runTest {
+    fun `WalletKitException propagation from JS error`() = runTest {
         val engine = createEngine { _, method, _ ->
             when (method) {
                 "init" -> successResponse(mapOf("ok" to true))
@@ -58,7 +59,7 @@ class ErrorHandlingTest {
             }
         }
 
-        val exception = assertFailsWith<WalletKitBridgeException> {
+        val exception = assertFailsWith<WalletKitException> {
             engine.addWalletFromMnemonic(
                 words = listOf("invalid", "mnemonic"),
                 version = "v4R2",
@@ -78,7 +79,7 @@ class ErrorHandlingTest {
             }
         }
 
-        val exception = assertFailsWith<WalletKitBridgeException> {
+        val exception = assertFailsWith<WalletKitException> {
             engine.getWalletState("EQTestAddress")
         }
 
@@ -95,7 +96,7 @@ class ErrorHandlingTest {
             }
         }
 
-        assertFailsWith<WalletKitBridgeException> {
+        assertFailsWith<WalletKitException> {
             engine.addWalletFromMnemonic(
                 words = emptyList(),
                 version = "v4R2",
@@ -292,7 +293,7 @@ class ErrorHandlingTest {
             callMethod.invoke(engine, "nonExistentMethod", null)
         }
 
-        assertTrue(exception.cause is WalletKitBridgeException)
+        assertTrue(exception.cause is WalletKitException)
     }
 
     @Test
@@ -319,7 +320,7 @@ class ErrorHandlingTest {
             }
         }
 
-        val exception = assertFailsWith<WalletKitBridgeException> {
+        val exception = assertFailsWith<WalletKitException> {
             engine.getWallets()
         }
 
@@ -336,7 +337,7 @@ class ErrorHandlingTest {
             }
         }
 
-        assertFailsWith<WalletKitBridgeException> {
+        assertFailsWith<WalletKitException> {
             engine.removeWallet("EQNonExistent")
         }
     }
@@ -354,7 +355,7 @@ class ErrorHandlingTest {
             }
         }
 
-        assertFailsWith<WalletKitBridgeException> {
+        assertFailsWith<WalletKitException> {
             engine.approveSignData("request_123")
         }
     }

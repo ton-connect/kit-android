@@ -1,4 +1,5 @@
 package io.ton.walletkit.bridge
+import io.ton.walletkit.presentation.WalletKitBridgeException as WalletKitException
 
 import android.content.Context
 import android.os.Looper
@@ -8,8 +9,8 @@ import io.mockk.MockKAnnotations
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
-import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
-import io.ton.walletkit.bridge.impl.WebViewWalletKitEngine
+import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
+import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -162,7 +163,7 @@ class AutoInitTest {
 
         val firstAttempt = runCatching { engine.getWallets() }
         assertTrue(firstAttempt.isFailure, "First call should fail when init throws")
-        assertTrue(firstAttempt.exceptionOrNull() is WalletKitBridgeException)
+        assertTrue(firstAttempt.exceptionOrNull() is WalletKitException)
         assertFalse(getPrivateField<Boolean>(engine, "isWalletKitInitialized"))
 
         val wallets = engine.getWallets()

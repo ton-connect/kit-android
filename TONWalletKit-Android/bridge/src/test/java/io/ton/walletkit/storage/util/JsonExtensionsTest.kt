@@ -1,7 +1,7 @@
 package io.ton.walletkit.storage.util
 
-import io.ton.walletkit.storage.model.StoredSessionHint
-import io.ton.walletkit.storage.model.StoredWalletRecord
+import io.ton.walletkit.data.model.StoredSessionHint
+import io.ton.walletkit.data.model.StoredWalletRecord
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Test

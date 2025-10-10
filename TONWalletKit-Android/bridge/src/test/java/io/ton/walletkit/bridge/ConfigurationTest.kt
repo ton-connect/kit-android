@@ -6,8 +6,8 @@ import android.webkit.WebView
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.every
 import io.mockk.mockk
-import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
-import io.ton.walletkit.bridge.impl.WebViewWalletKitEngine
+import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
+import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

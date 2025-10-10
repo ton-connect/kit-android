@@ -1,10 +1,10 @@
 package io.ton.walletkit.storage.impl
 
 import io.ton.walletkit.storage.WalletKitStorage
-import io.ton.walletkit.storage.model.StoredBridgeConfig
-import io.ton.walletkit.storage.model.StoredSessionData
-import io.ton.walletkit.storage.model.StoredUserPreferences
-import io.ton.walletkit.storage.model.StoredWalletRecord
+import io.ton.walletkit.data.model.StoredBridgeConfig
+import io.ton.walletkit.data.model.StoredSessionData
+import io.ton.walletkit.data.model.StoredUserPreferences
+import io.ton.walletkit.data.model.StoredWalletRecord
 import java.util.HashMap
 
 class InMemoryWalletKitStorage : WalletKitStorage {

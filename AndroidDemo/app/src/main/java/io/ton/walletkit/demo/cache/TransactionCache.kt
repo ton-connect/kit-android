@@ -1,7 +1,7 @@
 package io.ton.walletkit.demo.cache
 
 import android.util.Log
-import io.ton.walletkit.bridge.model.Transaction
+import io.ton.walletkit.presentation.model.Transaction
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 

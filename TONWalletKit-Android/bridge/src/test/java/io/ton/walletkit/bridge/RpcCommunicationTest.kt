@@ -1,4 +1,5 @@
 package io.ton.walletkit.bridge
+import io.ton.walletkit.presentation.WalletKitBridgeException as WalletKitException
 
 import android.content.Context
 import android.os.Looper
@@ -6,7 +7,7 @@ import android.webkit.WebView
 import androidx.test.core.app.ApplicationProvider
 import io.mockk.every
 import io.mockk.mockk
-import io.ton.walletkit.bridge.impl.WebViewWalletKitEngine
+import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -124,8 +125,8 @@ class RpcCommunicationTest {
                 words = listOf("invalid"),
                 version = "v4R2",
             )
-            throw AssertionError("Expected WalletKitBridgeException")
-        } catch (e: WalletKitBridgeException) {
+            throw AssertionError("Expected WalletKitException")
+        } catch (e: WalletKitException) {
             assertEquals("Invalid mnemonic phrase", e.message)
         }
     }

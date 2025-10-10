@@ -1,7 +1,7 @@
 package io.ton.walletkit.demo
 
 import android.util.Log
-import io.ton.walletkit.bridge.WalletKitEngineKind
+import io.ton.walletkit.presentation.WalletKitEngineKind
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

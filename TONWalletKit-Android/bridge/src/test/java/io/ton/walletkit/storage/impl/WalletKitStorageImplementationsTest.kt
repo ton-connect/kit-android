@@ -2,10 +2,10 @@ package io.ton.walletkit.storage.impl
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import io.ton.walletkit.storage.model.StoredBridgeConfig
-import io.ton.walletkit.storage.model.StoredSessionData
-import io.ton.walletkit.storage.model.StoredUserPreferences
-import io.ton.walletkit.storage.model.StoredWalletRecord
+import io.ton.walletkit.data.model.StoredBridgeConfig
+import io.ton.walletkit.data.model.StoredSessionData
+import io.ton.walletkit.data.model.StoredUserPreferences
+import io.ton.walletkit.data.model.StoredWalletRecord
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test

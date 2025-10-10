@@ -1,7 +1,7 @@
 package io.ton.walletkit.demo.util
 
 import androidx.recyclerview.widget.DiffUtil
-import io.ton.walletkit.bridge.model.Transaction
+import io.ton.walletkit.presentation.model.Transaction
 
 /**
  * DiffUtil callback for efficiently calculating differences between transaction lists.

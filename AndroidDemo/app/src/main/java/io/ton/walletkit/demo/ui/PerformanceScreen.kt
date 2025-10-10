@@ -32,7 +32,7 @@ import io.ton.walletkit.demo.PerformanceCollector
 @Composable
 fun PerformanceScreen(
     benchmarkState: BenchmarkState,
-    onRunBenchmark: (engineKind: io.ton.walletkit.bridge.WalletKitEngineKind, runs: Int) -> Unit,
+    onRunBenchmark: (engineKind: io.ton.walletkit.presentation.WalletKitEngineKind, runs: Int) -> Unit,
 ) {
     val context = LocalContext.current
     val metrics by PerformanceCollector.metrics.collectAsState()
@@ -100,21 +100,21 @@ fun PerformanceScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Button(
-                        onClick = { onRunBenchmark(io.ton.walletkit.bridge.WalletKitEngineKind.QUICKJS, 1) },
+                        onClick = { onRunBenchmark(io.ton.walletkit.presentation.WalletKitEngineKind.QUICKJS, 1) },
                         modifier = Modifier.weight(1f),
                         enabled = !benchmarkState.isRunning,
                     ) {
                         Text("1 Run")
                     }
                     Button(
-                        onClick = { onRunBenchmark(io.ton.walletkit.bridge.WalletKitEngineKind.QUICKJS, 3) },
+                        onClick = { onRunBenchmark(io.ton.walletkit.presentation.WalletKitEngineKind.QUICKJS, 3) },
                         modifier = Modifier.weight(1f),
                         enabled = !benchmarkState.isRunning,
                     ) {
                         Text("3 Runs")
                     }
                     Button(
-                        onClick = { onRunBenchmark(io.ton.walletkit.bridge.WalletKitEngineKind.QUICKJS, 5) },
+                        onClick = { onRunBenchmark(io.ton.walletkit.presentation.WalletKitEngineKind.QUICKJS, 5) },
                         modifier = Modifier.weight(1f),
                         enabled = !benchmarkState.isRunning,
                     ) {
@@ -142,21 +142,21 @@ fun PerformanceScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Button(
-                        onClick = { onRunBenchmark(io.ton.walletkit.bridge.WalletKitEngineKind.WEBVIEW, 1) },
+                        onClick = { onRunBenchmark(io.ton.walletkit.presentation.WalletKitEngineKind.WEBVIEW, 1) },
                         modifier = Modifier.weight(1f),
                         enabled = !benchmarkState.isRunning,
                     ) {
                         Text("1 Run")
                     }
                     Button(
-                        onClick = { onRunBenchmark(io.ton.walletkit.bridge.WalletKitEngineKind.WEBVIEW, 3) },
+                        onClick = { onRunBenchmark(io.ton.walletkit.presentation.WalletKitEngineKind.WEBVIEW, 3) },
                         modifier = Modifier.weight(1f),
                         enabled = !benchmarkState.isRunning,
                     ) {
                         Text("3 Runs")
                     }
                     Button(
-                        onClick = { onRunBenchmark(io.ton.walletkit.bridge.WalletKitEngineKind.WEBVIEW, 5) },
+                        onClick = { onRunBenchmark(io.ton.walletkit.presentation.WalletKitEngineKind.WEBVIEW, 5) },
                         modifier = Modifier.weight(1f),
                         enabled = !benchmarkState.isRunning,
                     ) {

@@ -2,8 +2,8 @@ package io.ton.walletkit.bridge.storage
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
-import io.ton.walletkit.bridge.impl.WebViewWalletKitEngine
+import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
+import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
 import io.ton.walletkit.storage.bridge.SecureBridgeStorageAdapter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest

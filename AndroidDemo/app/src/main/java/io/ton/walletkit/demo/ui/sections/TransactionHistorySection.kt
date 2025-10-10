@@ -38,7 +38,7 @@ import java.util.Locale
 
 @Composable
 fun TransactionHistorySection(
-    transactions: List<io.ton.walletkit.bridge.model.Transaction>?,
+    transactions: List<io.ton.walletkit.presentation.model.Transaction>?,
     walletAddress: String,
     isRefreshing: Boolean,
     onRefreshTransactions: () -> Unit,
@@ -107,11 +107,11 @@ fun TransactionHistorySection(
 
 @Composable
 private fun TransactionItem(
-    transaction: io.ton.walletkit.bridge.model.Transaction,
+    transaction: io.ton.walletkit.presentation.model.Transaction,
     walletAddress: String,
     onClick: () -> Unit,
 ) {
-    val isOutgoing = transaction.type == io.ton.walletkit.bridge.model.TransactionType.OUTGOING
+    val isOutgoing = transaction.type == io.ton.walletkit.presentation.model.TransactionType.OUTGOING
     val amount = formatNanoTon(transaction.amount)
     val timestamp = transaction.timestamp
     val hash = transaction.hash
