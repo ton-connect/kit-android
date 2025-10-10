@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.bridge.WalletKitEngine
 import io.ton.walletkit.bridge.WalletKitEngineKind
 import io.ton.walletkit.bridge.config.WalletKitBridgeConfig
-import io.ton.walletkit.storage.WalletKitStorage
+import io.ton.walletkit.demo.storage.DemoAppStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +23,7 @@ data class BenchmarkState(
 
 class PerformanceBenchmarkViewModel(
     private val app: WalletKitDemoApp,
-    private val storage: WalletKitStorage,
+    private val storage: DemoAppStorage,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BenchmarkState())
@@ -180,7 +180,7 @@ class PerformanceBenchmarkViewModel(
 
 class PerformanceBenchmarkViewModelFactory(
     private val app: WalletKitDemoApp,
-    private val storage: WalletKitStorage,
+    private val storage: DemoAppStorage,
 ) : androidx.lifecycle.ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

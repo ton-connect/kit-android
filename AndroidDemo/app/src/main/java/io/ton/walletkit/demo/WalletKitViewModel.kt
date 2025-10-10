@@ -24,11 +24,10 @@ import io.ton.walletkit.demo.model.WalletMetadata
 import io.ton.walletkit.demo.model.WalletSummary
 import io.ton.walletkit.demo.state.SheetState
 import io.ton.walletkit.demo.state.WalletUiState
+import io.ton.walletkit.demo.storage.DemoAppStorage
+import io.ton.walletkit.demo.storage.UserPreferences
+import io.ton.walletkit.demo.storage.WalletRecord
 import io.ton.walletkit.demo.util.TransactionDiffUtil
-import io.ton.walletkit.storage.WalletKitStorage
-import io.ton.walletkit.storage.impl.InMemoryWalletKitStorage
-import io.ton.walletkit.storage.model.StoredUserPreferences
-import io.ton.walletkit.storage.model.StoredWalletRecord
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,7 +49,7 @@ import kotlin.collections.firstOrNull
 
 class WalletKitViewModel(
     private val engine: WalletKitEngine,
-    private val storage: WalletKitStorage = InMemoryWalletKitStorage(),
+    private val storage: DemoAppStorage,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -940,8 +939,7 @@ class WalletKitViewModel(
             result.onSuccess {
                 refreshSessions()
                 logEvent("Disconnected session $sessionId")
-                // Clear session data from storage
-                storage.clearSessionData(sessionId)
+                // Session data is managed internally by the bridge
             }.onFailure { error ->
                 _state.update { it.copy(error = error.message ?: "Failed to disconnect session") }
             }
@@ -1046,10 +1044,8 @@ class WalletKitViewModel(
     private fun saveActiveWalletPreference(address: String) {
         viewModelScope.launch {
             try {
-                val currentPrefs = storage.loadUserPreferences()
-                val updatedPrefs = StoredUserPreferences(
+                val updatedPrefs = UserPreferences(
                     activeWalletAddress = address,
-                    lastSelectedNetwork = currentPrefs?.lastSelectedNetwork ?: currentNetwork.asBridgeValue(),
                 )
                 storage.saveUserPreferences(updatedPrefs)
                 Log.d(LOG_TAG, "Saved active wallet preference: $address")
@@ -1184,20 +1180,8 @@ class WalletKitViewModel(
             // Clear transaction cache for removed wallet
             transactionCache.clear(address)
 
-            // Remove all sessions associated with this wallet address
-            runCatching {
-                val allSessions = engine.listSessions()
-                val sessionsToRemove = allSessions.filter { it.walletAddress == address }
-                sessionsToRemove.forEach { session ->
-                    Log.d(LOG_TAG, "Clearing session data for removed wallet: sessionId=${session.sessionId}")
-                    storage.clearSessionData(session.sessionId)
-                }
-                if (sessionsToRemove.isNotEmpty()) {
-                    Log.d(LOG_TAG, "Cleared ${sessionsToRemove.size} session(s) for wallet $address")
-                }
-            }.onFailure {
-                Log.w(LOG_TAG, "removeWallet: failed to clear session data for $address", it)
-            }
+            // Note: Sessions are managed internally by the bridge.
+            // When a wallet is removed from the bridge, associated sessions are automatically cleaned up.
 
             walletMetadata.remove(address)
 
@@ -1236,7 +1220,7 @@ class WalletKitViewModel(
         viewModelScope.launch {
             val storedWallet = storage.loadWallet(address)
             if (storedWallet != null) {
-                val updatedRecord = StoredWalletRecord(
+                val updatedRecord = WalletRecord(
                     mnemonic = storedWallet.mnemonic,
                     name = updated.name,
                     network = updated.network.asBridgeValue(),
@@ -1319,9 +1303,9 @@ class WalletKitViewModel(
         val metadata = pending?.metadata
             ?: storedRecord?.let {
                 WalletMetadata(
-                    name = it.name ?: defaultWalletName(account.index),
-                    network = TonNetwork.fromBridge(it.network ?: account.network, currentNetwork),
-                    version = it.version ?: account.version.ifBlank { DEFAULT_WALLET_VERSION },
+                    name = it.name,
+                    network = TonNetwork.fromBridge(it.network, currentNetwork),
+                    version = it.version,
                 )
             }
             ?: WalletMetadata(
@@ -1332,7 +1316,7 @@ class WalletKitViewModel(
         walletMetadata[account.address] = metadata
 
         if (pending?.mnemonic != null) {
-            val record = StoredWalletRecord(
+            val record = WalletRecord(
                 mnemonic = pending.mnemonic,
                 name = metadata.name,
                 network = metadata.network.asBridgeValue(),
@@ -1344,7 +1328,7 @@ class WalletKitViewModel(
                 storedRecord.network != metadata.network.asBridgeValue() ||
                 storedRecord.version != metadata.version
             if (needsUpdate) {
-                val record = StoredWalletRecord(
+                val record = WalletRecord(
                     mnemonic = storedRecord.mnemonic,
                     name = metadata.name,
                     network = metadata.network.asBridgeValue(),
@@ -1386,7 +1370,6 @@ class WalletKitViewModel(
 
     private suspend fun reinitializeForNetwork(
         target: TonNetwork,
-        storedOverride: Map<String, StoredWalletRecord>? = null,
     ) {
         val endpoints = networkEndpoints(target)
         engine.init(
@@ -1396,7 +1379,7 @@ class WalletKitViewModel(
                 tonApiUrl = endpoints.tonApiUrl,
                 bridgeUrl = endpoints.bridgeUrl,
                 bridgeName = endpoints.bridgeName,
-                // Storage is always persistent - allowMemoryStorage removed
+                // Storage is always persistent - managed internally by bridge
             ),
         )
 
@@ -1536,8 +1519,7 @@ class WalletKitViewModel(
             is WalletKitEvent.DisconnectEvent -> {
                 Log.d(LOG_TAG, "Received disconnect event: sessionId=${event.sessionId}")
                 viewModelScope.launch {
-                    // Clear session data from storage
-                    storage.clearSessionData(event.sessionId)
+                    // Session data is managed internally by the bridge
                     runCatching { engine.disconnectSession(event.sessionId) }
                     refreshSessions()
                     logEvent("Session disconnected")
@@ -1705,7 +1687,7 @@ class WalletKitViewModel(
 
         fun factory(
             engine: WalletKitEngine,
-            storage: WalletKitStorage = InMemoryWalletKitStorage(),
+            storage: DemoAppStorage,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {

@@ -57,6 +57,6 @@ dependencies {
     implementation(libs.androidxLifecycleRuntimeKtx)
     implementation(libs.androidxLifecycleViewmodelCompose)
     implementation(libs.kotlinxCoroutinesAndroid)
+    implementation(libs.androidxSecurityCrypto)
     implementation(project(":bridge"))
-    implementation(project(":storage"))
 }

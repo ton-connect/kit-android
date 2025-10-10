@@ -5,8 +5,8 @@ import io.ton.walletkit.bridge.WalletKitEngine
 import io.ton.walletkit.bridge.WalletKitEngineKind
 import io.ton.walletkit.bridge.impl.QuickJsWalletKitEngine
 import io.ton.walletkit.bridge.impl.WebViewWalletKitEngine
-import io.ton.walletkit.storage.WalletKitStorage
-import io.ton.walletkit.storage.impl.SecureWalletKitStorage
+import io.ton.walletkit.demo.storage.DemoAppStorage
+import io.ton.walletkit.demo.storage.SecureDemoAppStorage
 
 class WalletKitDemoApp : Application() {
     val defaultEngineKind: WalletKitEngineKind = WalletKitEngineKind.WEBVIEW
@@ -17,8 +17,11 @@ class WalletKitDemoApp : Application() {
         WalletKitEngineKind.QUICKJS -> QuickJsWalletKitEngine(this) // Deprecated but kept for comparison
     }
 
-    val storage: WalletKitStorage by lazy {
-        // Production-ready secure storage using Android Keystore + EncryptedSharedPreferences
-        SecureWalletKitStorage(this)
+    /**
+     * Demo app storage for wallet mnemonics, metadata, and user preferences.
+     * This is separate from the SDK's internal bridge storage.
+     */
+    val storage: DemoAppStorage by lazy {
+        SecureDemoAppStorage(this)
     }
 }
