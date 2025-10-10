@@ -58,5 +58,14 @@ dependencies {
     implementation(libs.androidxLifecycleViewmodelCompose)
     implementation(libs.kotlinxCoroutinesAndroid)
     implementation(libs.androidxSecurityCrypto)
-    implementation(project(":bridge"))
+
+    // TONWalletKit SDK - AAR file
+    // Build and copy with: ./gradlew buildAndCopyWebviewToDemo (or buildAndCopyFullToDemo)
+    implementation(files("libs/bridge-release.aar"))
+    
+    // Required transitive dependencies (must be declared manually with AAR files)
+    implementation(libs.androidxWebkit)
+    implementation(libs.androidxDatastorePreferences)
+    // OkHttp only needed if using full variant:
+    // implementation(libs.okhttp)
 }

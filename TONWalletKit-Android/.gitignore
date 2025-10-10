@@ -1,0 +1,11 @@
+# Gradle and build outputs
+.gradle/
+build/
+app/build/
+.cxx/
+.idea/
+local.properties
+*.iml
+.DS_Store
+captures/
+.kotlin

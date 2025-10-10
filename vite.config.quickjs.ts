@@ -22,7 +22,7 @@ export default defineConfig({
     emptyOutDir: false,
     outDir: 'dist-android-quickjs',
     lib: {
-      entry: path.resolve(__dirname, 'src-js/index.ts'),
+      entry: path.resolve(__dirname, 'js/src/index.ts'),
       name: 'WalletKitQuickJSBundle',
       formats: ['iife'],
       fileName: () => 'walletkit.quickjs.js',
