@@ -4,8 +4,16 @@ Android library for TON blockchain wallet integration.
 
 ## Variants
 
-- **webview**: 1.2MB, WebView only
-- **full**: 4.3MB, WebView + QuickJS
+- **webview**: 1.2MB, WebView only (recommended)
+- **full**: 4.3MB, WebView + QuickJS (deprecated, 2x slower)
+
+## QuickJS Source (Reference Only)
+
+QuickJS source removed from repo. If needed locally:
+```bash
+cd bridge/src/main/cpp/third_party/
+git clone https://github.com/bellard/quickjs-ng.git
+```
 
 ## Building
 
