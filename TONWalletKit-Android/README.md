@@ -33,6 +33,7 @@ Copy AAR to your `app/libs/` and add:
 dependencies {
     implementation(files("libs/bridge-release.aar"))
     implementation("androidx.webkit:webkit:1.12.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     // For full variant only:
     // implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
