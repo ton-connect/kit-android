@@ -5,11 +5,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import io.ton.walletkit.presentation.WalletKitEngine
-import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
-import io.ton.walletkit.presentation.event.WalletKitEvent
-import io.ton.walletkit.presentation.listener.WalletKitEventHandler
-import io.ton.walletkit.presentation.model.WalletAccount
 import io.ton.walletkit.demo.cache.TransactionCache
 import io.ton.walletkit.demo.model.ConnectPermissionUi
 import io.ton.walletkit.demo.model.ConnectRequestUi
@@ -28,6 +23,11 @@ import io.ton.walletkit.demo.storage.DemoAppStorage
 import io.ton.walletkit.demo.storage.UserPreferences
 import io.ton.walletkit.demo.storage.WalletRecord
 import io.ton.walletkit.demo.util.TransactionDiffUtil
+import io.ton.walletkit.presentation.WalletKitEngine
+import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
+import io.ton.walletkit.presentation.event.WalletKitEvent
+import io.ton.walletkit.presentation.listener.WalletKitEventHandler
+import io.ton.walletkit.presentation.model.WalletAccount
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -1422,12 +1422,12 @@ class WalletKitViewModel(
                     iconUrl = dAppInfo?.iconUrl,
                     permissions = request.permissions.map { permission ->
                         ConnectPermissionUi(
-                            name = permission,
-                            title = permission.replaceFirstChar { it.uppercase() },
-                            description = "Allow access to $permission",
+                            name = permission.name ?: "unknown",
+                            title = permission.title ?: permission.name?.replaceFirstChar { it.uppercase() } ?: "Unknown",
+                            description = permission.description ?: "Allow access to ${permission.name}",
                         )
                     },
-                    requestedItems = request.permissions,
+                    requestedItems = request.permissions.mapNotNull { it.name },
                     raw = org.json.JSONObject(), // Not needed with this API
                     connectRequest = request, // Store for direct approve/reject
                 )

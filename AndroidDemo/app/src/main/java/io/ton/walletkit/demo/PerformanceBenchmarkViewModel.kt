@@ -3,10 +3,10 @@ package io.ton.walletkit.demo
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.ton.walletkit.demo.storage.DemoAppStorage
 import io.ton.walletkit.presentation.WalletKitEngine
 import io.ton.walletkit.presentation.WalletKitEngineKind
 import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
-import io.ton.walletkit.demo.storage.DemoAppStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

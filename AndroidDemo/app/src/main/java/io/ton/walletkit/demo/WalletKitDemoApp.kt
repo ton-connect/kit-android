@@ -1,11 +1,11 @@
 package io.ton.walletkit.demo
 
 import android.app.Application
+import io.ton.walletkit.demo.storage.DemoAppStorage
+import io.ton.walletkit.demo.storage.SecureDemoAppStorage
 import io.ton.walletkit.presentation.WalletKitEngine
 import io.ton.walletkit.presentation.WalletKitEngineFactory
 import io.ton.walletkit.presentation.WalletKitEngineKind
-import io.ton.walletkit.demo.storage.DemoAppStorage
-import io.ton.walletkit.demo.storage.SecureDemoAppStorage
 
 class WalletKitDemoApp : Application() {
     val defaultEngineKind: WalletKitEngineKind = WalletKitEngineKind.WEBVIEW
@@ -15,13 +15,11 @@ class WalletKitDemoApp : Application() {
         // This works with both webview-only and full SDK variants
         return WalletKitEngineFactory.create(this, kind)
     }
-    
+
     /**
      * Check if a specific engine kind is available in the current SDK variant.
      */
-    fun isEngineAvailable(kind: WalletKitEngineKind): Boolean {
-        return WalletKitEngineFactory.isAvailable(kind)
-    }
+    fun isEngineAvailable(kind: WalletKitEngineKind): Boolean = WalletKitEngineFactory.isAvailable(kind)
 
     /**
      * Demo app storage for wallet mnemonics, metadata, and user preferences.

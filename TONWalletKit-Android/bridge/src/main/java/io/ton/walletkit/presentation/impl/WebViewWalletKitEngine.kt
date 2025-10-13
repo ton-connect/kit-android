@@ -68,6 +68,12 @@ class WebViewWalletKitEngine(
     private val logTag = "WebViewWalletKitEngine"
     private val appContext = context.applicationContext
 
+    // Json instance configured to ignore unknown keys (bridge may send extra fields)
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
+
     // Secure storage adapter for the bridge (conditionally enabled based on config)
     private val storageAdapter: BridgeStorageAdapter = SecureBridgeStorageAdapter(appContext)
 
@@ -206,6 +212,29 @@ class WebViewWalletKitEngine(
         apiBaseUrl = config.tonApiUrl?.ifBlank { null } ?: ""
         tonApiKey = config.apiKey
 
+        // Get app version from PackageManager
+        val appVersion = config.appVersion ?: try {
+            val packageInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
+            packageInfo.versionName ?: "1.0.0"
+        } catch (e: Exception) {
+            Log.w(logTag, "Failed to get app version, using default", e)
+            "1.0.0"
+        }
+
+        // Get app name from config or use application label
+        val appName = config.appName ?: try {
+            val applicationInfo = appContext.applicationInfo
+            val stringId = applicationInfo.labelRes
+            if (stringId == 0) {
+                applicationInfo.nonLocalizedLabel?.toString() ?: appContext.packageName
+            } else {
+                appContext.getString(stringId)
+            }
+        } catch (e: Exception) {
+            Log.w(logTag, "Failed to get app name, using package name", e)
+            appContext.packageName
+        }
+
         val payload =
             JSONObject().apply {
                 put("network", config.network)
@@ -214,11 +243,60 @@ class WebViewWalletKitEngine(
                 config.tonApiUrl?.let { put("tonApiUrl", it) }
                 config.bridgeUrl?.let { put("bridgeUrl", it) }
                 config.bridgeName?.let { put("bridgeName", it) }
+
+                // Add walletManifest so dApp can recognize the wallet
+                put(
+                    "walletManifest",
+                    JSONObject().apply {
+                        put("name", appName)
+                        put("appName", appName)
+                        put("imageUrl", config.walletImageUrl ?: "https://wallet.ton.org/assets/ui/qr-logo.png")
+                        put("aboutUrl", config.walletAboutUrl ?: "https://wallet.ton.org")
+                        config.walletUniversalUrl?.let { put("universalUrl", it) }
+                        put(
+                            "platforms",
+                            JSONArray().apply {
+                                put("android")
+                            },
+                        )
+                    },
+                )
+
+                // Add deviceInfo with SendTransaction and SignData features
+                put(
+                    "deviceInfo",
+                    JSONObject().apply {
+                        put("platform", "android")
+                        put("appName", appName)
+                        put("appVersion", appVersion)
+                        put("maxProtocolVersion", 2)
+                        put(
+                            "features",
+                            JSONArray().apply {
+                                // Add SendTransaction feature (detailed form matching iOS)
+                                put(
+                                    JSONObject().apply {
+                                        put("name", "SendTransaction")
+                                        put("maxMessages", config.maxMessages)
+                                    },
+                                )
+                                // Add SignData feature with supported types
+                                put(
+                                    JSONObject().apply {
+                                        put("name", "SignData")
+                                        put("types", JSONArray(config.signDataTypes))
+                                    },
+                                )
+                            },
+                        )
+                    },
+                )
+
                 // Note: Persistent storage is controlled by enablePersistentStorage flag
                 // When disabled, storage operations return immediately without persisting
             }
 
-        Log.d(logTag, "Initializing WalletKit with persistent storage: $persistentStorageEnabled")
+        Log.d(logTag, "Initializing WalletKit with persistent storage: $persistentStorageEnabled, app: $appName v$appVersion")
         call("init", payload)
     }
 
@@ -495,10 +573,11 @@ class WebViewWalletKitEngine(
 
     override suspend fun approveConnect(event: ConnectRequestEvent) {
         ensureWalletKitInitialized()
-        val eventJson = JSONObject(Json.encodeToString(event))
+        val eventJson = JSONObject(json.encodeToString(event))
         val params =
             JSONObject().apply {
                 put("event", eventJson)
+                put("walletAddress", event.walletAddress ?: throw WalletKitBridgeException("walletAddress is required for connect approval"))
             }
         call("approveConnectRequest", params)
     }
@@ -508,7 +587,7 @@ class WebViewWalletKitEngine(
         reason: String?,
     ) {
         ensureWalletKitInitialized()
-        val eventJson = JSONObject(Json.encodeToString(event))
+        val eventJson = JSONObject(json.encodeToString(event))
         val params =
             JSONObject().apply {
                 put("event", eventJson)
@@ -519,7 +598,7 @@ class WebViewWalletKitEngine(
 
     override suspend fun approveTransaction(event: TransactionRequestEvent) {
         ensureWalletKitInitialized()
-        val eventJson = JSONObject(Json.encodeToString(event))
+        val eventJson = JSONObject(json.encodeToString(event))
         val params = JSONObject().apply { put("event", eventJson) }
         call("approveTransactionRequest", params)
     }
@@ -529,7 +608,7 @@ class WebViewWalletKitEngine(
         reason: String?,
     ) {
         ensureWalletKitInitialized()
-        val eventJson = JSONObject(Json.encodeToString(event))
+        val eventJson = JSONObject(json.encodeToString(event))
         val params =
             JSONObject().apply {
                 put("event", eventJson)
@@ -540,7 +619,7 @@ class WebViewWalletKitEngine(
 
     override suspend fun approveSignData(event: SignDataRequestEvent): SignDataResult {
         ensureWalletKitInitialized()
-        val eventJson = JSONObject(Json.encodeToString(event))
+        val eventJson = JSONObject(json.encodeToString(event))
         val params = JSONObject().apply { put("event", eventJson) }
         val result = call("approveSignDataRequest", params)
 
@@ -564,7 +643,7 @@ class WebViewWalletKitEngine(
         reason: String?,
     ) {
         ensureWalletKitInitialized()
-        val eventJson = JSONObject(Json.encodeToString(event))
+        val eventJson = JSONObject(json.encodeToString(event))
         val params =
             JSONObject().apply {
                 put("event", eventJson)
@@ -696,7 +775,7 @@ class WebViewWalletKitEngine(
             "connectRequest" -> {
                 try {
                     // Deserialize JSON into typed event
-                    val event = Json.decodeFromString<ConnectRequestEvent>(data.toString())
+                    val event = json.decodeFromString<ConnectRequestEvent>(data.toString())
                     val requestId = event.id
                     val dAppInfo = parseDAppInfo(data) // Keep existing parser for now
                     val permissions = event.preview?.permissions ?: emptyList()
@@ -717,7 +796,7 @@ class WebViewWalletKitEngine(
             "transactionRequest" -> {
                 try {
                     // Deserialize JSON into typed event
-                    val event = Json.decodeFromString<TransactionRequestEvent>(data.toString())
+                    val event = json.decodeFromString<TransactionRequestEvent>(data.toString())
                     val requestId = event.id ?: return null
                     val dAppInfo = parseDAppInfo(data) // Keep existing parser for now
                     val txRequest = parseTransactionRequest(data) // Keep existing parser for now
@@ -743,7 +822,7 @@ class WebViewWalletKitEngine(
             "signDataRequest" -> {
                 try {
                     // Deserialize JSON into typed event
-                    val event = Json.decodeFromString<SignDataRequestEvent>(data.toString())
+                    val event = json.decodeFromString<SignDataRequestEvent>(data.toString())
                     val requestId = event.id ?: return null
                     val dAppInfo = parseDAppInfo(data) // Keep existing parser for now
                     val signRequest = parseSignDataRequest(data) // Keep existing parser for now

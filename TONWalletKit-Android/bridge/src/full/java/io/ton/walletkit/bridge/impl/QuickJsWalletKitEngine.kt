@@ -484,54 +484,51 @@ class QuickJsWalletKitEngine(
         call("sendTransaction", params)
     }
 
-    override suspend fun approveConnect(
-        requestId: Any,
-        walletAddress: String,
-    ) {
+    override suspend fun approveConnect(event: io.ton.walletkit.presentation.event.ConnectRequestEvent) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
-                put("requestId", requestId)
-                put("walletAddress", walletAddress)
+                put("requestId", event.id)
+                put("walletAddress", event.walletAddress)
             }
         call("approveConnectRequest", params)
     }
 
     override suspend fun rejectConnect(
-        requestId: Any,
+        event: io.ton.walletkit.presentation.event.ConnectRequestEvent,
         reason: String?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
-                put("requestId", requestId)
+                put("requestId", event.id)
                 reason?.let { put("reason", it) }
             }
         call("rejectConnectRequest", params)
     }
 
-    override suspend fun approveTransaction(requestId: Any) {
+    override suspend fun approveTransaction(event: io.ton.walletkit.presentation.event.TransactionRequestEvent) {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply { put("requestId", requestId) }
+        val params = JSONObject().apply { put("requestId", event.id) }
         call("approveTransactionRequest", params)
     }
 
     override suspend fun rejectTransaction(
-        requestId: Any,
+        event: io.ton.walletkit.presentation.event.TransactionRequestEvent,
         reason: String?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
-                put("requestId", requestId)
+                put("requestId", event.id)
                 reason?.let { put("reason", it) }
             }
         call("rejectTransactionRequest", params)
     }
 
-    override suspend fun approveSignData(requestId: Any): SignDataResult {
+    override suspend fun approveSignData(event: io.ton.walletkit.presentation.event.SignDataRequestEvent): SignDataResult {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply { put("requestId", requestId) }
+        val params = JSONObject().apply { put("requestId", event.id) }
         val result = call("approveSignDataRequest", params)
 
         Log.d(logTag, "approveSignData raw result: $result")
@@ -550,16 +547,21 @@ class QuickJsWalletKitEngine(
     }
 
     override suspend fun rejectSignData(
-        requestId: Any,
+        event: io.ton.walletkit.presentation.event.SignDataRequestEvent,
         reason: String?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
-                put("requestId", requestId)
+                put("requestId", event.id)
                 reason?.let { put("reason", it) }
             }
         call("rejectSignDataRequest", params)
+    }
+
+    override suspend fun getQueuedEvents(): List<JSONObject> {
+        // QuickJS doesn't support event queue - it emits events immediately
+        return emptyList()
     }
 
     override suspend fun listSessions(): List<WalletSession> {
@@ -833,39 +835,111 @@ class QuickJsWalletKitEngine(
     private fun parseTypedEvent(type: String, data: JSONObject, raw: JSONObject): WalletKitEvent? {
         return when (type) {
             "connectRequest" -> {
-                val requestId = data.opt("id") ?: return null
+                val id = data.optString("id") ?: return null
                 val dAppInfo = parseDAppInfo(data)
-                val permissions = parsePermissions(data)
+                val permissionsArray = data.optJSONArray("permissions") ?: JSONArray()
+                val permissions = buildList {
+                    for (i in 0 until permissionsArray.length()) {
+                        val permName = permissionsArray.optString(i)
+                        if (!permName.isNullOrEmpty()) {
+                            add(
+                                io.ton.walletkit.presentation.event.ConnectRequestEvent.ConnectPermission(
+                                    name = permName,
+                                    title = permName,
+                                    description = "",
+                                ),
+                            )
+                        }
+                    }
+                }
+
+                val preview = io.ton.walletkit.presentation.event.ConnectRequestEvent.Preview(
+                    manifest = dAppInfo?.let {
+                        io.ton.walletkit.presentation.event.ConnectRequestEvent.Manifest(
+                            name = it.name,
+                            description = null,
+                            url = it.url,
+                            iconUrl = it.iconUrl,
+                        )
+                    },
+                    permissions = permissions,
+                )
+
+                val event = io.ton.walletkit.presentation.event.ConnectRequestEvent(
+                    id = id,
+                    preview = preview,
+                    dAppInfo = dAppInfo,
+                    walletAddress = null,
+                )
+
                 val request = ConnectRequest(
-                    requestId = requestId,
+                    requestId = id,
                     dAppInfo = dAppInfo,
                     permissions = permissions,
+                    event = event,
                     engine = this,
                 )
                 WalletKitEvent.ConnectRequestEvent(request)
             }
 
             "transactionRequest" -> {
-                val requestId = data.opt("id") ?: return null
+                val id = data.optString("id") ?: return null
                 val dAppInfo = parseDAppInfo(data)
                 val txRequest = parseTransactionRequest(data)
+
+                // Create minimal typed event for QuickJS (doesn't have full preview data)
+                val preview = io.ton.walletkit.presentation.event.TransactionRequestEvent.Preview(
+                    manifest = dAppInfo?.let {
+                        io.ton.walletkit.presentation.event.TransactionRequestEvent.Manifest(
+                            name = it.name,
+                            url = it.url,
+                            iconUrl = it.iconUrl,
+                        )
+                    },
+                )
+
+                val event = io.ton.walletkit.presentation.event.TransactionRequestEvent(
+                    id = id,
+                    preview = preview,
+                )
+
                 val request = TransactionRequest(
-                    requestId = requestId,
+                    requestId = id,
                     dAppInfo = dAppInfo,
                     request = txRequest,
+                    event = event,
                     engine = this,
                 )
                 WalletKitEvent.TransactionRequestEvent(request)
             }
 
             "signDataRequest" -> {
-                val requestId = data.opt("id") ?: return null
+                val id = data.optString("id") ?: return null
                 val dAppInfo = parseDAppInfo(data)
                 val signRequest = parseSignDataRequest(data)
+
+                // Create minimal typed event for QuickJS
+                val preview = io.ton.walletkit.presentation.event.SignDataRequestEvent.Preview(
+                    kind = io.ton.walletkit.presentation.event.SignDataType.TEXT,
+                    content = signRequest.payload,
+                    schema = null,
+                )
+
+                val event = io.ton.walletkit.presentation.event.SignDataRequestEvent(
+                    id = id,
+                    preview = preview,
+                    request = io.ton.walletkit.presentation.event.SignDataRequestEvent.Payload(
+                        type = io.ton.walletkit.presentation.event.SignDataType.TEXT,
+                        text = signRequest.payload,
+                    ),
+                    dAppInfo = dAppInfo,
+                )
+
                 val request = SignDataRequest(
-                    requestId = requestId,
+                    requestId = id,
                     dAppInfo = dAppInfo,
                     request = signRequest,
+                    event = event,
                     engine = this,
                 )
                 WalletKitEvent.SignDataRequestEvent(request)

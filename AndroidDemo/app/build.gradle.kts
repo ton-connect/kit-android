@@ -62,10 +62,11 @@ dependencies {
     // TONWalletKit SDK - AAR file
     // Build and copy with: ./gradlew buildAndCopyWebviewToDemo (or buildAndCopyFullToDemo)
     implementation(files("libs/bridge-release.aar"))
-    
+
     // Required transitive dependencies (must be declared manually with AAR files)
     implementation(libs.androidxWebkit)
     implementation(libs.androidxDatastorePreferences)
+    implementation(libs.kotlinxSerializationJson)
     // OkHttp only needed if using full variant:
     // implementation(libs.okhttp)
 }
