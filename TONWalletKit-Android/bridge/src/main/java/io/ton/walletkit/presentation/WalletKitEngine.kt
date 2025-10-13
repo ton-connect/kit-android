@@ -202,15 +202,6 @@ interface WalletKitEngine {
     suspend fun disconnectSession(sessionId: String? = null)
 
     /**
-     * Get all queued events from the bridge that haven't been consumed yet.
-     * This is a recovery mechanism to ensure events are never lost even if the bridge is recreated.
-     * Events are removed from the queue after being returned.
-     *
-     * @return List of event data objects (as JSONObject)
-     */
-    suspend fun getQueuedEvents(): List<org.json.JSONObject>
-
-    /**
      * Destroy the engine and release all resources.
      */
     suspend fun destroy()

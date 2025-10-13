@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -19,9 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import io.ton.walletkit.demo.model.TransactionPreviewData
 import io.ton.walletkit.demo.model.TransactionRequestUi
-import io.ton.walletkit.demo.ui.components.CodeBlock
 import io.ton.walletkit.demo.ui.preview.PreviewData
 import io.ton.walletkit.demo.util.abbreviated
 import java.math.BigDecimal
@@ -113,81 +110,7 @@ fun TransactionRequestSheet(
             }
         }
 
-        // Fee information from preview
-        val previewData = request.getPreviewData()
-        when (previewData) {
-            is TransactionPreviewData.Success -> {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    ),
-                ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            "Transaction Summary",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text("Network Fee:", style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                "~${previewData.feeTon} TON",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                            )
-                        }
-
-                        Divider()
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(
-                                "Total Cost:",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            )
-                            Text(
-                                "${previewData.totalCostTon} TON",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            )
-                        }
-                    }
-                }
-            }
-            is TransactionPreviewData.Error -> {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                    ),
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Fee Estimation Failed",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                        )
-                        Text(
-                            previewData.message,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                        )
-                    }
-                }
-            }
-            null -> {
-                // No preview data, show raw preview if available
-                request.preview?.let {
-                    Text("Preview", style = MaterialTheme.typography.titleSmall)
-                    CodeBlock(content = it)
-                }
-            }
-        }
+        // Note: Fee estimation removed - only shown in completed transactions
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             TextButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text("Reject") }

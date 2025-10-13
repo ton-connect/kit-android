@@ -682,18 +682,6 @@ class WebViewWalletKitEngine(
         call("disconnectSession", if (params.length() == 0) null else params)
     }
 
-    override suspend fun getQueuedEvents(): List<JSONObject> {
-        ensureWalletKitInitialized()
-        val result = call("getQueuedEvents")
-        val events = result.optJSONArray("events") ?: JSONArray()
-        return buildList(events.length()) {
-            for (index in 0 until events.length()) {
-                val event = events.optJSONObject(index) ?: continue
-                add(event)
-            }
-        }
-    }
-
     override suspend fun destroy() {
         withContext(Dispatchers.Main) {
             (webView.parent as? ViewGroup)?.removeView(webView)

@@ -559,11 +559,6 @@ class QuickJsWalletKitEngine(
         call("rejectSignDataRequest", params)
     }
 
-    override suspend fun getQueuedEvents(): List<JSONObject> {
-        // QuickJS doesn't support event queue - it emits events immediately
-        return emptyList()
-    }
-
     override suspend fun listSessions(): List<WalletSession> {
         ensureWalletKitInitialized()
         val result = call("listSessions")

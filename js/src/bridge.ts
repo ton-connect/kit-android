@@ -112,30 +112,12 @@ type BridgePayload =
 
 declare global {
   interface Window {
-    walletkitBridge?: typeof api & {
-      onEvent: (handler: (event: WalletKitBridgeEvent) => void) => () => void;
-    };
+    walletkitBridge?: typeof api;
     __walletkitCall?: (id: string, method: WalletKitApiMethod, paramsJson?: string | null) => void;
     WalletKitNative?: { postMessage: (json: string) => void };
     AndroidBridge?: { postMessage: (json: string) => void };
-    walletkit_request?: (json: string) => Promise<void>;
   }
 }
-
-const listeners = new Set<(event: WalletKitBridgeEvent) => void>();
-const legacyRequests = new Set<string>();
-// Session hints are kept for UI purposes only (dApp metadata for display)
-const activeSessionHints = new Map<string, SessionHint>();
-
-// Event queue to prevent event loss when no listeners are attached
-// Events are buffered here until consumed by the native side
-const eventQueue: WalletKitBridgeEvent[] = [];
-
-type SessionHint = {
-  dAppUrl?: string | null;
-  manifestUrl?: string | null;
-  iconUrl?: string | null;
-};
 
 type CallContext = {
   id: string;
@@ -263,6 +245,7 @@ function postToNative(payload: BridgePayload) {
       stack: new Error('postToNative non-object payload').stack,
     };
     console.error('[walletkitBridge] postToNative received non-object payload', diagnostic);
+    throw new Error('Invalid payload - must be an object');
   }
   const json = JSON.stringify(payload);
   const scope = resolveGlobalScope();
@@ -276,7 +259,12 @@ function postToNative(payload: BridgePayload) {
     androidPostMessage(json);
     return;
   }
-  console.debug('[walletkitBridge] → native', payload);
+  // If neither bridge is available, throw error for events (not for diagnostics/ready)
+  if (payload.kind === 'event') {
+    throw new Error('Native bridge not available - cannot deliver event');
+  }
+  // For non-critical messages (diagnostics, ready), just log
+  console.debug('[walletkitBridge] → native (no handler)', payload);
 }
 
 function emitCallDiagnostic(id: string, method: WalletKitApiMethod, stage: 'start' | 'checkpoint' | 'success' | 'error', message?: string) {
@@ -298,32 +286,12 @@ function emitCallCheckpoint(context: CallContext | undefined, message: string) {
 function emit(type: WalletKitBridgeEvent['type'], data?: WalletKitBridgeEvent['data']) {
   const event: WalletKitBridgeEvent = { type, data };
   
-  // Always queue events to prevent loss
-  eventQueue.push(event);
-  
-  // Also call listeners synchronously if any are attached
-  listeners.forEach((listener) => {
-    try {
-      listener(event);
-    } catch (err) {
-      console.error('[walletkitBridge] listener error', err);
-    }
-  });
-  
-  // Send to native immediately
+  // Send to native immediately - native side is responsible for storing events
   postToNative({ kind: 'event', event });
-  if (typeof window.AndroidBridge?.postMessage === 'function') {
-    window.AndroidBridge.postMessage(JSON.stringify(event));
-  }
 }
 
 function respond(id: string, result?: unknown, error?: { message: string }) {
   postToNative({ kind: 'response', id, result, error });
-  if (legacyRequests.has(id)) {
-    const legacyPayload = JSON.stringify({ id, result, error });
-    legacyRequests.delete(id);
-    window.AndroidBridge?.postMessage?.(legacyPayload);
-  }
 }
 
 async function handleCall(id: string, method: WalletKitApiMethod, params?: unknown) {
@@ -381,13 +349,19 @@ async function initTonWalletKit(config?: WalletKitBridgeInitConfig, context?: Ca
   }
   const chain = network === 'mainnet' ? chains.MAINNET : chains.TESTNET;
 
+  console.log('[walletkitBridge] initTonWalletKit config:', JSON.stringify(config, null, 2));
+  
   let walletManifest = config?.walletManifest;
+  console.log('[walletkitBridge] walletManifest from config:', walletManifest);
+  
   if (!walletManifest && config?.bridgeUrl && typeof createWalletManifest === 'function') {
+    console.log('[walletkitBridge] Creating wallet manifest with bridgeName:', config.bridgeName);
     walletManifest = createWalletManifest({
       bridgeUrl: config.bridgeUrl,
       name: config.bridgeName ?? 'Wallet',
       appName: config.bridgeName ?? 'Wallet',
     });
+    console.log('[walletkitBridge] Created wallet manifest:', walletManifest);
   }
 
   const kitOptions: Record<string, unknown> = {
@@ -472,18 +446,6 @@ const api = {
     return result;
   },
 
-  /**
-   * Get all queued events that haven't been consumed yet.
-   * After calling this, events are marked as consumed and won't be returned again.
-   * This ensures events are never lost even if the bridge is recreated.
-   */
-  async getQueuedEvents(_?: unknown, context?: CallContext): Promise<{ events: WalletKitBridgeEvent[] }> {
-    emitCallCheckpoint(context, 'getQueuedEvents:start');
-    const events = eventQueue.splice(0, eventQueue.length); // Drain the queue
-    emitCallCheckpoint(context, 'getQueuedEvents:complete');
-    return { events };
-  },
-
   async addWalletFromMnemonic(
     args: { words: string[]; version: 'v5r1' | 'v4r2'; network?: 'mainnet' | 'testnet' },
     context?: CallContext,
@@ -548,13 +510,6 @@ const api = {
     emitCallCheckpoint(context, 'removeWallet:before-walletKit.removeWallet');
     await walletKit.removeWallet(address);
     emitCallCheckpoint(context, 'removeWallet:after-walletKit.removeWallet');
-
-    // Clean up session hints for this wallet
-    for (const key of Array.from(activeSessionHints.keys())) {
-      if (typeof key === 'string' && key.startsWith(`${address}::`)) {
-        activeSessionHints.delete(key);
-      }
-    }
 
     return { removed: true };
   },
@@ -851,7 +806,6 @@ const api = {
       throw new Error(message);
     }
     emitCallCheckpoint(context, 'approveConnectRequest:after-walletKit.approveConnectRequest');
-    await updateSessionHintsFromWallet(event, wallet);
     return result;
   },
 
@@ -943,15 +897,13 @@ const api = {
     }
     return sessions.map((session: any) => {
       const sessionId = session.sessionId || session.id;
-      const hintKey = sessionId ?? `${session.walletAddress || ''}::${session.dAppName || session.name || ''}`;
-      const hint = activeSessionHints.get(hintKey);
       return {
         sessionId,
         dAppName: session.dAppName || session.name || '',
         walletAddress: session.walletAddress,
-        dAppUrl: session.dAppUrl || session.url || hint?.dAppUrl || null,
-        manifestUrl: session.manifestUrl || hint?.manifestUrl || null,
-        iconUrl: session.dAppIconUrl || session.iconUrl || hint?.iconUrl || null,
+        dAppUrl: session.dAppUrl || session.url || null,
+        manifestUrl: session.manifestUrl || null,
+        iconUrl: session.dAppIconUrl || session.iconUrl || null,
         createdAt: serializeDate(session.createdAt),
         lastActivity: serializeDate(session.lastActivity),
       };
@@ -969,9 +921,6 @@ const api = {
     emitCallCheckpoint(context, 'disconnectSession:before-walletKit.disconnect');
     await walletKit.disconnect(args?.sessionId);
     emitCallCheckpoint(context, 'disconnectSession:after-walletKit.disconnect');
-    if (args?.sessionId) {
-      activeSessionHints.delete(args.sessionId);
-    }
     return { ok: true };
   },
 
@@ -1076,32 +1025,6 @@ const api = {
   },
 };
 
-async function updateSessionHintsFromWallet(event: any, wallet: any) {
-  if (typeof walletKit.listSessions !== 'function') {
-    return;
-  }
-  const sessions: any[] = (await walletKit.listSessions()) ?? [];
-  const walletAddress = wallet.getAddress?.() || wallet.address || event.walletAddress;
-  const dAppName = event.dAppName || event.name || '';
-  const hintData: SessionHint = {
-    dAppUrl: event.dAppUrl || event.url || event?.preview?.manifest?.url || null,
-    manifestUrl: event.manifestUrl || event?.preview?.manifest?.url || null,
-    iconUrl: event.dAppIconUrl || event.iconUrl || event?.preview?.manifest?.iconUrl || null,
-  };
-
-  sessions.forEach((session: any) => {
-    const sessionId = session.sessionId || session.id;
-    if (!sessionId) {
-      return;
-    }
-    const matchesWallet = walletAddress && session.walletAddress === walletAddress;
-    const matchesName = session.dAppName === dAppName || !dAppName;
-    if (matchesWallet || matchesName) {
-      activeSessionHints.set(sessionId, hintData);
-    }
-  });
-}
-
 function serializeDate(value: unknown): string | null {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString();
@@ -1110,25 +1033,7 @@ function serializeDate(value: unknown): string | null {
   return new Date(timestamp).toISOString();
 }
 
-window.walletkitBridge = Object.assign({}, api, {
-  onEvent: (handler: (event: WalletKitBridgeEvent) => void) => {
-    listeners.add(handler);
-    return () => listeners.delete(handler);
-  },
-});
-
-window.walletkit_request = async (json: string) => {
-  try {
-    const parsed = JSON.parse(json);
-    const { id, method, params } = parsed || {};
-    if (!id || !method) throw new Error('Invalid request');
-    legacyRequests.add(id);
-    await handleCall(id, method as WalletKitApiMethod, params);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    window.AndroidBridge?.postMessage?.(JSON.stringify({ error: { message } }));
-  }
-};
+window.walletkitBridge = api;
 
 postToNative({
   kind: 'ready',
