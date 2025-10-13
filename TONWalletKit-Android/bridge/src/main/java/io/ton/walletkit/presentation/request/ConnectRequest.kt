@@ -1,8 +1,8 @@
 package io.ton.walletkit.presentation.request
 
 import io.ton.walletkit.presentation.WalletKitEngine
+import io.ton.walletkit.presentation.event.ConnectRequestEvent
 import io.ton.walletkit.presentation.model.DAppInfo
-import org.json.JSONObject
 
 /**
  * Represents a connection request from a dApp.
@@ -11,13 +11,13 @@ import org.json.JSONObject
  * @property requestId Unique identifier for this request
  * @property dAppInfo Information about the requesting dApp
  * @property permissions List of requested permissions
- * @property eventJson Full event JSON from the bridge (required for approval/rejection)
+ * @property event Typed event data from the bridge
  */
 class ConnectRequest internal constructor(
     val requestId: String,
     val dAppInfo: DAppInfo?,
-    val permissions: List<String>,
-    private val eventJson: JSONObject,
+    val permissions: List<ConnectRequestEvent.ConnectPermission>,
+    private val event: ConnectRequestEvent,
     private val engine: WalletKitEngine,
 ) {
     /**
@@ -27,7 +27,8 @@ class ConnectRequest internal constructor(
      * @throws io.ton.walletkit.bridge.WalletKitBridgeException if approval fails
      */
     suspend fun approve(walletAddress: String) {
-        engine.approveConnect(eventJson, walletAddress)
+        val eventWithWallet = event.copy(walletAddress = walletAddress)
+        engine.approveConnect(eventWithWallet)
     }
 
     /**
@@ -37,6 +38,6 @@ class ConnectRequest internal constructor(
      * @throws io.ton.walletkit.bridge.WalletKitBridgeException if rejection fails
      */
     suspend fun reject(reason: String? = null) {
-        engine.rejectConnect(eventJson, reason)
+        engine.rejectConnect(event, reason)
     }
 }

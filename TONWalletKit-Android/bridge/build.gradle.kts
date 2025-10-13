@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 android {
@@ -165,6 +166,7 @@ dependencies {
     implementation(libs.androidxCoreKtx)
     implementation(libs.androidxLifecycleRuntimeKtx)
     implementation(libs.kotlinxCoroutinesAndroid)
+    implementation(libs.kotlinxSerializationJson)
     implementation(libs.androidxWebkit)
 
     // OkHttp only for Full variant (includes QuickJS)

@@ -1,6 +1,9 @@
 package io.ton.walletkit.presentation
 
 import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
+import io.ton.walletkit.presentation.event.ConnectRequestEvent
+import io.ton.walletkit.presentation.event.SignDataRequestEvent
+import io.ton.walletkit.presentation.event.TransactionRequestEvent
 import io.ton.walletkit.presentation.listener.WalletKitEventHandler
 import io.ton.walletkit.presentation.model.SignDataResult
 import io.ton.walletkit.presentation.model.Transaction
@@ -125,65 +128,61 @@ interface WalletKitEngine {
     /**
      * Approve a connection request from a dApp.
      *
-     * @param eventJson Full event JSON from the connect request event
-     * @param walletAddress Wallet address to connect with
+     * @param event Typed event from the connect request
      * @throws WalletKitBridgeException if approval fails
      */
-    suspend fun approveConnect(
-        eventJson: org.json.JSONObject,
-        walletAddress: String,
-    )
+    suspend fun approveConnect(event: ConnectRequestEvent)
 
     /**
      * Reject a connection request from a dApp.
      *
-     * @param eventJson Full event JSON from the connect request event
+     * @param event Typed event from the connect request
      * @param reason Optional reason for rejection
      * @throws WalletKitBridgeException if rejection fails
      */
     suspend fun rejectConnect(
-        eventJson: org.json.JSONObject,
+        event: ConnectRequestEvent,
         reason: String? = null,
     )
 
     /**
      * Approve and sign a transaction request.
      *
-     * @param eventJson Full event JSON from the transaction request event
+     * @param event Typed event from the transaction request
      * @throws WalletKitBridgeException if approval or signing fails
      */
-    suspend fun approveTransaction(eventJson: org.json.JSONObject)
+    suspend fun approveTransaction(event: TransactionRequestEvent)
 
     /**
      * Reject a transaction request.
      *
-     * @param eventJson Full event JSON from the transaction request event
+     * @param event Typed event from the transaction request
      * @param reason Optional reason for rejection
      * @throws WalletKitBridgeException if rejection fails
      */
     suspend fun rejectTransaction(
-        eventJson: org.json.JSONObject,
+        event: TransactionRequestEvent,
         reason: String? = null,
     )
 
     /**
      * Approve and sign a data signing request.
      *
-     * @param eventJson Full event JSON from the sign data request event
+     * @param event Typed event from the sign data request
      * @return Signature result containing the base64-encoded signature
      * @throws WalletKitBridgeException if approval or signing fails
      */
-    suspend fun approveSignData(eventJson: org.json.JSONObject): SignDataResult
+    suspend fun approveSignData(event: SignDataRequestEvent): SignDataResult
 
     /**
      * Reject a data signing request.
      *
-     * @param eventJson Full event JSON from the sign data request event
+     * @param event Typed event from the sign data request
      * @param reason Optional reason for rejection
      * @throws WalletKitBridgeException if rejection fails
      */
     suspend fun rejectSignData(
-        eventJson: org.json.JSONObject,
+        event: SignDataRequestEvent,
         reason: String? = null,
     )
 

@@ -1,5 +1,7 @@
 package io.ton.walletkit.presentation.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * Information about a dApp requesting wallet interaction.
  *
@@ -8,6 +10,7 @@ package io.ton.walletkit.presentation.model
  * @property iconUrl Icon URL of the dApp (nullable)
  * @property manifestUrl TON Connect manifest URL (nullable)
  */
+@Serializable
 data class DAppInfo(
     val name: String,
     val url: String,

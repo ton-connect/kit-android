@@ -18,6 +18,9 @@ import io.ton.walletkit.presentation.WalletKitBridgeException
 import io.ton.walletkit.presentation.WalletKitEngine
 import io.ton.walletkit.presentation.WalletKitEngineKind
 import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
+import io.ton.walletkit.presentation.event.ConnectRequestEvent
+import io.ton.walletkit.presentation.event.SignDataRequestEvent
+import io.ton.walletkit.presentation.event.TransactionRequestEvent
 import io.ton.walletkit.presentation.event.WalletKitEvent
 import io.ton.walletkit.presentation.listener.WalletKitEventHandler
 import io.ton.walletkit.presentation.model.DAppInfo
@@ -38,6 +41,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -488,24 +493,22 @@ class WebViewWalletKitEngine(
         call("sendTransaction", params)
     }
 
-    override suspend fun approveConnect(
-        eventJson: JSONObject,
-        walletAddress: String,
-    ) {
+    override suspend fun approveConnect(event: ConnectRequestEvent) {
         ensureWalletKitInitialized()
+        val eventJson = JSONObject(Json.encodeToString(event))
         val params =
             JSONObject().apply {
                 put("event", eventJson)
-                put("walletAddress", walletAddress)
             }
         call("approveConnectRequest", params)
     }
 
     override suspend fun rejectConnect(
-        eventJson: JSONObject,
+        event: ConnectRequestEvent,
         reason: String?,
     ) {
         ensureWalletKitInitialized()
+        val eventJson = JSONObject(Json.encodeToString(event))
         val params =
             JSONObject().apply {
                 put("event", eventJson)
@@ -514,17 +517,19 @@ class WebViewWalletKitEngine(
         call("rejectConnectRequest", params)
     }
 
-    override suspend fun approveTransaction(eventJson: JSONObject) {
+    override suspend fun approveTransaction(event: TransactionRequestEvent) {
         ensureWalletKitInitialized()
+        val eventJson = JSONObject(Json.encodeToString(event))
         val params = JSONObject().apply { put("event", eventJson) }
         call("approveTransactionRequest", params)
     }
 
     override suspend fun rejectTransaction(
-        eventJson: JSONObject,
+        event: TransactionRequestEvent,
         reason: String?,
     ) {
         ensureWalletKitInitialized()
+        val eventJson = JSONObject(Json.encodeToString(event))
         val params =
             JSONObject().apply {
                 put("event", eventJson)
@@ -533,8 +538,9 @@ class WebViewWalletKitEngine(
         call("rejectTransactionRequest", params)
     }
 
-    override suspend fun approveSignData(eventJson: JSONObject): SignDataResult {
+    override suspend fun approveSignData(event: SignDataRequestEvent): SignDataResult {
         ensureWalletKitInitialized()
+        val eventJson = JSONObject(Json.encodeToString(event))
         val params = JSONObject().apply { put("event", eventJson) }
         val result = call("approveSignDataRequest", params)
 
@@ -554,10 +560,11 @@ class WebViewWalletKitEngine(
     }
 
     override suspend fun rejectSignData(
-        eventJson: JSONObject,
+        event: SignDataRequestEvent,
         reason: String?,
     ) {
         ensureWalletKitInitialized()
+        val eventJson = JSONObject(Json.encodeToString(event))
         val params =
             JSONObject().apply {
                 put("event", eventJson)
@@ -687,50 +694,71 @@ class WebViewWalletKitEngine(
     private fun parseTypedEvent(type: String, data: JSONObject, raw: JSONObject): WalletKitEvent? {
         return when (type) {
             "connectRequest" -> {
-                val requestId = data.opt("id")?.toString() ?: return null
-                val dAppInfo = parseDAppInfo(data)
-                val permissions = parsePermissions(data)
-                val request = ConnectRequest(
-                    requestId = requestId,
-                    dAppInfo = dAppInfo,
-                    permissions = permissions,
-                    eventJson = data, // Pass full event JSON for stateless bridge
-                    engine = this,
-                )
-                WalletKitEvent.ConnectRequestEvent(request)
+                try {
+                    // Deserialize JSON into typed event
+                    val event = Json.decodeFromString<ConnectRequestEvent>(data.toString())
+                    val requestId = event.id
+                    val dAppInfo = parseDAppInfo(data) // Keep existing parser for now
+                    val permissions = event.preview?.permissions ?: emptyList()
+                    val request = ConnectRequest(
+                        requestId = requestId,
+                        dAppInfo = dAppInfo,
+                        permissions = permissions,
+                        event = event,
+                        engine = this,
+                    )
+                    WalletKitEvent.ConnectRequestEvent(request)
+                } catch (e: Exception) {
+                    Log.e(logTag, "Failed to parse ConnectRequestEvent", e)
+                    null
+                }
             }
 
             "transactionRequest" -> {
-                val requestId = data.opt("id")?.toString() ?: return null
-                val dAppInfo = parseDAppInfo(data)
-                val txRequest = parseTransactionRequest(data)
+                try {
+                    // Deserialize JSON into typed event
+                    val event = Json.decodeFromString<TransactionRequestEvent>(data.toString())
+                    val requestId = event.id ?: return null
+                    val dAppInfo = parseDAppInfo(data) // Keep existing parser for now
+                    val txRequest = parseTransactionRequest(data) // Keep existing parser for now
 
-                // Extract preview data if available
-                val preview = data.optJSONObject("preview")?.toString()
+                    // Extract preview data if available
+                    val preview = data.optJSONObject("preview")?.toString()
 
-                val request = io.ton.walletkit.presentation.request.TransactionRequest(
-                    requestId = requestId,
-                    dAppInfo = dAppInfo,
-                    request = txRequest,
-                    preview = preview,
-                    eventJson = data, // Pass full event JSON for stateless bridge
-                    engine = this,
-                )
-                WalletKitEvent.TransactionRequestEvent(request)
+                    val request = io.ton.walletkit.presentation.request.TransactionRequest(
+                        requestId = requestId,
+                        dAppInfo = dAppInfo,
+                        request = txRequest,
+                        preview = preview,
+                        event = event,
+                        engine = this,
+                    )
+                    WalletKitEvent.TransactionRequestEvent(request)
+                } catch (e: Exception) {
+                    Log.e(logTag, "Failed to parse TransactionRequestEvent", e)
+                    null
+                }
             }
 
             "signDataRequest" -> {
-                val requestId = data.opt("id")?.toString() ?: return null
-                val dAppInfo = parseDAppInfo(data)
-                val signRequest = parseSignDataRequest(data)
-                val request = io.ton.walletkit.presentation.request.SignDataRequest(
-                    requestId = requestId,
-                    dAppInfo = dAppInfo,
-                    request = signRequest,
-                    eventJson = data, // Pass full event JSON for stateless bridge
-                    engine = this,
-                )
-                WalletKitEvent.SignDataRequestEvent(request)
+                try {
+                    // Deserialize JSON into typed event
+                    val event = Json.decodeFromString<SignDataRequestEvent>(data.toString())
+                    val requestId = event.id ?: return null
+                    val dAppInfo = parseDAppInfo(data) // Keep existing parser for now
+                    val signRequest = parseSignDataRequest(data) // Keep existing parser for now
+                    val request = io.ton.walletkit.presentation.request.SignDataRequest(
+                        requestId = requestId,
+                        dAppInfo = dAppInfo,
+                        request = signRequest,
+                        event = event,
+                        engine = this,
+                    )
+                    WalletKitEvent.SignDataRequestEvent(request)
+                } catch (e: Exception) {
+                    Log.e(logTag, "Failed to parse SignDataRequestEvent", e)
+                    null
+                }
             }
 
             "disconnect" -> {
