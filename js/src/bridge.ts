@@ -124,10 +124,12 @@ declare global {
 
 const listeners = new Set<(event: WalletKitBridgeEvent) => void>();
 const legacyRequests = new Set<string>();
-const pendingConnectRequests = new Map<string, any>();
-const pendingTransactionRequests = new Map<string, any>();
-const pendingSignDataRequests = new Map<string, any>();
+// Session hints are kept for UI purposes only (dApp metadata for display)
 const activeSessionHints = new Map<string, SessionHint>();
+
+// Event queue to prevent event loss when no listeners are attached
+// Events are buffered here until consumed by the native side
+const eventQueue: WalletKitBridgeEvent[] = [];
 
 type SessionHint = {
   dAppUrl?: string | null;
@@ -295,6 +297,11 @@ function emitCallCheckpoint(context: CallContext | undefined, message: string) {
 
 function emit(type: WalletKitBridgeEvent['type'], data?: WalletKitBridgeEvent['data']) {
   const event: WalletKitBridgeEvent = { type, data };
+  
+  // Always queue events to prevent loss
+  eventQueue.push(event);
+  
+  // Also call listeners synchronously if any are attached
   listeners.forEach((listener) => {
     try {
       listener(event);
@@ -302,6 +309,8 @@ function emit(type: WalletKitBridgeEvent['type'], data?: WalletKitBridgeEvent['d
       console.error('[walletkitBridge] listener error', err);
     }
   });
+  
+  // Send to native immediately
   postToNative({ kind: 'event', event });
   if (typeof window.AndroidBridge?.postMessage === 'function') {
     window.AndroidBridge.postMessage(JSON.stringify(event));
@@ -365,7 +374,6 @@ async function initTonWalletKit(config?: WalletKitBridgeInitConfig, context?: Ca
   const clientEndpoint = config?.tonClientEndpoint || config?.apiUrl || (network === 'mainnet' ? 'https://toncenter.com/api/v2/jsonRPC' : 'https://testnet.toncenter.com/api/v2/jsonRPC');
   currentNetwork = network;
   currentApiBase = tonApiUrl;
-  pendingConnectRequests.clear();
   emitCallCheckpoint(context, 'initTonWalletKit:constructing-tonwalletkit');
   const chains = tonConnectChain;
   if (!chains) {
@@ -417,24 +425,15 @@ async function initTonWalletKit(config?: WalletKitBridgeInitConfig, context?: Ca
     emitCallCheckpoint(context, 'initTonWalletKit:after-walletKit.ensureInitialized');
   }
 
+  // Events are emitted directly to consumers without storing state
+  // Consumer (Android/iOS) is responsible for storing events and passing them back on approve/reject
   walletKit.onConnectRequest((event: any) => {
-    if (event && typeof event === 'object' && event.id != null) {
-      pendingConnectRequests.set(event.id, event);
-    }
     emit('connectRequest', event);
   });
   walletKit.onTransactionRequest((event: unknown) => {
-    const typedEvent = event as any;
-    if (typedEvent && typedEvent.id) {
-      pendingTransactionRequests.set(typedEvent.id, typedEvent);
-    }
     emit('transactionRequest', event);
   });
   walletKit.onSignDataRequest((event: unknown) => {
-    const typedEvent = event as any;
-    if (typedEvent && typedEvent.id) {
-      pendingSignDataRequests.set(typedEvent.id, typedEvent);
-    }
     emit('signDataRequest', event);
   });
   walletKit.onDisconnect((event: unknown) => {
@@ -471,6 +470,18 @@ const api = {
     const result = await initTonWalletKit(config, context);
     emitCallCheckpoint(context, 'init:after-initTonWalletKit');
     return result;
+  },
+
+  /**
+   * Get all queued events that haven't been consumed yet.
+   * After calling this, events are marked as consumed and won't be returned again.
+   * This ensures events are never lost even if the bridge is recreated.
+   */
+  async getQueuedEvents(_?: unknown, context?: CallContext): Promise<{ events: WalletKitBridgeEvent[] }> {
+    emitCallCheckpoint(context, 'getQueuedEvents:start');
+    const events = eventQueue.splice(0, eventQueue.length); // Drain the queue
+    emitCallCheckpoint(context, 'getQueuedEvents:complete');
+    return { events };
   },
 
   async addWalletFromMnemonic(
@@ -538,17 +549,12 @@ const api = {
     await walletKit.removeWallet(address);
     emitCallCheckpoint(context, 'removeWallet:after-walletKit.removeWallet');
 
+    // Clean up session hints for this wallet
     for (const key of Array.from(activeSessionHints.keys())) {
       if (typeof key === 'string' && key.startsWith(`${address}::`)) {
         activeSessionHints.delete(key);
       }
     }
-
-    pendingConnectRequests.forEach((event, requestId) => {
-      if (event?.walletAddress === address) {
-        pendingConnectRequests.delete(requestId);
-      }
-    });
 
     return { removed: true };
   },
@@ -809,7 +815,7 @@ const api = {
     };
   },
 
-  async approveConnectRequest(args: { requestId: any; walletAddress: string }, context?: CallContext) {
+  async approveConnectRequest(args: { event: any; walletAddress: string }, context?: CallContext) {
     emitCallCheckpoint(context, 'approveConnectRequest:before-ensureWalletKitLoaded');
     await ensureWalletKitLoaded();
     emitCallCheckpoint(context, 'approveConnectRequest:after-ensureWalletKitLoaded');
@@ -826,9 +832,9 @@ const api = {
       console.log('ensureInitialized done');
     }
     
-    const event = pendingConnectRequests.get(args.requestId);
+    const event = args.event;
     if (!event) {
-      throw new Error('Connect request not found');
+      throw new Error('Connect request event is required');
     }
     const wallet = walletKit.getWallet?.(args.walletAddress);
     if (!wallet) {
@@ -846,21 +852,19 @@ const api = {
     }
     emitCallCheckpoint(context, 'approveConnectRequest:after-walletKit.approveConnectRequest');
     await updateSessionHintsFromWallet(event, wallet);
-    pendingConnectRequests.delete(args.requestId);
     return result;
   },
 
-  async rejectConnectRequest(args: { requestId: any; reason?: string }, context?: CallContext) {
+  async rejectConnectRequest(args: { event: any; reason?: string }, context?: CallContext) {
     emitCallCheckpoint(context, 'rejectConnectRequest:before-ensureWalletKitLoaded');
     await ensureWalletKitLoaded();
     emitCallCheckpoint(context, 'rejectConnectRequest:after-ensureWalletKitLoaded');
     requireWalletKit();
     emitCallCheckpoint(context, 'rejectConnectRequest:after-requireWalletKit');
-    const event = pendingConnectRequests.get(args.requestId);
+    const event = args.event;
     if (!event) {
-      throw new Error('Connect request not found');
+      throw new Error('Connect request event is required');
     }
-    pendingConnectRequests.delete(args.requestId);
     const result = await walletKit.rejectConnectRequest(event, args.reason);
     if (!result?.success) {
       const message = result?.message || 'Failed to reject connect request';
@@ -869,65 +873,57 @@ const api = {
     return result;
   },
 
-  async approveTransactionRequest(args: { requestId: any }, context?: CallContext) {
+  async approveTransactionRequest(args: { event: any }, context?: CallContext) {
     emitCallCheckpoint(context, 'approveTransactionRequest:before-ensureWalletKitLoaded');
     await ensureWalletKitLoaded();
     emitCallCheckpoint(context, 'approveTransactionRequest:after-ensureWalletKitLoaded');
     requireWalletKit();
-    const event = pendingTransactionRequests.get(args.requestId);
+    const event = args.event;
     if (!event) {
-      throw new Error('Transaction request not found');
+      throw new Error('Transaction request event is required');
     }
     const result = await walletKit.approveTransactionRequest(event);
-    if (result?.success) {
-      pendingTransactionRequests.delete(args.requestId);
-    }
     return result;
   },
 
-  async rejectTransactionRequest(args: { requestId: any; reason?: string }, context?: CallContext) {
+  async rejectTransactionRequest(args: { event: any; reason?: string }, context?: CallContext) {
     emitCallCheckpoint(context, 'rejectTransactionRequest:before-ensureWalletKitLoaded');
     await ensureWalletKitLoaded();
     emitCallCheckpoint(context, 'rejectTransactionRequest:after-ensureWalletKitLoaded');
     requireWalletKit();
-    const event = pendingTransactionRequests.get(args.requestId);
+    const event = args.event;
     if (!event) {
-      throw new Error('Transaction request not found');
+      throw new Error('Transaction request event is required');
     }
     const result = await walletKit.rejectTransactionRequest(event, args.reason);
-    pendingTransactionRequests.delete(args.requestId);
     return result;
   },
 
-  async approveSignDataRequest(args: { requestId: any }, context?: CallContext) {
+  async approveSignDataRequest(args: { event: any }, context?: CallContext) {
     emitCallCheckpoint(context, 'approveSignDataRequest:before-ensureWalletKitLoaded');
     await ensureWalletKitLoaded();
     emitCallCheckpoint(context, 'approveSignDataRequest:after-ensureWalletKitLoaded');
     requireWalletKit();
-    const event = pendingSignDataRequests.get(args.requestId);
+    const event = args.event;
     if (!event) {
-      throw new Error('Sign data request not found');
+      throw new Error('Sign data request event is required');
     }
     console.log('[bridge] Approving sign data request with event:', JSON.stringify(event, null, 2));
     const result = await walletKit.signDataRequest(event);
     console.log('[bridge] Sign data result:', JSON.stringify(result, null, 2));
-    if (result?.success) {
-      pendingSignDataRequests.delete(args.requestId);
-    }
     return result;
   },
 
-  async rejectSignDataRequest(args: { requestId: any; reason?: string }, context?: CallContext) {
+  async rejectSignDataRequest(args: { event: any; reason?: string }, context?: CallContext) {
     emitCallCheckpoint(context, 'rejectSignDataRequest:before-ensureWalletKitLoaded');
     await ensureWalletKitLoaded();
     emitCallCheckpoint(context, 'rejectSignDataRequest:after-ensureWalletKitLoaded');
     requireWalletKit();
-    const event = pendingSignDataRequests.get(args.requestId);
+    const event = args.event;
     if (!event) {
-      throw new Error('Sign data request not found');
+      throw new Error('Sign data request event is required');
     }
     const result = await walletKit.rejectSignDataRequest(event, args.reason);
-    pendingSignDataRequests.delete(args.requestId);
     return result;
   },
 
@@ -1072,7 +1068,7 @@ const api = {
       
       console.log('[bridge] Processed injected sign data request:', JSON.stringify(processedEvent, null, 2));
       
-      pendingSignDataRequests.set(requestData.id, processedEvent);
+      // Emit directly - consumer is responsible for storing the event
       emit('signDataRequest', processedEvent);
     }
     emitCallCheckpoint(context, 'injectSignDataRequest:complete');

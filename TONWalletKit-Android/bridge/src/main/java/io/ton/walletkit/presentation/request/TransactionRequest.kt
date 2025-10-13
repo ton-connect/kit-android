@@ -3,6 +3,7 @@ package io.ton.walletkit.presentation.request
 import io.ton.walletkit.presentation.WalletKitEngine
 import io.ton.walletkit.presentation.model.DAppInfo
 import io.ton.walletkit.presentation.model.TransactionRequest as TransactionRequestData
+import org.json.JSONObject
 
 /**
  * Represents a transaction request from a dApp.
@@ -12,12 +13,14 @@ import io.ton.walletkit.presentation.model.TransactionRequest as TransactionRequ
  * @property dAppInfo Information about the requesting dApp
  * @property request Transaction request details (recipient, amount, etc.)
  * @property preview Optional preview/emulation data (JSON string)
+ * @property eventJson Full event JSON from the bridge (required for approval/rejection)
  */
 class TransactionRequest internal constructor(
-    val requestId: Any,
+    val requestId: String,
     val dAppInfo: DAppInfo?,
     val request: TransactionRequestData,
     val preview: String? = null,
+    private val eventJson: JSONObject,
     private val engine: WalletKitEngine,
 ) {
     /**
@@ -26,7 +29,7 @@ class TransactionRequest internal constructor(
      * @throws io.ton.walletkit.bridge.WalletKitBridgeException if approval or signing fails
      */
     suspend fun approve() {
-        engine.approveTransaction(requestId)
+        engine.approveTransaction(eventJson)
     }
 
     /**
@@ -36,6 +39,6 @@ class TransactionRequest internal constructor(
      * @throws io.ton.walletkit.bridge.WalletKitBridgeException if rejection fails
      */
     suspend fun reject(reason: String? = null) {
-        engine.rejectTransaction(requestId, reason)
+        engine.rejectTransaction(eventJson, reason)
     }
 }

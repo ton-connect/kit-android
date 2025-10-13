@@ -125,65 +125,65 @@ interface WalletKitEngine {
     /**
      * Approve a connection request from a dApp.
      *
-     * @param requestId Request ID from the connect request event
+     * @param eventJson Full event JSON from the connect request event
      * @param walletAddress Wallet address to connect with
      * @throws WalletKitBridgeException if approval fails
      */
     suspend fun approveConnect(
-        requestId: Any,
+        eventJson: org.json.JSONObject,
         walletAddress: String,
     )
 
     /**
      * Reject a connection request from a dApp.
      *
-     * @param requestId Request ID from the connect request event
+     * @param eventJson Full event JSON from the connect request event
      * @param reason Optional reason for rejection
      * @throws WalletKitBridgeException if rejection fails
      */
     suspend fun rejectConnect(
-        requestId: Any,
+        eventJson: org.json.JSONObject,
         reason: String? = null,
     )
 
     /**
      * Approve and sign a transaction request.
      *
-     * @param requestId Request ID from the transaction request event
+     * @param eventJson Full event JSON from the transaction request event
      * @throws WalletKitBridgeException if approval or signing fails
      */
-    suspend fun approveTransaction(requestId: Any)
+    suspend fun approveTransaction(eventJson: org.json.JSONObject)
 
     /**
      * Reject a transaction request.
      *
-     * @param requestId Request ID from the transaction request event
+     * @param eventJson Full event JSON from the transaction request event
      * @param reason Optional reason for rejection
      * @throws WalletKitBridgeException if rejection fails
      */
     suspend fun rejectTransaction(
-        requestId: Any,
+        eventJson: org.json.JSONObject,
         reason: String? = null,
     )
 
     /**
      * Approve and sign a data signing request.
      *
-     * @param requestId Request ID from the sign data request event
+     * @param eventJson Full event JSON from the sign data request event
      * @return Signature result containing the base64-encoded signature
      * @throws WalletKitBridgeException if approval or signing fails
      */
-    suspend fun approveSignData(requestId: Any): SignDataResult
+    suspend fun approveSignData(eventJson: org.json.JSONObject): SignDataResult
 
     /**
      * Reject a data signing request.
      *
-     * @param requestId Request ID from the sign data request event
+     * @param eventJson Full event JSON from the sign data request event
      * @param reason Optional reason for rejection
      * @throws WalletKitBridgeException if rejection fails
      */
     suspend fun rejectSignData(
-        requestId: Any,
+        eventJson: org.json.JSONObject,
         reason: String? = null,
     )
 
@@ -201,6 +201,15 @@ interface WalletKitEngine {
      * @throws WalletKitBridgeException if disconnection fails
      */
     suspend fun disconnectSession(sessionId: String? = null)
+
+    /**
+     * Get all queued events from the bridge that haven't been consumed yet.
+     * This is a recovery mechanism to ensure events are never lost even if the bridge is recreated.
+     * Events are removed from the queue after being returned.
+     *
+     * @return List of event data objects (as JSONObject)
+     */
+    suspend fun getQueuedEvents(): List<org.json.JSONObject>
 
     /**
      * Destroy the engine and release all resources.

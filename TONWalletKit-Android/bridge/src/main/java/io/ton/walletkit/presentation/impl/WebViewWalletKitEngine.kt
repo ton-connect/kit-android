@@ -195,20 +195,18 @@ class WebViewWalletKitEngine(
         currentNetwork = config.network
         persistentStorageEnabled = config.enablePersistentStorage
 
-        val tonClientEndpoint =
-            config.tonClientEndpoint?.ifBlank { null }
-                ?: config.apiUrl?.ifBlank { null }
-                ?: defaultTonClientEndpoint(config.network)
-        apiBaseUrl = config.tonApiUrl?.ifBlank { null }
-            ?: defaultTonApiBase(config.network)
+        // Only use explicitly provided URLs; JS side handles defaults based on network
+        val tonClientEndpoint = config.tonClientEndpoint?.ifBlank { null }
+            ?: config.apiUrl?.ifBlank { null }
+        apiBaseUrl = config.tonApiUrl?.ifBlank { null } ?: ""
         tonApiKey = config.apiKey
 
         val payload =
             JSONObject().apply {
                 put("network", config.network)
-                put("apiUrl", tonClientEndpoint)
-                config.apiUrl?.let { put("apiBaseUrl", config.apiUrl) }
-                config.tonApiUrl?.let { put("tonApiUrl", config.tonApiUrl) }
+                // Only include URLs if explicitly provided; JS will use defaults otherwise
+                tonClientEndpoint?.let { put("apiUrl", it) }
+                config.tonApiUrl?.let { put("tonApiUrl", it) }
                 config.bridgeUrl?.let { put("bridgeUrl", it) }
                 config.bridgeName?.let { put("bridgeName", it) }
                 // Note: Persistent storage is controlled by enablePersistentStorage flag
@@ -229,18 +227,6 @@ class WebViewWalletKitEngine(
 
         // Ensure initialization happens with this config
         ensureWalletKitInitialized(config)
-    }
-
-    private fun defaultTonClientEndpoint(network: String): String = if (network.equals("mainnet", ignoreCase = true)) {
-        "https://toncenter.com/api/v2/jsonRPC"
-    } else {
-        "https://testnet.toncenter.com/api/v2/jsonRPC"
-    }
-
-    private fun defaultTonApiBase(network: String): String = if (network.equals("mainnet", ignoreCase = true)) {
-        "https://tonapi.io"
-    } else {
-        "https://testnet.tonapi.io"
     }
 
     override suspend fun addWalletFromMnemonic(
@@ -503,53 +489,53 @@ class WebViewWalletKitEngine(
     }
 
     override suspend fun approveConnect(
-        requestId: Any,
+        eventJson: JSONObject,
         walletAddress: String,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
-                put("requestId", requestId)
+                put("event", eventJson)
                 put("walletAddress", walletAddress)
             }
         call("approveConnectRequest", params)
     }
 
     override suspend fun rejectConnect(
-        requestId: Any,
+        eventJson: JSONObject,
         reason: String?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
-                put("requestId", requestId)
+                put("event", eventJson)
                 reason?.let { put("reason", it) }
             }
         call("rejectConnectRequest", params)
     }
 
-    override suspend fun approveTransaction(requestId: Any) {
+    override suspend fun approveTransaction(eventJson: JSONObject) {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply { put("requestId", requestId) }
+        val params = JSONObject().apply { put("event", eventJson) }
         call("approveTransactionRequest", params)
     }
 
     override suspend fun rejectTransaction(
-        requestId: Any,
+        eventJson: JSONObject,
         reason: String?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
-                put("requestId", requestId)
+                put("event", eventJson)
                 reason?.let { put("reason", it) }
             }
         call("rejectTransactionRequest", params)
     }
 
-    override suspend fun approveSignData(requestId: Any): SignDataResult {
+    override suspend fun approveSignData(eventJson: JSONObject): SignDataResult {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply { put("requestId", requestId) }
+        val params = JSONObject().apply { put("event", eventJson) }
         val result = call("approveSignDataRequest", params)
 
         Log.d(logTag, "approveSignData raw result: $result")
@@ -568,13 +554,13 @@ class WebViewWalletKitEngine(
     }
 
     override suspend fun rejectSignData(
-        requestId: Any,
+        eventJson: JSONObject,
         reason: String?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
-                put("requestId", requestId)
+                put("event", eventJson)
                 reason?.let { put("reason", it) }
             }
         call("rejectSignDataRequest", params)
@@ -608,6 +594,18 @@ class WebViewWalletKitEngine(
         val params = JSONObject()
         sessionId?.let { params.put("sessionId", it) }
         call("disconnectSession", if (params.length() == 0) null else params)
+    }
+
+    override suspend fun getQueuedEvents(): List<JSONObject> {
+        ensureWalletKitInitialized()
+        val result = call("getQueuedEvents")
+        val events = result.optJSONArray("events") ?: JSONArray()
+        return buildList(events.length()) {
+            for (index in 0 until events.length()) {
+                val event = events.optJSONObject(index) ?: continue
+                add(event)
+            }
+        }
     }
 
     override suspend fun destroy() {
@@ -689,20 +687,21 @@ class WebViewWalletKitEngine(
     private fun parseTypedEvent(type: String, data: JSONObject, raw: JSONObject): WalletKitEvent? {
         return when (type) {
             "connectRequest" -> {
-                val requestId = data.opt("id") ?: return null
+                val requestId = data.opt("id")?.toString() ?: return null
                 val dAppInfo = parseDAppInfo(data)
                 val permissions = parsePermissions(data)
                 val request = ConnectRequest(
                     requestId = requestId,
                     dAppInfo = dAppInfo,
                     permissions = permissions,
+                    eventJson = data, // Pass full event JSON for stateless bridge
                     engine = this,
                 )
                 WalletKitEvent.ConnectRequestEvent(request)
             }
 
             "transactionRequest" -> {
-                val requestId = data.opt("id") ?: return null
+                val requestId = data.opt("id")?.toString() ?: return null
                 val dAppInfo = parseDAppInfo(data)
                 val txRequest = parseTransactionRequest(data)
 
@@ -714,19 +713,21 @@ class WebViewWalletKitEngine(
                     dAppInfo = dAppInfo,
                     request = txRequest,
                     preview = preview,
+                    eventJson = data, // Pass full event JSON for stateless bridge
                     engine = this,
                 )
                 WalletKitEvent.TransactionRequestEvent(request)
             }
 
             "signDataRequest" -> {
-                val requestId = data.opt("id") ?: return null
+                val requestId = data.opt("id")?.toString() ?: return null
                 val dAppInfo = parseDAppInfo(data)
                 val signRequest = parseSignDataRequest(data)
                 val request = io.ton.walletkit.presentation.request.SignDataRequest(
                     requestId = requestId,
                     dAppInfo = dAppInfo,
                     request = signRequest,
+                    eventJson = data, // Pass full event JSON for stateless bridge
                     engine = this,
                 )
                 WalletKitEvent.SignDataRequestEvent(request)
