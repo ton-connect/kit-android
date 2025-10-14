@@ -5,8 +5,9 @@ package io.ton.walletkit.data.model
  *
  * @property activeWalletAddress Currently selected wallet address
  * @property lastSelectedNetwork Last selected network (testnet/mainnet)
+ * @suppress Internal storage model. Not part of public API.
  */
-data class StoredUserPreferences(
+internal data class StoredUserPreferences(
     val activeWalletAddress: String?,
     val lastSelectedNetwork: String?,
 )

@@ -21,8 +21,10 @@ import javax.crypto.spec.GCMParameterSpec
  * - AES-256-GCM for authenticated encryption
  * - Unique IV for each encryption operation
  * - Secure memory clearing after use
+ *
+ * @suppress This is an internal implementation class.
  */
-class CryptoManager(
+internal class CryptoManager(
     private val keystoreAlias: String = DEFAULT_KEYSTORE_ALIAS,
 ) {
     private val keyStore: KeyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply {

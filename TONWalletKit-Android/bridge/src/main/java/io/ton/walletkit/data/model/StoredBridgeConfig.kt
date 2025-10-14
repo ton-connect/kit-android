@@ -9,8 +9,9 @@ package io.ton.walletkit.data.model
  * @property apiKey API key (if used) - SENSITIVE
  * @property bridgeUrl TonConnect bridge URL
  * @property bridgeName Bridge identifier
+ * @suppress Internal storage model. Not part of public API.
  */
-data class StoredBridgeConfig(
+internal data class StoredBridgeConfig(
     val network: String,
     val tonClientEndpoint: String?,
     val tonApiUrl: String?,

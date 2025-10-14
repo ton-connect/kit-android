@@ -94,7 +94,7 @@ class WalletKitViewModel(
                     tonApiUrl = networkEndpoints(currentNetwork).tonApiUrl,
                     bridgeUrl = networkEndpoints(currentNetwork).bridgeUrl,
                     bridgeName = networkEndpoints(currentNetwork).bridgeName,
-                    appName = "tonkeeper", // Use registered wallet name for TonConnect compatibility
+                    appName = "Wallet", // Use registered wallet name for TonConnect compatibility
                     // Storage is always persistent - no allowMemoryStorage parameter
                 ),
             )

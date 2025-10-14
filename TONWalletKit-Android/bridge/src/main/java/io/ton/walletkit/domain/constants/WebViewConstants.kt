@@ -5,8 +5,10 @@ package io.ton.walletkit.domain.constants
  *
  * These constants define the WebView setup, asset paths, and JavaScript
  * interface names used for communication between Kotlin and JS.
+ *
+ * @suppress Internal implementation constants. Not part of public API.
  */
-object WebViewConstants {
+internal object WebViewConstants {
     /**
      * Name of the JavaScript interface exposed to WebView.
      *

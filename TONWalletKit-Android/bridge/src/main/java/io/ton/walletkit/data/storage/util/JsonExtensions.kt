@@ -6,7 +6,12 @@ import io.ton.walletkit.domain.constants.JsonConstants
 import org.json.JSONArray
 import org.json.JSONObject
 
-fun String.toStoredWalletRecord(): StoredWalletRecord? = runCatching {
+/**
+ * Internal JSON extension utilities for storage serialization.
+ * @suppress Internal utilities. Not part of public API.
+ */
+
+internal fun String.toStoredWalletRecord(): StoredWalletRecord? = runCatching {
     val json = JSONObject(this)
     val wordsArray = json.optJSONArray(JsonConstants.KEY_WORDS) ?: return null
     val words = List(wordsArray.length()) { index -> wordsArray.optString(index) }
@@ -18,19 +23,19 @@ fun String.toStoredWalletRecord(): StoredWalletRecord? = runCatching {
     )
 }.getOrNull()
 
-fun JSONObject.stringOrNull(key: String): String? {
+internal fun JSONObject.stringOrNull(key: String): String? {
     if (!has(key) || isNull(key)) return null
     return optString(key)
 }
 
-fun StoredWalletRecord.toJson(): JSONObject = JSONObject().apply {
+internal fun StoredWalletRecord.toJson(): JSONObject = JSONObject().apply {
     put(JsonConstants.KEY_WORDS, JSONArray(mnemonic))
     name?.let { put(JsonConstants.KEY_NAME, it) }
     network?.let { put(JsonConstants.KEY_NETWORK, it) }
     version?.let { put(JsonConstants.KEY_VERSION, it) }
 }
 
-fun StoredSessionHint.toJson(): JSONObject = JSONObject().apply {
+internal fun StoredSessionHint.toJson(): JSONObject = JSONObject().apply {
     manifestUrl?.let { put(JsonConstants.KEY_MANIFEST_URL, it) }
     dAppUrl?.let { put(JsonConstants.KEY_DAPP_URL, it) }
     iconUrl?.let { put(JsonConstants.KEY_ICON_URL, it) }

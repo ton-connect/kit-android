@@ -5,8 +5,10 @@ package io.ton.walletkit.domain.constants
  *
  * These constants provide consistent logging tags for different components,
  * making it easier to filter and search logs during development and debugging.
+ *
+ * @suppress Internal implementation constants. Not part of public API.
  */
-object LogConstants {
+internal object LogConstants {
     /**
      * Log tag for SecureWalletKitStorage class.
      */

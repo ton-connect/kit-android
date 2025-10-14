@@ -3,8 +3,10 @@ package io.ton.walletkit.domain.constants
 /**
  * Miscellaneous string constants used throughout the WalletKit SDK.
  * Contains various literals that don't fit into other constant categories.
+ *
+ * @suppress Internal implementation constants. Not part of public API.
  */
-object MiscConstants {
+internal object MiscConstants {
     // String Delimiters and Separators
     const val SPACE_DELIMITER = " "
     const val EMPTY_STRING = ""

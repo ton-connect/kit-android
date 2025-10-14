@@ -1,4 +1,4 @@
-package io.ton.walletkit.presentation.storage.bridge
+package io.ton.walletkit.data.storage.bridge
 
 /**
  * Storage adapter interface for the WalletKit bridge to persist data between app restarts.

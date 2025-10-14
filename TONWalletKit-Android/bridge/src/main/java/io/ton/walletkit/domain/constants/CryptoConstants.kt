@@ -3,8 +3,10 @@ package io.ton.walletkit.domain.constants
 /**
  * Constants for cryptographic operations and Android KeyStore.
  * Defines algorithm specifications, key sizes, and keystore parameters.
+ *
+ * @suppress Internal implementation constants. Not part of public API.
  */
-object CryptoConstants {
+internal object CryptoConstants {
     // Keystore and Cipher
     const val ANDROID_KEYSTORE = "AndroidKeyStore"
     const val DEFAULT_KEYSTORE_ALIAS = "walletkit_master_key"

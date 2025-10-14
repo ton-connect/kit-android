@@ -5,8 +5,10 @@ package io.ton.walletkit.domain.constants
  *
  * These constants ensure consistent JSON key naming when serializing/deserializing
  * wallet records, session hints, and bridge configuration.
+ *
+ * @suppress Internal implementation constants. Not part of public API.
  */
-object JsonConstants {
+internal object JsonConstants {
     // Wallet record keys
     /**
      * JSON key for mnemonic phrase array.

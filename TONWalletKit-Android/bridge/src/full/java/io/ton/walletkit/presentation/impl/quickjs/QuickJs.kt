@@ -6,7 +6,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 private val IGNORED_METHOD_NAMES = setOf("equals", "hashCode", "toString", "wait", "notify", "notifyAll")
 
-class QuickJs private constructor(private var nativePointer: Long) : Closeable {
+/**
+ * QuickJS engine wrapper.
+ * @suppress Internal implementation class. Not part of public API.
+ */
+internal class QuickJs private constructor(private var nativePointer: Long) : Closeable {
     private val closed = AtomicBoolean(false)
 
     init {

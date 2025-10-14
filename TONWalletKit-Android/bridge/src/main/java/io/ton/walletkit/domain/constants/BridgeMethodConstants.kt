@@ -6,8 +6,10 @@ package io.ton.walletkit.domain.constants
  * These constants define the method names used when calling JavaScript functions
  * in the WebView-based WalletKit engine. Centralizing these names ensures consistency
  * and makes refactoring easier.
+ *
+ * @suppress Internal implementation constants. Not part of public API.
  */
-object BridgeMethodConstants {
+internal object BridgeMethodConstants {
     /**
      * Method name for initializing the WalletKit bridge.
      */

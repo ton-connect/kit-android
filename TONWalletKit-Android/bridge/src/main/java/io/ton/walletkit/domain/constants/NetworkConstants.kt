@@ -5,8 +5,10 @@ package io.ton.walletkit.domain.constants
  *
  * These constants define the available networks and their default API endpoints
  * used throughout the SDK.
+ *
+ * @suppress Internal implementation constants. Not part of public API.
  */
-object NetworkConstants {
+internal object NetworkConstants {
     /**
      * Mainnet network identifier.
      */

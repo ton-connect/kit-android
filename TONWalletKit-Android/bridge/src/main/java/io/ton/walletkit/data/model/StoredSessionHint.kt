@@ -10,8 +10,9 @@ package io.ton.walletkit.data.model
  * @property manifestUrl URL to the dApp's TON Connect manifest
  * @property dAppUrl Main URL of the dApp's website
  * @property iconUrl URL to the dApp's icon/logo for UI display
+ * @suppress Internal storage model. Not part of public API.
  */
-data class StoredSessionHint(
+internal data class StoredSessionHint(
     val manifestUrl: String?,
     val dAppUrl: String?,
     val iconUrl: String?,

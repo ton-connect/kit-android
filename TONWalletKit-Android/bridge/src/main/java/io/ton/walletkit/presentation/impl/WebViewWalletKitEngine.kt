@@ -14,6 +14,8 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
+import io.ton.walletkit.data.storage.bridge.BridgeStorageAdapter
+import io.ton.walletkit.data.storage.bridge.SecureBridgeStorageAdapter
 import io.ton.walletkit.domain.constants.BridgeMethodConstants
 import io.ton.walletkit.domain.constants.EventTypeConstants
 import io.ton.walletkit.domain.constants.JsonConstants
@@ -41,8 +43,6 @@ import io.ton.walletkit.presentation.event.TransactionRequestEvent
 import io.ton.walletkit.presentation.event.WalletKitEvent
 import io.ton.walletkit.presentation.listener.WalletKitEventHandler
 import io.ton.walletkit.presentation.request.ConnectRequest
-import io.ton.walletkit.presentation.storage.bridge.BridgeStorageAdapter
-import io.ton.walletkit.presentation.storage.bridge.SecureBridgeStorageAdapter
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -66,8 +66,10 @@ import java.util.concurrent.CopyOnWriteArraySet
  * **Persistent Storage**: By default, this engine persists wallet and session data
  * using secure encrypted storage. Data is automatically restored on app restart.
  * Storage can be disabled via config for testing or privacy-focused use cases.
+ *
+ * @suppress This is an internal implementation class. Use [WalletKitEngineFactory.create] instead.
  */
-class WebViewWalletKitEngine(
+internal class WebViewWalletKitEngine(
     context: Context,
     private val assetPath: String = WebViewConstants.DEFAULT_ASSET_PATH,
 ) : WalletKitEngine {
@@ -154,15 +156,22 @@ class WebViewWalletKitEngine(
         }
     }
 
-    /** Attach the WebView to a parent view so it can be inspected/debugged if needed. */
-    fun attachTo(parent: ViewGroup) {
+    /**
+     * Attach the WebView to a parent view so it can be inspected/debugged if needed.
+     * @suppress Internal debugging method. Not part of public API.
+     */
+    internal fun attachTo(parent: ViewGroup) {
         if (webView.parent !== parent) {
             (webView.parent as? ViewGroup)?.removeView(webView)
             parent.addView(webView)
         }
     }
 
-    fun asView(): WebView = webView
+    /**
+     * Get the underlying WebView instance.
+     * @suppress Internal debugging method. Not part of public API.
+     */
+    internal fun asView(): WebView = webView
 
     override fun addEventHandler(handler: WalletKitEventHandler): Closeable {
         eventHandlers.add(handler)
@@ -1138,6 +1147,3 @@ class WebViewWalletKitEngine(
         const val ERROR_FAILED_SUFFIX = "] failed: "
     }
 }
-
-/** Legacy alias retained for callers that still reference the old class name. */
-typealias WalletKitBridge = WebViewWalletKitEngine

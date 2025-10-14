@@ -89,7 +89,10 @@ import kotlin.jvm.java
     ),
     level = DeprecationLevel.WARNING,
 )
-class QuickJsWalletKitEngine(
+/**
+ * @suppress Internal implementation class. Not part of public API. Use WalletKitEngineFactory.create instead.
+ */
+internal class QuickJsWalletKitEngine(
     context: Context,
     private val assetPath: String = DEFAULT_BUNDLE_ASSET,
     private val httpClient: OkHttpClient = defaultHttpClient(),
@@ -1664,7 +1667,11 @@ class QuickJsWalletKitEngine(
 // Unified Native Host for QuickJS
 // Final attempt: Regular class, no constructor params, instance methods (not static)
 // Let QuickJS create its own instance via reflection
-class QuickJsNativeHost {
+/**
+ * Internal native host for QuickJS JavaScript engine.
+ * @suppress Internal implementation class. Not part of public API.
+ */
+internal class QuickJsNativeHost {
     private val random = SecureRandom()
 
     companion object {

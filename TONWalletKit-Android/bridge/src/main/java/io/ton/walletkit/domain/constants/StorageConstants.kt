@@ -5,8 +5,10 @@ package io.ton.walletkit.domain.constants
  *
  * These constants ensure consistent key naming across storage implementations
  * and make refactoring safer by avoiding hardcoded string literals.
+ *
+ * @suppress Internal implementation constants. Not part of public API.
  */
-object StorageConstants {
+internal object StorageConstants {
     /**
      * Prefix for wallet-related storage keys.
      *

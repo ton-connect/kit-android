@@ -29,9 +29,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.ui.components.EmptyStateCard
 import io.ton.walletkit.domain.model.Transaction
 import io.ton.walletkit.domain.model.TransactionType
-import io.ton.walletkit.demo.ui.components.EmptyStateCard
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat

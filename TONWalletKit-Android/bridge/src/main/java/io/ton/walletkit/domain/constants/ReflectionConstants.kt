@@ -6,8 +6,10 @@ package io.ton.walletkit.domain.constants
  * These constants define fully qualified class names used for reflective
  * instantiation of engine implementations, particularly for QuickJS support
  * in the full variant.
+ *
+ * @suppress Internal implementation constants. Not part of public API.
  */
-object ReflectionConstants {
+internal object ReflectionConstants {
     /**
      * Fully qualified class name for QuickJsWalletKitEngine.
      *

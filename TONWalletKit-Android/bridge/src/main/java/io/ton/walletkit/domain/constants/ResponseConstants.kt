@@ -6,8 +6,10 @@ package io.ton.walletkit.domain.constants
  * These constants represent commonly used field names in JSON responses
  * from the JavaScript bridge layer, including pagination, results, and
  * special values used in transaction parsing.
+ *
+ * @suppress Internal implementation constants. Not part of public API.
  */
-object ResponseConstants {
+internal object ResponseConstants {
     // Common response structure keys
     /**
      * JSON key for response result object/value.

@@ -14,8 +14,9 @@ package io.ton.walletkit.data.model
  * @property name Optional user-defined name for the wallet (e.g., "Main Wallet")
  * @property network Optional network identifier (e.g., "mainnet", "testnet")
  * @property version Optional wallet contract version (e.g., "v4R2")
+ * @suppress Internal storage model. Not part of public API.
  */
-data class StoredWalletRecord(
+internal data class StoredWalletRecord(
     val mnemonic: List<String>,
     val name: String?,
     val network: String?,

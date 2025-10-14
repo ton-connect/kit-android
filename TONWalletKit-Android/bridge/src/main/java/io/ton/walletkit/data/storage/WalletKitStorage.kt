@@ -5,7 +5,12 @@ import io.ton.walletkit.data.model.StoredSessionData
 import io.ton.walletkit.data.model.StoredUserPreferences
 import io.ton.walletkit.data.model.StoredWalletRecord
 
-interface WalletKitStorage {
+/**
+ * Internal storage interface for WalletKit data persistence.
+ *
+ * @suppress This is an internal interface. Partners should not implement or use this directly.
+ */
+internal interface WalletKitStorage {
     // Wallet management
     suspend fun saveWallet(accountId: String, record: StoredWalletRecord)
 

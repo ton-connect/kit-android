@@ -37,8 +37,9 @@ import org.json.JSONObject
  *
  * @param context Application context
  * @param sharedPrefsName Name for the encrypted SharedPreferences file
+ * @suppress This is an internal implementation class.
  */
-class SecureWalletKitStorage(
+internal class SecureWalletKitStorage(
     context: Context,
     sharedPrefsName: String = StorageConstants.DEFAULT_SECURE_STORAGE_NAME,
 ) : WalletKitStorage {

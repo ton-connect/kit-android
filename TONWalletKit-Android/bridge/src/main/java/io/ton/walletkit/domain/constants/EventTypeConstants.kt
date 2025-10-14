@@ -5,8 +5,10 @@ package io.ton.walletkit.domain.constants
  *
  * These constants define the event types that can be received from the JavaScript
  * bridge layer. They are used for event routing and handling in the presentation layer.
+ *
+ * @suppress Internal implementation constants. Not part of public API.
  */
-object EventTypeConstants {
+internal object EventTypeConstants {
     /**
      * Event type for TON Connect connection requests.
      */

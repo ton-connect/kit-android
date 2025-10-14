@@ -14,8 +14,9 @@ package io.ton.walletkit.data.model
  * @property dAppDescription Description of the dApp
  * @property domain Domain of the dApp
  * @property dAppIconUrl Icon URL of the dApp
+ * @suppress Internal storage model. Not part of public API.
  */
-data class StoredSessionData(
+internal data class StoredSessionData(
     val sessionId: String,
     val walletAddress: String,
     val createdAt: String,

@@ -1,4 +1,4 @@
-package io.ton.walletkit.presentation.storage.bridge
+package io.ton.walletkit.data.storage.bridge
 
 import android.content.Context
 import android.util.Log
