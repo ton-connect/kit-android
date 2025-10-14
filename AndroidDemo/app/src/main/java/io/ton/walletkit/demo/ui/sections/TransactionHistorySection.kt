@@ -29,6 +29,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.domain.model.Transaction
+import io.ton.walletkit.domain.model.TransactionType
 import io.ton.walletkit.demo.ui.components.EmptyStateCard
 import org.json.JSONArray
 import org.json.JSONObject
@@ -38,7 +40,7 @@ import java.util.Locale
 
 @Composable
 fun TransactionHistorySection(
-    transactions: List<io.ton.walletkit.presentation.model.Transaction>?,
+    transactions: List<Transaction>?,
     walletAddress: String,
     isRefreshing: Boolean,
     onRefreshTransactions: () -> Unit,
@@ -107,11 +109,11 @@ fun TransactionHistorySection(
 
 @Composable
 private fun TransactionItem(
-    transaction: io.ton.walletkit.presentation.model.Transaction,
+    transaction: Transaction,
     walletAddress: String,
     onClick: () -> Unit,
 ) {
-    val isOutgoing = transaction.type == io.ton.walletkit.presentation.model.TransactionType.OUTGOING
+    val isOutgoing = transaction.type == TransactionType.OUTGOING
     val amount = formatNanoTon(transaction.amount)
     val timestamp = transaction.timestamp
     val hash = transaction.hash

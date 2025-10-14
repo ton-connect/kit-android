@@ -1,8 +1,8 @@
 package io.ton.walletkit.presentation.request
 
+import io.ton.walletkit.domain.model.DAppInfo
 import io.ton.walletkit.presentation.WalletKitEngine
 import io.ton.walletkit.presentation.event.ConnectRequestEvent
-import io.ton.walletkit.presentation.model.DAppInfo
 
 /**
  * Represents a connection request from a dApp.

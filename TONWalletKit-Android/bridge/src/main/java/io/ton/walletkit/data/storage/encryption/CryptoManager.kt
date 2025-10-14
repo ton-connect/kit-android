@@ -1,4 +1,4 @@
-package io.ton.walletkit.data.source.local.encryption
+package io.ton.walletkit.data.storage.encryption
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties

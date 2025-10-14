@@ -1,8 +1,8 @@
-package io.ton.walletkit.storage.bridge
+package io.ton.walletkit.presentation.storage.bridge
 
 import android.content.Context
 import android.util.Log
-import io.ton.walletkit.storage.impl.SecureWalletKitStorage
+import io.ton.walletkit.data.storage.impl.SecureWalletKitStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

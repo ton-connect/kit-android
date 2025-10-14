@@ -1,4 +1,4 @@
-package io.ton.walletkit.storage.impl
+package io.ton.walletkit.data.storage.impl
 
 import android.content.Context
 import android.util.Base64
@@ -9,8 +9,8 @@ import io.ton.walletkit.data.model.StoredBridgeConfig
 import io.ton.walletkit.data.model.StoredSessionData
 import io.ton.walletkit.data.model.StoredUserPreferences
 import io.ton.walletkit.data.model.StoredWalletRecord
-import io.ton.walletkit.data.source.local.encryption.CryptoManager
-import io.ton.walletkit.storage.WalletKitStorage
+import io.ton.walletkit.data.storage.WalletKitStorage
+import io.ton.walletkit.data.storage.encryption.CryptoManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject

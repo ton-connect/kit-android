@@ -1,4 +1,4 @@
-package io.ton.walletkit.quickjs
+package io.ton.walletkit.presentation.impl.quickjs
 
 import java.io.Closeable
 import java.lang.reflect.Method

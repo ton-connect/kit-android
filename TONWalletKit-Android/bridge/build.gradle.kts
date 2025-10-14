@@ -179,6 +179,11 @@ tasks.matching { it.name.contains("assemble") && !it.name.contains("Test") }.con
     dependsOn(syncWalletKitWebViewAssets, syncWalletKitQuickJsAssets)
 }
 
+// Fix implicit dependency warnings by explicitly declaring dependencies on merge tasks
+tasks.matching { it.name.contains("merge") && it.name.contains("Assets") }.configureEach {
+    dependsOn(syncWalletKitWebViewAssets, syncWalletKitQuickJsAssets)
+}
+
 // JaCoCo configuration - exclude deprecated QuickJS module from coverage
 tasks.withType<JacocoReport> {
     reports {

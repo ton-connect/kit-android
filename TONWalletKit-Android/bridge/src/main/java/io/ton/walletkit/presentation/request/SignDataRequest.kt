@@ -1,10 +1,10 @@
 package io.ton.walletkit.presentation.request
 
+import io.ton.walletkit.domain.model.DAppInfo
+import io.ton.walletkit.domain.model.SignDataResult
 import io.ton.walletkit.presentation.WalletKitEngine
 import io.ton.walletkit.presentation.event.SignDataRequestEvent
-import io.ton.walletkit.presentation.model.DAppInfo
-import io.ton.walletkit.presentation.model.SignDataResult
-import io.ton.walletkit.presentation.model.SignDataRequest as SignDataRequestData
+import io.ton.walletkit.domain.model.SignDataRequest as SignDataRequestData
 
 /**
  * Represents a data signing request from a dApp.

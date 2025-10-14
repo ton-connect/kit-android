@@ -1,4 +1,4 @@
-package io.ton.walletkit.storage.util
+package io.ton.walletkit.data.storage.util
 
 import io.ton.walletkit.data.model.StoredSessionHint
 import io.ton.walletkit.data.model.StoredWalletRecord

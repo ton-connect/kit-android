@@ -1,9 +1,9 @@
 package io.ton.walletkit.bridge
 
-import io.ton.walletkit.presentation.model.Transaction
-import io.ton.walletkit.presentation.model.TransactionType
-import io.ton.walletkit.presentation.model.WalletAccount
-import io.ton.walletkit.presentation.model.WalletState
+import io.ton.walletkit.domain.model.Transaction
+import io.ton.walletkit.domain.model.TransactionType
+import io.ton.walletkit.domain.model.WalletAccount
+import io.ton.walletkit.domain.model.WalletState
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

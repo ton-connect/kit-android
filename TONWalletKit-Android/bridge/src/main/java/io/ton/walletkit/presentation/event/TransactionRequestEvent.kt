@@ -1,6 +1,6 @@
 package io.ton.walletkit.presentation.event
 
-import io.ton.walletkit.presentation.model.DAppInfo
+import io.ton.walletkit.domain.model.DAppInfo
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

@@ -1,4 +1,4 @@
-package io.ton.walletkit.presentation.model
+package io.ton.walletkit.domain.model
 
 /**
  * Result of a sign data operation.

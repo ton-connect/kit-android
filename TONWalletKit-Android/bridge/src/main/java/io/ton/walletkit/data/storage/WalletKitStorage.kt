@@ -1,4 +1,4 @@
-package io.ton.walletkit.storage
+package io.ton.walletkit.data.storage
 
 import io.ton.walletkit.data.model.StoredBridgeConfig
 import io.ton.walletkit.data.model.StoredSessionData

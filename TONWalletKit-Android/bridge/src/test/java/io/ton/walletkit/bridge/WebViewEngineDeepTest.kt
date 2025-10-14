@@ -3,14 +3,14 @@ package io.ton.walletkit.bridge
 import android.content.Context
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
+import io.ton.walletkit.domain.model.Transaction
+import io.ton.walletkit.domain.model.TransactionType
+import io.ton.walletkit.domain.model.WalletAccount
 import io.ton.walletkit.presentation.WalletKitBridgeException
 import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
 import io.ton.walletkit.presentation.event.WalletKitEvent
 import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
 import io.ton.walletkit.presentation.listener.WalletKitEventHandler
-import io.ton.walletkit.presentation.model.Transaction
-import io.ton.walletkit.presentation.model.TransactionType
-import io.ton.walletkit.presentation.model.WalletAccount
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

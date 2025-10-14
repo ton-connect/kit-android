@@ -1,4 +1,4 @@
-package io.ton.walletkit.presentation.model
+package io.ton.walletkit.domain.model
 
 /**
  * Represents a blockchain transaction.
@@ -26,17 +26,3 @@ data class Transaction(
     val lt: String? = null,
     val blockSeqno: Int? = null,
 )
-
-/**
- * Type of blockchain transaction.
- */
-enum class TransactionType {
-    /** Transaction where this wallet receives funds */
-    INCOMING,
-
-    /** Transaction where this wallet sends funds */
-    OUTGOING,
-
-    /** Transaction type could not be determined */
-    UNKNOWN,
-}

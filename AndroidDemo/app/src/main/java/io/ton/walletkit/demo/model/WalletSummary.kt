@@ -1,6 +1,6 @@
 package io.ton.walletkit.demo.model
 
-import io.ton.walletkit.presentation.model.Transaction
+import io.ton.walletkit.domain.model.Transaction
 
 data class WalletSummary(
     val address: String,

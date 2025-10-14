@@ -1,15 +1,15 @@
 package io.ton.walletkit.presentation
 
+import io.ton.walletkit.domain.model.SignDataResult
+import io.ton.walletkit.domain.model.Transaction
+import io.ton.walletkit.domain.model.WalletAccount
+import io.ton.walletkit.domain.model.WalletSession
+import io.ton.walletkit.domain.model.WalletState
 import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
 import io.ton.walletkit.presentation.event.ConnectRequestEvent
 import io.ton.walletkit.presentation.event.SignDataRequestEvent
 import io.ton.walletkit.presentation.event.TransactionRequestEvent
 import io.ton.walletkit.presentation.listener.WalletKitEventHandler
-import io.ton.walletkit.presentation.model.SignDataResult
-import io.ton.walletkit.presentation.model.Transaction
-import io.ton.walletkit.presentation.model.WalletAccount
-import io.ton.walletkit.presentation.model.WalletSession
-import io.ton.walletkit.presentation.model.WalletState
 import java.io.Closeable
 
 /**
@@ -215,29 +215,4 @@ interface WalletKitEngine {
      * @return JSONObject response (test API, not yet typed)
      */
     suspend fun injectSignDataRequest(requestData: org.json.JSONObject): org.json.JSONObject
-}
-
-/**
- * Identifies which JavaScript runtime engine is being used.
- */
-enum class WalletKitEngineKind {
-    /**
-     * WebView-based engine (recommended).
-     * - 2x faster than QuickJS
-     * - Actively maintained
-     * - Production-ready
-     */
-    WEBVIEW,
-
-    /**
-     * QuickJS-based engine (deprecated).
-     * @deprecated QuickJS is 2x slower than WebView and is no longer maintained.
-     * Use WEBVIEW instead. See QUICKJS_DEPRECATION.md for details.
-     */
-    @Deprecated(
-        message = "QuickJS is deprecated. Use WEBVIEW instead for 2x better performance.",
-        replaceWith = ReplaceWith("WalletKitEngineKind.WEBVIEW"),
-        level = DeprecationLevel.WARNING,
-    )
-    QUICKJS,
 }

@@ -23,11 +23,13 @@ import io.ton.walletkit.demo.storage.DemoAppStorage
 import io.ton.walletkit.demo.storage.UserPreferences
 import io.ton.walletkit.demo.storage.WalletRecord
 import io.ton.walletkit.demo.util.TransactionDiffUtil
+import io.ton.walletkit.domain.model.Transaction
+import io.ton.walletkit.domain.model.TransactionType
+import io.ton.walletkit.domain.model.WalletAccount
 import io.ton.walletkit.presentation.WalletKitEngine
 import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
 import io.ton.walletkit.presentation.event.WalletKitEvent
 import io.ton.walletkit.presentation.listener.WalletKitEventHandler
-import io.ton.walletkit.presentation.model.WalletAccount
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -1132,8 +1134,8 @@ class WalletKitViewModel(
         _state.update { it.copy(sheetState = SheetState.TransactionDetail(detail)) }
     }
 
-    private fun parseTransactionDetail(tx: io.ton.walletkit.presentation.model.Transaction, walletAddress: String): TransactionDetailUi {
-        val isOutgoing = tx.type == io.ton.walletkit.presentation.model.TransactionType.OUTGOING
+    private fun parseTransactionDetail(tx: Transaction, walletAddress: String): TransactionDetailUi {
+        val isOutgoing = tx.type == TransactionType.OUTGOING
 
         // Transaction already has parsed data from the bridge
         return TransactionDetailUi(

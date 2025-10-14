@@ -1,4 +1,4 @@
-package io.ton.walletkit.presentation.model
+package io.ton.walletkit.domain.model
 
 /**
  * Represents a wallet account managed by WalletKit.

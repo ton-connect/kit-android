@@ -66,8 +66,22 @@ object WalletKitEngineFactory {
         try {
             // Use reflection only for QuickJS to avoid compile-time dependency in webview variant
             val clazz = Class.forName("io.ton.walletkit.presentation.impl.QuickJsWalletKitEngine")
-            val constructor = clazz.getConstructor(Context::class.java)
-            return constructor.newInstance(context) as WalletKitEngine
+            // QuickJsWalletKitEngine has additional constructor parameters with defaults
+            // Try the primary constructor: (Context, String, OkHttpClient)
+            try {
+                val okHttpClientClass = Class.forName("okhttp3.OkHttpClient")
+                val constructor = clazz.getConstructor(Context::class.java, String::class.java, okHttpClientClass)
+                // Use null for optional parameters to use defaults (Kotlin handles this via synthetic methods)
+                // Actually, we need to invoke with actual default values
+                val defaultAssetPath = "walletkit"
+                val okHttpClientConstructor = okHttpClientClass.getConstructor()
+                val defaultHttpClient = okHttpClientConstructor.newInstance()
+                return constructor.newInstance(context, defaultAssetPath, defaultHttpClient) as WalletKitEngine
+            } catch (e: NoSuchMethodException) {
+                // Fallback: try single-arg constructor if it exists
+                val constructor = clazz.getConstructor(Context::class.java)
+                return constructor.newInstance(context) as WalletKitEngine
+            }
         } catch (e: ClassNotFoundException) {
             throw IllegalStateException(
                 "QuickJS engine is not available in this SDK variant. " +

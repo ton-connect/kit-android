@@ -1,25 +1,25 @@
-package io.ton.walletkit.bridge.impl
+package io.ton.walletkit.presentation.impl
 
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import io.ton.walletkit.domain.model.DAppInfo
+import io.ton.walletkit.domain.model.SignDataResult
+import io.ton.walletkit.domain.model.Transaction
+import io.ton.walletkit.domain.model.TransactionType
+import io.ton.walletkit.domain.model.WalletAccount
+import io.ton.walletkit.domain.model.WalletSession
+import io.ton.walletkit.domain.model.WalletState
 import io.ton.walletkit.presentation.WalletKitBridgeException
 import io.ton.walletkit.presentation.WalletKitEngine
 import io.ton.walletkit.presentation.WalletKitEngineKind
 import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
 import io.ton.walletkit.presentation.event.WalletKitEvent
+import io.ton.walletkit.presentation.impl.quickjs.QuickJs
 import io.ton.walletkit.presentation.listener.WalletKitEventHandler
-import io.ton.walletkit.presentation.model.DAppInfo
-import io.ton.walletkit.presentation.model.SignDataResult
-import io.ton.walletkit.presentation.model.Transaction
-import io.ton.walletkit.presentation.model.TransactionType
-import io.ton.walletkit.presentation.model.WalletAccount
-import io.ton.walletkit.presentation.model.WalletSession
-import io.ton.walletkit.presentation.model.WalletState
 import io.ton.walletkit.presentation.request.ConnectRequest
 import io.ton.walletkit.presentation.request.SignDataRequest
 import io.ton.walletkit.presentation.request.TransactionRequest
-import io.ton.walletkit.quickjs.QuickJs
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -1002,14 +1002,14 @@ class QuickJsWalletKitEngine(
         }
     }
 
-    private fun parseTransactionRequest(data: JSONObject): io.ton.walletkit.presentation.model.TransactionRequest = io.ton.walletkit.presentation.model.TransactionRequest(
+    private fun parseTransactionRequest(data: JSONObject): io.ton.walletkit.domain.model.TransactionRequest = io.ton.walletkit.domain.model.TransactionRequest(
         recipient = data.optNullableString("to") ?: data.optNullableString("recipient") ?: "",
         amount = data.optNullableString("amount") ?: data.optNullableString("value") ?: "0",
         comment = data.optNullableString("comment") ?: data.optNullableString("text"),
         payload = data.optNullableString("payload"),
     )
 
-    private fun parseSignDataRequest(data: JSONObject): io.ton.walletkit.presentation.model.SignDataRequest {
+    private fun parseSignDataRequest(data: JSONObject): io.ton.walletkit.domain.model.SignDataRequest {
         // Parse params array - params[0] contains stringified JSON with schema_crc and payload
         var payload = data.optNullableString("payload") ?: data.optNullableString("data") ?: ""
         var schema: String? = data.optNullableString("schema")
@@ -1037,7 +1037,7 @@ class QuickJsWalletKitEngine(
             }
         }
 
-        return io.ton.walletkit.presentation.model.SignDataRequest(
+        return io.ton.walletkit.domain.model.SignDataRequest(
             payload = payload,
             schema = schema,
         )
