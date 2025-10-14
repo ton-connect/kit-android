@@ -6,9 +6,6 @@ import io.ton.walletkit.presentation.request.TransactionRequest
 
 /**
  * Represents events from WalletKit bridge using a type-safe sealed hierarchy for all possible events.
- *
- * This is an alternative to the [io.ton.walletkit.presentation.listener.WalletKitEngineListener] interface
- * that provides sealed classes and exhaustive when() expressions.
  */
 sealed class WalletKitEvent {
     /**

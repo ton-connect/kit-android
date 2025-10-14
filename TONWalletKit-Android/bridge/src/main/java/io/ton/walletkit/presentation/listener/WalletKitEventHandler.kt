@@ -6,7 +6,7 @@ import io.ton.walletkit.presentation.event.WalletKitEvent
  * Typed event handler for WalletKit bridge events.
  * Provides a single method with sealed event types for exhaustive handling.
  *
- * This is an alternative to [WalletKitEngineListener] that offers sealed classes and exhaustive when() expressions.
+ * Offers sealed classes and exhaustive when() expressions.
  *
  * Example usage:
  * ```kotlin

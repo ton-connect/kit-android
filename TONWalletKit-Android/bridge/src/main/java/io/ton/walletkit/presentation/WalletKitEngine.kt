@@ -16,7 +16,7 @@ import java.io.Closeable
  * Abstraction over a runtime that can execute the WalletKit JavaScript bundle and expose
  * the wallet APIs to Android callers. Implementations may back the runtime with a WebView or
  * an embedded JavaScript engine such as QuickJS. Every implementation must provide the same
- * JSON-RPC surface as the historical [io.ton.walletkit.presentation.impl.WalletKitBridge] class.
+ * JSON-RPC surface as the historical [WalletKitBridge] class.
  *
  * **Auto-Initialization:**
  * All methods that require WalletKit initialization will automatically initialize the SDK

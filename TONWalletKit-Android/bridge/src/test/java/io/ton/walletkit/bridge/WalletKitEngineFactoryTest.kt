@@ -75,7 +75,7 @@ class WalletKitEngineFactoryTest {
 
     @Test
     fun `isAvailable checks all enum values`() {
-        for (kind in WalletKitEngineKind.values()) {
+        for (kind in WalletKitEngineKind.entries) {
             val available = WalletKitEngineFactory.isAvailable(kind)
             when (kind) {
                 WalletKitEngineKind.WEBVIEW -> assertTrue(available)
@@ -87,7 +87,7 @@ class WalletKitEngineFactoryTest {
 
     @Test
     fun `WalletKitEngineKind enum values are accessible`() {
-        val values = WalletKitEngineKind.values()
+        val values = WalletKitEngineKind.entries.toTypedArray()
         assertEquals(2, values.size)
         assertTrue(values.contains(WalletKitEngineKind.WEBVIEW))
         @Suppress("DEPRECATION")

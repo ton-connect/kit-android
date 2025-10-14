@@ -26,7 +26,7 @@ class TransactionRequest internal constructor(
     /**
      * Approve this transaction request.
      *
-     * @throws io.ton.walletkit.bridge.WalletKitBridgeException if approval fails
+     * @throws WalletKitBridgeException if approval fails
      */
     suspend fun approve() {
         engine.approveTransaction(event)
@@ -36,7 +36,7 @@ class TransactionRequest internal constructor(
      * Reject this transaction request.
      *
      * @param reason Optional reason for rejection
-     * @throws io.ton.walletkit.bridge.WalletKitBridgeException if rejection fails
+     * @throws WalletKitBridgeException if rejection fails
      */
     suspend fun reject(reason: String? = null) {
         engine.rejectTransaction(event, reason)

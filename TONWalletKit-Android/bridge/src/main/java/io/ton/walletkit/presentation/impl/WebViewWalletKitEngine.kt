@@ -49,7 +49,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONException
@@ -313,7 +312,10 @@ internal class WebViewWalletKitEngine(
                 // When disabled, storage operations return immediately without persisting
             }
 
-        Log.d(logTag, ERROR_INITIALIZING_WALLETKIT + persistentStorageEnabled + ", app: " + appName + " v" + appVersion)
+        Log.d(
+            logTag,
+            "$ERROR_INITIALIZING_WALLETKIT$persistentStorageEnabled, app: $appName v$appVersion",
+        )
         call(BridgeMethodConstants.METHOD_INIT, payload)
     }
 

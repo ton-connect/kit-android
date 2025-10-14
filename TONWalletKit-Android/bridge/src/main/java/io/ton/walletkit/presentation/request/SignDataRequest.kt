@@ -26,7 +26,7 @@ class SignDataRequest internal constructor(
      * Approve and sign this data signing request.
      *
      * @return Signature result containing the base64-encoded signature
-     * @throws io.ton.walletkit.bridge.WalletKitBridgeException if approval or signing fails
+     * @throws WalletKitBridgeException if approval or signing fails
      */
     suspend fun approve(): SignDataResult = engine.approveSignData(event)
 
@@ -34,7 +34,7 @@ class SignDataRequest internal constructor(
      * Reject this data signing request.
      *
      * @param reason Optional reason for rejection
-     * @throws io.ton.walletkit.bridge.WalletKitBridgeException if rejection fails
+     * @throws WalletKitBridgeException if rejection fails
      */
     suspend fun reject(reason: String? = null) {
         engine.rejectSignData(event, reason)

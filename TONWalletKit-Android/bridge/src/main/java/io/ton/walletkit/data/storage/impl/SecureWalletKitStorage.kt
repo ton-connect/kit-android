@@ -3,6 +3,7 @@ package io.ton.walletkit.data.storage.impl
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import io.ton.walletkit.data.model.StoredBridgeConfig
@@ -99,7 +100,9 @@ internal class SecureWalletKitStorage(
                     }
 
                 // Store in EncryptedSharedPreferences (second layer of encryption)
-                encryptedPrefs.edit().putString(walletKey(accountId), secureRecord.toString()).apply()
+                encryptedPrefs.edit {
+                    putString(walletKey(accountId), secureRecord.toString())
+                }
 
                 Log.d(TAG, ERROR_WALLET_SAVED_SECURELY + accountId)
             } catch (e: Exception) {
@@ -162,10 +165,9 @@ internal class SecureWalletKitStorage(
     override suspend fun clear(accountId: String) {
         withContext(Dispatchers.IO) {
             try {
-                encryptedPrefs.edit().apply {
+                encryptedPrefs.edit {
                     remove(walletKey(accountId))
                     remove(accountId) // Remove legacy key if exists
-                    apply()
                 }
                 Log.d(TAG, ERROR_WALLET_CLEARED + accountId)
             } catch (e: Exception) {
@@ -203,7 +205,9 @@ internal class SecureWalletKitStorage(
                     }
 
                 // Store in EncryptedSharedPreferences
-                encryptedPrefs.edit().putString(sessionKey(sessionId), sessionJson.toString()).apply()
+                encryptedPrefs.edit {
+                    putString(sessionKey(sessionId), sessionJson.toString())
+                }
 
                 Log.d(
                     TAG,
@@ -286,7 +290,9 @@ internal class SecureWalletKitStorage(
     override suspend fun clearSessionData(sessionId: String) {
         withContext(Dispatchers.IO) {
             try {
-                encryptedPrefs.edit().remove(sessionKey(sessionId)).apply()
+                encryptedPrefs.edit {
+                    remove(sessionKey(sessionId))
+                }
                 Log.d(TAG, ERROR_SESSION_DATA_CLEARED + sessionId)
             } catch (e: Exception) {
                 Log.e(TAG, ERROR_FAILED_CLEAR_SESSION_DATA + sessionId, e)
@@ -336,7 +342,9 @@ internal class SecureWalletKitStorage(
                         config.bridgeName?.let { put(JsonConstants.KEY_BRIDGE_NAME, it) }
                     }
 
-                encryptedPrefs.edit().putString(bridgeConfigKey, configJson.toString()).apply()
+                encryptedPrefs.edit {
+                    putString(bridgeConfigKey, configJson.toString())
+                }
                 Log.d(TAG, ERROR_BRIDGE_CONFIG_SAVED + config.network)
             } catch (e: Exception) {
                 Log.e(TAG, ERROR_FAILED_SAVE_BRIDGE_CONFIG, e)
@@ -373,7 +381,9 @@ internal class SecureWalletKitStorage(
     override suspend fun clearBridgeConfig() {
         withContext(Dispatchers.IO) {
             try {
-                encryptedPrefs.edit().remove(bridgeConfigKey).apply()
+                encryptedPrefs.edit {
+                    remove(bridgeConfigKey)
+                }
                 Log.d(TAG, ERROR_BRIDGE_CONFIG_CLEARED)
             } catch (e: Exception) {
                 Log.e(TAG, ERROR_FAILED_CLEAR_BRIDGE_CONFIG, e)
@@ -394,7 +404,9 @@ internal class SecureWalletKitStorage(
                         prefs.lastSelectedNetwork?.let { put(ResponseConstants.KEY_LAST_SELECTED_NETWORK, it) }
                     }
 
-                encryptedPrefs.edit().putString(userPreferencesKey, prefsJson.toString()).apply()
+                encryptedPrefs.edit {
+                    putString(userPreferencesKey, prefsJson.toString())
+                }
                 Log.d(TAG, ERROR_USER_PREFERENCES_SAVED)
             } catch (e: Exception) {
                 Log.e(TAG, ERROR_FAILED_SAVE_USER_PREFERENCES, e)
@@ -424,7 +436,9 @@ internal class SecureWalletKitStorage(
     override suspend fun clearUserPreferences() {
         withContext(Dispatchers.IO) {
             try {
-                encryptedPrefs.edit().remove(userPreferencesKey).apply()
+                encryptedPrefs.edit {
+                    remove(userPreferencesKey)
+                }
                 Log.d(TAG, ERROR_USER_PREFERENCES_CLEARED)
             } catch (e: Exception) {
                 Log.e(TAG, ERROR_FAILED_CLEAR_USER_PREFERENCES, e)
@@ -438,7 +452,9 @@ internal class SecureWalletKitStorage(
     suspend fun clearAll() {
         withContext(Dispatchers.IO) {
             try {
-                encryptedPrefs.edit().clear().apply()
+                encryptedPrefs.edit {
+                    clear()
+                }
                 Log.d(TAG, ERROR_ALL_DATA_CLEARED)
             } catch (e: Exception) {
                 Log.e(TAG, ERROR_FAILED_CLEAR_ALL_DATA, e)
@@ -596,7 +612,9 @@ internal class SecureWalletKitStorage(
     ) {
         withContext(Dispatchers.IO) {
             try {
-                encryptedPrefs.edit().putString(key, value).apply()
+                encryptedPrefs.edit {
+                    putString(key, value)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, ERROR_FAILED_SET_RAW_VALUE + key, e)
                 throw e
@@ -611,7 +629,9 @@ internal class SecureWalletKitStorage(
     suspend fun removeRawValue(key: String) {
         withContext(Dispatchers.IO) {
             try {
-                encryptedPrefs.edit().remove(key).apply()
+                encryptedPrefs.edit {
+                    remove(key)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, ERROR_FAILED_REMOVE_RAW_VALUE + key, e)
             }
@@ -625,9 +645,8 @@ internal class SecureWalletKitStorage(
         withContext(Dispatchers.IO) {
             try {
                 val bridgeKeys = encryptedPrefs.all.keys.filter { it.startsWith(StorageConstants.KEY_PREFIX_BRIDGE) }
-                encryptedPrefs.edit().apply {
+                encryptedPrefs.edit {
                     bridgeKeys.forEach { remove(it) }
-                    apply()
                 }
                 Log.d(TAG, ERROR_CLEARED_BRIDGE_STORAGE_KEYS + bridgeKeys.size + MiscConstants.BRIDGE_STORAGE_KEYS_COUNT_SUFFIX)
             } catch (e: Exception) {
@@ -638,7 +657,6 @@ internal class SecureWalletKitStorage(
 
     companion object {
         private const val TAG = LogConstants.TAG_SECURE_STORAGE
-        private const val MAX_URL_LENGTH = 2048 // Prevent DoS via huge URLs
         private val VALID_MNEMONIC_SIZES = setOf(12, 15, 18, 21, 24) // BIP39 standard
 
         // Security / Initialization Errors

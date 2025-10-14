@@ -3,6 +3,7 @@ package io.ton.walletkit.presentation.impl
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import androidx.core.content.edit
 import io.ton.walletkit.domain.model.DAppInfo
 import io.ton.walletkit.domain.model.SignDataResult
 import io.ton.walletkit.domain.model.Transaction
@@ -68,7 +69,7 @@ import kotlin.coroutines.resumeWithException
 import kotlin.jvm.java
 
 /**
- * QuickJS-backed implementation of [io.ton.walletkit.bridge.WalletKitEngine]. Executes the WalletKit JavaScript bundle
+ * QuickJS-backed implementation of [WalletKitEngine]. Executes the WalletKit JavaScript bundle
  * inside the embedded QuickJS runtime and bridges JSON-RPC calls/events to Kotlin.
  *
  * @deprecated QuickJS engine is deprecated as of October 2025 due to poor performance (2x slower than WebView).
@@ -1110,7 +1111,6 @@ internal class QuickJsWalletKitEngine(
 
     private inner class NativeConsole {
         fun log(level: String, message: String): String {
-            System.out.println(">>> NativeConsole.log CALLED: level=$level, message=$message")
             Log.v(logTag, ">>> NativeConsole.log CALLED: level=$level, message=$message")
             try {
                 when (level.lowercase()) {
@@ -1924,7 +1924,9 @@ internal class QuickJsNativeHost {
         val eng = engine ?: return
         try {
             val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", Context.MODE_PRIVATE)
-            prefs.edit().putString(key, value).apply()
+            prefs.edit {
+                putString(key, value)
+            }
         } catch (err: Throwable) {
             Log.e(eng.logTag, "localStorageSetItem error", err)
         }
@@ -1934,7 +1936,9 @@ internal class QuickJsNativeHost {
         val eng = engine ?: return
         try {
             val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", Context.MODE_PRIVATE)
-            prefs.edit().remove(key).apply()
+            prefs.edit {
+                remove(key)
+            }
         } catch (err: Throwable) {
             Log.e(eng.logTag, "localStorageRemoveItem error", err)
         }
@@ -1944,7 +1948,9 @@ internal class QuickJsNativeHost {
         val eng = engine ?: return
         try {
             val prefs = eng.applicationContext.getSharedPreferences("walletkit_localStorage", Context.MODE_PRIVATE)
-            prefs.edit().clear().apply()
+            prefs.edit {
+                clear()
+            }
         } catch (err: Throwable) {
             Log.e(eng.logTag, "localStorageClear error", err)
         }

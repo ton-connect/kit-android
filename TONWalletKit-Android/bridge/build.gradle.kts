@@ -27,6 +27,7 @@ android {
             dimension = "engine"
             // Both engines: includes QuickJS with native libs + OkHttp
 
+            @Suppress("UnstableApiUsage")
             externalNativeBuild {
                 cmake {
                     arguments += listOf("-DANDROID_STL=c++_shared")
@@ -101,19 +102,19 @@ kotlin {
 }
 
 // WalletKit Bundle Build & Copy Tasks
-val walletKitDistDir =
+val walletKitDistDir: File =
     rootProject.rootDir
         .toPath()
         .resolve("../../dist-android")
         .normalize()
         .toFile()
-val walletKitQuickJsDistDir =
+val walletKitQuickJsDistDir: File =
     rootProject.rootDir
         .toPath()
         .resolve("../../dist-android-quickjs")
         .normalize()
         .toFile()
-val walletKitAssetsDir = layout.projectDirectory.dir("src/main/assets/walletkit").asFile
+val walletKitAssetsDir: File = layout.projectDirectory.dir("src/main/assets/walletkit").asFile
 
 // Task to build both WebView and QuickJS bundles using pnpm
 val buildWalletKitBundles =
