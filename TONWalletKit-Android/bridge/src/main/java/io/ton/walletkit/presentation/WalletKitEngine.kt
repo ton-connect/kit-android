@@ -5,11 +5,11 @@ import io.ton.walletkit.domain.model.Transaction
 import io.ton.walletkit.domain.model.WalletAccount
 import io.ton.walletkit.domain.model.WalletSession
 import io.ton.walletkit.domain.model.WalletState
-import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
+import io.ton.walletkit.presentation.config.TONWalletKitConfiguration
 import io.ton.walletkit.presentation.event.ConnectRequestEvent
 import io.ton.walletkit.presentation.event.SignDataRequestEvent
 import io.ton.walletkit.presentation.event.TransactionRequestEvent
-import io.ton.walletkit.presentation.listener.WalletKitEventHandler
+import io.ton.walletkit.presentation.listener.TONBridgeEventsHandler
 import java.io.Closeable
 
 /**
@@ -26,27 +26,29 @@ import java.io.Closeable
  *
  * **Event Handling:**
  * Supports [addEventHandler] with [WalletKitEventHandler] for type-safe sealed events.
+ * 
+ * @suppress Internal engine abstraction. Use TONWalletKit and TONWallet public API instead.
  */
-interface WalletKitEngine {
+internal interface WalletKitEngine {
     val kind: WalletKitEngineKind
 
     /**
      * Add an event handler for type-safe event handling.
-     * Use this for exhaustive when() expressions with the sealed WalletKitEvent class.
+     * Use this for exhaustive when() expressions with the sealed TONWalletKitEvent class.
      *
-     * @param handler Event handler that receives typed WalletKitEvent sealed class instances
+     * @param handler Event handler that receives typed TONWalletKitEvent sealed class instances
      * @return Closeable to remove the handler
      */
-    fun addEventHandler(handler: WalletKitEventHandler): Closeable
+    fun addEventHandler(handler: TONBridgeEventsHandler): Closeable
 
     /**
-     * Initialize WalletKit with custom configuration. This method is optional - if not called,
-     * initialization will happen automatically on first use with default settings.
+     * Initialize WalletKit with custom configuration. This must be called before any other method;
+     * subsequent calls are ignored once initialization succeeds.
      *
-     * @param config Configuration for the WalletKit SDK
+     * @param configuration Configuration for the WalletKit SDK
      * @throws WalletKitBridgeException if initialization fails
      */
-    suspend fun init(config: WalletKitBridgeConfig = WalletKitBridgeConfig())
+    suspend fun init(configuration: TONWalletKitConfiguration)
 
     /**
      * Add a new wallet from mnemonic phrase.

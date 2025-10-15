@@ -23,6 +23,9 @@ import io.ton.walletkit.demo.ui.preview.PreviewData
 import io.ton.walletkit.demo.util.abbreviated
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun TransactionRequestSheet(
@@ -43,7 +46,12 @@ fun TransactionRequestSheet(
             Text("Requested by: ${request.dAppName}", style = MaterialTheme.typography.bodyMedium)
         }
 
-        request.validUntil?.let { Text("Valid until: $it", style = MaterialTheme.typography.bodyMedium) }
+        request.validUntil?.let { 
+            Text(
+                "Valid until: ${formatUnixTimestamp(it)}", 
+                style = MaterialTheme.typography.bodyMedium
+            ) 
+        }
 
         if (request.messages.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -126,6 +134,14 @@ private fun formatNanoToTon(nanotons: String): String = try {
         .toPlainString()
 } catch (e: Exception) {
     nanotons
+}
+
+private fun formatUnixTimestamp(timestamp: Long): String = try {
+    val date = Date(timestamp * 1000) // Convert from seconds to milliseconds
+    val formatter = SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault())
+    formatter.format(date)
+} catch (e: Exception) {
+    timestamp.toString()
 }
 
 @Preview(showBackground = true)

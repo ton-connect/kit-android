@@ -4,9 +4,9 @@ import android.content.Context
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import io.ton.walletkit.presentation.WalletKitEngineKind
-import io.ton.walletkit.presentation.event.WalletKitEvent
+import io.ton.walletkit.presentation.event.TONWalletKitEvent
 import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
-import io.ton.walletkit.presentation.listener.WalletKitEventHandler
+import io.ton.walletkit.presentation.listener.TONBridgeEventsHandler
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -67,8 +67,8 @@ class WebViewEngineTest {
         val engine = WebViewWalletKitEngine(context)
         var eventCount = 0
 
-        val handler = object : WalletKitEventHandler {
-            override fun handleEvent(event: WalletKitEvent) {
+        val handler = object : TONBridgeEventsHandler {
+            override fun handle(event: TONWalletKitEvent) {
                 eventCount++
             }
         }
@@ -86,14 +86,14 @@ class WebViewEngineTest {
     fun `multiple event handlers can be registered`() {
         val engine = WebViewWalletKitEngine(context)
 
-        val handler1 = object : WalletKitEventHandler {
-            override fun handleEvent(event: WalletKitEvent) {}
+        val handler1 = object : TONBridgeEventsHandler {
+            override fun handle(event: TONWalletKitEvent) {}
         }
-        val handler2 = object : WalletKitEventHandler {
-            override fun handleEvent(event: WalletKitEvent) {}
+        val handler2 = object : TONBridgeEventsHandler {
+            override fun handle(event: TONWalletKitEvent) {}
         }
-        val handler3 = object : WalletKitEventHandler {
-            override fun handleEvent(event: WalletKitEvent) {}
+        val handler3 = object : TONBridgeEventsHandler {
+            override fun handle(event: TONWalletKitEvent) {}
         }
 
         val c1 = engine.addEventHandler(handler1)
@@ -116,8 +116,8 @@ class WebViewEngineTest {
     fun `event handler can be unregistered`() {
         val engine = WebViewWalletKitEngine(context)
 
-        val handler = object : WalletKitEventHandler {
-            override fun handleEvent(event: WalletKitEvent) {}
+        val handler = object : TONBridgeEventsHandler {
+            override fun handle(event: TONWalletKitEvent) {}
         }
 
         val closeable = engine.addEventHandler(handler)

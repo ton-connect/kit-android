@@ -31,6 +31,9 @@ fun SignDataSheet(
 
     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Sign Data Request", style = MaterialTheme.typography.titleLarge)
+        request.dAppName?.let {
+            Text("From: $it", style = MaterialTheme.typography.bodyMedium)
+        }
         Text("Wallet: ${request.walletAddress.abbreviated()}", style = MaterialTheme.typography.bodyMedium)
         Text("Type: ${request.payloadType}", style = MaterialTheme.typography.bodyMedium)
 
