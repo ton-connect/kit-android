@@ -3,7 +3,8 @@ package io.ton.walletkit.bridge
 import android.content.Context
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
-import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
+import io.ton.walletkit.domain.model.TONNetwork
+import io.ton.walletkit.presentation.config.TONWalletKitConfiguration
 import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -59,9 +60,9 @@ class WebViewEngineAutoInitTest {
     fun `init accepts custom config`() = runTest {
         val engine = WebViewWalletKitEngine(context)
 
-        val config = WalletKitBridgeConfig(
-            network = "mainnet",
-            enablePersistentStorage = false,
+        val config = createConfiguration(
+            network = TONNetwork.MAINNET,
+            persistent = false,
         )
 
         // Should not throw - init() signature is correct
@@ -75,10 +76,7 @@ class WebViewEngineAutoInitTest {
     fun `init accepts testnet config`() = runTest {
         val engine = WebViewWalletKitEngine(context)
 
-        val config = WalletKitBridgeConfig(
-            network = "testnet",
-            tonApiUrl = "https://testnet.tonapi.io",
-        )
+        val config = createConfiguration(network = TONNetwork.TESTNET)
 
         assertNotNull(config)
         assertNotNull(engine)
@@ -90,8 +88,8 @@ class WebViewEngineAutoInitTest {
     fun `engine supports storage configuration`() = runTest {
         val engine = WebViewWalletKitEngine(context)
 
-        val withStorage = WalletKitBridgeConfig(enablePersistentStorage = true)
-        val withoutStorage = WalletKitBridgeConfig(enablePersistentStorage = false)
+        val withStorage = createConfiguration(persistent = true)
+        val withoutStorage = createConfiguration(persistent = false)
 
         assertNotNull(withStorage)
         assertNotNull(withoutStorage)
@@ -115,5 +113,28 @@ class WebViewEngineAutoInitTest {
 
     private fun flushMainThread() {
         Shadows.shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    private fun createConfiguration(
+        network: TONNetwork = TONNetwork.TESTNET,
+        persistent: Boolean = true,
+    ): TONWalletKitConfiguration {
+        return TONWalletKitConfiguration(
+            network = network,
+            walletManifest = TONWalletKitConfiguration.Manifest(
+                name = "Test Wallet",
+                appName = "Wallet",
+                imageUrl = "https://example.com/icon.png",
+                aboutUrl = "https://example.com",
+                universalLink = "https://example.com/app",
+                bridgeUrl = "https://bridge.tonapi.io/bridge"
+            ),
+            bridge = TONWalletKitConfiguration.Bridge(
+                bridgeUrl = "https://bridge.tonapi.io/bridge",
+            ),
+            apiClient = null,
+            features = emptyList<TONWalletKitConfiguration.Feature>(),
+            storage = TONWalletKitConfiguration.Storage(persistent = persistent),
+        )
     }
 }

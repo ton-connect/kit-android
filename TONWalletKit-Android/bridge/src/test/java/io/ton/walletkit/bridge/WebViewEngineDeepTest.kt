@@ -3,14 +3,15 @@ package io.ton.walletkit.bridge
 import android.content.Context
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
+import io.ton.walletkit.domain.model.TONNetwork
 import io.ton.walletkit.domain.model.Transaction
 import io.ton.walletkit.domain.model.TransactionType
 import io.ton.walletkit.domain.model.WalletAccount
 import io.ton.walletkit.presentation.WalletKitBridgeException
-import io.ton.walletkit.presentation.config.WalletKitBridgeConfig
-import io.ton.walletkit.presentation.event.WalletKitEvent
+import io.ton.walletkit.presentation.config.TONWalletKitConfiguration
+import io.ton.walletkit.presentation.event.TONWalletKitEvent
 import io.ton.walletkit.presentation.impl.WebViewWalletKitEngine
-import io.ton.walletkit.presentation.listener.WalletKitEventHandler
+import io.ton.walletkit.presentation.listener.TONBridgeEventsHandler
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -54,6 +55,30 @@ class WebViewEngineDeepTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    private fun createConfiguration(
+        network: TONNetwork = TONNetwork.TESTNET,
+        persistent: Boolean = true,
+        apiUrl: String? = null,
+    ): TONWalletKitConfiguration {
+        return TONWalletKitConfiguration(
+            network = network,
+            walletManifest = TONWalletKitConfiguration.Manifest(
+                name = "Test Wallet",
+                appName = "Wallet",
+                imageUrl = "https://example.com/icon.png",
+                aboutUrl = "https://example.com",
+                universalLink = "https://example.com/app",
+                bridgeUrl = "https://bridge.tonapi.io/bridge"
+            ),
+            bridge = TONWalletKitConfiguration.Bridge(
+                bridgeUrl = "https://bridge.tonapi.io/bridge",
+            ),
+            apiClient = apiUrl?.let { TONWalletKitConfiguration.APIClient(url = it, key = "test-key") },
+            features = emptyList<TONWalletKitConfiguration.Feature>(),
+            storage = TONWalletKitConfiguration.Storage(persistent = persistent),
+        )
     }
 
     @Test
@@ -132,19 +157,21 @@ class WebViewEngineDeepTest {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
 
-        var eventReceived: WalletKitEvent? = null
-        val handler = object : WalletKitEventHandler {
-            override fun handleEvent(event: WalletKitEvent) {
+        var eventReceived: TONWalletKitEvent? = null
+        val handler = object : TONBridgeEventsHandler {
+            override fun handle(event: TONWalletKitEvent) {
                 eventReceived = event
             }
         }
 
         engine.addEventHandler(handler)
 
-        // Create a sessions changed event (simplest one)
+        // Create a disconnect event (simplest one in public API)
         val event = JSONObject().apply {
-            put("type", "sessionsChanged")
-            put("data", JSONObject())
+            put("type", "disconnect")
+            put("data", JSONObject().apply {
+                put("sessionId", "test-session-123")
+            })
         }
 
         val handleEventMethod = getPrivateMethod(engine, "handleEvent", JSONObject::class.java)
@@ -154,7 +181,7 @@ class WebViewEngineDeepTest {
 
         // Verify event was dispatched
         assertNotNull(eventReceived)
-        assertTrue(eventReceived is WalletKitEvent.SessionsChangedEvent)
+        assertTrue(eventReceived is TONWalletKitEvent.Disconnect)
     }
 
     @Test
@@ -162,9 +189,9 @@ class WebViewEngineDeepTest {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
 
-        val config = WalletKitBridgeConfig(
-            network = "mainnet",
-            tonApiUrl = "https://tonapi.io",
+        val config = createConfiguration(
+            network = TONNetwork.MAINNET,
+            apiUrl = "https://tonapi.io",
         )
 
         // Access private field to verify config was stored
@@ -174,7 +201,8 @@ class WebViewEngineDeepTest {
 
         // The actual init would set it, but we can verify the config object exists
         assertNotNull(config)
-        assertEquals("mainnet", config.network)
+        assertEquals(TONNetwork.MAINNET, config.network)
+        assertEquals("https://tonapi.io", config.apiClient?.url)
     }
 
     @Test
@@ -243,11 +271,11 @@ class WebViewEngineDeepTest {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
 
-        val handler1 = object : WalletKitEventHandler {
-            override fun handleEvent(event: WalletKitEvent) {}
+        val handler1 = object : TONBridgeEventsHandler {
+            override fun handle(event: TONWalletKitEvent) {}
         }
-        val handler2 = object : WalletKitEventHandler {
-            override fun handleEvent(event: WalletKitEvent) {}
+        val handler2 = object : TONBridgeEventsHandler {
+            override fun handle(event: TONWalletKitEvent) {}
         }
 
         val closeable1 = engine.addEventHandler(handler1)
@@ -278,18 +306,18 @@ class WebViewEngineDeepTest {
         var handler2Called = false
         var handler3Called = false
 
-        val handler1 = object : WalletKitEventHandler {
-            override fun handleEvent(event: WalletKitEvent) {
+        val handler1 = object : TONBridgeEventsHandler {
+            override fun handle(event: TONWalletKitEvent) {
                 handler1Called = true
             }
         }
-        val handler2 = object : WalletKitEventHandler {
-            override fun handleEvent(event: WalletKitEvent) {
+        val handler2 = object : TONBridgeEventsHandler {
+            override fun handle(event: TONWalletKitEvent) {
                 handler2Called = true
             }
         }
-        val handler3 = object : WalletKitEventHandler {
-            override fun handleEvent(event: WalletKitEvent) {
+        val handler3 = object : TONBridgeEventsHandler {
+            override fun handle(event: TONWalletKitEvent) {
                 handler3Called = true
             }
         }
@@ -298,10 +326,12 @@ class WebViewEngineDeepTest {
         engine.addEventHandler(handler2)
         engine.addEventHandler(handler3)
 
-        // Trigger event (sessionsChanged is simplest)
+        // Trigger event (disconnect is simplest in public API)
         val event = JSONObject().apply {
-            put("type", "sessionsChanged")
-            put("data", JSONObject())
+            put("type", "disconnect")
+            put("data", JSONObject().apply {
+                put("sessionId", "test-session-456")
+            })
         }
 
         val handleEventMethod = getPrivateMethod(engine, "handleEvent", JSONObject::class.java)
@@ -348,13 +378,10 @@ class WebViewEngineDeepTest {
         val engine = WebViewWalletKitEngine(context)
         flushMainThread()
 
-        val config = WalletKitBridgeConfig(enablePersistentStorage = false)
+        val config = createConfiguration(persistent = false)
 
         // Verify config structure
-        assertTrue(!config.enablePersistentStorage)
-
-        // The flag would be set during init - verify the config itself is correct
-        assertEquals(false, config.enablePersistentStorage)
+        assertTrue(!config.storage.persistent)
     }
 
     private fun flushMainThread() {

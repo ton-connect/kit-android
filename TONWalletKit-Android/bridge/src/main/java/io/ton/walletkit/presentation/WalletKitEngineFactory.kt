@@ -5,11 +5,12 @@ import io.ton.walletkit.domain.constants.ReflectionConstants
 import io.ton.walletkit.domain.constants.WebViewConstants
 
 /**
- * Factory for creating WalletKitEngine instances without directly referencing implementation classes.
- * This allows demo apps and partners to work with any SDK variant (webview-only or full)
- * without compile-time dependencies on unavailable engine implementations.
+ * Internal factory for creating WalletKitEngine instances.
+ * SDK always uses WebView engine.
+ * 
+ * @suppress
  */
-object WalletKitEngineFactory {
+internal object WalletKitEngineFactory {
     /**
      * Create a WalletKitEngine instance for the specified kind.
      *
@@ -52,7 +53,7 @@ object WalletKitEngineFactory {
                     // Check if QuickJS class exists (only in full variant)
                     Class.forName(ReflectionConstants.CLASS_QUICKJS_ENGINE)
                     true
-                } catch (e: ClassNotFoundException) {
+                } catch (_: ClassNotFoundException) {
                     false
                 }
             }

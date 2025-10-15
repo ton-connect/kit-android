@@ -70,6 +70,7 @@ object PreviewData {
     val signDataRequest: SignDataRequestUi = SignDataRequestUi(
         id = "sign-preview",
         walletAddress = wallet.address,
+        dAppName = "Preview dApp",
         payloadType = "ton_proof",
         payloadContent = "{\n  \"domain\": \"preview\"\n}",
         preview = null,

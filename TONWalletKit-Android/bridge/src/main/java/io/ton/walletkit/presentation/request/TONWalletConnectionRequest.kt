@@ -6,23 +6,24 @@ import io.ton.walletkit.presentation.event.ConnectRequestEvent
 
 /**
  * Represents a connection request from a dApp.
- * Encapsulates both request data and approval/rejection actions.
  *
- * @property requestId Unique identifier for this request
+ * Aligns with the shared TON Wallet Kit API contract for cross-platform consistency.
+ *
+ * Handle this request by calling [approve] with a wallet address
+ * or [reject] to deny the connection.
+ *
  * @property dAppInfo Information about the requesting dApp
  * @property permissions List of requested permissions
- * @property event Typed event data from the bridge
  */
-class ConnectRequest internal constructor(
-    val requestId: String,
+class TONWalletConnectionRequest internal constructor(
     val dAppInfo: DAppInfo?,
     val permissions: List<ConnectRequestEvent.ConnectPermission>,
     private val event: ConnectRequestEvent,
-    private val engine: WalletKitEngine,
+    private val engine: WalletKitEngine
 ) {
     /**
      * Approve this connection request with the specified wallet.
-     *
+     * 
      * @param walletAddress Address of the wallet to connect with
      * @throws io.ton.walletkit.presentation.WalletKitBridgeException if approval fails
      */
@@ -30,10 +31,10 @@ class ConnectRequest internal constructor(
         val eventWithWallet = event.copy(walletAddress = walletAddress)
         engine.approveConnect(eventWithWallet)
     }
-
+    
     /**
      * Reject this connection request.
-     *
+     * 
      * @param reason Optional reason for rejection
      * @throws io.ton.walletkit.presentation.WalletKitBridgeException if rejection fails
      */
@@ -41,3 +42,15 @@ class ConnectRequest internal constructor(
         engine.rejectConnect(event, reason)
     }
 }
+
+/**
+ * Legacy alias maintained for migration.
+ *
+ * @deprecated Use [TONWalletConnectionRequest] instead for consistent naming
+ */
+@Deprecated(
+    message = "Use TONWalletConnectionRequest instead for consistent naming",
+    replaceWith = ReplaceWith("TONWalletConnectionRequest"),
+    level = DeprecationLevel.WARNING
+)
+typealias ConnectRequest = TONWalletConnectionRequest

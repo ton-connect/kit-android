@@ -447,7 +447,7 @@ const api = {
   },
 
   async addWalletFromMnemonic(
-    args: { words: string[]; version: 'v5r1' | 'v4r2'; network?: 'mainnet' | 'testnet' },
+    args: { words: string[]; version: 'v5r1' | 'v4r2'; network?: 'mainnet' | 'testnet' | '-239' | '-3' },
     context?: CallContext,
   ) {
     emitCallCheckpoint(context, 'addWalletFromMnemonic:before-ensureWalletKitLoaded');
@@ -459,7 +459,9 @@ const api = {
     if (!chains) {
       throw new Error('TON Connect chain constants unavailable');
     }
-    const chain = (args.network || 'testnet') === 'mainnet' ? chains.MAINNET : chains.TESTNET;
+    // Support both network names (mainnet/testnet) and chain IDs (-239/-3)
+    const networkValue = args.network || '-3'; // Default to testnet
+    const chain = (networkValue === 'mainnet' || networkValue === '-239') ? chains.MAINNET : chains.TESTNET;
     const config = createWalletInitConfigMnemonic({
       mnemonic: args.words,
       version: args.version,
