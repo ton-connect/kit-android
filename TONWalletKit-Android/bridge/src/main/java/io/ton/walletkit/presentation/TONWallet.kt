@@ -25,12 +25,17 @@ import io.ton.walletkit.domain.model.WalletAccount
  * ```
  *
  * @property address Wallet address (null if not yet created)
+ * @property publicKey Public key of the wallet (null if not available)
  */
 class TONWallet private constructor(
     val address: String?,
     private val engine: WalletKitEngine,
     private val account: WalletAccount?,
 ) {
+    /**
+     * Public key of the wallet.
+     */
+    val publicKey: String? get() = account?.publicKey
     companion object {
         private const val ERROR_WALLETKIT_NOT_INITIALIZED = "TONWalletKit not initialized. Call TONWalletKit.initialize() first."
 

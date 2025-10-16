@@ -49,12 +49,6 @@ import io.ton.walletkit.demo.ui.preview.PreviewData
 fun WalletDetailsSheet(
     wallet: WalletSummary,
     onDismiss: () -> Unit,
-    onTestSignDataText: (String) -> Unit,
-    onTestSignDataBinary: (String) -> Unit,
-    onTestSignDataCell: (String) -> Unit,
-    onTestSignDataWithSession: (String, String) -> Unit,
-    onTestSignDataBinaryWithSession: (String, String) -> Unit,
-    onTestSignDataCellWithSession: (String, String) -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -223,54 +217,6 @@ fun WalletDetailsSheet(
                                     }
                                 }
                             }
-
-                            // Test sign data with this session - three buttons for different types
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                // Text sign button
-                                OutlinedButton(
-                                    onClick = { onTestSignDataWithSession(wallet.address, session.sessionId) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                    Spacer(modifier = Modifier.size(8.dp))
-                                    Text("Sign Text with ${session.dAppName}")
-                                }
-
-                                // Binary sign button
-                                OutlinedButton(
-                                    onClick = { onTestSignDataBinaryWithSession(wallet.address, session.sessionId) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Code,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                    Spacer(modifier = Modifier.size(8.dp))
-                                    Text("Sign Binary with ${session.dAppName}")
-                                }
-
-                                // Cell sign button
-                                OutlinedButton(
-                                    onClick = { onTestSignDataCellWithSession(wallet.address, session.sessionId) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.DataObject,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                    Spacer(modifier = Modifier.size(8.dp))
-                                    Text("Sign Cell with ${session.dAppName}")
-                                }
-                            }
                         }
                     }
                 }
@@ -302,59 +248,6 @@ fun WalletDetailsSheet(
                         )
                     }
                 }
-            }
-
-            // Sign Data Demo Section
-            Text(
-                text = "Sign Data Demo (Local)",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-
-            Text(
-                text = "Test signing different types of data",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Button(
-                onClick = { onTestSignDataText(wallet.address) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text("Sign Text Message")
-            }
-
-            Button(
-                onClick = { onTestSignDataBinary(wallet.address) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Code,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text("Sign Binary Data")
-            }
-
-            Button(
-                onClick = { onTestSignDataCell(wallet.address) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DataObject,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text("Sign TON Cell")
             }
 
             // Close button
@@ -397,11 +290,5 @@ private fun WalletDetailsSheetPreview() {
     WalletDetailsSheet(
         wallet = PreviewData.wallet,
         onDismiss = {},
-        onTestSignDataText = {},
-        onTestSignDataBinary = {},
-        onTestSignDataCell = {},
-        onTestSignDataWithSession = { _, _ -> },
-        onTestSignDataBinaryWithSession = { _, _ -> },
-        onTestSignDataCellWithSession = { _, _ -> },
     )
 }
