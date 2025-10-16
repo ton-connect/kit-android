@@ -78,12 +78,6 @@ fun WalletScreen(
     onRejectTransaction: (TransactionRequestUi) -> Unit,
     onApproveSignData: (SignDataRequestUi) -> Unit,
     onRejectSignData: (SignDataRequestUi) -> Unit,
-    onTestSignDataText: (String) -> Unit,
-    onTestSignDataBinary: (String) -> Unit,
-    onTestSignDataCell: (String) -> Unit,
-    onTestSignDataWithSession: (String, String) -> Unit,
-    onTestSignDataBinaryWithSession: (String, String) -> Unit,
-    onTestSignDataCellWithSession: (String, String) -> Unit,
     onSendTransaction: (walletAddress: String, recipient: String, amount: String, comment: String) -> Unit,
     onRefreshTransactions: (String) -> Unit,
     onTransactionClick: (transactionHash: String, walletAddress: String) -> Unit,
@@ -138,12 +132,6 @@ fun WalletScreen(
                 is SheetState.WalletDetails -> WalletDetailsSheet(
                     wallet = sheet.wallet,
                     onDismiss = onDismissSheet,
-                    onTestSignDataText = onTestSignDataText,
-                    onTestSignDataBinary = onTestSignDataBinary,
-                    onTestSignDataCell = onTestSignDataCell,
-                    onTestSignDataWithSession = onTestSignDataWithSession,
-                    onTestSignDataBinaryWithSession = onTestSignDataBinaryWithSession,
-                    onTestSignDataCellWithSession = onTestSignDataCellWithSession,
                 )
 
                 is SheetState.SendTransaction -> SendTransactionScreen(
@@ -286,12 +274,6 @@ private fun WalletScreenPreview() {
         onRejectTransaction = {},
         onApproveSignData = {},
         onRejectSignData = {},
-        onTestSignDataText = {},
-        onTestSignDataBinary = {},
-        onTestSignDataCell = {},
-        onTestSignDataWithSession = { _, _ -> },
-        onTestSignDataBinaryWithSession = { _, _ -> },
-        onTestSignDataCellWithSession = { _, _ -> },
         onSendTransaction = { _, _, _, _ -> },
         onRefreshTransactions = {},
         onTransactionClick = { _, _ -> },

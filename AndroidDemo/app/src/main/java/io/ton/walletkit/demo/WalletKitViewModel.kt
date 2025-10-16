@@ -1296,7 +1296,8 @@ class WalletKitViewModel(
         val result = mutableListOf<WalletSummary>()
         for (wallet in wallets) {
             val address = wallet.address ?: continue
-            val metadata = ensureMetadataForAddress(address, "")
+            val publicKey = wallet.publicKey
+            val metadata = ensureMetadataForAddress(address, publicKey)
 
             Log.d(LOG_TAG, "loadWalletSummaries: fetching state for $address")
             val stateData = runCatching {
@@ -1342,7 +1343,7 @@ class WalletKitViewModel(
                 name = metadata.name,
                 network = metadata.network,
                 version = metadata.version.ifBlank { DEFAULT_WALLET_VERSION },
-                publicKey = "" ?: "",
+                publicKey = publicKey,
                 balanceNano = balance,
                 balance = formatted,
                 transactions = finalTransactions,
