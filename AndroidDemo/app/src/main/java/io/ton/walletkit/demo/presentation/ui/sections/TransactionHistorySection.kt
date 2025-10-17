@@ -26,16 +26,16 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.ui.components.EmptyStateCard
 import io.ton.walletkit.domain.model.Transaction
 import io.ton.walletkit.domain.model.TransactionType
 import java.math.BigDecimal
-import org.json.JSONArray
-import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -56,7 +56,7 @@ fun TransactionHistorySection(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    RECENT_TRANSACTIONS_TITLE,
+                    stringResource(R.string.transactions_recent_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -81,14 +81,20 @@ fun TransactionHistorySection(
                         strokeWidth = REFRESH_INDICATOR_STROKE,
                     )
                 }
-                Text(if (isRefreshing) REFRESHING_LABEL else REFRESH_LABEL)
+                Text(
+                    if (isRefreshing) {
+                        stringResource(R.string.transactions_refreshing)
+                    } else {
+                        stringResource(R.string.action_refresh)
+                    },
+                )
             }
         }
 
         if (transactions.isNullOrEmpty()) {
             EmptyStateCard(
-                title = EMPTY_TRANSACTIONS_TITLE,
-                description = EMPTY_TRANSACTIONS_DESCRIPTION,
+                title = stringResource(R.string.transactions_empty_title),
+                description = stringResource(R.string.transactions_empty_description),
             )
         } else {
             // Use Column with key() composable for efficient recomposition
@@ -152,7 +158,11 @@ private fun TransactionItem(
                     } else {
                         Icons.AutoMirrored.Filled.CallReceived
                     },
-                    contentDescription = if (isOutgoing) SENT_LABEL else RECEIVED_LABEL,
+                    contentDescription = if (isOutgoing) {
+                        stringResource(R.string.transactions_sent)
+                    } else {
+                        stringResource(R.string.transactions_received)
+                    },
                     tint = if (isOutgoing) {
                         MaterialTheme.colorScheme.onErrorContainer
                     } else {
@@ -167,11 +177,15 @@ private fun TransactionItem(
             // Transaction details
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    if (isOutgoing) SENT_LABEL else RECEIVED_LABEL,
+                    if (isOutgoing) {
+                        stringResource(R.string.transactions_sent)
+                    } else {
+                        stringResource(R.string.transactions_received)
+                    },
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    formatTimestamp(timestamp),
+                    formatTimestamp(timestamp, stringResource(R.string.transactions_unknown_time)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -189,7 +203,14 @@ private fun TransactionItem(
 
             // Amount
             Text(
-                formatAmountLabel(amount, isOutgoing),
+                text = stringResource(
+                    if (isOutgoing) {
+                        R.string.transactions_amount_outgoing
+                    } else {
+                        R.string.transactions_amount_incoming
+                    },
+                    amount,
+                ),
                 style = MaterialTheme.typography.titleMedium,
                 color = if (isOutgoing) {
                     MaterialTheme.colorScheme.error
@@ -201,74 +222,29 @@ private fun TransactionItem(
     }
 }
 
-private fun isOutgoingTransaction(transaction: JSONObject, walletAddress: String): Boolean {
-    // Check if the transaction has outgoing messages
-    val outMsgs = transaction.optJSONArray("out_msgs")
-    return outMsgs != null && outMsgs.length() > 0
-}
-
-private fun getTransactionAmount(transaction: JSONObject, isOutgoing: Boolean): String = try {
-    if (isOutgoing) {
-        // Sum all outgoing messages
-        val outMsgs = transaction.optJSONArray("out_msgs")
-        var total = 0L
-        if (outMsgs != null) {
-            for (i in 0 until outMsgs.length()) {
-                val msg = outMsgs.optJSONObject(i)
-                val value = msg?.optString("value")?.toLongOrNull() ?: 0L
-                total += value
-            }
-        }
-        formatNanoTon(total.toString())
-    } else {
-        // Get incoming message value
-        val inMsg = transaction.optJSONObject("in_msg")
-        val value = inMsg?.optString("value") ?: "0"
-        formatNanoTon(value)
-    }
-} catch (e: Exception) {
-    "0.0000"
-}
-
 private fun formatNanoTon(nanoTon: String): String = try {
     val value = runCatching { BigDecimal(nanoTon) }.getOrDefault(BigDecimal.ZERO)
     val ton = value.divide(NANO_TON_DIVISOR)
     String.format(Locale.US, TON_DECIMAL_FORMAT, ton)
-} catch (e: Exception) {
+} catch (_: Exception) {
     DEFAULT_TON_DISPLAY
 }
 
-private fun formatTimestamp(timestamp: Long): String = try {
+private fun formatTimestamp(timestamp: Long, unknownLabel: String): String = try {
     if (timestamp == 0L) {
-        UNKNOWN_TIME_LABEL
+        unknownLabel
     } else {
         // Timestamp is already in milliseconds from the bridge
         val date = Date(timestamp)
         val sdf = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
         sdf.format(date)
     }
-} catch (e: Exception) {
-    UNKNOWN_TIME_LABEL
+} catch (_: Exception) {
+    unknownLabel
 }
 
-private fun formatAmountLabel(amount: String, isOutgoing: Boolean): String {
-    val prefix = if (isOutgoing) OUTGOING_PREFIX else INCOMING_PREFIX
-    return "$prefix${formatNanoTon(amount)}$TON_SUFFIX"
-}
-
-private const val RECENT_TRANSACTIONS_TITLE = "Recent Transactions"
-private const val REFRESH_LABEL = "Refresh"
-private const val REFRESHING_LABEL = "Refreshing…"
-private const val EMPTY_TRANSACTIONS_TITLE = "No transactions"
-private const val EMPTY_TRANSACTIONS_DESCRIPTION = "Your transaction history will appear here."
-private const val SENT_LABEL = "Sent"
-private const val RECEIVED_LABEL = "Received"
-private const val UNKNOWN_TIME_LABEL = "Unknown time"
 private const val TON_DECIMAL_FORMAT = "%.4f"
 private const val DEFAULT_TON_DISPLAY = "0.0000"
-private const val OUTGOING_PREFIX = "-"
-private const val INCOMING_PREFIX = "+"
-private const val TON_SUFFIX = " TON"
 private val HISTORY_SECTION_SPACING = 12.dp
 private val HISTORY_TITLE_SPACING = 8.dp
 private val REFRESH_INDICATOR_SIZE = 16.dp

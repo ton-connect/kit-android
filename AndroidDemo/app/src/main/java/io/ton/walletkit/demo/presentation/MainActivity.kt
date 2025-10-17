@@ -9,8 +9,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import io.ton.walletkit.demo.core.WalletKitDemoApp
-import io.ton.walletkit.demo.presentation.viewmodel.WalletKitViewModel
 import io.ton.walletkit.demo.presentation.ui.screen.WalletScreen
+import io.ton.walletkit.demo.presentation.viewmodel.WalletKitViewModel
 
 class MainActivity : ComponentActivity() {
     private val viewModel: WalletKitViewModel by viewModels {

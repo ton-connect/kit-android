@@ -30,10 +30,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 
@@ -63,14 +65,14 @@ fun SendTransactionScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = SEND_SCREEN_TITLE,
+                        text = stringResource(R.string.send_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = BACK_CONTENT_DESCRIPTION)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.send_back_content_description))
                     }
                 },
             )
@@ -88,7 +90,7 @@ fun SendTransactionScreen(
             // Wallet Info
             Column(verticalArrangement = Arrangement.spacedBy(SEND_SCREEN_SECTION_GAP)) {
                 Text(
-                    WALLET_FROM_LABEL,
+                    stringResource(R.string.send_from_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -98,7 +100,7 @@ fun SendTransactionScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    formatBalanceLabel(wallet.balance),
+                    stringResource(R.string.send_balance_format, wallet.balance ?: DEFAULT_BALANCE_FALLBACK),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -108,14 +110,14 @@ fun SendTransactionScreen(
             OutlinedTextField(
                 value = recipient,
                 onValueChange = { recipient = it },
-                label = { Text(RECIPIENT_ADDRESS_LABEL) },
-                placeholder = { Text(RECIPIENT_ADDRESS_PLACEHOLDER) },
+                label = { Text(stringResource(R.string.send_recipient_label)) },
+                placeholder = { Text(stringResource(R.string.send_recipient_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 isError = recipient.isNotEmpty() && !isValidAddress(recipient),
                 supportingText = {
                     if (recipient.isNotEmpty() && !isValidAddress(recipient)) {
-                        Text(INVALID_ADDRESS_MESSAGE)
+                        Text(stringResource(R.string.send_recipient_error))
                     }
                 },
             )
@@ -124,17 +126,17 @@ fun SendTransactionScreen(
             OutlinedTextField(
                 value = amount,
                 onValueChange = { amount = it },
-                label = { Text(AMOUNT_LABEL) },
-                placeholder = { Text(AMOUNT_PLACEHOLDER) },
+                label = { Text(stringResource(R.string.send_amount_label)) },
+                placeholder = { Text(stringResource(R.string.send_amount_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 isError = amount.isNotEmpty() && !isValidAmount(amount),
                 supportingText = {
                     if (amount.isNotEmpty() && !isValidAmount(amount)) {
-                        Text(INVALID_AMOUNT_MESSAGE)
+                        Text(stringResource(R.string.send_amount_error))
                     } else if (amount.isNotEmpty() && isAmountTooLarge(amount, wallet.balance)) {
-                        Text(INSUFFICIENT_BALANCE_MESSAGE)
+                        Text(stringResource(R.string.send_amount_insufficient))
                     }
                 },
             )
@@ -143,13 +145,13 @@ fun SendTransactionScreen(
             OutlinedTextField(
                 value = comment,
                 onValueChange = { comment = it },
-                label = { Text(COMMENT_LABEL) },
-                placeholder = { Text(COMMENT_PLACEHOLDER) },
+                label = { Text(stringResource(R.string.send_comment_label)) },
+                placeholder = { Text(stringResource(R.string.send_comment_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false,
                 maxLines = 3,
                 supportingText = {
-                    Text(COMMENT_HELP_TEXT)
+                    Text(stringResource(R.string.helper_comment_visibility))
                 },
             )
 
@@ -166,12 +168,18 @@ fun SendTransactionScreen(
                     isValidAmount(amount) &&
                     !isAmountTooLarge(amount, wallet.balance),
             ) {
-                Text(if (isLoading) SENDING_LABEL else SEND_TRANSACTION_LABEL)
+                Text(
+                    if (isLoading) {
+                        stringResource(R.string.send_button_loading)
+                    } else {
+                        stringResource(R.string.send_button_default)
+                    },
+                )
             }
 
             // Info
             Text(
-                SEND_INFO_MESSAGE,
+                stringResource(R.string.send_info_message),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -197,35 +205,12 @@ private fun isAmountTooLarge(amount: String, balance: String?): Boolean {
     }.getOrDefault(true)
 }
 
-private fun formatBalanceLabel(balance: String?): String {
-    val displayBalance = balance ?: DEFAULT_BALANCE_FALLBACK
-    return "$BALANCE_PREFIX$displayBalance$TON_SUFFIX"
-}
-
 private val SEND_SCREEN_HORIZONTAL_PADDING = 20.dp
 private val SEND_SCREEN_VERTICAL_PADDING = 16.dp
 private val SEND_SCREEN_SECTION_SPACING = 24.dp
 private val SEND_SCREEN_SECTION_GAP = 8.dp
 private val SEND_BUTTON_TOP_SPACING = 16.dp
-private const val SEND_SCREEN_TITLE = "Send TON"
-private const val WALLET_FROM_LABEL = "From"
-private const val BALANCE_PREFIX = "Balance: "
-private const val TON_SUFFIX = " TON"
 private const val DEFAULT_BALANCE_FALLBACK = "0"
-private const val RECIPIENT_ADDRESS_LABEL = "Recipient Address"
-private const val RECIPIENT_ADDRESS_PLACEHOLDER = "EQ... or UQ..."
-private const val INVALID_ADDRESS_MESSAGE = "Invalid TON address"
-private const val AMOUNT_LABEL = "Amount (TON)"
-private const val AMOUNT_PLACEHOLDER = "0.00"
-private const val INVALID_AMOUNT_MESSAGE = "Invalid amount"
-private const val INSUFFICIENT_BALANCE_MESSAGE = "Insufficient balance"
-private const val COMMENT_LABEL = "Comment (Optional)"
-private const val COMMENT_PLACEHOLDER = "Add a message..."
-private const val COMMENT_HELP_TEXT = "This message will be visible on the blockchain"
-private const val SENDING_LABEL = "Sending..."
-private const val SEND_TRANSACTION_LABEL = "Send Transaction"
-private const val SEND_INFO_MESSAGE = "This will create and send a transaction from your wallet. You will be asked to approve it before it's sent to the network."
-private const val BACK_CONTENT_DESCRIPTION = "Back"
 private const val MIN_ADDRESS_LENGTH = 10
 private const val ADDRESS_MAIN_PREFIX = "EQ"
 private const val ADDRESS_TEST_PREFIX = "UQ"

@@ -7,10 +7,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 
@@ -33,7 +35,7 @@ fun StatusHeader(state: WalletUiState) {
         )
         if (state.lastUpdated != null) {
             Text(
-                text = UPDATED_JUST_NOW_LABEL,
+                text = stringResource(R.string.status_updated_now),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -42,7 +44,6 @@ fun StatusHeader(state: WalletUiState) {
 }
 
 private val STATUS_HEADER_SPACING = 8.dp
-private const val UPDATED_JUST_NOW_LABEL = "Updated just now"
 
 @Preview(showBackground = true)
 @Composable

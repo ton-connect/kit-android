@@ -35,11 +35,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.ui.components.NetworkBadge
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
@@ -91,7 +93,7 @@ fun WalletDetailsSheet(
                 // Balance
                 wallet.balance?.let { balance ->
                     Text(
-                        text = "$balance TON",
+                        text = stringResource(R.string.wallet_switcher_balance_format, balance),
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
@@ -113,7 +115,7 @@ fun WalletDetailsSheet(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     DetailRow(
-                        label = "Wallet Address",
+                        label = stringResource(R.string.wallet_details_address_label),
                         value = wallet.address,
                         isMonospace = true,
                     )
@@ -121,14 +123,14 @@ fun WalletDetailsSheet(
                     HorizontalDivider()
 
                     DetailRow(
-                        label = "Wallet Version",
+                        label = stringResource(R.string.wallet_details_version_label),
                         value = wallet.version,
                     )
 
                     wallet.publicKey?.let { pubKey ->
                         HorizontalDivider()
                         DetailRow(
-                            label = "Public Key",
+                            label = stringResource(R.string.wallet_details_public_key_label),
                             value = pubKey,
                             isMonospace = true,
                         )
@@ -143,12 +145,12 @@ fun WalletDetailsSheet(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    text = "Transactions",
+                                    text = stringResource(R.string.wallet_details_transactions_title),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Text(
-                                    text = "${transactions.size} total",
+                                    text = stringResource(R.string.wallet_details_transactions_total, transactions.size),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
                                 )
@@ -161,7 +163,7 @@ fun WalletDetailsSheet(
             // Connected dApps Section
             if (wallet.connectedSessions.isNotEmpty()) {
                 Text(
-                    text = "Connected dApps",
+                    text = stringResource(R.string.wallet_details_connected_apps),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(top = 8.dp),
@@ -242,7 +244,7 @@ fun WalletDetailsSheet(
                             modifier = Modifier.size(24.dp),
                         )
                         Text(
-                            text = "No connected dApps",
+                            text = stringResource(R.string.wallet_details_no_connected_apps),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -255,7 +257,7 @@ fun WalletDetailsSheet(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Close")
+                Text(stringResource(R.string.action_close))
             }
         }
     }

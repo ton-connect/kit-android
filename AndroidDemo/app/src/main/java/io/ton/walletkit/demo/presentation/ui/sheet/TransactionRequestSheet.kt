@@ -15,9 +15,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 import io.ton.walletkit.demo.presentation.util.abbreviated
@@ -34,21 +36,38 @@ fun TransactionRequestSheet(
     onReject: () -> Unit,
 ) {
     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        val isDirectSend = request.dAppName == "Unknown dApp" || request.dAppName.isBlank()
+        val isDirectSend = request.dAppName == UNKNOWN_DAPP_SENTINEL || request.dAppName.isBlank()
+        val dAppNameDisplay = if (request.dAppName == UNKNOWN_DAPP_SENTINEL || request.dAppName.isBlank()) {
+            stringResource(R.string.transaction_request_unknown_dapp)
+        } else {
+            request.dAppName
+        }
 
         Text(
-            if (isDirectSend) "Confirm Transaction" else "dApp Transaction Request",
+            if (isDirectSend) {
+                stringResource(R.string.transaction_request_title_direct)
+            } else {
+                stringResource(
+                    R.string.transaction_request_title_dapp,
+                )
+            },
             style = MaterialTheme.typography.titleLarge,
         )
-        Text("From: ${request.walletAddress.abbreviated()}", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            stringResource(R.string.transaction_request_from_format, request.walletAddress.abbreviated()),
+            style = MaterialTheme.typography.bodyMedium,
+        )
 
         if (!isDirectSend) {
-            Text("Requested by: ${request.dAppName}", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                stringResource(R.string.transaction_request_requested_by_format, dAppNameDisplay),
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
 
         request.validUntil?.let {
             Text(
-                "Valid until: ${formatUnixTimestamp(it)}",
+                stringResource(R.string.transaction_request_valid_until_format, formatUnixTimestamp(it)),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
@@ -65,7 +84,7 @@ fun TransactionRequestSheet(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
-                                Text("To:", style = MaterialTheme.typography.labelMedium)
+                                Text(stringResource(R.string.transaction_request_to_label), style = MaterialTheme.typography.labelMedium)
                                 Text(
                                     message.to.abbreviated(),
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
@@ -76,9 +95,9 @@ fun TransactionRequestSheet(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
-                                Text("Amount:", style = MaterialTheme.typography.labelMedium)
+                                Text(stringResource(R.string.transaction_request_amount_label), style = MaterialTheme.typography.labelMedium)
                                 Text(
-                                    "${formatNanoToTon(message.amount)} TON",
+                                    stringResource(R.string.wallet_switcher_balance_format, formatNanoToTon(message.amount)),
                                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                                 )
                             }
@@ -93,7 +112,7 @@ fun TransactionRequestSheet(
                                 ) {
                                     Column(modifier = Modifier.padding(12.dp)) {
                                         Text(
-                                            "Comment:",
+                                            stringResource(R.string.transaction_request_comment_label),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                                         )
@@ -107,10 +126,19 @@ fun TransactionRequestSheet(
                             }
 
                             message.payload?.takeIf { it.isNotBlank() }?.let {
-                                Text(
-                                    "Payload: ${it.take(50)}${if (it.length > 50) "..." else ""}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
+                                val trimmedPayload = it.take(50) + if (it.length > 50) "..." else ""
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        stringResource(R.string.transaction_request_payload_label),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text(
+                                        trimmedPayload,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                     }
@@ -121,8 +149,8 @@ fun TransactionRequestSheet(
         // Note: Fee estimation removed - only shown in completed transactions
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text("Reject") }
-            Button(onClick = onApprove, modifier = Modifier.weight(1f)) { Text("Approve") }
+            TextButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_reject)) }
+            Button(onClick = onApprove, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_approve)) }
         }
     }
 }
@@ -143,6 +171,8 @@ private fun formatUnixTimestamp(timestamp: Long): String = try {
 } catch (e: Exception) {
     timestamp.toString()
 }
+
+private const val UNKNOWN_DAPP_SENTINEL = "Unknown dApp"
 
 @Preview(showBackground = true)
 @Composable

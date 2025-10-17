@@ -10,8 +10,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 
 @Composable
 fun EmptyStateCard(title: String, description: String) {
@@ -38,14 +40,12 @@ private val EMPTY_CARD_PADDING = 20.dp
 private val EMPTY_CARD_CONTENT_SPACING = 8.dp
 private val EMPTY_CARD_CORNER_RADIUS = 16.dp
 private const val EMPTY_CARD_SURFACE_ALPHA = 0.6f
-private const val EMPTY_STATE_TITLE = "No wallets"
-private const val EMPTY_STATE_DESCRIPTION = "Import or generate a wallet to get started."
 
 @Preview(showBackground = true)
 @Composable
 private fun EmptyStateCardPreview() {
     EmptyStateCard(
-        title = EMPTY_STATE_TITLE,
-        description = EMPTY_STATE_DESCRIPTION,
+        title = stringResource(R.string.wallets_empty_title),
+        description = stringResource(R.string.wallets_empty_description),
     )
 }

@@ -23,8 +23,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
@@ -40,7 +42,7 @@ fun ConnectRequestSheet(
     var selectedWallet by remember { mutableStateOf(wallets.firstOrNull()) }
 
     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Connect Request", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.connect_request_title), style = MaterialTheme.typography.titleLarge)
         Text(request.dAppName, style = MaterialTheme.typography.titleMedium)
         Text(
             request.dAppUrl,
@@ -50,7 +52,7 @@ fun ConnectRequestSheet(
 
         if (request.permissions.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Requested permissions", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.connect_request_requested_permissions), style = MaterialTheme.typography.titleSmall)
                 request.permissions.forEach { permission ->
                     AssistChip(onClick = {}, label = { Text(permission.title.ifBlank { permission.name }) })
                     Text(
@@ -63,7 +65,7 @@ fun ConnectRequestSheet(
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Select wallet", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.connect_request_select_wallet), style = MaterialTheme.typography.titleSmall)
             wallets.forEach { wallet ->
                 ElevatedCard(
                     modifier = Modifier.clickable { selectedWallet = wallet },
@@ -86,12 +88,12 @@ fun ConnectRequestSheet(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text("Reject") }
+            TextButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_reject)) }
             Button(
                 onClick = { selectedWallet?.let(onApprove) },
                 enabled = selectedWallet != null,
                 modifier = Modifier.weight(1f),
-            ) { Text("Connect") }
+            ) { Text(stringResource(R.string.action_connect)) }
         }
     }
 }

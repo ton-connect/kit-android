@@ -7,8 +7,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.domain.model.TONNetwork
 
 @Composable
@@ -17,12 +19,13 @@ fun NetworkBadge(network: TONNetwork) {
         TONNetwork.MAINNET -> MAINNET_COLOR
         TONNetwork.TESTNET -> TESTNET_COLOR
     }
+    val label = when (network) {
+        TONNetwork.MAINNET -> stringResource(R.string.network_mainnet)
+        TONNetwork.TESTNET -> stringResource(R.string.network_testnet)
+    }
     Surface(shape = MaterialTheme.shapes.medium, color = color.copy(alpha = 0.12f)) {
         Text(
-            text = when (network) {
-                TONNetwork.MAINNET -> MAINNET_LABEL
-                TONNetwork.TESTNET -> TESTNET_LABEL
-            },
+            text = label,
             modifier = Modifier.padding(horizontal = BADGE_HORIZONTAL_PADDING, vertical = BADGE_VERTICAL_PADDING),
             color = color,
             style = MaterialTheme.typography.labelMedium,
@@ -34,8 +37,6 @@ private val BADGE_HORIZONTAL_PADDING = 10.dp
 private val BADGE_VERTICAL_PADDING = 4.dp
 private val MAINNET_COLOR = Color(0xFF2E7D32)
 private val TESTNET_COLOR = Color(0xFFF57C00)
-private const val MAINNET_LABEL = "Mainnet"
-private const val TESTNET_LABEL = "Testnet"
 
 @Preview
 @Composable

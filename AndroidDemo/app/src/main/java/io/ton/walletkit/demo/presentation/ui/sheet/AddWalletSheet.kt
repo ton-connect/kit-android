@@ -1,5 +1,6 @@
 package io.ton.walletkit.demo.presentation.ui.sheet
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,9 +39,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.domain.model.TONNetwork
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -90,14 +93,14 @@ fun AddWalletSheet(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Add Wallet", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.add_wallet_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         SingleChoiceSegmentedButtonRow {
             AddWalletTab.entries.forEachIndexed { index, tab ->
                 SegmentedButton(
                     selected = selectedTab == tab,
                     onClick = { selectedTab = tab },
                     shape = SegmentedButtonDefaults.itemShape(index, AddWalletTab.entries.size),
-                    label = { Text(tab.label) },
+                    label = { Text(stringResource(tab.labelRes)) },
                 )
             }
         }
@@ -105,23 +108,30 @@ fun AddWalletSheet(
         TextField(
             value = walletName,
             onValueChange = { walletName = it },
-            label = { Text("Wallet name") },
+            label = { Text(stringResource(R.string.label_wallet_name)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Text("Network", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.label_network), style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TONNetwork.entries.forEach { option ->
                 FilterChip(
                     selected = network == option,
                     onClick = { network = option },
-                    label = { Text(if (option == TONNetwork.MAINNET) "Mainnet" else "Testnet") },
+                    label = {
+                        Text(
+                            when (option) {
+                                TONNetwork.MAINNET -> stringResource(R.string.network_mainnet)
+                                TONNetwork.TESTNET -> stringResource(R.string.network_testnet)
+                            },
+                        )
+                    },
                 )
             }
         }
 
-        Text("Wallet Version", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.label_wallet_version), style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("v4r2", "v5r1", "v3r2").forEach { version ->
                 FilterChip(
@@ -131,7 +141,7 @@ fun AddWalletSheet(
                         Column {
                             Text(version, fontWeight = FontWeight.Bold)
                             if (version == "v4r2") {
-                                Text("Default", style = MaterialTheme.typography.labelSmall)
+                                Text(stringResource(R.string.add_wallet_version_default), style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     },
@@ -141,7 +151,10 @@ fun AddWalletSheet(
 
         when (selectedTab) {
             AddWalletTab.Import -> {
-                Text("Recovery phrase (24 words)", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    stringResource(R.string.add_wallet_recovery_title, MNEMONIC_WORD_COUNT),
+                    style = MaterialTheme.typography.titleSmall,
+                )
 
                 // Paste field for quick input
                 OutlinedTextField(
@@ -153,8 +166,8 @@ fun AddWalletSheet(
                             parseSeedPhrase(it)
                         }
                     },
-                    label = { Text("Paste all 24 words here") },
-                    placeholder = { Text("word1 word2 word3 ... word24") },
+                    label = { Text(stringResource(R.string.add_wallet_paste_label)) },
+                    placeholder = { Text(stringResource(R.string.add_wallet_recovery_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
                     maxLines = 3,
@@ -168,13 +181,13 @@ fun AddWalletSheet(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ContentPaste,
-                                contentDescription = "Paste from clipboard",
+                                contentDescription = stringResource(R.string.add_wallet_clipboard_content_description),
                             )
                         }
                     },
                     supportingText = {
                         Text(
-                            "Paste all words at once, or fill individually below",
+                            stringResource(R.string.add_wallet_paste_supporting_text),
                             style = MaterialTheme.typography.bodySmall,
                         )
                     },
@@ -204,32 +217,34 @@ fun AddWalletSheet(
                 Button(
                     onClick = { onImportWallet(walletName, network, mnemonicWords.toList(), walletVersion) },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Import wallet") }
+                ) { Text(stringResource(R.string.action_import_wallet)) }
             }
 
             AddWalletTab.Generate -> {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Generate a demo wallet using a mock mnemonic phrase. Store it securely if you intend to reuse it.",
+                        stringResource(R.string.add_wallet_generate_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Button(
                         onClick = { onGenerateWallet(walletName, network, walletVersion) },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Generate wallet") }
+                    ) { Text(stringResource(R.string.action_generate_wallet)) }
                 }
             }
         }
 
-        TextButton(onClick = onDismiss) { Text("Cancel") }
+        TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
     }
 }
 
-private enum class AddWalletTab(val label: String) {
-    Import("Import"),
-    Generate("Generate"),
+private enum class AddWalletTab(@StringRes val labelRes: Int) {
+    Import(R.string.add_wallet_tab_import),
+    Generate(R.string.add_wallet_tab_generate),
 }
+
+private const val MNEMONIC_WORD_COUNT = 24
 
 @Preview(showBackground = true)
 @Composable
