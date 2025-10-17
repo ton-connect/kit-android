@@ -10,8 +10,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.SessionSummary
 import io.ton.walletkit.demo.presentation.ui.components.EmptyStateCard
 import io.ton.walletkit.demo.presentation.ui.components.SessionCard
@@ -22,7 +24,7 @@ fun SessionsSection(sessions: List<SessionSummary>, onDisconnect: (String) -> Un
     Column(verticalArrangement = Arrangement.spacedBy(SESSIONS_SECTION_SPACING)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                ACTIVE_SESSIONS_TITLE,
+                stringResource(R.string.sessions_title),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -35,8 +37,8 @@ fun SessionsSection(sessions: List<SessionSummary>, onDisconnect: (String) -> Un
         }
         if (sessions.isEmpty()) {
             EmptyStateCard(
-                title = NO_SESSIONS_TITLE,
-                description = NO_SESSIONS_DESCRIPTION,
+                title = stringResource(R.string.sessions_empty_title),
+                description = stringResource(R.string.sessions_empty_description),
             )
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(SESSIONS_LIST_SPACING)) {
@@ -51,9 +53,6 @@ fun SessionsSection(sessions: List<SessionSummary>, onDisconnect: (String) -> Un
     }
 }
 
-private const val ACTIVE_SESSIONS_TITLE = "Active Sessions"
-private const val NO_SESSIONS_TITLE = "No active sessions"
-private const val NO_SESSIONS_DESCRIPTION = "Use TON Connect to pair with a dApp."
 private val SESSIONS_SECTION_SPACING = 12.dp
 private val SESSIONS_TITLE_SPACING = 8.dp
 private val SESSIONS_LIST_SPACING = 12.dp

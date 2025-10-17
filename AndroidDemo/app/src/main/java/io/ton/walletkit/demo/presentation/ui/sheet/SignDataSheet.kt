@@ -13,9 +13,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
 import io.ton.walletkit.demo.presentation.ui.components.CodeBlock
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
@@ -30,15 +32,15 @@ fun SignDataSheet(
     val clipboardManager = LocalClipboardManager.current
 
     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Sign Data Request", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.sign_request_title), style = MaterialTheme.typography.titleLarge)
         request.dAppName?.let {
-            Text("From: $it", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.sign_request_from_format, it), style = MaterialTheme.typography.bodyMedium)
         }
-        Text("Wallet: ${request.walletAddress.abbreviated()}", style = MaterialTheme.typography.bodyMedium)
-        Text("Type: ${request.payloadType}", style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.sign_request_wallet_format, request.walletAddress.abbreviated()), style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.sign_request_type_format, request.payloadType), style = MaterialTheme.typography.bodyMedium)
 
         // Show preview if available (human-readable), otherwise show raw payload
-        Text("Data to Sign (tap to copy)", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.sign_request_data_hint), style = MaterialTheme.typography.titleSmall)
         Column(
             modifier = Modifier.clickable {
                 clipboardManager.setText(AnnotatedString(request.payloadContent))
@@ -48,8 +50,8 @@ fun SignDataSheet(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text("Reject") }
-            Button(onClick = onApprove, modifier = Modifier.weight(1f)) { Text("Sign") }
+            TextButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_reject)) }
+            Button(onClick = onApprove, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_sign)) }
         }
     }
 }

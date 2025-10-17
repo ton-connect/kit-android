@@ -10,7 +10,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import io.ton.walletkit.demo.R
 
 @Composable
 fun UrlPromptDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
@@ -25,25 +27,20 @@ fun UrlPromptDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                     url = ""
                 },
                 enabled = url.isNotBlank(),
-            ) { Text(HANDLE_BUTTON_LABEL) }
+            ) { Text(stringResource(R.string.action_handle_url)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(CANCEL_LABEL) } },
-        title = { Text(HANDLE_URL_TITLE) },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        title = { Text(stringResource(R.string.url_prompt_title)) },
         text = {
             TextField(
                 value = url,
                 onValueChange = { url = it },
-                placeholder = { Text(URL_PLACEHOLDER) },
+                placeholder = { Text(stringResource(R.string.url_prompt_placeholder)) },
                 singleLine = true,
             )
         },
     )
 }
-
-private const val HANDLE_BUTTON_LABEL = "Handle"
-private const val CANCEL_LABEL = "Cancel"
-private const val HANDLE_URL_TITLE = "Handle TON Connect URL"
-private const val URL_PLACEHOLDER = "https:// or ton://"
 
 @Preview(showBackground = true)
 @Composable

@@ -6,6 +6,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.demo.data.cache.TransactionCache
+import io.ton.walletkit.demo.data.storage.DemoAppStorage
+import io.ton.walletkit.demo.data.storage.UserPreferences
+import io.ton.walletkit.demo.data.storage.WalletRecord
 import io.ton.walletkit.demo.domain.model.PendingWalletRecord
 import io.ton.walletkit.demo.domain.model.WalletMetadata
 import io.ton.walletkit.demo.domain.model.toBridgeValue
@@ -20,9 +23,6 @@ import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
-import io.ton.walletkit.demo.data.storage.DemoAppStorage
-import io.ton.walletkit.demo.data.storage.UserPreferences
-import io.ton.walletkit.demo.data.storage.WalletRecord
 import io.ton.walletkit.demo.presentation.util.TransactionDiffUtil
 import io.ton.walletkit.domain.model.TONNetwork
 import io.ton.walletkit.domain.model.TONWalletData
@@ -42,8 +42,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.json.JSONArray
-import org.json.JSONObject
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.SimpleDateFormat
@@ -673,335 +671,6 @@ class WalletKitViewModel(
         }
     }
 
-    // ============================================================
-    // Sign Data Demo/Test Methods
-    // ============================================================
-
-    /**
-     * Triggers a test sign data request with text payload
-     */
-    fun testSignDataText(walletAddress: String) {
-        viewModelScope.launch {
-            try {
-                val requestId = java.util.UUID.randomUUID().toString()
-                val message = "Welcome to TON!\n\nPlease sign this message to authenticate your wallet.\n\nThis is a demo of the Sign Data feature."
-
-                // Create SignDataPayload as a JSON object then stringify it
-                val signDataPayload = JSONObject().apply {
-                    put("schema_crc", 0) // 0 means text/comment payload
-                    put("payload", message)
-                }
-
-                // Create the signData RPC request following TON Connect protocol
-                val testRequest = JSONObject().apply {
-                    put("id", requestId)
-                    put("method", "signData")
-                    put("from", "demo-dapp")
-                    put("walletAddress", walletAddress)
-                    put("domain", "demo.ton.org")
-                    // params[0] should be a JSON STRING, not an object
-                    put(
-                        "params",
-                        JSONArray().apply {
-                            put(signDataPayload.toString())
-                        },
-                    )
-                    put(
-                        "dAppInfo",
-                        JSONObject().apply {
-                            put("name", "WalletKit Demo")
-                            put("url", "https://demo.ton.org")
-                        },
-                    )
-                }
-
-                Log.d(LOG_TAG, "Creating test sign data request: $testRequest")
-
-                // TODO: Test injection not available in public API
-                // These test methods require internal engine access
-                throw UnsupportedOperationException("Test sign data injection not available in public API")
-                // throw UnsupportedOperationException("Test sign data injection requires internal API")
-                logEvent("Test sign data request (disabled - requires internal API)")
-            } catch (e: Exception) {
-                Log.e(LOG_TAG, "Failed to create test sign data text request", e)
-                _state.update { it.copy(error = "Failed to create sign data request: ${e.message}") }
-            }
-        }
-    }
-
-    /**
-     * Triggers a test sign data request with binary payload
-     */
-    fun testSignDataBinary(walletAddress: String) {
-        viewModelScope.launch {
-            try {
-                val requestId = java.util.UUID.randomUUID().toString()
-                // Create some binary data (base64 encoded)
-                val binaryData = android.util.Base64.encodeToString(
-                    "Hello, TON! This is binary data with special chars: 🚀💎".toByteArray(Charsets.UTF_8),
-                    android.util.Base64.NO_WRAP,
-                )
-
-                // Create SignDataPayload for binary data
-                val signDataPayload = JSONObject().apply {
-                    put("schema_crc", 1) // binary type
-                    put("payload", binaryData)
-                }
-
-                val testRequest = JSONObject().apply {
-                    put("id", requestId)
-                    put("method", "signData")
-                    put("from", "demo-dapp")
-                    put("walletAddress", walletAddress)
-                    put("domain", "demo.ton.org")
-                    // params[0] should be a JSON STRING
-                    put(
-                        "params",
-                        JSONArray().apply {
-                            put(signDataPayload.toString())
-                        },
-                    )
-                    put(
-                        "dAppInfo",
-                        JSONObject().apply {
-                            put("name", "WalletKit Demo")
-                            put("url", "https://demo.ton.org")
-                            put("iconUrl", "https://ton.org/icon.png")
-                            put("description", "Testing binary sign data")
-                        },
-                    )
-                }
-
-                Log.d(LOG_TAG, "Created test binary sign data request: $requestId")
-
-                // Inject through bridge - this will store it and emit the event
-                throw UnsupportedOperationException("Test sign data injection requires internal API")
-                logEvent("Injected test request into bridge")
-            } catch (e: Exception) {
-                Log.e(LOG_TAG, "Failed to create test sign data binary request", e)
-                _state.update { it.copy(error = "Failed to create sign data request: ${e.message}") }
-            }
-        }
-    }
-
-    /**
-     * Triggers a test sign data request with cell payload
-     */
-    fun testSignDataCell(walletAddress: String) {
-        viewModelScope.launch {
-            try {
-                val requestId = java.util.UUID.randomUUID().toString()
-
-                // Create SignDataPayload for cell data
-                // This is a simple TON cell containing "Hello, TON!"
-                val signDataPayload = JSONObject().apply {
-                    put("schema_crc", 2) // cell type
-                    put("schema", "message#_ text:string = Message;")
-                    put("payload", "te6cckEBAQEAEQAAHgAAAABIZWxsbywgVE9OIb7WCx4=") // BOC encoded cell with "Hello, TON!"
-                }
-
-                val testRequest = JSONObject().apply {
-                    put("id", requestId)
-                    put("method", "signData")
-                    put("from", "demo-dapp")
-                    put("walletAddress", walletAddress)
-                    put("domain", "demo.ton.org")
-                    // params[0] should be a JSON STRING
-                    put(
-                        "params",
-                        JSONArray().apply {
-                            put(signDataPayload.toString())
-                        },
-                    )
-                    put(
-                        "dAppInfo",
-                        JSONObject().apply {
-                            put("name", "WalletKit Demo")
-                            put("url", "https://demo.ton.org")
-                            put("iconUrl", "https://ton.org/icon.png")
-                            put("description", "Testing cell sign data")
-                        },
-                    )
-                }
-
-                Log.d(LOG_TAG, "Created test cell sign data request: $requestId")
-
-                // Inject through bridge - this will store it and emit the event
-                throw UnsupportedOperationException("Test sign data injection requires internal API")
-                logEvent("Injected test request into bridge")
-            } catch (e: Exception) {
-                Log.e(LOG_TAG, "Failed to create test sign data cell request", e)
-                _state.update { it.copy(error = "Failed to create sign data request: ${e.message}") }
-            }
-        }
-    }
-
-    fun testSignDataWithSession(walletAddress: String, sessionId: String) {
-        viewModelScope.launch {
-            try {
-                val requestId = java.util.UUID.randomUUID().toString()
-
-                // Get session info for display
-                val session = _state.value.sessions.find { it.sessionId == sessionId }
-                val sessionName = session?.dAppName ?: "Unknown dApp"
-                val domain = session?.dAppUrl?.let { url ->
-                    // Extract domain from URL
-                    url.removePrefix("https://").removePrefix("http://").split("/").firstOrNull() ?: "unknown.domain"
-                } ?: "unknown.domain"
-
-                // Create SignDataPayload for text (can be modified for other types)
-                val message = "Sign this message via connected dApp session:\n$sessionName"
-                val signDataPayload = JSONObject().apply {
-                    put("schema_crc", 0) // text type
-                    put("payload", message)
-                }
-
-                val testRequest = JSONObject().apply {
-                    put("id", requestId)
-                    put("method", "signData")
-                    put("from", sessionId) // REAL SESSION ID - will go through bridge!
-                    put("walletAddress", walletAddress)
-                    put("domain", domain)
-                    // params[0] should be a JSON STRING
-                    put(
-                        "params",
-                        JSONArray().apply {
-                            put(signDataPayload.toString())
-                        },
-                    )
-                    put(
-                        "dAppInfo",
-                        JSONObject().apply {
-                            put("name", sessionName)
-                            put("url", session?.dAppUrl ?: "https://$domain")
-                            put("iconUrl", session?.iconUrl ?: "")
-                            put("description", "Testing text sign data with connected session")
-                        },
-                    )
-                    // NOTE: No isLocal flag - this will use the bridge!
-                }
-
-                Log.d(LOG_TAG, "Created text sign data request with session: $sessionId ($sessionName)")
-
-                // Inject through bridge - signature will be sent back to dApp via bridge
-                throw UnsupportedOperationException("Test sign data injection requires internal API")
-                logEvent("Injected connected dApp text sign request: $sessionName")
-            } catch (e: Exception) {
-                Log.e(LOG_TAG, "Failed to create sign data request with session", e)
-                _state.update { it.copy(error = "Failed to create sign data request: ${e.message}") }
-            }
-        }
-    }
-
-    fun testSignDataBinaryWithSession(walletAddress: String, sessionId: String) {
-        viewModelScope.launch {
-            try {
-                val requestId = java.util.UUID.randomUUID().toString()
-
-                // Get session info for display
-                val session = _state.value.sessions.find { it.sessionId == sessionId }
-                val sessionName = session?.dAppName ?: "Unknown dApp"
-                val domain = session?.dAppUrl?.let { url ->
-                    // Extract domain from URL
-                    url.removePrefix("https://").removePrefix("http://").split("/").firstOrNull() ?: "unknown.domain"
-                } ?: "unknown.domain"
-
-                // Create SignDataPayload for binary data
-                // Example: "Binary data from wallet" as base64
-                val binaryData = "QmluYXJ5IGRhdGEgZnJvbSB3YWxsZXQ=" // base64 encoded
-                val signDataPayload = JSONObject().apply {
-                    put("schema_crc", 1) // binary type
-                    put("payload", binaryData)
-                }
-
-                val testRequest = JSONObject().apply {
-                    put("id", requestId)
-                    put("method", "signData")
-                    put("from", sessionId) // REAL SESSION ID - will go through bridge!
-                    put("walletAddress", walletAddress)
-                    put("domain", domain)
-                    put(
-                        "params",
-                        JSONArray().apply {
-                            put(signDataPayload.toString())
-                        },
-                    )
-                    put(
-                        "dAppInfo",
-                        JSONObject().apply {
-                            put("name", sessionName)
-                            put("url", session?.dAppUrl ?: "https://$domain")
-                            put("iconUrl", session?.iconUrl ?: "")
-                            put("description", "Testing binary sign data with connected session")
-                        },
-                    )
-                }
-
-                Log.d(LOG_TAG, "Created binary sign data request with session: $sessionId ($sessionName)")
-
-                throw UnsupportedOperationException("Test sign data injection requires internal API")
-                logEvent("Injected connected dApp binary sign request: $sessionName")
-            } catch (e: Exception) {
-                Log.e(LOG_TAG, "Failed to create binary sign data request with session", e)
-                _state.update { it.copy(error = "Failed to create binary sign data request: ${e.message}") }
-            }
-        }
-    }
-
-    fun testSignDataCellWithSession(walletAddress: String, sessionId: String) {
-        viewModelScope.launch {
-            try {
-                val requestId = java.util.UUID.randomUUID().toString()
-
-                // Get session info for display
-                val session = _state.value.sessions.find { it.sessionId == sessionId }
-                val sessionName = session?.dAppName ?: "Unknown dApp"
-                val domain = session?.dAppUrl?.let { url ->
-                    // Extract domain from URL
-                    url.removePrefix("https://").removePrefix("http://").split("/").firstOrNull() ?: "unknown.domain"
-                } ?: "unknown.domain"
-
-                // Create SignDataPayload for cell data
-                val signDataPayload = JSONObject().apply {
-                    put("schema_crc", 2) // cell type
-                    put("schema", "message#_ text:string = Message;")
-                    put("payload", "te6cckEBAQEAEQAAHgAAAABIZWxsbywgVE9OIb7WCx4=") // BOC encoded cell with "Hello, TON!"
-                }
-
-                val testRequest = JSONObject().apply {
-                    put("id", requestId)
-                    put("method", "signData")
-                    put("from", sessionId) // REAL SESSION ID - will go through bridge!
-                    put("walletAddress", walletAddress)
-                    put("domain", domain)
-                    put(
-                        "params",
-                        JSONArray().apply {
-                            put(signDataPayload.toString())
-                        },
-                    )
-                    put(
-                        "dAppInfo",
-                        JSONObject().apply {
-                            put("name", sessionName)
-                            put("url", session?.dAppUrl ?: "https://$domain")
-                            put("iconUrl", session?.iconUrl ?: "")
-                            put("description", "Testing cell sign data with connected session")
-                        },
-                    )
-                }
-
-                Log.d(LOG_TAG, "Created cell sign data request with session: $sessionId ($sessionName)")
-
-                throw UnsupportedOperationException("Test sign data injection requires internal API")
-                logEvent("Injected connected dApp cell sign request: $sessionName")
-            } catch (e: Exception) {
-                Log.e(LOG_TAG, "Failed to create cell sign data request with session", e)
-                _state.update { it.copy(error = "Failed to create sign data request: ${e.message}") }
-            }
-        }
-    }
-
     fun disconnectSession(sessionId: String) {
         viewModelScope.launch {
             // Note: Session disconnection is handled via wallet instances
@@ -1505,7 +1174,7 @@ class WalletKitViewModel(
                     // For now, we'll just show null - full decoding can be added later
                     null
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             }
 
@@ -1562,21 +1231,6 @@ class WalletKitViewModel(
             val events = listOf(message) + it.events
             it.copy(events = events.take(MAX_EVENT_LOG))
         }
-    }
-
-    private fun networkEndpoints(network: TONNetwork): NetworkEndpoints = when (network) {
-        TONNetwork.MAINNET -> NetworkEndpoints(
-            tonClientEndpoint = "https://toncenter.com/api/v2/jsonRPC",
-            tonApiUrl = "https://tonapi.io",
-            bridgeUrl = DEFAULT_BRIDGE_URL,
-            bridgeName = DEFAULT_BRIDGE_NAME,
-        )
-        TONNetwork.TESTNET -> NetworkEndpoints(
-            tonClientEndpoint = "https://testnet.toncenter.com/api/v2/jsonRPC",
-            tonApiUrl = "https://testnet.tonapi.io",
-            bridgeUrl = DEFAULT_BRIDGE_URL,
-            bridgeName = DEFAULT_BRIDGE_NAME,
-        )
     }
 
     override fun onCleared() {
@@ -1703,8 +1357,8 @@ class WalletKitViewModel(
 
         fun factory(
             storage: DemoAppStorage,
-            sdkEvents: kotlinx.coroutines.flow.SharedFlow<io.ton.walletkit.presentation.event.TONWalletKitEvent>,
-            sdkInitialized: kotlinx.coroutines.flow.SharedFlow<Boolean>,
+            sdkEvents: SharedFlow<TONWalletKitEvent>,
+            sdkInitialized: SharedFlow<Boolean>,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {

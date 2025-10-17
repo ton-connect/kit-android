@@ -29,12 +29,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
-import io.ton.walletkit.domain.model.TONNetwork
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.state.SheetState
@@ -54,6 +55,7 @@ import io.ton.walletkit.demo.presentation.ui.sheet.ConnectRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.SignDataSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.WalletDetailsSheet
+import io.ton.walletkit.domain.model.TONNetwork
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,20 +168,20 @@ fun WalletScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "TonWallet Demo",
+                        text = stringResource(R.string.wallet_screen_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                     )
                 },
                 actions = {
                     IconButton(onClick = onRefresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.action_refresh))
                     }
                     IconButton(onClick = onUrlPromptClick) {
-                        Icon(Icons.Outlined.Link, contentDescription = "Handle URL")
+                        Icon(Icons.Outlined.Link, contentDescription = stringResource(R.string.action_handle_url))
                     }
                     IconButton(onClick = onAddWalletClick) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Wallet")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.action_add_wallet))
                     }
                 },
             )

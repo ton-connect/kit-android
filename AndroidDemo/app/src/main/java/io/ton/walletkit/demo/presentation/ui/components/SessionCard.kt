@@ -12,9 +12,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.SessionSummary
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 import io.ton.walletkit.demo.presentation.util.abbreviated
@@ -29,7 +31,7 @@ fun SessionCard(session: SessionSummary, onDisconnect: () -> Unit) {
             Text(session.dAppName, style = MaterialTheme.typography.titleMedium)
             Column(verticalArrangement = Arrangement.spacedBy(SESSION_METADATA_SPACING)) {
                 Text(
-                    WALLET_LABEL,
+                    stringResource(R.string.label_wallet),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -45,7 +47,7 @@ fun SessionCard(session: SessionSummary, onDisconnect: () -> Unit) {
                         ?: session.manifestUrl?.takeIf { it.isNotBlank() }
                     resolvedUrl?.let {
                         Text(
-                            URL_LABEL,
+                            stringResource(R.string.label_url),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -57,7 +59,7 @@ fun SessionCard(session: SessionSummary, onDisconnect: () -> Unit) {
                         )
                     }
                 }
-                TextButton(onClick = onDisconnect) { Text(DISCONNECT_LABEL) }
+                TextButton(onClick = onDisconnect) { Text(stringResource(R.string.action_disconnect)) }
             }
         }
     }
@@ -67,9 +69,6 @@ private val SESSION_CARD_PADDING = 20.dp
 private val SESSION_CARD_CONTENT_SPACING = 12.dp
 private val SESSION_METADATA_SPACING = 4.dp
 private val SESSION_URL_SPACING = 4.dp
-private const val WALLET_LABEL = "Wallet"
-private const val URL_LABEL = "URL"
-private const val DISCONNECT_LABEL = "Disconnect"
 
 @Preview(showBackground = true)
 @Composable

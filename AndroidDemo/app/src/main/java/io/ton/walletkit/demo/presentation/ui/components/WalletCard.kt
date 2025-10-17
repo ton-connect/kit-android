@@ -22,8 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 import io.ton.walletkit.demo.presentation.util.abbreviated
@@ -51,12 +53,12 @@ fun WalletCard(
                     Text(wallet.name, style = MaterialTheme.typography.titleMedium)
                     NetworkBadge(wallet.network)
                 }
-                TextButton(onClick = onDetails) { Text(DETAILS_LABEL) }
+                TextButton(onClick = onDetails) { Text(stringResource(R.string.action_details)) }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(WALLET_CARD_CONTENT_SPACING)) {
                 Text(
-                    ADDRESS_LABEL,
+                    stringResource(R.string.label_wallet_address),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -75,18 +77,19 @@ fun WalletCard(
                             }
                         },
                     ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = COPY_ADDRESS_CONTENT_DESCRIPTION)
+                        Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.action_copy_address))
                     }
                 }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(WALLET_CARD_LABEL_SPACING)) {
                 Text(
-                    BALANCE_LABEL,
+                    stringResource(R.string.label_balance),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(wallet.balance ?: DEFAULT_BALANCE_VALUE, style = MaterialTheme.typography.headlineSmall)
+                val balanceText = wallet.balance ?: stringResource(R.string.wallet_balance_placeholder)
+                Text(balanceText, style = MaterialTheme.typography.headlineSmall)
             }
 
             Row(
@@ -102,7 +105,7 @@ fun WalletCard(
                         contentDescription = null,
                         modifier = Modifier.padding(end = SEND_ICON_PADDING),
                     )
-                    Text(SEND_BUTTON_LABEL)
+                    Text(stringResource(R.string.action_send))
                 }
             }
         }
@@ -115,12 +118,6 @@ private val WALLET_CARD_CONTENT_SPACING = 8.dp
 private val WALLET_CARD_LABEL_SPACING = 4.dp
 private val WALLET_CARD_BUTTON_SPACING = 8.dp
 private val SEND_ICON_PADDING = 4.dp
-private const val DETAILS_LABEL = "Details"
-private const val ADDRESS_LABEL = "Address"
-private const val BALANCE_LABEL = "Balance"
-private const val SEND_BUTTON_LABEL = "Send"
-private const val COPY_ADDRESS_CONTENT_DESCRIPTION = "Copy address"
-private const val DEFAULT_BALANCE_VALUE = "—"
 private const val CLIPBOARD_WALLET_ADDRESS_LABEL = "wallet_address"
 
 @Preview(showBackground = true)

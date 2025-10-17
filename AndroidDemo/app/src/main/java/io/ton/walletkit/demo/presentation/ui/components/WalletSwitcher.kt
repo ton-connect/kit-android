@@ -41,10 +41,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 
@@ -112,12 +115,13 @@ fun WalletSwitcher(
                     Spacer(modifier = Modifier.width(ACTIVE_WALLET_ICON_SPACING))
                     Column {
                         Text(
-                            text = activeWallet?.name ?: NO_WALLET_LABEL,
+                            text = activeWallet?.name ?: stringResource(R.string.wallet_switcher_no_wallet),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = activeWallet?.let { formatAddress(it.address) } ?: SELECT_WALLET_PROMPT,
+                            text = activeWallet?.let { formatAddress(it.address) }
+                                ?: stringResource(R.string.wallet_switcher_select_wallet),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -127,7 +131,11 @@ fun WalletSwitcher(
                 if (wallets.size > 1) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = walletsLabel(wallets.size),
+                            text = pluralStringResource(
+                                R.plurals.wallet_switcher_wallet_count,
+                                wallets.size,
+                                wallets.size,
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(end = WALLET_COUNT_PADDING_END),
@@ -135,7 +143,11 @@ fun WalletSwitcher(
                         IconButton(onClick = onToggle) {
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = if (isExpanded) COLLAPSE_CONTENT_DESCRIPTION else EXPAND_CONTENT_DESCRIPTION,
+                                contentDescription = if (isExpanded) {
+                                    stringResource(R.string.wallet_switcher_collapse)
+                                } else {
+                                    stringResource(R.string.wallet_switcher_expand)
+                                },
                                 modifier = Modifier.rotate(if (isExpanded) 180f else 0f),
                             )
                         }
@@ -182,21 +194,21 @@ fun WalletSwitcher(
                                         OutlinedTextField(
                                             value = editingName,
                                             onValueChange = { editingName = it },
-                                            label = { Text(WALLET_NAME_LABEL) },
+                                            label = { Text(stringResource(R.string.wallet_switcher_wallet_name_label)) },
                                             singleLine = true,
                                             modifier = Modifier.weight(1f),
                                         )
                                         IconButton(onClick = { saveEdit() }) {
                                             Icon(
                                                 imageVector = Icons.Default.Check,
-                                                contentDescription = SAVE_CONTENT_DESCRIPTION,
+                                                contentDescription = stringResource(R.string.action_save),
                                                 tint = MaterialTheme.colorScheme.primary,
                                             )
                                         }
                                         IconButton(onClick = { cancelEdit() }) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
-                                                contentDescription = CANCEL_CONTENT_DESCRIPTION,
+                                                contentDescription = stringResource(R.string.action_cancel),
                                             )
                                         }
                                     }
@@ -217,7 +229,7 @@ fun WalletSwitcher(
                                                 if (isActive) {
                                                     Spacer(modifier = Modifier.width(ACTIVE_BADGE_SPACING))
                                                     Text(
-                                                        text = ACTIVE_BADGE_LABEL,
+                                                        text = stringResource(R.string.wallet_switcher_active_badge),
                                                         style = MaterialTheme.typography.labelSmall,
                                                         color = MaterialTheme.colorScheme.primary,
                                                         fontWeight = FontWeight.Bold,
@@ -233,7 +245,7 @@ fun WalletSwitcher(
                                             )
                                             wallet.balance?.let { balance ->
                                                 Text(
-                                                    text = formatBalance(balance),
+                                                    text = stringResource(R.string.wallet_switcher_balance_format, balance),
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     color = MaterialTheme.colorScheme.onSurface,
                                                     fontWeight = FontWeight.Medium,
@@ -246,7 +258,7 @@ fun WalletSwitcher(
                                                 IconButton(onClick = { onSwitchWallet(wallet.address) }) {
                                                     Icon(
                                                         imageVector = Icons.Default.SwapHoriz,
-                                                        contentDescription = SWITCH_WALLET_CONTENT_DESCRIPTION,
+                                                        contentDescription = stringResource(R.string.action_switch),
                                                         tint = MaterialTheme.colorScheme.primary,
                                                     )
                                                 }
@@ -254,13 +266,13 @@ fun WalletSwitcher(
                                             IconButton(onClick = { startEdit(wallet) }) {
                                                 Icon(
                                                     imageVector = Icons.Default.Edit,
-                                                    contentDescription = RENAME_WALLET_CONTENT_DESCRIPTION,
+                                                    contentDescription = stringResource(R.string.action_rename),
                                                 )
                                             }
                                             IconButton(onClick = { walletToDelete = wallet }) {
                                                 Icon(
                                                     imageVector = Icons.Default.Delete,
-                                                    contentDescription = REMOVE_WALLET_CONTENT_DESCRIPTION,
+                                                    contentDescription = stringResource(R.string.action_remove),
                                                     tint = MaterialTheme.colorScheme.error,
                                                 )
                                             }
@@ -279,10 +291,10 @@ fun WalletSwitcher(
     walletToDelete?.let { wallet ->
         AlertDialog(
             onDismissRequest = { walletToDelete = null },
-            title = { Text(REMOVE_DIALOG_TITLE) },
+            title = { Text(stringResource(R.string.wallet_switcher_remove_title)) },
             text = {
                 Column {
-                    Text(REMOVE_DIALOG_MESSAGE)
+                    Text(stringResource(R.string.wallet_switcher_remove_message))
                     Spacer(modifier = Modifier.height(DIALOG_SPACING))
                     Text(
                         text = wallet.name,
@@ -296,7 +308,7 @@ fun WalletSwitcher(
                     if (wallet.address == activeWalletAddress && wallets.size > 1) {
                         Spacer(modifier = Modifier.height(DIALOG_SPACING))
                         Text(
-                            text = REMOVE_DIALOG_WARNING,
+                            text = stringResource(R.string.wallet_switcher_remove_warning),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -310,27 +322,23 @@ fun WalletSwitcher(
                         walletToDelete = null
                     },
                 ) {
-                    Text(REMOVE_BUTTON_LABEL, color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.action_remove), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { walletToDelete = null }) {
-                    Text(CANCEL_LABEL)
+                    Text(stringResource(R.string.action_cancel))
                 }
             },
         )
     }
 }
 
-private fun formatAddress(address: String): String = if (address.length > 12) {
+private fun formatAddress(address: String): String = if (address.length > FORMAT_ADDRESS_THRESHOLD) {
     "${address.take(6)}...${address.takeLast(4)}"
 } else {
     address
 }
-
-private fun formatBalance(balance: String): String = "$balance$TON_SUFFIX"
-
-private fun walletsLabel(count: Int): String = "$count$WALLETS_SUFFIX"
 
 private val ACTIVE_WALLET_ICON_SIZE = 40.dp
 private val ACTIVE_WALLET_ICON_SPACING = 12.dp
@@ -342,24 +350,7 @@ private val WALLET_CARD_INNER_PADDING = 12.dp
 private val ACTIVE_BADGE_SPACING = 8.dp
 private val WALLET_ADDRESS_SPACING = 4.dp
 private val DIALOG_SPACING = 8.dp
-private const val NO_WALLET_LABEL = "No Wallet"
-private const val SELECT_WALLET_PROMPT = "Select a wallet"
-private const val WALLETS_SUFFIX = " wallets"
-private const val COLLAPSE_CONTENT_DESCRIPTION = "Collapse"
-private const val EXPAND_CONTENT_DESCRIPTION = "Expand"
-private const val WALLET_NAME_LABEL = "Wallet name"
-private const val SAVE_CONTENT_DESCRIPTION = "Save"
-private const val CANCEL_CONTENT_DESCRIPTION = "Cancel"
-private const val SWITCH_WALLET_CONTENT_DESCRIPTION = "Switch to this wallet"
-private const val RENAME_WALLET_CONTENT_DESCRIPTION = "Rename wallet"
-private const val REMOVE_WALLET_CONTENT_DESCRIPTION = "Remove wallet"
-private const val ACTIVE_BADGE_LABEL = "Active"
-private const val TON_SUFFIX = " TON"
-private const val REMOVE_DIALOG_TITLE = "Remove Wallet?"
-private const val REMOVE_DIALOG_MESSAGE = "Are you sure you want to remove this wallet?"
-private const val REMOVE_DIALOG_WARNING = "This will switch to another wallet."
-private const val REMOVE_BUTTON_LABEL = "Remove"
-private const val CANCEL_LABEL = "Cancel"
+private const val FORMAT_ADDRESS_THRESHOLD = 12
 
 @Preview(showBackground = true)
 @Composable

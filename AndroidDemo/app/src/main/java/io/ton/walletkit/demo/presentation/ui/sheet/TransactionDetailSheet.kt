@@ -35,9 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.TransactionDetailUi
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -96,12 +98,20 @@ fun TransactionDetailSheet(
                 }
 
                 Text(
-                    if (transaction.isOutgoing) "Sent" else "Received",
+                    text = if (transaction.isOutgoing) {
+                        stringResource(R.string.transactions_sent)
+                    } else {
+                        stringResource(R.string.transactions_received)
+                    },
                     style = MaterialTheme.typography.titleLarge,
                 )
 
                 Text(
-                    "${if (transaction.isOutgoing) "-" else "+"}${transaction.amount} TON",
+                    text = if (transaction.isOutgoing) {
+                        stringResource(R.string.transactions_amount_outgoing, transaction.amount)
+                    } else {
+                        stringResource(R.string.transactions_amount_incoming, transaction.amount)
+                    },
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                     color = if (transaction.isOutgoing) {
@@ -112,7 +122,7 @@ fun TransactionDetailSheet(
                 )
 
                 Text(
-                    formatFullTimestamp(transaction.timestamp),
+                    formatFullTimestamp(transaction.timestamp, stringResource(R.string.transactions_unknown_time)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -131,16 +141,19 @@ fun TransactionDetailSheet(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    DetailRow(label = "Status", value = transaction.status)
+                    DetailRow(label = stringResource(R.string.transaction_detail_status_label), value = transaction.status)
 
                     HorizontalDivider()
 
-                    DetailRow(label = "Fee", value = "${transaction.fee} TON")
+                    DetailRow(
+                        label = stringResource(R.string.transaction_detail_fee_label),
+                        value = stringResource(R.string.wallet_switcher_balance_format, transaction.fee),
+                    )
 
                     if (transaction.fromAddress != null) {
                         HorizontalDivider()
                         DetailRow(
-                            label = "From",
+                            label = stringResource(R.string.transaction_detail_from_label),
                             value = transaction.fromAddress,
                             isAddress = true,
                         )
@@ -149,7 +162,7 @@ fun TransactionDetailSheet(
                     if (transaction.toAddress != null) {
                         HorizontalDivider()
                         DetailRow(
-                            label = "To",
+                            label = stringResource(R.string.transaction_detail_to_label),
                             value = transaction.toAddress,
                             isAddress = true,
                         )
@@ -157,24 +170,27 @@ fun TransactionDetailSheet(
 
                     if (!transaction.comment.isNullOrBlank()) {
                         HorizontalDivider()
-                        DetailRow(label = "Comment", value = transaction.comment)
+                        DetailRow(
+                            label = stringResource(R.string.transaction_detail_comment_label),
+                            value = transaction.comment,
+                        )
                     }
 
                     HorizontalDivider()
 
                     DetailRow(
-                        label = "Transaction Hash",
+                        label = stringResource(R.string.transaction_detail_hash_label),
                         value = transaction.hash,
                         isAddress = true,
                     )
 
                     HorizontalDivider()
 
-                    DetailRow(label = "Logical Time", value = transaction.lt)
+                    DetailRow(label = stringResource(R.string.transaction_detail_logical_time_label), value = transaction.lt)
 
                     HorizontalDivider()
 
-                    DetailRow(label = "Block", value = transaction.blockSeqno.toString())
+                    DetailRow(label = stringResource(R.string.transaction_detail_block_label), value = transaction.blockSeqno.toString())
                 }
             }
 
@@ -193,7 +209,7 @@ fun TransactionDetailSheet(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.size(8.dp))
-                Text("View on Blockchain Explorer")
+                Text(stringResource(R.string.transaction_detail_view_explorer))
             }
 
             // Close button
@@ -201,7 +217,7 @@ fun TransactionDetailSheet(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Close")
+                Text(stringResource(R.string.action_close))
             }
         }
     }
@@ -230,14 +246,14 @@ private fun DetailRow(
     }
 }
 
-private fun formatFullTimestamp(timestamp: Long): String = try {
+private fun formatFullTimestamp(timestamp: Long, unknownLabel: String): String = try {
     if (timestamp == 0L) {
-        "Unknown time"
+        unknownLabel
     } else {
         val date = Date(timestamp) // Already in milliseconds from bridge
         val sdf = SimpleDateFormat("MMMM dd, yyyy 'at' HH:mm:ss", Locale.getDefault())
         sdf.format(date)
     }
 } catch (e: Exception) {
-    "Unknown time"
+    unknownLabel
 }
