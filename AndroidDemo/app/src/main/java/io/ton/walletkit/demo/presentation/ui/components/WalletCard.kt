@@ -92,20 +92,22 @@ fun WalletCard(
                 Text(balanceText, style = MaterialTheme.typography.headlineSmall)
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(WALLET_CARD_BUTTON_SPACING),
-            ) {
-                Button(
-                    onClick = onSend,
-                    modifier = Modifier.weight(1f),
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(WALLET_CARD_BUTTON_SPACING),
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Send,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = SEND_ICON_PADDING),
-                    )
-                    Text(stringResource(R.string.action_send))
+                    Button(
+                        onClick = onSend,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = SEND_ICON_PADDING),
+                        )
+                        Text(stringResource(R.string.action_send))
+                    }
                 }
             }
         }

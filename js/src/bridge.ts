@@ -7,6 +7,9 @@ const tonCoreModulePromise = import('@ton/core');
 let TonWalletKit: any;
 let createWalletInitConfigMnemonic: any;
 let createWalletManifest: any;
+let Signer: any;
+let WalletV4R2Adapter: any;
+let WalletV5R1Adapter: any;
 let Address: any;
 let Cell: any;
 let currentNetwork: 'mainnet' | 'testnet' = 'testnet';
@@ -15,15 +18,18 @@ type TonChainEnum = { MAINNET: number; TESTNET: number };
 let tonConnectChain: TonChainEnum | null = null;
 
 async function ensureWalletKitLoaded() {
-  if (TonWalletKit && createWalletInitConfigMnemonic && tonConnectChain && Address && Cell) {
+  if (TonWalletKit && createWalletInitConfigMnemonic && tonConnectChain && Address && Cell && Signer && WalletV4R2Adapter && WalletV5R1Adapter) {
     return;
   }
-  if (!TonWalletKit || !createWalletInitConfigMnemonic) {
+  if (!TonWalletKit || !createWalletInitConfigMnemonic || !Signer || !WalletV4R2Adapter || !WalletV5R1Adapter) {
     const module = await walletKitModulePromise;
     TonWalletKit = (module as any).TonWalletKit;
     createWalletInitConfigMnemonic = (module as any).createWalletInitConfigMnemonic;
     createWalletManifest = (module as any).createWalletManifest ?? createWalletManifest;
     tonConnectChain = (module as any).CHAIN ?? tonConnectChain;
+    Signer = (module as any).Signer;
+    WalletV4R2Adapter = (module as any).WalletV4R2Adapter;
+    WalletV5R1Adapter = (module as any).WalletV5R1Adapter;
   }
   // Load Address and Cell from @ton/core
   if (!Address || !Cell) {
@@ -465,6 +471,7 @@ const api = {
     };
     
     walletKit.onConnectRequest(this.onConnectListener);
+    console.log('[walletkitBridge] ✅ Connect listener registered');
 
     // Remove old listener if it exists
     if (this.onTransactionListener) {
@@ -476,7 +483,9 @@ const api = {
       callback('transactionRequest', event);
     };
     
+    console.log('[walletkitBridge] About to call walletKit.onTransactionRequest...');
     walletKit.onTransactionRequest(this.onTransactionListener);
+    console.log('[walletkitBridge] ✅ Transaction listener registered');
 
     // Remove old listener if it exists
     if (this.onSignDataListener) {
@@ -488,7 +497,9 @@ const api = {
       callback('signDataRequest', event);
     };
     
+    console.log('[walletkitBridge] About to call walletKit.onSignDataRequest...');
     walletKit.onSignDataRequest(this.onSignDataListener);
+    console.log('[walletkitBridge] ✅ Sign data listener registered');
 
     // Remove old listener if it exists
     if (this.onDisconnectListener) {
@@ -501,6 +512,7 @@ const api = {
     };
     
     walletKit.onDisconnect(this.onDisconnectListener);
+    console.log('[walletkitBridge] ✅ Disconnect listener registered');
     
     console.log('[walletkitBridge] ✅ Event listeners set up successfully');
     return { ok: true };
@@ -534,6 +546,16 @@ const api = {
     return { ok: true };
   },
 
+  async derivePublicKeyFromMnemonic(args: { mnemonic: string[] }, context?: CallContext) {
+    emitCallCheckpoint(context, 'derivePublicKeyFromMnemonic:start');
+    await ensureWalletKitLoaded();
+    
+    const signer = await Signer.fromMnemonic(args.mnemonic, { type: 'ton' });
+    
+    emitCallCheckpoint(context, 'derivePublicKeyFromMnemonic:complete');
+    return { publicKey: signer.publicKey };
+  },
+
   async addWalletFromMnemonic(
     args: { words: string[]; version: 'v5r1' | 'v4r2'; network?: 'mainnet' | 'testnet' | '-239' | '-3' },
     context?: CallContext,
@@ -550,15 +572,262 @@ const api = {
     // Support both network names (mainnet/testnet) and chain IDs (-239/-3)
     const networkValue = args.network || '-3'; // Default to testnet
     const chain = (networkValue === 'mainnet' || networkValue === '-239') ? chains.MAINNET : chains.TESTNET;
-    const config = createWalletInitConfigMnemonic({
-      mnemonic: args.words,
-      version: args.version,
-      mnemonicType: 'ton',
+    
+    // Create wallet adapter based on version
+    let walletAdapter: any;
+    emitCallCheckpoint(context, 'addWalletFromMnemonic:before-createWalletAdapter');
+    
+    if (args.version === 'v4r2') {
+      const signer = await Signer.fromMnemonic(args.words, { type: 'ton' });
+      walletAdapter = await WalletV4R2Adapter.create(signer, {
+        client: walletKit.getApiClient(),
+        network: chain,
+      });
+    } else if (args.version === 'v5r1') {
+      const signer = await Signer.fromMnemonic(args.words, { type: 'ton' });
+      walletAdapter = await WalletV5R1Adapter.create(signer, {
+        client: walletKit.getApiClient(),
+        network: chain,
+      });
+    } else {
+      throw new Error('Unsupported wallet version: ${args.version}');
+    }
+    
+    emitCallCheckpoint(context, 'addWalletFromMnemonic:after-createWalletAdapter');
+    emitCallCheckpoint(context, 'addWalletFromMnemonic:before-walletKit.addWallet');
+    await walletKit.addWallet(walletAdapter);
+    emitCallCheckpoint(context, 'addWalletFromMnemonic:after-walletKit.addWallet');
+    return { ok: true };
+  },
+
+  async addWalletWithSigner(
+    args: { 
+      publicKey: string; 
+      version: 'v5r1' | 'v4r2'; 
+      network?: 'mainnet' | 'testnet' | '-239' | '-3';
+      signerId: string; // Unique ID for this signer, will be included in sign events
+    },
+    context?: CallContext,
+  ) {
+    emitCallCheckpoint(context, 'addWalletWithSigner:before-ensureWalletKitLoaded');
+    await ensureWalletKitLoaded();
+    emitCallCheckpoint(context, 'addWalletWithSigner:after-ensureWalletKitLoaded');
+    requireWalletKit();
+    emitCallCheckpoint(context, 'addWalletWithSigner:after-requireWalletKit');
+    
+    const chains = tonConnectChain;
+    if (!chains) {
+      throw new Error('TON Connect chain constants unavailable');
+    }
+    
+    const networkValue = args.network || '-3';
+    const chain = (networkValue === 'mainnet' || networkValue === '-239') ? chains.MAINNET : chains.TESTNET;
+    
+    // Store pending sign requests
+    const pendingSignRequests = new Map<string, { resolve: (sig: Uint8Array) => void; reject: (err: Error) => void }>();
+    
+    // Create a custom signer that calls back to Android via events
+    const customSigner: any = {
+      sign: async (bytes: Uint8Array) => {
+        // Generate unique request ID
+        const requestId = 'sign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}';
+        
+        // Emit sign request event to Android
+        emit('signerSignRequest', {
+          signerId: args.signerId,
+          requestId: requestId,
+          data: Array.from(bytes), // Convert to array for JSON serialization
+        });
+        
+        // Wait for Android to respond with signature
+        return new Promise<Uint8Array>((resolve, reject) => {
+          pendingSignRequests.set(requestId, { resolve, reject });
+          
+          // Timeout after 60 seconds
+          setTimeout(() => {
+            if (pendingSignRequests.has(requestId)) {
+              pendingSignRequests.delete(requestId);
+              reject(new Error('Sign request timed out'));
+            }
+          }, 60000);
+        });
+      },
+      publicKey: args.publicKey,
+    };
+    
+    // Store the pending requests map so Android can respond
+    if (!(globalThis as any).__walletKitSignerRequests) {
+      (globalThis as any).__walletKitSignerRequests = new Map();
+    }
+    (globalThis as any).__walletKitSignerRequests.set(args.signerId, pendingSignRequests);
+    
+    // Create wallet adapter based on version
+    let walletAdapter: any;
+    emitCallCheckpoint(context, 'addWalletWithSigner:before-createWalletAdapter');
+    
+    if (args.version === 'v4r2') {
+      walletAdapter = await WalletV4R2Adapter.create(customSigner, {
+        client: walletKit.getApiClient(),
+        network: chain,
+      });
+    } else if (args.version === 'v5r1') {
+      walletAdapter = await WalletV5R1Adapter.create(customSigner, {
+        client: walletKit.getApiClient(),
+        network: chain,
+      });
+    } else {
+      throw new Error('Unsupported wallet version: ${args.version}');
+    }
+    
+    emitCallCheckpoint(context, 'addWalletWithSigner:after-createWalletAdapter');
+    emitCallCheckpoint(context, 'addWalletWithSigner:before-walletKit.addWallet');
+    await walletKit.addWallet(walletAdapter);
+    emitCallCheckpoint(context, 'addWalletWithSigner:after-walletKit.addWallet');
+    return { ok: true };
+  },
+
+  async respondToSignRequest(
+    args: {
+      signerId: string;
+      requestId: string;
+      signature?: number[]; // Array of bytes
+      error?: string;
+    },
+    _context?: CallContext,
+  ) {
+    const signerRequests = (globalThis as any).__walletKitSignerRequests?.get(args.signerId);
+    if (!signerRequests) {
+      throw new Error('Unknown signer ID: ${args.signerId}');
+    }
+    
+    const pending = signerRequests.get(args.requestId);
+    if (!pending) {
+      throw new Error('Unknown sign request ID: ${args.requestId}');
+    }
+    
+    signerRequests.delete(args.requestId);
+    
+    if (args.error) {
+      pending.reject(new Error(args.error));
+    } else if (args.signature) {
+      pending.resolve(new Uint8Array(args.signature));
+    } else {
+      pending.reject(new Error('No signature or error provided'));
+    }
+    
+    return { ok: true };
+  },
+
+  async createV4R2WalletUsingMnemonic(
+    args: { mnemonic: string[]; network?: 'mainnet' | 'testnet' | '-239' | '-3' },
+    context?: CallContext,
+  ) {
+    emitCallCheckpoint(context, 'createV4R2WalletUsingMnemonic:before-ensureWalletKitLoaded');
+    await ensureWalletKitLoaded();
+    emitCallCheckpoint(context, 'createV4R2WalletUsingMnemonic:after-ensureWalletKitLoaded');
+    requireWalletKit();
+    if (!args.mnemonic) {
+      throw new Error('Mnemonic required for mnemonic wallet type');
+    }
+    const chains = tonConnectChain;
+    if (!chains) {
+      throw new Error('TON Connect chain constants unavailable');
+    }
+    const networkValue = args.network || '-3';
+    const chain = (networkValue === 'mainnet' || networkValue === '-239') ? chains.MAINNET : chains.TESTNET;
+    const signer = await Signer.fromMnemonic(args.mnemonic, { type: 'ton' });
+    return await WalletV4R2Adapter.create(signer, {
+      client: walletKit.getApiClient(),
       network: chain,
     });
-    emitCallCheckpoint(context, 'addWalletFromMnemonic:before-walletKit.addWallet');
-    await walletKit.addWallet(config);
-    emitCallCheckpoint(context, 'addWalletFromMnemonic:after-walletKit.addWallet');
+  },
+
+  async createV4R2WalletUsingSecretKey(
+    args: { secretKey: string; network?: 'mainnet' | 'testnet' | '-239' | '-3' },
+    context?: CallContext,
+  ) {
+    emitCallCheckpoint(context, 'createV4R2WalletUsingSecretKey:before-ensureWalletKitLoaded');
+    await ensureWalletKitLoaded();
+    emitCallCheckpoint(context, 'createV4R2WalletUsingSecretKey:after-ensureWalletKitLoaded');
+    requireWalletKit();
+    if (!args.secretKey) {
+      throw new Error('Secret key required for secret key wallet type');
+    }
+    const chains = tonConnectChain;
+    if (!chains) {
+      throw new Error('TON Connect chain constants unavailable');
+    }
+    const networkValue = args.network || '-3';
+    const chain = (networkValue === 'mainnet' || networkValue === '-239') ? chains.MAINNET : chains.TESTNET;
+    const signer = await Signer.fromPrivateKey(args.secretKey);
+    return await WalletV4R2Adapter.create(signer, {
+      client: walletKit.getApiClient(),
+      network: chain,
+    });
+  },
+
+  async createV5R1WalletUsingMnemonic(
+    args: { mnemonic: string[]; network?: 'mainnet' | 'testnet' | '-239' | '-3' },
+    context?: CallContext,
+  ) {
+    emitCallCheckpoint(context, 'createV5R1WalletUsingMnemonic:before-ensureWalletKitLoaded');
+    await ensureWalletKitLoaded();
+    emitCallCheckpoint(context, 'createV5R1WalletUsingMnemonic:after-ensureWalletKitLoaded');
+    requireWalletKit();
+    if (!args.mnemonic) {
+      throw new Error('Mnemonic required for mnemonic wallet type');
+    }
+    const chains = tonConnectChain;
+    if (!chains) {
+      throw new Error('TON Connect chain constants unavailable');
+    }
+    const networkValue = args.network || '-3';
+    const chain = (networkValue === 'mainnet' || networkValue === '-239') ? chains.MAINNET : chains.TESTNET;
+    const signer = await Signer.fromMnemonic(args.mnemonic, { type: 'ton' });
+    return await WalletV5R1Adapter.create(signer, {
+      client: walletKit.getApiClient(),
+      network: chain,
+    });
+  },
+
+  async createV5R1WalletUsingSecretKey(
+    args: { secretKey: string; network?: 'mainnet' | 'testnet' | '-239' | '-3' },
+    context?: CallContext,
+  ) {
+    emitCallCheckpoint(context, 'createV5R1WalletUsingSecretKey:before-ensureWalletKitLoaded');
+    await ensureWalletKitLoaded();
+    emitCallCheckpoint(context, 'createV5R1WalletUsingSecretKey:after-ensureWalletKitLoaded');
+    requireWalletKit();
+    if (!args.secretKey) {
+      throw new Error('Secret key required for secret key wallet type');
+    }
+    const chains = tonConnectChain;
+    if (!chains) {
+      throw new Error('TON Connect chain constants unavailable');
+    }
+    const networkValue = args.network || '-3';
+    const chain = (networkValue === 'mainnet' || networkValue === '-239') ? chains.MAINNET : chains.TESTNET;
+    const signer = await Signer.fromPrivateKey(args.secretKey);
+    return await WalletV5R1Adapter.create(signer, {
+      client: walletKit.getApiClient(),
+      network: chain,
+    });
+  },
+
+  async addWallet(
+    args: { wallet: any },
+    context?: CallContext,
+  ) {
+    emitCallCheckpoint(context, 'addWallet:before-ensureWalletKitLoaded');
+    await ensureWalletKitLoaded();
+    emitCallCheckpoint(context, 'addWallet:after-ensureWalletKitLoaded');
+    requireWalletKit();
+    if (!args.wallet) {
+      throw new Error('Wallet required for wallet addition');
+    }
+    emitCallCheckpoint(context, 'addWallet:before-walletKit.addWallet');
+    await walletKit.addWallet(args.wallet);
+    emitCallCheckpoint(context, 'addWallet:after-walletKit.addWallet');
     return { ok: true };
   },
 
@@ -777,15 +1046,15 @@ const api = {
     }
   },
 
-  async sendTransaction(
+  async sendLocalTransaction(
     args: { walletAddress: string; toAddress: string; amount: string; comment?: string },
     context?: CallContext,
   ) {
-    emitCallCheckpoint(context, 'sendTransaction:before-ensureWalletKitLoaded');
+    emitCallCheckpoint(context, 'sendLocalTransaction:before-ensureWalletKitLoaded');
     await ensureWalletKitLoaded();
-    emitCallCheckpoint(context, 'sendTransaction:after-ensureWalletKitLoaded');
+    emitCallCheckpoint(context, 'sendLocalTransaction:after-ensureWalletKitLoaded');
     requireWalletKit();
-    emitCallCheckpoint(context, 'sendTransaction:after-requireWalletKit');
+    emitCallCheckpoint(context, 'sendLocalTransaction:after-requireWalletKit');
 
     const walletAddress =
       typeof args.walletAddress === 'string' ? args.walletAddress.trim() : String(args.walletAddress ?? '').trim();
@@ -820,9 +1089,9 @@ const api = {
       transferParams.comment = comment;
     }
 
-    emitCallCheckpoint(context, 'sendTransaction:before-wallet.createTransferTonTransaction');
+    emitCallCheckpoint(context, 'sendLocalTransaction:before-wallet.createTransferTonTransaction');
     const transaction = await wallet.createTransferTonTransaction(transferParams);
-    emitCallCheckpoint(context, 'sendTransaction:after-wallet.createTransferTonTransaction');
+    emitCallCheckpoint(context, 'sendLocalTransaction:after-wallet.createTransferTonTransaction');
 
     // Add comment to transaction messages for UI display (doesn't affect blockchain encoding)
     if (comment && transaction.messages && Array.isArray(transaction.messages)) {
@@ -835,10 +1104,10 @@ const api = {
     let preview: unknown = null;
     if (typeof wallet.getTransactionPreview === 'function') {
       try {
-        emitCallCheckpoint(context, 'sendTransaction:before-wallet.getTransactionPreview');
+        emitCallCheckpoint(context, 'sendLocalTransaction:before-wallet.getTransactionPreview');
         const previewResult = await wallet.getTransactionPreview(transaction);
         preview = previewResult?.preview ?? previewResult;
-        emitCallCheckpoint(context, 'sendTransaction:after-wallet.getTransactionPreview');
+        emitCallCheckpoint(context, 'sendLocalTransaction:after-wallet.getTransactionPreview');
       } catch (error) {
         console.warn('[walletkitBridge] getTransactionPreview failed', error);
       }
@@ -847,9 +1116,9 @@ const api = {
     // handleNewTransaction triggers onTransactionRequest event
     // Android app should listen to transactionRequest event to show confirmation UI with fee details
     // User then calls approveTransactionRequest or rejectTransactionRequest
-    emitCallCheckpoint(context, 'sendTransaction:before-walletKit.handleNewTransaction');
+    emitCallCheckpoint(context, 'sendLocalTransaction:before-walletKit.handleNewTransaction');
     await walletKit.handleNewTransaction(wallet, transaction);
-    emitCallCheckpoint(context, 'sendTransaction:after-walletKit.handleNewTransaction');
+    emitCallCheckpoint(context, 'sendLocalTransaction:after-walletKit.handleNewTransaction');
 
     // This returns immediately after queuing the transaction request
     // The actual transaction is sent only when approveTransactionRequest is called
@@ -891,6 +1160,14 @@ const api = {
     event.walletAddress = resolvedAddress;
     emitCallCheckpoint(context, 'approveConnectRequest:before-walletKit.approveConnectRequest');
     const result = await walletKit.approveConnectRequest(event);
+    // Some internal implementations (request processor) perform the response
+    // delivery themselves and return no value. Treat undefined/null result as
+    // implicit success to avoid throwing while the dApp already received the
+    // response (this prevents spurious "Failed to approve connect request" errors).
+    if (result == null) {
+      emitCallCheckpoint(context, 'approveConnectRequest:after-walletKit.approveConnectRequest');
+      return { success: true } as unknown as Record<string, unknown>;
+    }
     if (!result?.success) {
       const message = result?.message || 'Failed to approve connect request';
       throw new Error(message);

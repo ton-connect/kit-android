@@ -45,10 +45,9 @@ import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.ui.components.QuickActionsCard
 import io.ton.walletkit.demo.presentation.ui.components.StatusHeader
 import io.ton.walletkit.demo.presentation.ui.components.WalletSwitcher
-import io.ton.walletkit.demo.presentation.ui.dialog.UrlPromptDialog
 import io.ton.walletkit.demo.presentation.ui.dialog.SignerConfirmationDialog
+import io.ton.walletkit.demo.presentation.ui.dialog.UrlPromptDialog
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
-import io.ton.walletkit.demo.presentation.ui.screen.SendTransactionScreen
 import io.ton.walletkit.demo.presentation.ui.sections.EventLogSection
 import io.ton.walletkit.demo.presentation.ui.sections.SessionsSection
 import io.ton.walletkit.demo.presentation.ui.sections.TransactionHistorySection
@@ -56,6 +55,7 @@ import io.ton.walletkit.demo.presentation.ui.sections.WalletsSection
 import io.ton.walletkit.demo.presentation.ui.sheet.AddWalletSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.ConnectRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.SignDataSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.WalletDetailsSheet
 import io.ton.walletkit.domain.model.TONNetwork
@@ -101,6 +101,13 @@ fun WalletScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val sheet = state.sheetState
     val showSheet = sheet !is SheetState.None
+    // Ensure the modal bottom sheet is hidden when the ViewModel clears the sheet state.
+    LaunchedEffect(state.sheetState) {
+        if (state.sheetState is SheetState.None && sheetState.isVisible) {
+            // Animate hide to avoid leaving the sheet visible when it's removed from composition
+            sheetState.hide()
+        }
+    }
     val activeWallet = state.wallets.firstOrNull { it.address == state.activeWalletAddress }
         ?: state.wallets.firstOrNull()
     if (showSheet) {
@@ -120,8 +127,8 @@ fun WalletScreen(
                 is SheetState.Connect -> ConnectRequestSheet(
                     request = sheet.request,
                     wallets = state.wallets,
-                    onApprove = { wallet -> onApproveConnect(sheet.request, wallet) },
-                    onReject = { onRejectConnect(sheet.request) },
+                    onApprove = { req, wallet -> onApproveConnect(req, wallet) },
+                    onReject = { req -> onRejectConnect(req) },
                 )
 
                 is SheetState.Transaction -> TransactionRequestSheet(
@@ -151,7 +158,7 @@ fun WalletScreen(
                     isLoading = state.isSendingTransaction,
                 )
 
-                is SheetState.TransactionDetail -> io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet(
+                is SheetState.TransactionDetail -> TransactionDetailSheet(
                     transaction = sheet.transaction,
                     onDismiss = onDismissSheet,
                 )

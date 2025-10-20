@@ -56,9 +56,9 @@ internal object BridgeMethodConstants {
     const val METHOD_HANDLE_TON_CONNECT_URL = "handleTonConnectUrl"
 
     /**
-     * Method name for sending a transaction.
+     * Method name for sending a local transaction.
      */
-    const val METHOD_SEND_TRANSACTION = "sendTransaction"
+    const val METHOD_SEND_LOCAL_TRANSACTION = "sendLocalTransaction"
 
     /**
      * Method name for approving a connect request.
@@ -99,4 +99,19 @@ internal object BridgeMethodConstants {
      * Method name for disconnecting a session.
      */
     const val METHOD_DISCONNECT_SESSION = "disconnectSession"
+
+    /**
+     * Method name for deriving public key from mnemonic.
+     */
+    const val METHOD_DERIVE_PUBLIC_KEY_FROM_MNEMONIC = "derivePublicKeyFromMnemonic"
+
+    /**
+     * Method name for adding a wallet backed by an external signer.
+     */
+    const val METHOD_ADD_WALLET_WITH_SIGNER = "addWalletWithSigner"
+
+    /**
+     * Method name for responding to a sign request.
+     */
+    const val METHOD_RESPOND_TO_SIGN_REQUEST = "respondToSignRequest"
 }

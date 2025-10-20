@@ -53,19 +53,19 @@ class WalletKitDemoApp : Application() {
     }
 
     private suspend fun initializeSDK() {
-        Log.d("WalletKitDemoApp", "Initializing SDK with network: ${TONNetwork.MAINNET}")
+        Log.d(TAG, "Initializing SDK with network: ${TONNetwork.MAINNET}")
         val config = TONWalletKitConfiguration(
             network = TONNetwork.MAINNET,
             walletManifest = TONWalletKitConfiguration.Manifest(
-                name = "Wallet",
-                appName = "Wallet",
-                imageUrl = "https://wallet.ton.org/icon.png",
-                aboutUrl = "https://wallet.ton.org",
-                universalLink = "https://wallet.ton.org/tc",
-                bridgeUrl = "https://bridge.tonapi.io/bridge",
+                name = DEFAULT_MANIFEST_NAME,
+                appName = DEFAULT_APP_NAME,
+                imageUrl = DEFAULT_MANIFEST_IMAGE_URL,
+                aboutUrl = DEFAULT_MANIFEST_ABOUT_URL,
+                universalLink = DEFAULT_MANIFEST_UNIVERSAL_LINK,
+                bridgeUrl = DEFAULT_BRIDGE_URL,
             ),
             bridge = TONWalletKitConfiguration.Bridge(
-                bridgeUrl = "https://bridge.tonapi.io/bridge",
+                bridgeUrl = DEFAULT_BRIDGE_URL,
             ),
             apiClient = null, // Use default API URLs based on network
             features = listOf(
@@ -86,5 +86,15 @@ class WalletKitDemoApp : Application() {
                 }
             },
         )
+    }
+
+    private companion object {
+        private const val TAG = "WalletKitDemoApp"
+        private const val DEFAULT_MANIFEST_NAME = "Wallet"
+        private const val DEFAULT_APP_NAME = "Wallet"
+        private const val DEFAULT_MANIFEST_IMAGE_URL = "https://wallet.ton.org/icon.png"
+        private const val DEFAULT_MANIFEST_ABOUT_URL = "https://wallet.ton.org"
+        private const val DEFAULT_MANIFEST_UNIVERSAL_LINK = "https://wallet.ton.org/tc"
+        private const val DEFAULT_BRIDGE_URL = "https://bridge.tonapi.io/bridge"
     }
 }

@@ -1,7 +1,10 @@
 package io.ton.walletkit.presentation
 
+import io.ton.walletkit.domain.model.TONNetwork
 import io.ton.walletkit.domain.model.TONWalletData
 import io.ton.walletkit.domain.model.WalletAccount
+import io.ton.walletkit.domain.model.WalletSession
+import io.ton.walletkit.domain.model.WalletSigner
 
 /**
  * Represents a TON wallet with balance and state management.
@@ -58,6 +61,92 @@ class TONWallet private constructor(
                 name = data.name,
                 version = data.version,
                 network = data.network.value,
+            )
+
+            return TONWallet(
+                address = account.address,
+                engine = engine,
+                account = account,
+            )
+        }
+
+        /**
+         * Derive a public key from a mnemonic phrase without creating a wallet.
+         *
+         * This is useful for external signers (hardware wallets, watch-only wallets)
+         * where you need the public key but don't want to store the mnemonic.
+         *
+         * Example:
+         * ```kotlin
+         * val mnemonic = listOf("word1", "word2", ..., "word24")
+         * val publicKey = TONWallet.derivePublicKey(mnemonic)
+         *
+         * // Now create a custom signer with this public key
+         * val signer = object : WalletSigner {
+         *     override val publicKey = publicKey
+         *     override suspend fun sign(data: ByteArray): ByteArray {
+         *         // Forward to hardware wallet for signing
+         *         return hardwareWallet.sign(data)
+         *     }
+         * }
+         * ```
+         *
+         * @param mnemonic 24-word mnemonic phrase
+         * @return Hex-encoded public key
+         * @throws WalletKitBridgeException if derivation fails or SDK not initialized
+         */
+        suspend fun derivePublicKey(mnemonic: List<String>): String {
+            val engine = TONWalletKit.engine
+                ?: throw WalletKitBridgeException(ERROR_WALLETKIT_NOT_INITIALIZED)
+
+            return engine.derivePublicKeyFromMnemonic(mnemonic)
+        }
+
+        /**
+         * Add a new wallet using an external signer.
+         *
+         * Use this method to create wallets where the private key is managed externally,
+         * such as hardware wallets, watch-only wallets, or separate secure modules.
+         *
+         * The [signer] will be called whenever the wallet needs to sign a transaction or data.
+         *
+         * Example:
+         * ```kotlin
+         * val signer = object : WalletSigner {
+         *     override val publicKey = "your_public_key_hex"
+         *
+         *     override suspend fun sign(data: ByteArray): ByteArray {
+         *         // Show confirmation dialog to user
+         *         // Call hardware wallet or external signing service
+         *         return signature
+         *     }
+         * }
+         *
+         * val wallet = TONWallet.addWithSigner(
+         *     signer = signer,
+         *     version = "v4r2",
+         *     network = TONNetwork.MAINNET
+         * )
+         * ```
+         *
+         * @param signer The external signer that will handle all signing operations
+         * @param version Wallet version (e.g., "v4r2", "v5r1")
+         * @param network Network to use (default: current network)
+         * @return The newly created wallet
+         * @throws WalletKitBridgeException if wallet creation fails or SDK not initialized
+         */
+        suspend fun addWithSigner(
+            signer: WalletSigner,
+            version: String = "v4r2",
+            network: TONNetwork = TONNetwork.MAINNET,
+        ): TONWallet {
+            val engine = TONWalletKit.engine
+                ?: throw WalletKitBridgeException(ERROR_WALLETKIT_NOT_INITIALIZED)
+
+            val account = engine.addWalletWithSigner(
+                signer = signer,
+                version = version,
+                network = network.value,
             )
 
             return TONWallet(
@@ -167,11 +256,27 @@ class TONWallet private constructor(
      * @return List of active sessions associated with this wallet
      * @throws WalletKitBridgeException if session retrieval fails
      */
-    suspend fun sessions(): List<io.ton.walletkit.domain.model.WalletSession> {
+    suspend fun sessions(): List<WalletSession> {
         val addr = address ?: return emptyList()
         // Get all sessions and filter by wallet address
         return engine.listSessions().filter { session ->
             session.walletAddress == addr
         }
+    }
+
+    /**
+     * Send a locally initiated transaction from this wallet.
+     *
+     * This creates and sends a transaction with the specified parameters.
+     * The transaction will trigger a transaction request event that should be approved by the user.
+     *
+     * @param recipient Recipient address
+     * @param amount Amount in nanoTON as a string
+     * @param comment Optional comment/memo for the transaction
+     * @throws WalletKitBridgeException if transaction creation or sending fails
+     */
+    suspend fun sendLocalTransaction(recipient: String, amount: String, comment: String? = null) {
+        val addr = address ?: throw WalletKitBridgeException("Wallet address is null")
+        engine.sendLocalTransaction(addr, recipient, amount, comment)
     }
 }

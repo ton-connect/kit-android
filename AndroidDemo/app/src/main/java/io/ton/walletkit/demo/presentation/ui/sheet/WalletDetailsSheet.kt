@@ -310,11 +310,10 @@ private fun formatCreatedDate(timestamp: Long): String {
     return formatter.format(date)
 }
 
-private fun formatInterfaceType(type: WalletInterfaceType): String {
-    return when (type) {
-        WalletInterfaceType.MNEMONIC -> "Mnemonic (Standard)"
-        WalletInterfaceType.SIGNER -> "Signer (Custom Confirmation)"
-    }
+@Composable
+private fun formatInterfaceType(type: WalletInterfaceType): String = when (type) {
+    WalletInterfaceType.MNEMONIC -> stringResource(R.string.wallet_interface_type_mnemonic)
+    WalletInterfaceType.SIGNER -> stringResource(R.string.wallet_interface_type_signer)
 }
 
 @Preview(showBackground = true)

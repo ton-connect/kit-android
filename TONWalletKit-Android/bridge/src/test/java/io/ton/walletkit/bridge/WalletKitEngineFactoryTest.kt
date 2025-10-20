@@ -178,7 +178,7 @@ class WalletKitEngineFactoryTest {
             "init",
             "addWalletFromMnemonic",
             "getRecentTransactions",
-            "sendTransaction",
+            "sendLocalTransaction",
             "rejectConnect",
             "rejectTransaction",
             "rejectSignData",

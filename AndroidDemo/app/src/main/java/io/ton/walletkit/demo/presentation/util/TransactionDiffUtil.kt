@@ -3,6 +3,12 @@ package io.ton.walletkit.demo.presentation.util
 import androidx.recyclerview.widget.DiffUtil
 import io.ton.walletkit.domain.model.Transaction
 
+private const val CHANGE_AMOUNT = "amount"
+private const val CHANGE_FEE = "fee"
+private const val CHANGE_COMMENT = "comment"
+private const val CHANGE_TYPE = "type"
+private const val CHANGE_BLOCK_SEQNO = "blockSeqno"
+
 /**
  * DiffUtil callback for efficiently calculating differences between transaction lists.
  * Uses transaction hash as the unique identifier.
@@ -57,11 +63,11 @@ class TransactionDiffCallback(
         // Create a list of changed fields
         val changes = mutableListOf<String>()
 
-        if (oldItem.amount != newItem.amount) changes.add("amount")
-        if (oldItem.fee != newItem.fee) changes.add("fee")
-        if (oldItem.comment != newItem.comment) changes.add("comment")
-        if (oldItem.type != newItem.type) changes.add("type")
-        if (oldItem.blockSeqno != newItem.blockSeqno) changes.add("blockSeqno")
+        if (oldItem.amount != newItem.amount) changes.add(CHANGE_AMOUNT)
+        if (oldItem.fee != newItem.fee) changes.add(CHANGE_FEE)
+        if (oldItem.comment != newItem.comment) changes.add(CHANGE_COMMENT)
+        if (oldItem.type != newItem.type) changes.add(CHANGE_TYPE)
+        if (oldItem.blockSeqno != newItem.blockSeqno) changes.add(CHANGE_BLOCK_SEQNO)
 
         return if (changes.isNotEmpty()) changes else null
     }
@@ -71,7 +77,6 @@ class TransactionDiffCallback(
  * Helper object for calculating transaction list diffs.
  */
 object TransactionDiffUtil {
-
     /**
      * Calculate the difference between two transaction lists.
      * Returns a DiffUtil.DiffResult that can be used to update UI efficiently.

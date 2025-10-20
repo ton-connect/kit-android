@@ -36,8 +36,8 @@ import io.ton.walletkit.demo.presentation.util.abbreviated
 fun ConnectRequestSheet(
     request: ConnectRequestUi,
     wallets: List<WalletSummary>,
-    onApprove: (WalletSummary) -> Unit,
-    onReject: () -> Unit,
+    onApprove: (ConnectRequestUi, WalletSummary) -> Unit,
+    onReject: (ConnectRequestUi) -> Unit,
 ) {
     var selectedWallet by remember { mutableStateOf(wallets.firstOrNull()) }
 
@@ -88,9 +88,9 @@ fun ConnectRequestSheet(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_reject)) }
+            TextButton(onClick = { onReject(request) }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_reject)) }
             Button(
-                onClick = { selectedWallet?.let(onApprove) },
+                onClick = { selectedWallet?.let { w -> onApprove(request, w) } },
                 enabled = selectedWallet != null,
                 modifier = Modifier.weight(1f),
             ) { Text(stringResource(R.string.action_connect)) }
@@ -125,7 +125,7 @@ private fun ConnectRequestSheetPreview() {
     ConnectRequestSheet(
         request = PreviewData.connectRequest,
         wallets = listOf(PreviewData.wallet),
-        onApprove = {},
-        onReject = {},
+        onApprove = { _, _ -> },
+        onReject = { _ -> },
     )
 }

@@ -12,11 +12,10 @@ enum class WalletInterfaceType(val value: String) {
     /**
      * Custom signer wallet that requires user confirmation for each signing operation.
      */
-    SIGNER("signer");
+    SIGNER("signer"),
+    ;
 
     companion object {
-        fun fromValue(value: String): WalletInterfaceType {
-            return entries.find { it.value == value } ?: MNEMONIC
-        }
+        fun fromValue(value: String): WalletInterfaceType = entries.find { it.value == value } ?: MNEMONIC
     }
 }

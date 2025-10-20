@@ -66,8 +66,8 @@ class WebViewEngineApiTest {
     }
 
     @Test
-    fun `engine implements sendTransaction method`() {
-        assertNotNull(engine::sendTransaction)
+    fun `engine implements sendLocalTransaction method`() {
+        assertNotNull(engine::sendLocalTransaction)
     }
 
     @Test

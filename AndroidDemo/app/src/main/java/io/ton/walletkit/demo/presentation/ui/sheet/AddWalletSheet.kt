@@ -56,9 +56,10 @@ fun AddWalletSheet(
     walletCount: Int,
 ) {
     var selectedTab by remember { mutableStateOf(AddWalletTab.Import) }
-    var walletName by rememberSaveable { mutableStateOf("Wallet ${walletCount + 1}") }
+    val defaultName = stringResource(R.string.wallet_default_name, walletCount + 1)
+    var walletName by rememberSaveable(walletCount) { mutableStateOf(defaultName) }
     var network by rememberSaveable { mutableStateOf(TONNetwork.MAINNET) }
-    var walletVersion by rememberSaveable { mutableStateOf("v4r2") }
+    var walletVersion by rememberSaveable { mutableStateOf(DEFAULT_WALLET_VERSION) }
     var interfaceType by rememberSaveable { mutableStateOf(WalletInterfaceType.MNEMONIC) }
     val mnemonicWords = remember { mutableStateListOf(*Array(24) { "" }) }
     var pasteField by rememberSaveable { mutableStateOf("") }
@@ -135,14 +136,14 @@ fun AddWalletSheet(
 
         Text(stringResource(R.string.label_wallet_version), style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("v4r2", "v5r1", "v3r2").forEach { version ->
+            listOf(DEFAULT_WALLET_VERSION, "v5r1", "v3r2").forEach { version ->
                 FilterChip(
                     selected = walletVersion == version,
                     onClick = { walletVersion = version },
                     label = {
                         Column {
                             Text(version, fontWeight = FontWeight.Bold)
-                            if (version == "v4r2") {
+                            if (version == DEFAULT_WALLET_VERSION) {
                                 Text(stringResource(R.string.add_wallet_version_default), style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -275,6 +276,7 @@ private enum class AddWalletTab(@StringRes val labelRes: Int) {
 }
 
 private const val MNEMONIC_WORD_COUNT = 24
+private const val DEFAULT_WALLET_VERSION = "v4r2"
 
 @Preview(showBackground = true)
 @Composable

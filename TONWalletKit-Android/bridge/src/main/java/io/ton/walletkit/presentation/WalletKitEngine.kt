@@ -57,6 +57,55 @@ internal interface WalletKitEngine {
     ): WalletAccount
 
     /**
+     * Derive public key from a mnemonic phrase without creating a wallet.
+     *
+     * This is useful for creating external signers (hardware wallets, watch-only wallets)
+     * where you need the public key but don't want to store the mnemonic in the SDK.
+     *
+     * @param words Mnemonic phrase as a list of words
+     * @return The hex-encoded public key
+     * @throws WalletKitBridgeException if derivation fails
+     */
+    suspend fun derivePublicKeyFromMnemonic(words: List<String>): String
+
+    /**
+     * Add a new wallet using an external signer.
+     *
+     * This allows creating wallets where the private key is managed externally
+     * (e.g., hardware wallet, watch-only wallet, separate secure module).
+     *
+     * @param signer The external signer that will handle signing operations
+     * @param version Wallet version (e.g., "v5r1", "v4r2")
+     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
+     * @return The newly added wallet account
+     * @throws WalletKitBridgeException if wallet creation fails
+     */
+    suspend fun addWalletWithSigner(
+        signer: io.ton.walletkit.domain.model.WalletSigner,
+        version: String,
+        network: String? = null,
+    ): WalletAccount
+
+    /**
+     * Respond to a sign request from an external signer wallet.
+     *
+     * When a wallet created with [addWalletWithSigner] needs to sign data,
+     * it will emit a signerSignRequest event. The app should call this method
+     * to provide the signature or error.
+     *
+     * @param signerId The signer ID from the sign request event
+     * @param requestId The request ID from the sign request event
+     * @param signature The signature bytes, or null if error
+     * @param error Error message if signing failed, or null if successful
+     */
+    suspend fun respondToSignRequest(
+        signerId: String,
+        requestId: String,
+        signature: ByteArray? = null,
+        error: String? = null,
+    )
+
+    /**
      * Get all wallets managed by this engine.
      *
      * @return List of wallet accounts
@@ -100,7 +149,7 @@ internal interface WalletKitEngine {
     suspend fun handleTonConnectUrl(url: String)
 
     /**
-     * Create a new transaction request.
+     * Create a new locally-initiated transaction request.
      * This will trigger a transaction request event that needs to be approved via [approveTransaction].
      *
      * @param walletAddress Source wallet address
@@ -109,7 +158,7 @@ internal interface WalletKitEngine {
      * @param comment Optional comment/message
      * @throws WalletKitBridgeException if transaction creation fails
      */
-    suspend fun sendTransaction(
+    suspend fun sendLocalTransaction(
         walletAddress: String,
         recipient: String,
         amount: String,

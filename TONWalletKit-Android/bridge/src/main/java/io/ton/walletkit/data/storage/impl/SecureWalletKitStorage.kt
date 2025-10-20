@@ -128,7 +128,7 @@ internal class SecureWalletKitStorage(
                 encryptedPrefs.edit {
                     bridgeKeys.forEach { remove(it) }
                 }
-                Log.d(TAG, ERROR_CLEARED_BRIDGE_STORAGE_KEYS + bridgeKeys.size + MiscConstants.BRIDGE_STORAGE_KEYS_COUNT_SUFFIX)
+                Log.d(TAG, "Cleared ${bridgeKeys.size}${MiscConstants.BRIDGE_STORAGE_KEYS_COUNT_SUFFIX}")
             } catch (e: Exception) {
                 Log.e(TAG, ERROR_FAILED_CLEAR_BRIDGE_DATA, e)
             }
@@ -144,7 +144,6 @@ internal class SecureWalletKitStorage(
         const val ERROR_FAILED_CREATE_ENCRYPTED_PREFS = "Failed to create EncryptedSharedPreferences"
 
         // Storage Operation Errors
-        const val ERROR_CLEARED_BRIDGE_STORAGE_KEYS = "Cleared "
         const val ERROR_FAILED_CLEAR_BRIDGE_DATA = "Failed to clear bridge data"
         const val ERROR_FAILED_GET_RAW_VALUE = "Failed to get raw value: "
         const val ERROR_FAILED_SET_RAW_VALUE = "Failed to set raw value: "

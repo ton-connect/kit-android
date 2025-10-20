@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Base64
 import android.util.Log
 import androidx.core.content.edit
+import io.ton.walletkit.domain.constants.BridgeMethodConstants
 import io.ton.walletkit.domain.constants.NetworkConstants
 import io.ton.walletkit.domain.model.DAppInfo
 import io.ton.walletkit.domain.model.SignDataResult
@@ -276,24 +277,65 @@ internal class QuickJsWalletKitEngine(
         network: String?,
     ): WalletAccount {
         ensureWalletKitInitialized()
-        val params =
-            JSONObject().apply {
-                put("words", JSONArray(words))
-                put("version", version)
-                network?.let { put("network", it) }
-                name?.let { put("name", it) }
-            }
-        val result = call("addWalletFromMnemonic", params)
 
-        // Parse the result into WalletAccount
-        return WalletAccount(
-            address = result.optString("address"),
-            publicKey = result.optNullableString("publicKey"),
-            name = result.optNullableString("name") ?: name,
-            version = result.optString("version", version),
-            network = result.optString("network", network ?: currentNetwork),
-            index = result.optInt("index", 0),
-        )
+        // Call addWalletFromMnemonic on the bridge (which handles creating and adding the wallet)
+        val normalizedVersion = version.lowercase()
+        val params = JSONObject().apply {
+            put("words", JSONArray(words))
+            put("version", normalizedVersion)
+            network?.let { put("network", it) }
+        }
+
+        call("addWalletFromMnemonic", params)
+
+        // Get wallets to find the one we just added
+        val walletsResult = call("getWallets")
+        val items = walletsResult.optJSONArray("items") ?: JSONArray()
+
+        // The last wallet should be the one we just added
+        if (items.length() > 0) {
+            val lastWallet = items.optJSONObject(items.length() - 1)
+            if (lastWallet != null) {
+                return WalletAccount(
+                    address = lastWallet.optString("address"),
+                    publicKey = lastWallet.optNullableString("publicKey"),
+                    name = lastWallet.optNullableString("name") ?: name,
+                    version = lastWallet.optString("version", version),
+                    network = lastWallet.optString("network", network ?: currentNetwork),
+                    index = lastWallet.optInt("index", 0),
+                )
+            }
+        }
+
+        throw IllegalStateException("Failed to retrieve newly added wallet")
+    }
+
+    override suspend fun derivePublicKeyFromMnemonic(words: List<String>): String {
+        ensureWalletKitInitialized()
+
+        val params = JSONObject().apply {
+            put("mnemonic", JSONArray(words))
+        }
+
+        val result = call("derivePublicKeyFromMnemonic", params)
+        return result.getString("publicKey")
+    }
+
+    override suspend fun addWalletWithSigner(
+        signer: io.ton.walletkit.domain.model.WalletSigner,
+        version: String,
+        network: String?,
+    ): WalletAccount {
+        throw UnsupportedOperationException("QuickJS engine does not support external signers. Use WebViewWalletKitEngine instead.")
+    }
+
+    override suspend fun respondToSignRequest(
+        signerId: String,
+        requestId: String,
+        signature: ByteArray?,
+        error: String?,
+    ) {
+        throw UnsupportedOperationException("QuickJS engine does not support external signers. Use WebViewWalletKitEngine instead.")
     }
 
     override suspend fun getWallets(): List<WalletAccount> {
@@ -475,7 +517,7 @@ internal class QuickJsWalletKitEngine(
         call("handleTonConnectUrl", params)
     }
 
-    override suspend fun sendTransaction(
+    override suspend fun sendLocalTransaction(
         walletAddress: String,
         recipient: String,
         amount: String,
@@ -491,7 +533,7 @@ internal class QuickJsWalletKitEngine(
                     put("comment", comment)
                 }
             }
-        call("sendTransaction", params)
+        call(BridgeMethodConstants.METHOD_SEND_LOCAL_TRANSACTION, params)
     }
 
     override suspend fun approveConnect(event: io.ton.walletkit.presentation.event.ConnectRequestEvent) {
