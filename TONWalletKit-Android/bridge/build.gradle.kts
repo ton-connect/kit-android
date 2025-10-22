@@ -139,17 +139,46 @@ val syncWalletKitWebViewAssets =
         group = "walletkit"
         description = "Copy WalletKit WebView bundle into bridge module assets (packaged in AAR)."
         dependsOn(buildWalletKitBundles)
-        from(walletKitDistDir)
-        into(walletKitAssetsDir)
-        includeEmptyDirs = false
+
         doFirst {
             if (!walletKitDistDir.exists()) {
                 logger.warn(
                     "WebView bundle not found at $walletKitDistDir. Skipping asset copy.",
                 )
-                // Don't throw exception, just skip
                 throw StopActionException()
             }
+
+            // Clean old structure before copying new files
+            if (walletKitAssetsDir.exists()) {
+                // Remove old messy files
+                walletKitAssetsDir.resolve("assets").deleteRecursively()
+                walletKitAssetsDir.resolve(".vite").deleteRecursively()
+                walletKitAssetsDir.resolve("index.html").delete()
+                // Keep quickjs folder (handled by separate task)
+            } else {
+                walletKitAssetsDir.mkdirs()
+            }
+        }
+
+        // Copy JS bundles from dist-android
+        from(walletKitDistDir) {
+            include("walletkit-android-bridge.mjs", "walletkit-android-bridge.mjs.map")
+            include("inject.mjs", "inject.mjs.map")
+        }
+
+        // Copy HTML entry point from source
+        from(rootProject.rootDir.parentFile.resolve("js/src")) {
+            include("index.html")
+        }
+
+        into(walletKitAssetsDir)
+        includeEmptyDirs = false
+
+        doLast {
+            logger.lifecycle("✅ Copied clean WebView bundles:")
+            logger.lifecycle("   - walletkit-android-bridge.mjs (Main RPC bridge)")
+            logger.lifecycle("   - inject.mjs (Internal browser injection)")
+            logger.lifecycle("   - index.html (WebView entry point)")
         }
     }
 

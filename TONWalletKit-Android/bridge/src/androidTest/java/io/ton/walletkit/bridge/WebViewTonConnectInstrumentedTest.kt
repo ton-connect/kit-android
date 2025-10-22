@@ -6,7 +6,6 @@ import android.webkit.WebView
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.ton.walletkit.domain.constants.WebViewConstants
 import io.ton.walletkit.domain.model.TONNetwork
 import io.ton.walletkit.presentation.WalletKitEngine
 import io.ton.walletkit.presentation.WalletKitEngineFactory
@@ -85,7 +84,7 @@ class WebViewTonConnectInstrumentedTest {
                 bridgeUrl = "https://bridge.tonapi.io/bridge",
             ),
             bridge = TONWalletKitConfiguration.Bridge(
-                bridgeUrl = "https://bridge.tonapi.io/bridge"
+                bridgeUrl = "https://bridge.tonapi.io/bridge",
             ),
             storage = TONWalletKitConfiguration.Storage(persistent = true),
             features = emptyList(),
