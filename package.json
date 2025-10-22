@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node js/build.cjs",
     "build:quickjs": "vite build --config vite.config.quickjs.ts",
     "build:all": "pnpm run build && pnpm run build:quickjs",
     "preview": "vite preview",

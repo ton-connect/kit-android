@@ -16,14 +16,14 @@ import io.ton.walletkit.presentation.config.SignDataType
 import io.ton.walletkit.presentation.config.TONWalletKitConfiguration
 import io.ton.walletkit.presentation.event.TONWalletKitEvent
 import io.ton.walletkit.presentation.listener.TONBridgeEventsHandler
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -111,18 +111,18 @@ class DurableEventReplayInstrumentedTest {
                 appName = "Wallet",
                 imageUrl = "https://wallet.example/icon.png",
                 aboutUrl = "https://wallet.example/about",
-                universalLink =  "https://wallet.ton.org/tc",
+                universalLink = "https://wallet.ton.org/tc",
                 bridgeUrl = "https://bridge.tonapi.io/bridge",
             ),
             bridge = TONWalletKitConfiguration.Bridge(bridgeUrl = "https://bridge.tonapi.io/bridge"),
             storage = TONWalletKitConfiguration.Storage(persistent = true),
-            apiClient = null, // Use default API URLs based on network
+            apiClient = null,
             features = listOf(
                 TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 4),
                 TONWalletKitConfiguration.SignDataFeature(
                     types = listOf(SignDataType.TEXT, SignDataType.BINARY, SignDataType.CELL),
                 ),
-            )
+            ),
         )
     }
 
