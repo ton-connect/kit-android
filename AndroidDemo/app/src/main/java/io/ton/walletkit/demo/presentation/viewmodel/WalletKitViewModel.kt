@@ -1,7 +1,6 @@
 package io.ton.walletkit.demo.presentation.viewmodel
 
 import android.app.Application
-import android.os.Build
 import android.util.Log
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
@@ -21,17 +20,18 @@ import io.ton.walletkit.demo.presentation.model.ConnectPermissionUi
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.SessionSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
-import io.ton.walletkit.demo.presentation.model.TransactionDetailUi
 import io.ton.walletkit.demo.presentation.model.TransactionMessageUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
+import io.ton.walletkit.demo.presentation.util.TimestampParser
+import io.ton.walletkit.demo.presentation.util.TonFormatter
+import io.ton.walletkit.demo.presentation.util.TransactionDetailMapper
 import io.ton.walletkit.demo.presentation.util.TransactionDiffUtil
+import io.ton.walletkit.demo.presentation.util.UrlSanitizer
 import io.ton.walletkit.domain.model.TONNetwork
 import io.ton.walletkit.domain.model.TONWalletData
-import io.ton.walletkit.domain.model.Transaction
-import io.ton.walletkit.domain.model.TransactionType
 import io.ton.walletkit.domain.model.WalletSession
 import io.ton.walletkit.domain.model.WalletSigner
 import io.ton.walletkit.presentation.TONWallet
@@ -51,12 +51,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
-import java.math.RoundingMode
-import java.text.SimpleDateFormat
-import java.time.Instant
-import java.util.Locale
-import java.util.TimeZone
 import kotlin.collections.ArrayDeque
 import kotlin.collections.firstOrNull
 
@@ -98,9 +92,6 @@ class WalletKitViewModel(
     private fun logEvent(@StringRes messageRes: Int, vararg args: Any) {
         logEvent(uiString(messageRes, *args))
     }
-
-    private val demoWalletName: String
-        get() = uiString(R.string.wallet_demo_default_name)
 
     init {
         // Check password state on initialization (FIRST)
@@ -304,9 +295,9 @@ class WalletKitViewModel(
         }
 
         val mapped = allSessions.mapNotNull { session ->
-            val sessionUrl = sanitizeUrl(session.dAppUrl)
-            val sessionManifest = sanitizeUrl(session.manifestUrl)
-            val sessionIcon = sanitizeUrl(session.iconUrl)
+            val sessionUrl = UrlSanitizer.sanitize(session.dAppUrl)
+            val sessionManifest = UrlSanitizer.sanitize(session.manifestUrl)
+            val sessionIcon = UrlSanitizer.sanitize(session.iconUrl)
 
             // Skip sessions with no metadata (appears disconnected)
             val appearsDisconnected = sessionUrl == null && sessionManifest == null
@@ -327,8 +318,8 @@ class WalletKitViewModel(
                 dAppUrl = sessionUrl,
                 manifestUrl = sessionManifest,
                 iconUrl = sessionIcon,
-                createdAt = parseTimestamp(session.createdAtIso),
-                lastActivity = parseTimestamp(session.lastActivityIso),
+                createdAt = TimestampParser.parse(session.createdAtIso),
+                lastActivity = TimestampParser.parse(session.lastActivityIso),
             )
         }
         val finalSessions = mapped
@@ -903,8 +894,7 @@ class WalletKitViewModel(
 
             // Convert TON to nanoTON
             val amountInNano = try {
-                val tonAmount = amount.toBigDecimal()
-                (tonAmount * BigDecimal(NANO_TON_MULTIPLIER)).toBigInteger().toString()
+                TonFormatter.tonToNano(amount)
             } catch (e: Exception) {
                 _state.update {
                     val reason = e.message ?: uiString(R.string.wallet_error_unknown)
@@ -1061,36 +1051,14 @@ class WalletKitViewModel(
         val tx = transactions.firstOrNull { it.hash == transactionHash } ?: return
 
         // Parse transaction details
-        val detail = parseTransactionDetail(tx, walletAddress)
-        _state.update { it.copy(sheetState = SheetState.TransactionDetail(detail)) }
-    }
-
-    private fun parseTransactionDetail(tx: Transaction, walletAddress: String): TransactionDetailUi {
-        val isOutgoing = tx.type == TransactionType.OUTGOING
-        val unknownAddressLabel = uiString(R.string.wallet_transaction_unknown_party)
-
-        // Transaction already has parsed data from the bridge
-        return TransactionDetailUi(
-            hash = tx.hash,
-            timestamp = tx.timestamp,
-            amount = formatNanoTon(tx.amount),
-            fee = tx.fee?.let { formatNanoTon(it) } ?: uiString(R.string.wallet_transaction_fee_default),
-            fromAddress = tx.sender ?: (if (isOutgoing) walletAddress else unknownAddressLabel),
-            toAddress = tx.recipient ?: (if (!isOutgoing) walletAddress else unknownAddressLabel),
-            comment = tx.comment,
-            status = uiString(R.string.wallet_transaction_status_success), // Transactions from bridge are already filtered/successful
-            lt = tx.lt ?: "0",
-            blockSeqno = tx.blockSeqno ?: 0,
-            isOutgoing = isOutgoing,
+        val detail = TransactionDetailMapper.toDetailUi(
+            tx = tx,
+            walletAddress = walletAddress,
+            unknownAddressLabel = uiString(R.string.wallet_transaction_unknown_party),
+            defaultFeeLabel = uiString(R.string.wallet_transaction_fee_default),
+            successStatusLabel = uiString(R.string.wallet_transaction_status_success),
         )
-    }
-
-    private fun formatNanoTon(nanoTon: String): String = try {
-        val value = nanoTon.toLongOrNull() ?: 0L
-        val ton = value.toDouble() / 1_000_000_000.0
-        String.format(Locale.US, "%.4f", ton)
-    } catch (_: Exception) {
-        DEFAULT_TON_FORMAT
+        _state.update { it.copy(sheetState = SheetState.TransactionDetail(detail)) }
     }
 
     fun removeWallet(address: String) {
@@ -1210,7 +1178,7 @@ class WalletKitViewModel(
             }.getOrNull()
 
             Log.d(LOG_TAG, "loadWalletSummaries: balance for $address = $balance")
-            val formatted = balance?.let(::formatTon)
+            val formatted = balance?.let { TonFormatter.formatTon(it) }
 
             // Use cached transactions only - don't fetch on every balance refresh
             // Transactions will be fetched explicitly via refreshTransactions()
@@ -1295,46 +1263,6 @@ class WalletKitViewModel(
         return metadata
     }
 
-    private suspend fun ensureWallet() {
-        val existing = TONWallet.wallets()
-        if (existing.isNotEmpty()) {
-            // Update cache
-            existing.forEach { wallet ->
-                wallet.address?.let { address ->
-                    tonWallets[address] = wallet
-                    ensureMetadataForAddress(address, "")
-                }
-            }
-            return
-        }
-
-        val metadata = WalletMetadata(
-            name = demoWalletName,
-            network = currentNetwork,
-            version = DEFAULT_WALLET_VERSION,
-        )
-        val pendingRecord = PendingWalletRecord(metadata = metadata, mnemonic = DEMO_MNEMONIC)
-        pendingWallets.addLast(pendingRecord)
-
-        val walletData = TONWalletData(
-            mnemonic = DEMO_MNEMONIC,
-            name = demoWalletName,
-            version = DEFAULT_WALLET_VERSION,
-            network = currentNetwork,
-        )
-
-        runCatching {
-            val wallet = TONWallet.add(walletData)
-            wallet.address?.let { address ->
-                tonWallets[address] = wallet
-            }
-        }.onFailure { error ->
-            pendingWallets.remove(pendingRecord)
-            val fallback = uiString(R.string.wallet_error_prepare_demo_wallet)
-            _state.update { it.copy(error = error.message ?: fallback) }
-        }
-    }
-
     private suspend fun reinitializeForNetwork(
         target: TONNetwork,
     ) {
@@ -1343,9 +1271,6 @@ class WalletKitViewModel(
         currentNetwork = target
         walletMetadata.clear()
         pendingWallets.clear()
-
-        // Ensure we have at least one wallet for demo purposes
-        ensureWallet()
     }
 
     private suspend fun switchNetworkIfNeeded(target: TONNetwork) {
@@ -1483,102 +1408,32 @@ class WalletKitViewModel(
 
     private fun defaultWalletName(index: Int): String = uiString(R.string.wallet_default_name, index + 1)
 
-    private fun parseTimestamp(value: String?): Long? {
-        if (value.isNullOrBlank()) return null
-        return runCatching {
-            when {
-                value.matches(NUMERIC_PATTERN) -> value.toLong()
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> Instant.parse(value).toEpochMilli()
-                else -> parseIso8601Timestamp(value)
-            }
-        }.getOrNull()
-    }
-
-    private fun parseIso8601Timestamp(value: String): Long {
-        val candidates = buildList {
-            add(value)
-            normalizeIso8601Fraction(value)?.let { add(it) }
-        }
-
-        candidates.forEach { candidate ->
-            ISO8601_PATTERNS.forEach { pattern ->
-                val parsed = runCatching {
-                    SimpleDateFormat(pattern, Locale.US).apply {
-                        timeZone = TimeZone.getTimeZone("UTC")
-                    }.parse(candidate)?.time
-                }.getOrNull()
-
-                if (parsed != null) {
-                    return parsed
-                }
-            }
-        }
-
-        throw IllegalArgumentException("Unsupported timestamp format: $value")
-    }
-
-    private fun normalizeIso8601Fraction(value: String): String? {
-        val timeSeparator = value.indexOf('T')
-        if (timeSeparator == -1) return null
-
-        val fractionStart = value.indexOf('.', startIndex = timeSeparator)
-        if (fractionStart == -1) return null
-
-        val zoneStart = value.indexOfAny(charArrayOf('Z', '+', '-'), startIndex = fractionStart)
-        if (zoneStart == -1) return null
-
-        val fraction = value.substring(fractionStart + 1, zoneStart)
-        if (fraction.isEmpty()) return null
-
-        val normalized = when {
-            fraction.length == 3 -> return null
-            fraction.length < 3 -> fraction.padEnd(3, '0')
-            else -> fraction.substring(0, 3)
-        }
-
-        val prefix = value.substring(0, fractionStart)
-        val suffix = value.substring(zoneStart)
-        return "$prefix.$normalized$suffix"
-    }
-
-    private fun formatTon(raw: String): String = runCatching {
-        BigDecimal(raw)
-            .movePointLeft(9)
-            .setScale(4, RoundingMode.DOWN)
-            .stripTrailingZeros()
-            .toPlainString()
-    }.getOrElse { raw }
-
-    private data class NetworkEndpoints(
-        val tonClientEndpoint: String,
-        val tonApiUrl: String,
-        val bridgeUrl: String,
-        val bridgeName: String,
-    )
-
     /**
-     * Creates a hardware wallet signer using WalletConnect.
+     * Create a custom signer that requires explicit user confirmation for each signing operation.
+     * 
+     * This demonstrates the WalletSigner interface for external/remote signing scenarios:
+     * - Watch-only wallets (where private keys are stored elsewhere)
+     * - Multi-signature wallet coordinators
+     * - Remote signing services
+     * - Custom authorization flows
+     *
+     * NOTE: This interface is NOT suitable for hardware wallets like Ledger, which:
+     * - Only sign complete transactions (not arbitrary data)
+     * - Work at a higher level (transaction-level, not raw bytes)
+     * - Cannot sign arbitrary payloads from signData requests
+     * 
+     * For hardware wallet integration, use transaction-only signing at the wallet adapter level.
      *
      * This is called when user selects "SIGNER" interface type during wallet import.
-     * It launches the WalletConnect flow to connect to a hardware wallet like SafePal.
-     *
-     * Note: mnemonic parameter is ignored for hardware wallets (no need for seed phrase).
-     */
-
-    /**
-     * Create a custom signer that requires user confirmation for each signing operation.
-     * This demonstrates the WalletSigner interface for external/hardware wallet integration.
-     *
-     * In production, this would connect to a real hardware wallet like Ledger or SafePal.
      * For the demo, it derives the public key from mnemonic but requires explicit user confirmation via UI.
      */
     private suspend fun createDemoSigner(mnemonic: List<String>, walletName: String): WalletSigner {
         Log.d(LOG_TAG, "Creating custom signer for wallet: $walletName")
 
         // In production, you would:
-        // 1. Connect to hardware wallet (Ledger, SafePal, etc.)
-        // 2. Get public key from hardware device
-        // 3. Return a signer that forwards sign requests to the device
+        // 1. Connect to remote signing service or watch-only wallet backend
+        // 2. Get public key from the remote service
+        // 3. Return a signer that forwards sign requests to the service
         //
         // For demo purposes, we derive the public key from mnemonic using SDK's utility method.
         // This avoids creating and immediately deleting a temporary wallet.
@@ -1600,59 +1455,6 @@ class WalletKitViewModel(
                 // User confirmation happens via the pendingSignerConfirmation UI flow
                 throw UnsupportedOperationException(ERROR_DIRECT_SIGNING_UNSUPPORTED)
             }
-        }
-    }
-
-    private fun sanitizeUrl(value: String?): String? {
-        if (value.isNullOrBlank()) return null
-        if (value.equals("null", ignoreCase = true)) return null
-        return value
-    }
-
-    companion object {
-        private val NUMERIC_PATTERN = Regex("^-?\\d+")
-        private val ISO8601_PATTERNS = listOf(
-            "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
-            "yyyy-MM-dd'T'HH:mm:ssXXX",
-            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss'Z'",
-        )
-        private const val BALANCE_REFRESH_MS = 20_000L
-        private const val HIDE_MESSAGE_MS = 10_000L
-        private const val MAX_EVENT_LOG = 12
-        private const val DEFAULT_WALLET_VERSION = "v4r2"
-        private const val TRANSACTION_FETCH_LIMIT = 20
-        private val DEFAULT_NETWORK = TONNetwork.MAINNET
-        private const val LOG_TAG = "WalletKitVM"
-        private const val NANO_TON_MULTIPLIER = "1000000000"
-        private const val DEFAULT_TON_FORMAT = "0.0000"
-        private const val ERROR_REQUEST_OBJECT_NOT_AVAILABLE = "Request object not available"
-        private const val DEFAULT_REJECTION_REASON = "User rejected"
-        private const val SIGNER_CONFIRMATION_CANCEL_REASON = "User cancelled signer confirmation"
-        private const val ERROR_DIRECT_SIGNING_UNSUPPORTED = "Direct signing not supported - use SDK's transaction/signData methods"
-
-        private val DEMO_WORDS = listOf(
-            "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
-            "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
-            "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual",
-            "adapt", "addict", "address", "adjust", "admit", "adult", "advance", "advice",
-        )
-
-        private val DEMO_MNEMONIC = listOf(
-            "canvas", "puzzle", "ski", "divide", "crime", "arrow",
-            "object", "canvas", "point", "cover", "method", "bargain",
-            "siren", "bean", "shrimp", "found", "gravity", "vivid",
-            "pelican", "replace", "tuition", "screen", "orange", "album",
-        )
-
-        fun factory(
-            application: Application,
-            storage: DemoAppStorage,
-            sdkEvents: SharedFlow<TONWalletKitEvent>,
-            sdkInitialized: SharedFlow<Boolean>,
-        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T = WalletKitViewModel(application, storage, sdkEvents, sdkInitialized) as T
         }
     }
 
@@ -1738,6 +1540,30 @@ class WalletKitViewModel(
                 val reason = e.message ?: uiString(R.string.wallet_error_unknown)
                 _state.update { it.copy(error = uiString(R.string.wallet_error_reset_wallet, reason)) }
             }
+        }
+    }
+
+    companion object {
+        private const val BALANCE_REFRESH_MS = 20_000L
+        private const val HIDE_MESSAGE_MS = 10_000L
+        private const val MAX_EVENT_LOG = 12
+        private const val DEFAULT_WALLET_VERSION = "v4r2"
+        private const val TRANSACTION_FETCH_LIMIT = 20
+        private val DEFAULT_NETWORK = TONNetwork.MAINNET
+        private const val LOG_TAG = "WalletKitVM"
+        private const val ERROR_REQUEST_OBJECT_NOT_AVAILABLE = "Request object not available"
+        private const val DEFAULT_REJECTION_REASON = "User rejected"
+        private const val SIGNER_CONFIRMATION_CANCEL_REASON = "User cancelled signer confirmation"
+        private const val ERROR_DIRECT_SIGNING_UNSUPPORTED = "Direct signing not supported - use SDK's transaction/signData methods"
+
+        fun factory(
+            application: Application,
+            storage: DemoAppStorage,
+            sdkEvents: SharedFlow<TONWalletKitEvent>,
+            sdkInitialized: SharedFlow<Boolean>,
+        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T = WalletKitViewModel(application, storage, sdkEvents, sdkInitialized) as T
         }
     }
 }
