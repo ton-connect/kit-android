@@ -645,6 +645,21 @@ internal class QuickJsWalletKitEngine(
         call("disconnectSession", if (params.length() == 0) null else params)
     }
 
+    override suspend fun callBridgeMethod(method: String, params: JSONObject?): JSONObject {
+        return call(method, params)
+    }
+
+    override suspend fun handleTonConnectRequest(
+        messageId: String,
+        method: String,
+        params: JSONObject?,
+        responseCallback: (JSONObject) -> Unit,
+    ) {
+        // QuickJS engine doesn't support internal browser mode
+        // This should never be called for QuickJS
+        throw UnsupportedOperationException("Internal browser mode is not supported in QuickJS engine")
+    }
+
     override suspend fun destroy() {
         withContext(jsDispatcher) {
             quickJsInstance?.close()

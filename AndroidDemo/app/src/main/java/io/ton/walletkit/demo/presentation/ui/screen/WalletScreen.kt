@@ -37,7 +37,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
-import io.ton.walletkit.demo.presentation.DAppBrowserActivity.Companion.DEFAULT_DAPP_URL
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
@@ -55,12 +54,15 @@ import io.ton.walletkit.demo.presentation.ui.sections.SessionsSection
 import io.ton.walletkit.demo.presentation.ui.sections.TransactionHistorySection
 import io.ton.walletkit.demo.presentation.ui.sections.WalletsSection
 import io.ton.walletkit.demo.presentation.ui.sheet.AddWalletSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.ConnectRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.SignDataSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.WalletDetailsSheet
 import io.ton.walletkit.domain.model.TONNetwork
+
+private const val DEFAULT_DAPP_URL = "https://tonconnect-demo-dapp-with-react-ui.vercel.app/"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -164,6 +166,11 @@ fun WalletScreen(
                 is SheetState.TransactionDetail -> TransactionDetailSheet(
                     transaction = sheet.transaction,
                     onDismiss = onDismissSheet,
+                )
+
+                is SheetState.Browser -> BrowserSheet(
+                    url = sheet.url,
+                    onClose = onDismissSheet,
                 )
 
                 SheetState.None -> Unit

@@ -58,6 +58,59 @@ sealed class TONWalletKitEvent {
     data class Disconnect(
         val event: DisconnectEvent,
     ) : TONWalletKitEvent()
+
+    /**
+     * Browser page started loading.
+     *
+     * This event is emitted when using WebView extensions (e.g., `webView.injectTonConnect()`).
+     * Use it to update UI loading state.
+     *
+     * @property url The URL that started loading
+     */
+    data class BrowserPageStarted(
+        val url: String,
+    ) : TONWalletKitEvent()
+
+    /**
+     * Browser page finished loading.
+     *
+     * This event is emitted when using WebView extensions (e.g., `webView.injectTonConnect()`).
+     * Use it to update UI loading state.
+     *
+     * @property url The URL that finished loading
+     */
+    data class BrowserPageFinished(
+        val url: String,
+    ) : TONWalletKitEvent()
+
+    /**
+     * Browser encountered an error.
+     *
+     * This event is emitted when using WebView extensions (e.g., `webView.injectTonConnect()`).
+     * Use it to display error messages to the user.
+     *
+     * @property message Error message
+     */
+    data class BrowserError(
+        val message: String,
+    ) : TONWalletKitEvent()
+
+    /**
+     * Browser received a TonConnect request.
+     *
+     * This event is emitted when using WebView extensions (e.g., `webView.injectTonConnect()`).
+     * The SDK automatically processes the request - this event is for UI tracking only
+     * (e.g., showing request count, displaying notifications).
+     *
+     * @property messageId The unique message ID
+     * @property method The TonConnect method (connect, sendTransaction, signData)
+     * @property request The full request JSON
+     */
+    data class BrowserBridgeRequest(
+        val messageId: String,
+        val method: String,
+        val request: String,
+    ) : TONWalletKitEvent()
 }
 
 /**

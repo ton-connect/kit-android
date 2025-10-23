@@ -220,6 +220,15 @@ class WalletKitViewModel(
                 Log.d(LOG_TAG, "Session disconnected: ${event.event.sessionId}")
                 viewModelScope.launch { refreshSessions() }
             }
+            // Browser events - logged but not handled here as BrowserSheet manages WebView directly
+            is TONWalletKitEvent.BrowserPageStarted,
+            is TONWalletKitEvent.BrowserPageFinished,
+            is TONWalletKitEvent.BrowserError,
+            is TONWalletKitEvent.BrowserBridgeRequest,
+            -> {
+                // These events are informational only - BrowserSheet manages the WebView lifecycle
+                Log.d(LOG_TAG, "Browser event: ${event::class.simpleName}")
+            }
         }
     }
 
@@ -354,6 +363,10 @@ class WalletKitViewModel(
 
     fun hideUrlPrompt() {
         _state.update { it.copy(isUrlPromptVisible = false) }
+    }
+
+    fun openBrowser(url: String) {
+        setSheet(SheetState.Browser(url))
     }
 
     fun importWallet(

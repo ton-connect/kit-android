@@ -51,6 +51,11 @@ internal object JsonConstants {
      */
     const val KEY_ICON_URL = "iconUrl"
 
+    /**
+     * JSON key for URL parameter.
+     */
+    const val KEY_URL = "url"
+
     // Bridge config keys
     /**
      * JSON key for API URL configuration.

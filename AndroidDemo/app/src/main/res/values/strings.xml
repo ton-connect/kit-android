@@ -46,6 +46,10 @@
     <string name="label_network">Network</string>
     <string name="label_wallet_interface_type">Wallet Interface Type</string>
 
+    <!-- Browser -->
+    <string name="browser_title">dApp Browser</string>
+    <string name="browser_loading">Loading…</string>
+
     <!-- Wallet Interface Types -->
     <string name="interface_type_mnemonic">Mnemonic</string>
     <string name="interface_type_mnemonic_desc">Standard wallet</string>

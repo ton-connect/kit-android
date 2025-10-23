@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import io.ton.walletkit.demo.core.WalletKitDemoApp
 import io.ton.walletkit.demo.presentation.ui.screen.SetupPasswordScreen
 import io.ton.walletkit.demo.presentation.ui.screen.UnlockWalletScreen
@@ -71,12 +70,11 @@ private fun AppNavigation(viewModel: WalletKitViewModel) {
         // Step 3 & 4: Main wallet screen (unlocked)
         // The AddWalletSheet will be shown automatically if no wallets exist
         else -> {
-            val context = LocalContext.current
             WalletScreen(
                 state = state,
                 onAddWalletClick = viewModel::openAddWalletSheet,
                 onUrlPromptClick = viewModel::showUrlPrompt,
-                onOpenBrowser = { url -> DAppBrowserActivity.start(context, url) },
+                onOpenBrowser = { url -> viewModel.openBrowser(url) },
                 onRefresh = viewModel::refreshAll,
                 onDismissSheet = viewModel::dismissSheet,
                 onWalletDetails = viewModel::showWalletDetails,
