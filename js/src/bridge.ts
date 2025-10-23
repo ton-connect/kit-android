@@ -669,11 +669,16 @@ const api = {
     // Store pending sign requests
     const pendingSignRequests = new Map<string, { resolve: (sig: Uint8Array) => void; reject: (err: Error) => void }>();
     
+    // Convert hex public key to Uint8Array
+    const publicKeyBytes = new Uint8Array(
+      args.publicKey.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
+    );
+    
     // Create a custom signer that calls back to Android via events
     const customSigner: any = {
       sign: async (bytes: Uint8Array) => {
         // Generate unique request ID
-        const requestId = 'sign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}';
+        const requestId = `sign_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
         // Emit sign request event to Android
         emit('signerSignRequest', {
@@ -695,7 +700,7 @@ const api = {
           }, 60000);
         });
       },
-      publicKey: args.publicKey,
+      publicKey: publicKeyBytes, // Must be Uint8Array, not hex string
     };
     
     // Store the pending requests map so Android can respond
@@ -1356,13 +1361,64 @@ const api = {
     // (connectRequest, transactionRequest, signDataRequest) through the normal flow
     
     switch (args.method) {
-      case 'connect':
-        // For connect requests, we need to process the connection request
-        // The params should contain the TonConnect request data
-        console.log('[walletkitBridge] Internal browser connect request:', args.params);
-        // TODO: Process connect request and trigger connectRequest event
-        emitCallCheckpoint(context, 'processInternalBrowserRequest:connect-handled');
-        return { success: true, messageId: args.messageId };
+      case 'handleUrl': {
+        // Handle the complete TonConnect URL directly without parsing
+        console.log('[walletkitBridge] Internal browser URL request:', args.params);
+        
+        const params = args.params as any;
+        const tonConnectUrl = params?.url;
+        
+        if (!tonConnectUrl) {
+          throw new Error('url is required for handleUrl request');
+        }
+        
+        console.log('[walletkitBridge] Processing complete URL via handleTonConnectUrl:', tonConnectUrl);
+        
+        // Use the SDK's proper URL handler which preserves all session/encryption info
+        if (typeof walletKit.handleTonConnectUrl === 'function') {
+          await walletKit.handleTonConnectUrl(tonConnectUrl);
+          emitCallCheckpoint(context, 'processInternalBrowserRequest:url-handled-via-sdk');
+          return { success: true, messageId: args.messageId };
+        }
+        
+        throw new Error('handleTonConnectUrl is not available');
+      }
+      
+      case 'connect': {
+        // Legacy method - kept for compatibility but handleUrl is preferred
+        console.log('[walletkitBridge] Internal browser connect request (legacy):', args.params);
+        
+        const params = args.params as any;
+        const manifestUrl = params?.manifestUrl;
+        const items = params?.items || [];
+        const protocolVersion = params?.protocolVersion || 2;
+        const returnUrl = params?.returnUrl;
+        
+        if (!manifestUrl) {
+          throw new Error('manifestUrl is required for connect request');
+        }
+        
+        const requestPayload = {
+          manifestUrl,
+          items: items || []
+        };
+        const encodedRequest = encodeURIComponent(JSON.stringify(requestPayload));
+        let tonConnectUrl = `tc://connect?v=${protocolVersion}&id=${args.messageId}&r=${encodedRequest}`;
+        
+        if (returnUrl) {
+          tonConnectUrl += `&ret=${encodeURIComponent(returnUrl)}`;
+        }
+        
+        console.log('[walletkitBridge] Processing connect via handleTonConnectUrl:', tonConnectUrl);
+        
+        if (typeof walletKit.handleTonConnectUrl === 'function') {
+          await walletKit.handleTonConnectUrl(tonConnectUrl);
+          emitCallCheckpoint(context, 'processInternalBrowserRequest:connect-handled-via-sdk');
+          return { success: true, messageId: args.messageId };
+        }
+        
+        throw new Error('handleTonConnectUrl is not available');
+      }
       
       case 'sendTransaction':
         console.log('[walletkitBridge] Internal browser transaction request:', args.params);
@@ -1379,6 +1435,47 @@ const api = {
       default:
         throw new Error(`Unknown internal browser method: ${args.method}`);
     }
+  },
+
+  /**
+   * Emit browser page started event.
+   * Called by TonConnectInjector when a page starts loading.
+   */
+  emitBrowserPageStarted(args: { url: string }) {
+    emit('browserPageStarted', { url: args.url });
+    return { success: true };
+  },
+
+  /**
+   * Emit browser page finished event.
+   * Called by TonConnectInjector when a page finishes loading.
+   */
+  emitBrowserPageFinished(args: { url: string }) {
+    emit('browserPageFinished', { url: args.url });
+    return { success: true };
+  },
+
+  /**
+   * Emit browser error event.
+   * Called by TonConnectInjector when an error occurs.
+   */
+  emitBrowserError(args: { message: string }) {
+    emit('browserError', { message: args.message });
+    return { success: true };
+  },
+
+  /**
+   * Emit browser bridge request event.
+   * Called by TonConnectInjector when a TonConnect request is received.
+   * This is for UI tracking only - the request is still processed normally.
+   */
+  emitBrowserBridgeRequest(args: { messageId: string; method: string; request: string }) {
+    emit('browserBridgeRequest', {
+      messageId: args.messageId,
+      method: args.method,
+      request: args.request
+    });
+    return { success: true };
   },
 };
 

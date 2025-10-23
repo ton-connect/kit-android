@@ -45,6 +45,31 @@ internal object EventTypeConstants {
     const val EVENT_SESSIONS_CHANGED = "sessionsChanged"
 
     /**
+     * Event type for browser page started loading.
+     */
+    const val EVENT_BROWSER_PAGE_STARTED = "browserPageStarted"
+
+    /**
+     * Event type for browser page finished loading.
+     */
+    const val EVENT_BROWSER_PAGE_FINISHED = "browserPageFinished"
+
+    /**
+     * Event type for browser errors.
+     */
+    const val EVENT_BROWSER_ERROR = "browserError"
+
+    /**
+     * Event type for browser bridge requests.
+     */
+    const val EVENT_BROWSER_BRIDGE_REQUEST = "browserBridgeRequest"
+
+    /**
+     * Event type for external signer wallet sign requests.
+     */
+    const val EVENT_SIGNER_SIGN_REQUEST = "signerSignRequest"
+
+    /**
      * Default value for unknown event types.
      */
     const val EVENT_TYPE_UNKNOWN = "unknown"

@@ -414,7 +414,7 @@ internal class WebViewWalletKitEngine(
                 Log.d(TAG, "Event listeners set up successfully (on-demand)")
             } catch (err: Throwable) {
                 Log.e(TAG, "Failed to set up event listeners", err)
-                throw WalletKitBridgeException("Failed to set up event listeners: ${err.message}")
+                throw WalletKitBridgeException(ERROR_FAILED_SET_UP_EVENT_LISTENERS + err.message)
             }
         }
     }
@@ -793,7 +793,7 @@ internal class WebViewWalletKitEngine(
                 put(
                     ResponseConstants.KEY_ERROR,
                     JSONObject().apply {
-                        put(ResponseConstants.KEY_MESSAGE, e.message ?: "Failed to process request")
+                        put(ResponseConstants.KEY_MESSAGE, e.message ?: ERROR_FAILED_PROCESS_REQUEST)
                         put(ResponseConstants.KEY_CODE, 500)
                     },
                 )
@@ -932,6 +932,10 @@ internal class WebViewWalletKitEngine(
         val params = JSONObject()
         sessionId?.let { params.put(ResponseConstants.KEY_SESSION_ID, it) }
         call(BridgeMethodConstants.METHOD_DISCONNECT_SESSION, if (params.length() == 0) null else params)
+    }
+
+    override suspend fun callBridgeMethod(method: String, params: JSONObject?): JSONObject {
+        return call(method, params)
     }
 
     override suspend fun destroy() {
@@ -1181,7 +1185,30 @@ internal class WebViewWalletKitEngine(
                 )
             }
 
-            "signerSignRequest" -> {
+            // Browser events from WebView extension
+            EventTypeConstants.EVENT_BROWSER_PAGE_STARTED -> {
+                val url = data.optString("url", "")
+                TONWalletKitEvent.BrowserPageStarted(url)
+            }
+
+            EventTypeConstants.EVENT_BROWSER_PAGE_FINISHED -> {
+                val url = data.optString("url", "")
+                TONWalletKitEvent.BrowserPageFinished(url)
+            }
+
+            EventTypeConstants.EVENT_BROWSER_ERROR -> {
+                val message = data.optString("message", "Unknown error")
+                TONWalletKitEvent.BrowserError(message)
+            }
+
+            EventTypeConstants.EVENT_BROWSER_BRIDGE_REQUEST -> {
+                val messageId = data.optString("messageId", "")
+                val method = data.optString("method", "")
+                val request = data.optString("request", "")
+                TONWalletKitEvent.BrowserBridgeRequest(messageId, method, request)
+            }
+
+            EventTypeConstants.EVENT_SIGNER_SIGN_REQUEST -> {
                 // Handle sign request from external signer wallet
                 val signerId = data.optString(ResponseConstants.KEY_SIGNER_ID)
                 val requestId = data.optString(ResponseConstants.KEY_REQUEST_ID)
@@ -1508,6 +1535,8 @@ internal class WebViewWalletKitEngine(
         // Bridge Call Errors
         const val ERROR_CALL_FAILED = "call["
         const val ERROR_FAILED_SUFFIX = "] failed: "
+        const val ERROR_FAILED_SET_UP_EVENT_LISTENERS = "Failed to set up event listeners: "
+        const val ERROR_FAILED_PROCESS_REQUEST = "Failed to process request"
 
         private const val DEFAULT_MAX_MESSAGES = 4
         private val DEFAULT_SIGN_TYPES = listOf(SignDataType.TEXT, SignDataType.BINARY, SignDataType.CELL)

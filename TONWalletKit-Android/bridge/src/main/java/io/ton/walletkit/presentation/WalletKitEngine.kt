@@ -270,6 +270,18 @@ internal interface WalletKitEngine {
     suspend fun disconnectSession(sessionId: String? = null)
 
     /**
+     * Call a bridge method directly.
+     *
+     * This is used internally by browser extensions to emit events.
+     *
+     * @param method The bridge method name
+     * @param params Optional JSON parameters
+     * @return The JSON response from the bridge
+     * @throws WalletKitBridgeException if the call fails
+     */
+    suspend fun callBridgeMethod(method: String, params: org.json.JSONObject? = null): org.json.JSONObject
+
+    /**
      * Destroy the engine and release all resources.
      */
     suspend fun destroy()

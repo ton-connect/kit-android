@@ -11,6 +11,10 @@ export type WalletKitBridgeEvent = {
     | 'signDataRequest'
     | 'disconnect'
     | 'signerSignRequest'
+    | 'browserPageStarted'
+    | 'browserPageFinished'
+    | 'browserError'
+    | 'browserBridgeRequest'
     | string;
   data?: any;
 };
