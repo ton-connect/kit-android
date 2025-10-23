@@ -577,7 +577,16 @@ class WalletKitViewModel(
             }
 
             result.onSuccess {
-                dismissSheet()
+                // Check if we should restore the browser sheet
+                val previousSheet = _state.value.previousSheet
+                if (previousSheet is SheetState.Browser) {
+                    // Restore browser so dApp can show connection confirmation
+                    _state.update { it.copy(sheetState = previousSheet, previousSheet = null) }
+                } else {
+                    // No browser to restore, dismiss the sheet
+                    dismissSheet()
+                }
+                
                 refreshSessions()
                 logEvent(R.string.wallet_event_approved_connect, request.dAppName)
             }.onFailure { error ->
@@ -595,7 +604,16 @@ class WalletKitViewModel(
             }
 
             result.onSuccess {
-                dismissSheet()
+                // Check if we should restore the browser sheet
+                val previousSheet = _state.value.previousSheet
+                if (previousSheet is SheetState.Browser) {
+                    // Restore browser so user can see the dApp
+                    _state.update { it.copy(sheetState = previousSheet, previousSheet = null) }
+                } else {
+                    // No browser to restore, dismiss the sheet
+                    dismissSheet()
+                }
+                
                 logEvent(R.string.wallet_event_rejected_connect, request.dAppName)
             }.onFailure { error ->
                 val fallback = uiString(R.string.wallet_error_reject_connect)
@@ -1336,8 +1354,11 @@ class WalletKitViewModel(
         refreshAll()
     }
 
-    private fun setSheet(sheet: SheetState) {
-        _state.update { it.copy(sheetState = sheet) }
+    private fun setSheet(sheet: SheetState, savePrevious: Boolean = false) {
+        _state.update { currentState ->
+            val previousSheet = if (savePrevious) currentState.sheetState else null
+            currentState.copy(sheetState = sheet, previousSheet = previousSheet)
+        }
     }
 
     /**
@@ -1368,7 +1389,11 @@ class WalletKitViewModel(
             connectRequest = request, // Store for direct approve/reject
         )
 
-        setSheet(SheetState.Connect(uiRequest))
+        // Save previous sheet (e.g., Browser) so we can restore it after approval/rejection
+        val currentSheet = _state.value.sheetState
+        val shouldSavePrevious = currentSheet is SheetState.Browser
+        setSheet(SheetState.Connect(uiRequest), savePrevious = shouldSavePrevious)
+        
         val eventDAppName = dAppInfo?.name ?: fallbackDAppName
         logEvent(R.string.wallet_event_connect_request, eventDAppName)
     }

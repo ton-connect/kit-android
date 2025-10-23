@@ -11,6 +11,7 @@ data class WalletUiState(
     val activeWalletAddress: String? = null,
     val sessions: List<SessionSummary> = emptyList(),
     val sheetState: SheetState = SheetState.None,
+    val previousSheet: SheetState? = null, // Used to restore sheet after modal interactions
     val isUrlPromptVisible: Boolean = false,
     val isWalletSwitcherExpanded: Boolean = false,
     val isLoadingWallets: Boolean = false,

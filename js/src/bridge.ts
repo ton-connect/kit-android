@@ -1235,6 +1235,10 @@ const api = {
       throw new Error('Connect request event is required');
     }
     const result = await walletKit.rejectConnectRequest(event, args.reason);
+    // rejectConnectRequest returns Promise<void>, treat undefined/null as success
+    if (result == null) {
+      return { success: true };
+    }
     if (!result?.success) {
       const message = result?.message || 'Failed to reject connect request';
       throw new Error(message);
@@ -1265,6 +1269,14 @@ const api = {
       throw new Error('Transaction request event is required');
     }
     const result = await walletKit.rejectTransactionRequest(event, args.reason);
+    // rejectTransactionRequest returns Promise<void>, treat undefined/null as success
+    if (result == null) {
+      return { success: true };
+    }
+    if (!result?.success) {
+      const message = result?.message || 'Failed to reject transaction request';
+      throw new Error(message);
+    }
     return result;
   },
 
@@ -1293,6 +1305,14 @@ const api = {
       throw new Error('Sign data request event is required');
     }
     const result = await walletKit.rejectSignDataRequest(event, args.reason);
+    // rejectSignDataRequest returns Promise<void>, treat undefined/null as success
+    if (result == null) {
+      return { success: true };
+    }
+    if (!result?.success) {
+      const message = result?.message || 'Failed to reject sign data request';
+      throw new Error(message);
+    }
     return result;
   },
 
