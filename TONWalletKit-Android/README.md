@@ -1,55 +1,180 @@
-# TON WalletKit Android SDK
+# Android TONWalletKit
 
-Android library for TON blockchain wallet integration.
+Kotlin library providing TON wallet capabilities for Android.
 
-## Variants
+- Minimum: Android 7.0 (API 24)
 
-- **webview**: 1.2MB, WebView only (recommended)
-- **full**: 4.3MB, WebView + QuickJS (deprecated, 2x slower)
+## Installation
 
-## QuickJS Source (Reference Only)
-
-QuickJS source removed from repo. If needed locally:
-```bash
-cd bridge/src/main/cpp/third_party/
-git clone https://github.com/bellard/quickjs-ng.git
-```
-
-## Building
-
-```bash
-./gradlew assembleWebviewRelease
-./gradlew assembleFullRelease
-
-# Build and copy to demo app
-./gradlew buildAndCopyWebviewToDemo
-```
-
-## Integration
-
-Copy AAR to your `app/libs/` and add:
+Add to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation(files("libs/bridge-release.aar"))
-    implementation("androidx.webkit:webkit:1.12.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    // For full variant only:
-    // implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("io.ton:walletkit:1.0.0")
 }
 ```
 
-## Usage
+## Quick start
 
+#### Initialize TONWalletKit:
 ```kotlin
-val walletKit = WalletKitEngineFactory.create(
-    context = applicationContext,
-    kind = WalletKitEngineKind.WEBVIEW
+import io.ton.walletkit.presentation.TONWalletKit
+import io.ton.walletkit.presentation.config.TONWalletKitConfiguration
+import io.ton.walletkit.presentation.config.SignDataType
+import io.ton.walletkit.domain.model.TONNetwork
+
+// Create configuration that fits your app
+val configuration = TONWalletKitConfiguration(
+    network = TONNetwork.TESTNET,
+    walletManifest = TONWalletKitConfiguration.Manifest(
+        name = "MyTONWallet",
+        appName = "MyTONWalletIdentifier",
+        imageUrl = "https://example.com/image.png",
+        aboutUrl = "https://example.com/about",
+        universalLink = "https://example.com/universal-link",
+        bridgeUrl = "https://bridge.tonapi.io/bridge"
+    ),
+    bridge = TONWalletKitConfiguration.Bridge(bridgeUrl = "https://bridge.tonapi.io/bridge"),
+    apiClient = TONWalletKitConfiguration.APIClient(url = <api_url>, key = <api_key>),
+    features = listOf(
+        TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 1),
+        TONWalletKitConfiguration.SignDataFeature(types = listOf(SignDataType.TEXT, SignDataType.BINARY, SignDataType.CELL))
+    ),
+    storage = TONWalletKitConfiguration.Storage(persistent = true)
+)
+
+// Initialize the kit
+TONWalletKit.initialize(
+    context = context,
+    configuration = configuration,
+    eventsHandler = eventsHandler
 )
 ```
 
-## Structure
+#### Add events listener:
+```kotlin
+import io.ton.walletkit.presentation.listener.TONBridgeEventsHandler
+import io.ton.walletkit.presentation.event.TONWalletKitEvent
 
-- `src/main/` - Common code, WebView engine
-- `src/full/` - QuickJS-specific code
-- `src/main/cpp/` - Native libraries
+val eventsHandler = object : TONBridgeEventsHandler {
+    override fun handle(event: TONWalletKitEvent) {
+        println("TONWalletKit event: $event")
+    }
+}
+```
+
+#### Create and add a v5r1 wallet using mnemonic:
+```kotlin
+import io.ton.walletkit.presentation.TONWallet
+import io.ton.walletkit.domain.model.TONWalletData
+
+val mnemonic = TONWallet.generateMnemonic(24)
+val walletData = TONWalletData(
+    mnemonic = mnemonic,
+    name = "My Wallet",
+    version = "v5r1",
+    network = TONNetwork.TESTNET
+)
+val wallet = TONWallet.add(walletData)
+```
+
+#### Read wallet address and balance:
+```kotlin
+val address = wallet.address
+val balance = wallet.balance()
+
+println("Address: ${address ?: "<none>"}")
+println("Balance: ${balance ?: "<unknown>"}")
+```
+
+#### Handle TON Connect deep links:
+```kotlin
+// Connect to a dApp via QR code or deep link
+wallet.connect("tc://...")
+```
+
+#### Integrate WebView with TonConnect:
+```kotlin
+import android.webkit.WebView
+import io.ton.walletkit.presentation.TONWalletKit
+import io.ton.walletkit.presentation.browser.injectTonConnect
+
+val webView = WebView(context).apply {
+    settings.javaScriptEnabled = true
+    settings.domStorageEnabled = true
+    
+    // Inject TonConnect bridge - connects WebView dApps to your wallet
+    injectTonConnect(TONWalletKit)
+    
+    loadUrl("https://your-dapp-url.com")
+}
+```
+
+#### Get wallet transactions:
+```kotlin
+val transactions = wallet.transactions(limit = 10)
+transactions.forEach { tx ->
+    println("Hash: ${tx.hash}, Amount: ${tx.amount}")
+}
+```
+
+#### Get active sessions:
+```kotlin
+val sessions = wallet.sessions()
+sessions.forEach { session ->
+    println("dApp: ${session.dAppName}, URL: ${session.dAppUrl}")
+}
+```
+
+#### Disconnect a session:
+```kotlin
+import io.ton.walletkit.presentation.extensions.disconnect
+
+val sessions = wallet.sessions()
+sessions.firstOrNull()?.disconnect()
+```
+
+#### Send a local transaction:
+```kotlin
+wallet.sendLocalTransaction(
+    recipient = "EQD...",
+    amount = "1000000000", // 1 TON in nanotons
+    comment = "Payment"
+)
+```
+
+#### Remove wallet:
+```kotlin
+wallet.remove()
+```
+
+#### Get all wallets:
+```kotlin
+val wallets = TONWallet.wallets()
+```
+
+#### Add wallet with external signer:
+```kotlin
+import io.ton.walletkit.domain.model.WalletSigner
+
+// Derive public key from mnemonic (or get from hardware wallet)
+val publicKey = TONWallet.derivePublicKey(mnemonic)
+
+val signer = object : WalletSigner {
+    override val publicKey: String = publicKey
+    
+    override suspend fun sign(data: ByteArray): ByteArray {
+        // Forward to hardware wallet or show confirmation dialog
+        return signature
+    }
+}
+
+val wallet = TONWallet.addWithSigner(
+    signer = signer,
+    version = "v4r2",
+    network = TONNetwork.MAINNET
+)
+```
+
+#### Notes
+- [Demo app](../../AndroidDemo) shows a more complete integration.
