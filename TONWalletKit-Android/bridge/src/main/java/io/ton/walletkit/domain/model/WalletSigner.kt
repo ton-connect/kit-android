@@ -3,10 +3,22 @@ package io.ton.walletkit.domain.model
 /**
  * Interface for external wallet signers.
  *
- * A WalletSigner allows you to create wallets where the private key is managed externally
- * (e.g., hardware wallet, separate secure module, watch-only wallet).
+ * A WalletSigner allows you to create wallets where the private key is managed externally,
+ * such as:
+ * - Watch-only wallets (keys stored on another device/service)
+ * - Multi-signature coordinators
+ * - Remote signing services with custom authorization
+ * - Separate secure modules
  *
  * The wallet will call [sign] whenever a transaction or data needs to be signed.
+ *
+ * **IMPORTANT: Hardware Wallet Limitation**
+ * This interface is NOT suitable for hardware wallets like Ledger or Trezor because:
+ * - They only sign complete transactions (not arbitrary data)
+ * - They work at transaction-level, not raw bytes level
+ * - They cannot sign arbitrary payloads from TonConnect signData requests
+ * 
+ * For hardware wallets, implement transaction-only signing at the wallet adapter level instead.
  *
  * Example:
  * ```kotlin
@@ -15,7 +27,7 @@ package io.ton.walletkit.domain.model
  *
  *     override suspend fun sign(data: ByteArray): ByteArray {
  *         // Show user confirmation dialog
- *         // Call hardware wallet or external signing service
+ *         // Call remote signing service or external signer
  *         return signature
  *     }
  * }

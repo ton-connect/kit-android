@@ -157,14 +157,17 @@ val wallets = TONWallet.wallets()
 ```kotlin
 import io.ton.walletkit.domain.model.WalletSigner
 
-// Derive public key from mnemonic (or get from hardware wallet)
+// Derive public key from mnemonic (or get from remote signing service)
 val publicKey = TONWallet.derivePublicKey(mnemonic)
 
 val signer = object : WalletSigner {
     override val publicKey: String = publicKey
     
     override suspend fun sign(data: ByteArray): ByteArray {
-        // Forward to hardware wallet or show confirmation dialog
+        // Show confirmation dialog and forward to external signing service
+        // Note: This can sign both transactions and arbitrary data.
+        // For hardware wallets (Ledger, etc.) that only sign transactions,
+        // use a different integration approach at the adapter level.
         return signature
     }
 }
