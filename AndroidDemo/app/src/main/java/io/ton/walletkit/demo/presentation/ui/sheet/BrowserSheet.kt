@@ -52,6 +52,9 @@ fun BrowserSheet(
                 ViewGroup.LayoutParams.MATCH_PARENT,
             )
 
+            // Disable nested scrolling to allow WebView to handle all scroll events
+            isNestedScrollingEnabled = false
+
             // Inject TonConnect support
             injectTonConnect(TONWalletKit)
 
@@ -111,6 +114,13 @@ fun BrowserSheet(
             AndroidView(
                 factory = { webView },
                 modifier = Modifier.fillMaxSize(),
+                update = { view ->
+                    // Request parent to not intercept touch events
+                    view.setOnTouchListener { v, event ->
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                        false // Let WebView handle the event
+                    }
+                }
             )
         }
     }
