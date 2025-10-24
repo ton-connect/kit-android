@@ -44,6 +44,16 @@ class WebViewEngineApiTest {
     }
 
     @Test
+    fun `engine implements derivePublicKeyFromMnemonic method`() {
+        assertNotNull(engine::derivePublicKeyFromMnemonic)
+    }
+
+    @Test
+    fun `engine implements signDataWithMnemonic method`() {
+        assertNotNull(engine::signDataWithMnemonic)
+    }
+
+    @Test
     fun `engine implements getWallets method`() {
         assertNotNull(engine::getWallets)
     }

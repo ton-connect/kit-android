@@ -21,6 +21,10 @@ data class TransactionRequestEvent(
     val dAppInfo: DAppInfo? = null,
     val preview: Preview? = null,
     val error: String? = null,
+
+    // JS Bridge fields for internal browser
+    val isJsBridge: Boolean? = null,
+    val tabId: String? = null,
 ) {
     @Serializable
     data class Request(

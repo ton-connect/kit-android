@@ -12,8 +12,13 @@ internal object BridgeInjector {
     private const val TAG = "BridgeInjector"
 
     /**
-     * Inject the TonConnect bridge into the current frame and all iframes.
-     * The inject.mjs script handles frame detection and registration automatically.
+     * Inject the TonConnect bridge into the current frame.
+     *
+     * NOTE: Android WebView automatically makes JavaScript accessible to ALL frames
+     * (main frame + all iframes) when using addJavascriptInterface() and evaluateJavascript().
+     * We don't need to manually inject into each iframe - WebView handles this automatically!
+     *
+     * The script will be re-injected on every page navigation via WebViewClient.onPageFinished.
      */
     fun injectIntoAllFrames(
         context: Context,
@@ -33,7 +38,8 @@ internal object BridgeInjector {
             return
         }
 
-        // Inject into main frame
+        // Inject once - WebView automatically makes this available to all frames!
+        // The script includes a guard to prevent double-injection.
         webView.evaluateJavascript(
             """
             (function() {
@@ -47,36 +53,6 @@ internal object BridgeInjector {
             null,
         )
 
-        // Inject into all iframes (for same-origin iframes)
-        // The script will handle cross-origin detection
-        webView.evaluateJavascript(
-            """
-            (function() {
-                const iframes = document.querySelectorAll('${BrowserConstants.JS_SELECTOR_IFRAMES}');
-                let injectedCount = 0;
-                iframes.forEach((iframe) => {
-                    try {
-                        if (iframe.${BrowserConstants.JS_PROPERTY_CONTENT_WINDOW} && iframe.${BrowserConstants.JS_PROPERTY_CONTENT_DOCUMENT}) {
-                            const script = iframe.${BrowserConstants.JS_PROPERTY_CONTENT_DOCUMENT}.createElement('script');
-                            script.textContent = `$injectScript`;
-                            iframe.${BrowserConstants.JS_PROPERTY_CONTENT_DOCUMENT}.head.appendChild(script);
-                            injectedCount++;
-                        }
-                    } catch (e) {
-                        // Cross-origin iframe, can't inject
-                        console.log('${BrowserConstants.CONSOLE_PREFIX_NATIVE} ${BrowserConstants.CONSOLE_MSG_SKIPPED_CROSS_ORIGIN}:', iframe.src);
-                    }
-                });
-                return injectedCount;
-            })();
-            """.trimIndent(),
-        ) { result ->
-            val count = result?.toIntOrNull() ?: 0
-            if (count > 0) {
-                Log.d(TAG, "Injected bridge into $count iframe(s)")
-            } else {
-                Log.d(TAG, "No same-origin iframes found on this page")
-            }
-        }
+        Log.d(TAG, "Bridge injected - automatically available to all frames (main + iframes)")
     }
 }

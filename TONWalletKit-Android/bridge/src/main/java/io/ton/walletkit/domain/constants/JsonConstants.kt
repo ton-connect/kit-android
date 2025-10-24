@@ -21,6 +21,11 @@ internal object JsonConstants {
     const val KEY_WORDS = "words"
 
     /**
+     * JSON key for mnemonic type (e.g., ton or bip39).
+     */
+    const val KEY_MNEMONIC_TYPE = "mnemonicType"
+
+    /**
      * JSON key for wallet name.
      */
     const val KEY_NAME = "name"
@@ -115,6 +120,11 @@ internal object JsonConstants {
     const val KEY_DEVICE_INFO = "deviceInfo"
 
     /**
+     * JSON key for device object in TonConnect payloads.
+     */
+    const val KEY_DEVICE = "device"
+
+    /**
      * JSON key for platform in device info.
      */
     const val KEY_PLATFORM = "platform"
@@ -170,6 +180,11 @@ internal object JsonConstants {
      * JSON value for cell sign data type.
      */
     const val VALUE_SIGN_DATA_CELL = "cell"
+
+    /**
+     * TonConnect payload item name for wallet address permission.
+     */
+    const val VALUE_TON_ADDR_ITEM = "ton_addr"
 
     /** JSON value for native TON asset type. */
     const val VALUE_ASSET_TON = "ton"

@@ -69,4 +69,6 @@ dependencies {
     implementation(libs.kotlinxSerializationJson)
     // OkHttp only needed if using full variant:
     // implementation(libs.okhttp)
+
+    debugImplementation(libs.leakcanaryAndroid)
 }

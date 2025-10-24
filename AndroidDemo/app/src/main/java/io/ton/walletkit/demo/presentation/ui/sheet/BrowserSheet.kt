@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.presentation.TONWalletKit
+import io.ton.walletkit.presentation.browser.cleanupTonConnect
 import io.ton.walletkit.presentation.browser.injectTonConnect
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -40,10 +42,13 @@ fun BrowserSheet(
     onClose: () -> Unit,
     isLoading: Boolean = false,
     currentUrl: String = url,
+    webViewHolder: androidx.compose.runtime.MutableState<WebView?>? = null,
 ) {
     val context = LocalContext.current
 
-    val webView = remember {
+    // Use the provided WebView holder to persist the WebView across sheet changes
+    // This prevents the WebView from being destroyed when the Connect sheet opens
+    val webView = webViewHolder?.value ?: remember(url) {
         WebView(context).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
@@ -60,12 +65,21 @@ fun BrowserSheet(
 
             // Load the URL
             loadUrl(url)
+        }.also {
+            // Store in holder if provided
+            webViewHolder?.value = it
         }
     }
 
+    // Don't destroy WebView if it's managed by the holder (parent composable owns it)
     DisposableEffect(Unit) {
         onDispose {
-            webView.destroy()
+            if (webViewHolder == null) {
+                // Clean up TonConnect resources before destroying
+                webView.cleanupTonConnect()
+                webView.destroy()
+            }
+            // If webViewHolder is provided, the parent composable is responsible for destruction
         }
     }
 
@@ -120,7 +134,7 @@ fun BrowserSheet(
                         v.parent?.requestDisallowInterceptTouchEvent(true)
                         false // Let WebView handle the event
                     }
-                }
+                },
             )
         }
     }

@@ -10,7 +10,7 @@ import java.util.TimeZone
  * Utility for parsing various timestamp formats.
  */
 object TimestampParser {
-    
+
     private val NUMERIC_PATTERN = Regex("^-?\\d+")
     private val ISO8601_PATTERNS = listOf(
         "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
@@ -18,12 +18,12 @@ object TimestampParser {
         "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
         "yyyy-MM-dd'T'HH:mm:ss'Z'",
     )
-    
+
     /**
      * Parse a timestamp from various formats:
      * - Unix timestamp (numeric string)
      * - ISO 8601 timestamp (e.g., "2023-10-23T12:34:56.789Z")
-     * 
+     *
      * Returns null if parsing fails.
      */
     fun parse(value: String?): Long? {
@@ -36,7 +36,7 @@ object TimestampParser {
             }
         }.getOrNull()
     }
-    
+
     /**
      * Parse ISO 8601 timestamp using SimpleDateFormat.
      * Tries multiple formats and normalizes fractional seconds if needed.
@@ -63,13 +63,13 @@ object TimestampParser {
 
         throw IllegalArgumentException("Unsupported timestamp format: $value")
     }
-    
+
     /**
      * Normalize ISO 8601 fractional seconds to 3 digits.
-     * 
+     *
      * SimpleDateFormat expects exactly 3 digits for SSS pattern,
      * so we need to normalize timestamps with different precision.
-     * 
+     *
      * Examples:
      * - "2023-10-23T12:34:56.78Z" -> "2023-10-23T12:34:56.780Z"
      * - "2023-10-23T12:34:56.123456Z" -> "2023-10-23T12:34:56.123Z"

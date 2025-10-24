@@ -321,6 +321,14 @@ internal class QuickJsWalletKitEngine(
         return result.getString("publicKey")
     }
 
+    override suspend fun signDataWithMnemonic(
+        words: List<String>,
+        data: ByteArray,
+        mnemonicType: String,
+    ): ByteArray {
+        throw UnsupportedOperationException("QuickJS engine does not support mnemonic-based signing. Use WebView engine.")
+    }
+
     override suspend fun createTonMnemonic(wordCount: Int): List<String> {
         TODO("Not yet implemented")
     }
@@ -653,6 +661,7 @@ internal class QuickJsWalletKitEngine(
         messageId: String,
         method: String,
         params: JSONObject?,
+        url: String?,
         responseCallback: (JSONObject) -> Unit,
     ) {
         // QuickJS engine doesn't support internal browser mode

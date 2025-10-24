@@ -28,7 +28,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -61,6 +63,7 @@ import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.WalletDetailsSheet
 import io.ton.walletkit.domain.model.TONNetwork
+import io.ton.walletkit.presentation.browser.cleanupTonConnect
 
 private const val DEFAULT_DAPP_URL = "https://tonconnect-sdk-demo-dapp.vercel.app/iframe/iframe"
 
@@ -98,6 +101,23 @@ fun WalletScreen(
 ) {
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Keep browser WebView alive across sheet changes to prevent destruction during TonConnect requests
+    // This WebView persists even when switching to Connect/Transaction sheets
+    val browserWebViewHolder = remember { mutableStateOf<android.webkit.WebView?>(null) }
+
+    // Cleanup WebView when WalletScreen is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            browserWebViewHolder.value?.let { webView ->
+                // Clean up TonConnect resources before destroying WebView
+                webView.cleanupTonConnect()
+                webView.destroy()
+            }
+            browserWebViewHolder.value = null
+        }
+    }
+
     LaunchedEffect(state.error) {
         val error = state.error ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(error)
@@ -171,6 +191,7 @@ fun WalletScreen(
                 is SheetState.Browser -> BrowserSheet(
                     url = sheet.url,
                     onClose = onDismissSheet,
+                    webViewHolder = browserWebViewHolder,
                 )
 
                 SheetState.None -> Unit

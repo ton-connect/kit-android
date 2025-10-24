@@ -17,7 +17,7 @@ package io.ton.walletkit.domain.model
  * - They only sign complete transactions (not arbitrary data)
  * - They work at transaction-level, not raw bytes level
  * - They cannot sign arbitrary payloads from TonConnect signData requests
- * 
+ *
  * For hardware wallets, implement transaction-only signing at the wallet adapter level instead.
  *
  * Example:

@@ -20,6 +20,10 @@ data class SignDataRequestEvent(
     val request: Payload? = null,
     val dAppInfo: DAppInfo? = null,
     val preview: Preview? = null,
+
+    // JS Bridge fields for internal browser
+    val isJsBridge: Boolean? = null,
+    val tabId: String? = null,
 ) {
     @Serializable
     data class Payload(

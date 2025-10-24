@@ -131,7 +131,8 @@ type BridgePayload =
       stage: 'start' | 'checkpoint' | 'success' | 'error';
       timestamp: number;
       message?: string;
-    };
+    }
+  | { kind: 'jsBridgeEvent'; tabId: string; event: any };
 
 declare global {
   interface Window {
@@ -314,7 +315,13 @@ function emit(type: WalletKitBridgeEvent['type'], data?: WalletKitBridgeEvent['d
 }
 
 function respond(id: string, result?: unknown, error?: { message: string }) {
+  console.log('[walletkitBridge] 🟢 respond() called with:');
+  console.log('[walletkitBridge] 🟢 id:', id);
+  console.log('[walletkitBridge] 🟢 result:', result);
+  console.log('[walletkitBridge] 🟢 error:', error);
+  console.log('[walletkitBridge] 🟢 About to call postToNative...');
   postToNative({ kind: 'response', id, result, error });
+  console.log('[walletkitBridge] 🟢 postToNative completed');
 }
 
 async function handleCall(id: string, method: WalletKitApiMethod, params?: unknown) {
@@ -328,8 +335,12 @@ async function handleCall(id: string, method: WalletKitApiMethod, params?: unkno
     console.log(`[walletkitBridge] about to call fn for ${method}`);
     const value = await (fn as (args: unknown, context?: CallContext) => Promise<unknown> | unknown).call(api, params as never, context);
     console.log(`[walletkitBridge] fn returned for ${method}`);
+    console.log(`[walletkitBridge] 🔵 fn returned value:`, value);
+    console.log(`[walletkitBridge] 🔵 value type:`, typeof value);
     emitCallDiagnostic(id, method, 'success');
+    console.log(`[walletkitBridge] 🔵 About to call respond(id, value)...`);
     respond(id, value);
+    console.log(`[walletkitBridge] 🔵 respond(id, value) completed`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[walletkitBridge] handleCall error for ${method}:`, err);
@@ -407,6 +418,55 @@ async function initTonWalletKit(config?: WalletKitBridgeInitConfig, context?: Ca
   if (resolvedBridgeUrl) {
     kitOptions.bridge = {
       bridgeUrl: resolvedBridgeUrl,
+      // Provide custom JS bridge transport for Android WebView
+      // This is called when WalletKit needs to send responses back to the injected bridge
+      jsBridgeTransport: async (tabId: string, message: any) => {
+        console.log('[walletkitBridge] 📤 jsBridgeTransport called:', {
+          tabId,
+          messageType: message.type,
+          messageId: message.messageId,
+          hasEvent: !!message.event,
+          eventType: message.event?.event,
+        });
+        console.log('[walletkitBridge] 📤 Full message:', JSON.stringify(message, null, 2));
+        
+        // For responses with a messageId (replies to requests)
+        if (message.messageId) {
+          console.log('[walletkitBridge] 🔵 Message has messageId, checking for pending promise');
+          const resolvers = (globalThis as any).__internalBrowserResponseResolvers;
+          if (resolvers && resolvers.has(message.messageId)) {
+            console.log('[walletkitBridge] ✅ Resolving response promise for messageId:', message.messageId);
+            const { resolve } = resolvers.get(message.messageId);
+            resolvers.delete(message.messageId);
+            resolve(message);
+          } else {
+            console.warn('[walletkitBridge] ⚠️ No pending promise for messageId:', message.messageId);
+          }
+        }
+        
+        // For events (like disconnect initiated by wallet), send to WebView via Kotlin
+        console.log('[walletkitBridge] 🔍 Checking if message.type === TONCONNECT_BRIDGE_EVENT');
+        console.log('[walletkitBridge] 🔍 message.type:', message.type);
+        console.log('[walletkitBridge] 🔍 Expected: TONCONNECT_BRIDGE_EVENT');
+        
+        if (message.type === 'TONCONNECT_BRIDGE_EVENT') {
+          console.log('[walletkitBridge] ✅ Message type matches TONCONNECT_BRIDGE_EVENT');
+          console.log('[walletkitBridge] ✅ Event type:', message.event?.event);
+          console.log('[walletkitBridge] 📤 Sending event to WebView via Kotlin');
+          postToNative({ 
+            kind: 'jsBridgeEvent', 
+            tabId, 
+            event: message 
+          });
+          console.log('[walletkitBridge] ✅ Event sent to Kotlin successfully');
+        } else {
+          console.warn('[walletkitBridge] ⚠️ Message type does not match TONCONNECT_BRIDGE_EVENT');
+          console.warn('[walletkitBridge] ⚠️ Actual type:', message.type);
+          console.warn('[walletkitBridge] ⚠️ This event will not be sent to the dApp!');
+        }
+        
+        return Promise.resolve();
+      }
     };
   }
 
@@ -588,6 +648,44 @@ const api = {
     return { publicKey: signer.publicKey };
   },
 
+  async signDataWithMnemonic(
+    args: { words: string[]; data: number[]; mnemonicType?: 'ton' | 'bip39' },
+    context?: CallContext,
+  ) {
+    emitCallCheckpoint(context, 'signDataWithMnemonic:before-ensureWalletKitLoaded');
+    await ensureWalletKitLoaded();
+    emitCallCheckpoint(context, 'signDataWithMnemonic:after-ensureWalletKitLoaded');
+    requireWalletKit();
+    emitCallCheckpoint(context, 'signDataWithMnemonic:after-requireWalletKit');
+
+    if (!args?.words || args.words.length === 0) {
+      throw new Error('Mnemonic words required for signDataWithMnemonic');
+    }
+    if (!Array.isArray(args.data)) {
+      throw new Error('Data array required for signDataWithMnemonic');
+    }
+
+    const signer = await Signer.fromMnemonic(args.words, { type: args.mnemonicType ?? 'ton' });
+    emitCallCheckpoint(context, 'signDataWithMnemonic:after-createSigner');
+
+    const dataBytes = Uint8Array.from(args.data);
+    const signatureResult = await signer.sign(dataBytes);
+    emitCallCheckpoint(context, 'signDataWithMnemonic:after-sign');
+
+    let signatureBytes: Uint8Array;
+    if (typeof signatureResult === 'string') {
+      signatureBytes = hexToBytes(signatureResult);
+    } else if (signatureResult instanceof Uint8Array) {
+      signatureBytes = signatureResult;
+    } else if (Array.isArray(signatureResult)) {
+      signatureBytes = Uint8Array.from(signatureResult);
+    } else {
+      throw new Error('Unsupported signature format from signer');
+    }
+
+    return { signature: Array.from(signatureBytes) };
+  },
+
   async createTonMnemonic(args: { count?: number } = { count: 24 }, context?: CallContext) {
     emitCallCheckpoint(context, 'createTonMnemonic:start');
     await ensureWalletKitLoaded();
@@ -669,10 +767,8 @@ const api = {
     // Store pending sign requests
     const pendingSignRequests = new Map<string, { resolve: (sig: Uint8Array) => void; reject: (err: Error) => void }>();
     
-    // Convert hex public key to Uint8Array
-    const publicKeyBytes = new Uint8Array(
-      args.publicKey.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
-    );
+    // Normalize public key - ensure it has 0x prefix (like Signer.fromMnemonic returns)
+    const publicKeyHex = args.publicKey.startsWith('0x') ? args.publicKey : `0x${args.publicKey}`;
     
     // Create a custom signer that calls back to Android via events
     const customSigner: any = {
@@ -700,7 +796,7 @@ const api = {
           }, 60000);
         });
       },
-      publicKey: publicKeyBytes, // Must be Uint8Array, not hex string
+      publicKey: publicKeyHex, // Must be hex string with 0x prefix (same format as Signer.fromMnemonic)
     };
     
     // Store the pending requests map so Android can respond
@@ -738,7 +834,7 @@ const api = {
     args: {
       signerId: string;
       requestId: string;
-      signature?: number[]; // Array of bytes
+      signature?: number[] | string;
       error?: string;
     },
     _context?: CallContext,
@@ -757,8 +853,11 @@ const api = {
     
     if (args.error) {
       pending.reject(new Error(args.error));
-    } else if (args.signature) {
-      pending.resolve(new Uint8Array(args.signature));
+    } else if (typeof args.signature === 'string') {
+      pending.resolve(normalizeHex(args.signature));
+    } else if (Array.isArray(args.signature)) {
+      const signatureHex = bytesToHex(new Uint8Array(args.signature));
+      pending.resolve(signatureHex);
     } else {
       pending.reject(new Error('No signature or error provided'));
     }
@@ -1206,6 +1305,90 @@ const api = {
       (typeof wallet.getAddress === 'function' ? wallet.getAddress() : wallet.address) || args.walletAddress;
     event.wallet = wallet;
     event.walletAddress = resolvedAddress;
+    
+    // CRITICAL: Determine if this is an internal browser (JS bridge) vs deep link (HTTP bridge) event
+    // Android doesn't pass back the full event object with all fields, so we need to detect the type
+    // 
+    // The problem: Android only sends back: id, preview, request, dAppInfo, walletAddress, wallet
+    // It doesn't preserve isJsBridge, domain, tabId, messageId fields
+    //
+    // Key difference between connection types:
+    // - Deep link/QR (HTTP bridge): Event has a 'from' field (dApp's client session ID from the URL)
+    // - Internal browser (JS bridge): Event has NO 'from' field (wallet generates the session ID)
+    //
+    // The 'from' field comes from the TON Connect URL's client_id parameter, which only exists
+    // for HTTP bridge connections. Internal browser connections don't have this.
+    
+    const hasSessionId = !!(event.request?.from || event.from);
+    const manifestUrl = event.preview?.manifest?.url || event.dAppInfo?.url || '';
+    
+    // Internal browser detection:
+    // - No 'from' field (wallet will generate session ID)
+    // - OR manifestUrl is empty/local
+    const isInternalBrowser = !hasSessionId || 
+                              !manifestUrl ||
+                              manifestUrl.includes('localhost') ||
+                              manifestUrl.includes('127.0.0.1') ||
+                              manifestUrl.includes('appassets.androidplatform.net');
+    
+    console.log('[walletkitBridge] 🔍 Event type detection:', {
+      hasSessionId,
+      manifestUrl,
+      from: event.request?.from || event.from,
+      isInternalBrowser,
+      eventId: event.id,
+    });
+    
+    // Restore JS bridge fields for internal browser events
+    if (isInternalBrowser) {
+      console.log('[walletkitBridge] 🔧 Restoring missing JS bridge fields for internal browser event');
+      
+      // Set JS bridge flag
+      event.isJsBridge = true;
+      
+      // CRITICAL: Use the domain from the event if available (it was set when the event was first emitted)
+      // The domain should have been preserved by the Kotlin layer
+      let actualDomain = event.domain || 'internal-browser';
+      
+      // Only try to resolve from window if domain is missing from event
+      if (!event.domain) {
+        console.log('[walletkitBridge] ⚠️ Domain missing from event, attempting to resolve from window');
+        try {
+          if (typeof window !== 'undefined') {
+            // Try to get the domain from the top window (the actual dApp page)
+            if (window.top && window.top !== window && window.top.location) {
+              actualDomain = window.top.location.hostname;
+            } else if (document.referrer) {
+              // Fallback to document.referrer which should contain the dApp URL
+              const referrerUrl = new URL(document.referrer);
+              actualDomain = referrerUrl.hostname;
+            } else if (window.location && window.location.hostname !== 'appassets.androidplatform.net') {
+              // Only use window.location if it's not the assets domain
+              actualDomain = window.location.hostname;
+            }
+          }
+        } catch (e) {
+          console.log('[walletkitBridge] Could not access parent domain, using fallback:', e);
+        }
+      } else {
+        console.log('[walletkitBridge] ✅ Using domain from event:', event.domain);
+      }
+      
+      console.log('[walletkitBridge] Resolved domain for connect:', actualDomain);
+      event.domain = actualDomain;
+      
+      // tabId is used as sessionId for sendJsBridgeResponse
+      // Use the event.id as tabId since that's what was used in messageInfo when queuing
+      event.tabId = event.id;
+      
+      // messageId is used for the bridge response
+      event.messageId = event.id;
+      
+      console.log('[walletkitBridge] ✅ Restored fields - isJsBridge:', event.isJsBridge, 'domain:', event.domain, 'tabId:', event.tabId, 'messageId:', event.messageId);
+    } else {
+      console.log('[walletkitBridge] ℹ️ Deep link/QR event - will use HTTP bridge for response');
+    }
+    
     emitCallCheckpoint(context, 'approveConnectRequest:before-walletKit.approveConnectRequest');
     const result = await walletKit.approveConnectRequest(event);
     // Some internal implementations (request processor) perform the response
@@ -1368,93 +1551,208 @@ const api = {
   },
 
   async processInternalBrowserRequest(
-    args: { messageId: string; method: string; params?: unknown },
+    args: { messageId: string; method: string; params?: unknown; from?: string; url?: string },
     context?: CallContext,
   ) {
     emitCallCheckpoint(context, 'processInternalBrowserRequest:start');
     await ensureWalletKitLoaded();
     requireWalletKit();
     
+    console.log('[walletkitBridge] ========== FULL ARGS ==========');
+    console.log('[walletkitBridge] args keys:', Object.keys(args));
+    console.log('[walletkitBridge] args.from:', args.from);
+    console.log('[walletkitBridge] args.url:', args.url);
+    console.log('[walletkitBridge] args:', JSON.stringify(args, null, 2));
+    console.log('[walletkitBridge] ================================');
     console.log('[walletkitBridge] Processing internal browser request:', args.method, args.messageId);
     
-    // Process the request through WalletKit - this will trigger events
-    // (connectRequest, transactionRequest, signDataRequest) through the normal flow
-    
-    switch (args.method) {
-      case 'handleUrl': {
-        // Handle the complete TonConnect URL directly without parsing
-        console.log('[walletkitBridge] Internal browser URL request:', args.params);
-        
-        const params = args.params as any;
-        const tonConnectUrl = params?.url;
-        
-        if (!tonConnectUrl) {
-          throw new Error('url is required for handleUrl request');
-        }
-        
-        console.log('[walletkitBridge] Processing complete URL via handleTonConnectUrl:', tonConnectUrl);
-        
-        // Use the SDK's proper URL handler which preserves all session/encryption info
-        if (typeof walletKit.handleTonConnectUrl === 'function') {
-          await walletKit.handleTonConnectUrl(tonConnectUrl);
-          emitCallCheckpoint(context, 'processInternalBrowserRequest:url-handled-via-sdk');
-          return { success: true, messageId: args.messageId };
-        }
-        
-        throw new Error('handleTonConnectUrl is not available');
-      }
+    // Handle restoreConnection specially - check if there's an active session
+    if (args.method === 'restoreConnection') {
+      console.log('[walletkitBridge] Handling restoreConnection request');
       
-      case 'connect': {
-        // Legacy method - kept for compatibility but handleUrl is preferred
-        console.log('[walletkitBridge] Internal browser connect request (legacy):', args.params);
-        
-        const params = args.params as any;
-        const manifestUrl = params?.manifestUrl;
-        const items = params?.items || [];
-        const protocolVersion = params?.protocolVersion || 2;
-        const returnUrl = params?.returnUrl;
-        
-        if (!manifestUrl) {
-          throw new Error('manifestUrl is required for connect request');
+      // Get the current domain from the window location
+      const domain = typeof window !== 'undefined' && window.location ? window.location.hostname : 'internal-browser';
+      
+      // Check if there's an active session for this domain
+      const sessions = await walletKit.listSessions();
+      const activeSession = sessions.find((s: { domain: string; isJsBridge?: boolean }) => s.domain === domain && s.isJsBridge);
+      
+      if (activeSession) {
+        console.log('[walletkitBridge] Found active session for domain:', domain);
+        // Return a connect event with the existing session info
+        const wallet = walletKit.getWallets()[0]; // Get first wallet
+        if (!wallet) {
+          console.log('[walletkitBridge] No wallet available, returning disconnect');
+          return {
+            event: 'disconnect',
+            payload: {}
+          };
         }
         
-        const requestPayload = {
-          manifestUrl,
-          items: items || []
+        return {
+          event: 'connect',
+          id: Date.now(),
+          payload: {
+            device: {
+              platform: 'android',
+              appName: 'Wallet',
+              appVersion: '1.0',
+              maxProtocolVersion: 2,
+              features: [
+                { name: 'SendTransaction', maxMessages: 4 },
+                { name: 'SignData', types: ['text', 'binary', 'cell'] }
+              ]
+            },
+            items: [
+              {
+                name: 'ton_addr',
+                address: wallet.getAddress(),
+                network: '-239',
+                walletStateInit: await wallet.getStateInit(),
+                publicKey: wallet.publicKey.replace('0x', '')
+              }
+            ]
+          }
         };
-        const encodedRequest = encodeURIComponent(JSON.stringify(requestPayload));
-        let tonConnectUrl = `tc://connect?v=${protocolVersion}&id=${args.messageId}&r=${encodedRequest}`;
-        
-        if (returnUrl) {
-          tonConnectUrl += `&ret=${encodeURIComponent(returnUrl)}`;
-        }
-        
-        console.log('[walletkitBridge] Processing connect via handleTonConnectUrl:', tonConnectUrl);
-        
-        if (typeof walletKit.handleTonConnectUrl === 'function') {
-          await walletKit.handleTonConnectUrl(tonConnectUrl);
-          emitCallCheckpoint(context, 'processInternalBrowserRequest:connect-handled-via-sdk');
-          return { success: true, messageId: args.messageId };
-        }
-        
-        throw new Error('handleTonConnectUrl is not available');
+      } else {
+        console.log('[walletkitBridge] No active session found for domain:', domain, '- returning disconnect');
+        // No active session - return disconnect event
+        return {
+          event: 'disconnect',
+          payload: {}
+        };
       }
-      
-      case 'sendTransaction':
-        console.log('[walletkitBridge] Internal browser transaction request:', args.params);
-        // TODO: Process transaction request and trigger transactionRequest event
-        emitCallCheckpoint(context, 'processInternalBrowserRequest:transaction-handled');
-        return { success: true, messageId: args.messageId };
-      
-      case 'signData':
-        console.log('[walletkitBridge] Internal browser signData request:', args.params);
-        // TODO: Process signData request and trigger signDataRequest event
-        emitCallCheckpoint(context, 'processInternalBrowserRequest:signData-handled');
-        return { success: true, messageId: args.messageId };
-      
-      default:
-        throw new Error(`Unknown internal browser method: ${args.method}`);
     }
+    
+    // Forward all other requests to processInjectedBridgeRequest (like the extension does)
+    // Deep links are now handled at the Kotlin layer by calling handleTonConnectUrl directly
+    if (typeof walletKit.processInjectedBridgeRequest !== 'function') {
+      throw new Error('walletKit.processInjectedBridgeRequest is not available');
+    }
+    
+    // Construct message info for the bridge event
+    // CRITICAL FIX: Get the domain from the URL passed by Kotlin (the actual dApp WebView URL)
+    // The bridge JavaScript runs in a separate WebView for RPC with Android,
+    // so we can't access the dApp's window.location directly.
+    let actualDomain = 'internal-browser';
+    if (args.url) {
+      // Kotlin passes the actual dApp URL from the WebView
+      try {
+        const dappUrl = new URL(args.url);
+        actualDomain = dappUrl.hostname;
+        console.log('[walletkitBridge] ✅ Domain extracted from dApp URL:', actualDomain);
+      } catch (e) {
+        console.log('[walletkitBridge] ⚠️ Failed to parse dApp URL, using fallback:', e);
+      }
+    } else {
+      console.log('[walletkitBridge] ⚠️ No dApp URL provided by Kotlin, using fallback');
+    }
+    
+    console.log('[walletkitBridge] Resolved domain for signature:', actualDomain);
+    
+    const messageInfo = {
+      messageId: args.messageId,
+      tabId: args.messageId, // Use messageId as tabId for internal browser
+      domain: actualDomain, // Use actual dApp domain for signature verification
+    };
+    
+    // Construct the bridge request payload
+    // For injected bridge, the 'from' field should be omitted (let wallet generate session ID)
+    // This is different from HTTP bridge where dApp provides its session client_id
+    
+    // CRITICAL: For 'send' method, params should be an ARRAY containing the actual request
+    // The dApp sends: { method: 'send', params: [{ method: 'signData', params: [...] }] }
+    // BridgeManager.queueJsBridgeEvent extracts params[0] to get the inner request
+    // The Kotlin layer already extracted the inner request for us:
+    // - It receives: { method: 'send', params: [{ method: 'signData', ... }] }
+    // - It extracts and sends us: args.params = { method: 'signData', params: [...], id: '3' }
+    //
+    // So we need to:
+    // 1. Use the inner method (signData) as the actual method
+    // 2. Wrap the full inner request in an array for BridgeManager to extract again
+    
+    // Extract the actual method and params from the inner request
+    let actualMethod = args.method;
+    let actualId = args.messageId;
+    let actualParams = args.params;
+    
+    // If params is an object with a 'method' field, it's the extracted inner request
+    if (args.method === 'send' && args.params && typeof args.params === 'object' && 'method' in args.params) {
+      const innerRequest = args.params as { method: string; params: unknown; id?: string | number };
+      actualMethod = innerRequest.method;  // Use inner method (signData, sendTransaction, etc)
+      actualParams = innerRequest.params;   // Use inner params
+      if (innerRequest.id) {
+        actualId = String(innerRequest.id); // Preserve inner request ID if present
+      }
+      console.log('[walletkitBridge] ✅ Extracted inner request:', { 
+        originalMethod: args.method, 
+        actualMethod, 
+        actualId 
+      });
+    }
+    
+    const request: Record<string, unknown> = {
+      id: actualId,
+      method: actualMethod,
+      params: actualParams,
+    };
+    
+    console.log('[walletkitBridge] ========== INJECTED BRIDGE REQUEST ==========');
+    console.log('[walletkitBridge] method:', args.method);
+    console.log('[walletkitBridge] Omitting from field - wallet will generate session ID');
+    console.log('[walletkitBridge] Original params type:', typeof args.params, 'isArray:', Array.isArray(args.params));
+    console.log('[walletkitBridge] ==============================================');
+    
+    console.log('[walletkitBridge] ========== FORWARDING TO processInjectedBridgeRequest ==========');
+    console.log('[walletkitBridge] messageInfo:', JSON.stringify(messageInfo, null, 2));
+    console.log('[walletkitBridge] request:', JSON.stringify(request, null, 2));
+    console.log('[walletkitBridge] request.params type:', typeof request.params);
+    console.log('[walletkitBridge] request.params is Array?:', Array.isArray(request.params));
+    console.log('[walletkitBridge] ================================================================');
+    
+    emitCallCheckpoint(context, 'processInternalBrowserRequest:before-processInjectedBridgeRequest');
+    
+    // Forward to main WalletKit instance - this will queue the event and trigger callbacks
+    await walletKit.processInjectedBridgeRequest(messageInfo, request);
+    
+    emitCallCheckpoint(context, 'processInternalBridgeRequest:after-processInjectedBridgeRequest');
+    
+    // Wait for the response from jsBridgeTransport before returning
+    console.log('[walletkitBridge] ⏳ Response will be provided by jsBridgeTransport');
+    
+    // Create a promise that will be resolved when jsBridgeTransport is called with the response
+    const responsePromise = new Promise<any>((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Request timeout: ${args.messageId}`));
+      }, 60000); // 60 second timeout
+      
+      // Store resolver in global map
+      if (!(globalThis as any).__internalBrowserResponseResolvers) {
+        (globalThis as any).__internalBrowserResponseResolvers = new Map();
+      }
+      (globalThis as any).__internalBrowserResponseResolvers.set(args.messageId, {
+        resolve: (response: any) => {
+          clearTimeout(timeoutId);
+          resolve(response);
+        },
+        reject: (error: any) => {
+          clearTimeout(timeoutId);
+          reject(error);
+        }
+      });
+    });
+    
+    console.log('[walletkitBridge] ⏳ Awaiting response from jsBridgeTransport...');
+    const response = await responsePromise;
+    console.log('[walletkitBridge] ✅ Received response from jsBridgeTransport:', response);
+    console.log('[walletkitBridge] ✅ Response type:', typeof response);
+    console.log('[walletkitBridge] ✅ Response keys:', Object.keys(response || {}));
+    console.log('[walletkitBridge] ✅ Response.payload:', response?.payload);
+    
+    // Return the response payload
+    const result = response.payload || response;
+    console.log('[walletkitBridge] ✅ Returning to Kotlin:', result);
+    return result;
   },
 
   /**
@@ -1505,6 +1803,34 @@ function serializeDate(value: unknown): string | null {
   const timestamp = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(timestamp)) return null;
   return new Date(timestamp).toISOString();
+}
+
+function normalizeHex(hex: string): string {
+  const trimmed = typeof hex === 'string' ? hex.trim() : '';
+  if (!trimmed) {
+    throw new Error('Empty hex string');
+  }
+  return trimmed.startsWith('0x') ? trimmed : `0x${trimmed}`;
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const normalized = normalizeHex(hex).slice(2);
+  if (normalized.length % 2 !== 0) {
+    throw new Error(`Invalid hex string length: ${normalized.length}`);
+  }
+  const bytes = new Uint8Array(normalized.length / 2);
+  for (let i = 0; i < normalized.length; i += 2) {
+    bytes[i / 2] = parseInt(normalized.slice(i, i + 2), 16);
+  }
+  return bytes;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  let hex = '0x';
+  for (let i = 0; i < bytes.length; i++) {
+    hex += bytes[i].toString(16).padStart(2, '0');
+  }
+  return hex;
 }
 
 window.walletkitBridge = api;

@@ -106,6 +106,11 @@ internal object BridgeMethodConstants {
     const val METHOD_DERIVE_PUBLIC_KEY_FROM_MNEMONIC = "derivePublicKeyFromMnemonic"
 
     /**
+     * Method name for signing arbitrary data with a mnemonic using the JS bundle.
+     */
+    const val METHOD_SIGN_DATA_WITH_MNEMONIC = "signDataWithMnemonic"
+
+    /**
      * Method name for adding a wallet backed by an external signer.
      */
     const val METHOD_ADD_WALLET_WITH_SIGNER = "addWalletWithSigner"
@@ -124,4 +129,24 @@ internal object BridgeMethodConstants {
      * Method name for processing an internal browser TonConnect request.
      */
     const val METHOD_PROCESS_INTERNAL_BROWSER_REQUEST = "processInternalBrowserRequest"
+
+    /**
+     * Method name for emitting a browser page started event to JavaScript.
+     */
+    const val METHOD_EMIT_BROWSER_PAGE_STARTED = "emitBrowserPageStarted"
+
+    /**
+     * Method name for emitting a browser page finished event to JavaScript.
+     */
+    const val METHOD_EMIT_BROWSER_PAGE_FINISHED = "emitBrowserPageFinished"
+
+    /**
+     * Method name for emitting a browser error event to JavaScript.
+     */
+    const val METHOD_EMIT_BROWSER_ERROR = "emitBrowserError"
+
+    /**
+     * Method name for emitting a browser bridge request diagnostic event.
+     */
+    const val METHOD_EMIT_BROWSER_BRIDGE_REQUEST = "emitBrowserBridgeRequest"
 }

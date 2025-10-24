@@ -69,6 +69,25 @@ internal interface WalletKitEngine {
     suspend fun derivePublicKeyFromMnemonic(words: List<String>): String
 
     /**
+     * Sign arbitrary data using a mnemonic via the embedded JS bundle.
+     *
+     * This helper is primarily intended for demo environments where the mnemonic
+     * is available in-app (e.g., simulated external signers). Production apps
+     * should forward [WalletSigner.sign] requests to their secure signer instead.
+     *
+     * @param words Mnemonic phrase as a list of words
+     * @param data Raw bytes that need to be signed
+     * @param mnemonicType Mnemonic type ("ton" or "bip39"), defaults to "ton"
+     * @return Signature bytes
+     * @throws WalletKitBridgeException if signing fails
+     */
+    suspend fun signDataWithMnemonic(
+        words: List<String>,
+        data: ByteArray,
+        mnemonicType: String = "ton",
+    ): ByteArray
+
+    /**
      * Generate a new mnemonic phrase using the WalletKit JS utilities.
      *
      * @param wordCount Number of words to generate (12 or 24). Defaults to 24.
@@ -167,12 +186,14 @@ internal interface WalletKitEngine {
      * @param messageId Unique message ID from the dApp
      * @param method Request method (e.g., "connect", "sendTransaction", "signData")
      * @param params Request parameters as JSON
+     * @param url The current dApp URL (for extracting the domain)
      * @param responseCallback Callback to send response back to dApp
      */
     suspend fun handleTonConnectRequest(
         messageId: String,
         method: String,
         params: org.json.JSONObject?,
+        url: String? = null,
         responseCallback: (org.json.JSONObject) -> Unit,
     )
 

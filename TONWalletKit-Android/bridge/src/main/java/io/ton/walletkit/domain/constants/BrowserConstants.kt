@@ -21,10 +21,27 @@ internal object BrowserConstants {
     const val KEY_EVENT = "event"
     const val KEY_SUCCESS = "success"
     const val KEY_PAYLOAD = "payload"
+    const val KEY_REQUEST = "request"
+
+    // HTTP and MIME constants used for WebView interception
+    const val HTTP_METHOD_GET = "GET"
+    const val HEADER_ACCEPT = "Accept"
+    const val MIME_TYPE_HTML = "text/html"
+    const val CHARSET_UTF8 = "UTF-8"
+    const val HTML_TAG_HEAD = "<head>"
+    const val HTML_TAG_HTML = "<html>"
+    const val HTML_SCRIPT_OPEN = "<script>"
+    const val HTML_SCRIPT_CLOSE = "</script>"
+    const val HTML_EXTENSION = ".html"
+    const val ROOT_PATH_SUFFIX = "/"
 
     // Default Values
     const val DEFAULT_FRAME_ID = "main"
     const val DEFAULT_METHOD = "unknown"
+    const val EVENT_CONNECT = "connect"
+    const val DEFAULT_APP_NAME = "Wallet"
+    const val DEFAULT_APP_VERSION = "1.0"
+    const val DEFAULT_MAX_MESSAGES = 4
 
     // Asset Paths
     const val INJECT_SCRIPT_PATH = "walletkit/inject.mjs"
@@ -45,4 +62,8 @@ internal object BrowserConstants {
 
     // WebView Progress Threshold
     const val WEBVIEW_INJECTION_PROGRESS_THRESHOLD = 80
+
+    // Tonkeeper TonConnect URLs
+    const val URL_TONKEEPER_APP_TON_CONNECT = "https://app.tonkeeper.com/ton-connect"
+    const val URL_TONKEEPER_TON_CONNECT = "https://tonkeeper.com/ton-connect"
 }
