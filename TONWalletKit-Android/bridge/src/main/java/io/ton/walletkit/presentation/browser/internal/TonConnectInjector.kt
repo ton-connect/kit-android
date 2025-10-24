@@ -1,4 +1,4 @@
-package io.ton.walletkit.presentation.browser
+package io.ton.walletkit.presentation.browser.internal
 
 import android.annotation.SuppressLint
 import android.util.Log
@@ -8,10 +8,6 @@ import io.ton.walletkit.data.browser.PendingRequest
 import io.ton.walletkit.domain.constants.BrowserConstants
 import io.ton.walletkit.domain.constants.ResponseConstants
 import io.ton.walletkit.presentation.TONWalletKit
-import io.ton.walletkit.presentation.browser.internal.BridgeInjector
-import io.ton.walletkit.presentation.browser.internal.BridgeInterface
-import io.ton.walletkit.presentation.browser.internal.TonConnectWebChromeClient
-import io.ton.walletkit.presentation.browser.internal.TonConnectWebViewClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * You typically get an instance of this class by calling `webView.injectTonConnect(walletKit)`.
  */
-class TonConnectInjector internal constructor(
+internal class TonConnectInjector(
     private val webView: WebView,
     private val walletKit: TONWalletKit,
 ) {
@@ -52,6 +48,7 @@ class TonConnectInjector internal constructor(
         internal fun registerWebView(sessionId: String, webView: WebView) {
             Log.d(TAG, "Registering WebView for session: $sessionId")
             activeWebViews[sessionId] = WeakReference(webView)
+            cleanupStaleReferences()
         }
         
         /**
@@ -70,11 +67,41 @@ class TonConnectInjector internal constructor(
          */
         @JvmStatic
         internal fun getWebViewForSession(sessionId: String): WebView? {
-            return activeWebViews[sessionId]?.get()?.also {
-                Log.d(TAG, "Found WebView for session: $sessionId")
-            } ?: run {
-                Log.d(TAG, "No WebView found for session: $sessionId")
-                null
+            Log.d(TAG, "🔍 getWebViewForSession called for: $sessionId")
+            Log.d(TAG, "🔍 Total registered sessions: ${activeWebViews.size}")
+            Log.d(TAG, "🔍 Registered session IDs: ${activeWebViews.keys.joinToString(", ")}")
+            
+            val webViewRef = activeWebViews[sessionId]
+            val webView = webViewRef?.get()
+            
+            Log.d(TAG, "🔍 WebView reference found: ${webViewRef != null}")
+            Log.d(TAG, "🔍 WebView still alive: ${webView != null}")
+            
+            // Clean up stale reference if WebView was garbage collected
+            if (webView == null && webViewRef != null) {
+                activeWebViews.remove(sessionId)
+                Log.d(TAG, "Removed stale WebView reference for session: $sessionId")
+            }
+            
+            return webView?.also {
+                Log.d(TAG, "✅ Found WebView for session: $sessionId")
+            }
+        }
+        
+        /**
+         * Clean up stale WebView references where the WebView has been garbage collected.
+         * Called periodically to prevent map from growing indefinitely.
+         */
+        @JvmStatic
+        private fun cleanupStaleReferences() {
+            val staleKeys = activeWebViews.entries
+                .filter { it.value.get() == null }
+                .map { it.key }
+            
+            staleKeys.forEach { activeWebViews.remove(it) }
+            
+            if (staleKeys.isNotEmpty()) {
+                Log.d(TAG, "Cleaned up ${staleKeys.size} stale WebView references")
             }
         }
         
@@ -88,8 +115,8 @@ class TonConnectInjector internal constructor(
             activeWebViews.clear()
         }
     }
-    // Capture context at creation time to avoid null issues later
-    private val context = webView.context
+    // Use application context to avoid leaking Activity context
+    private val context = webView.context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val pendingRequests = ConcurrentHashMap<String, PendingRequest>()
     private var isCleanedUp = false
@@ -211,11 +238,42 @@ class TonConnectInjector internal constructor(
         // If this is a successful connect response, register this WebView for the session
         if (pending.method == "connect" && response.has(ResponseConstants.KEY_PAYLOAD)) {
             try {
-                val payload = response.getJSONObject(ResponseConstants.KEY_PAYLOAD)
-                // The payload might contain session info - we'll use the messageId as session identifier
-                // since that's what's used as tabId in the JS bridge transport
+                // Register with messageId (for immediate responses)
                 registerWebView(messageId, webView)
-                Log.d(TAG, "✅ Registered WebView for JS Bridge session: $messageId")
+                Log.d(TAG, "✅ Registered WebView with messageId: $messageId")
+                
+                // CRITICAL FIX: After sending the response, query WalletKit for the sessionId
+                // and register the WebView with it too (for disconnect later)
+                scope.launch {
+                    try {
+                        // Give WalletKit time to create the session
+                        kotlinx.coroutines.delay(500)
+                        
+                        // Get all sessions from WalletKit
+                        val sessions = walletKit.engine?.callBridgeMethod("listSessions", null)
+                        Log.d(TAG, "🔍 Got sessions for WebView re-registration: $sessions")
+                        
+                        // Find the session that was just created (by messageId/tabId)
+                        // The session will have tabId = messageId initially
+                        // We need to register the WebView with the session's sessionId
+                        
+                        // Parse sessions and find matching one
+                        if (sessions is JSONObject && sessions.has("items")) {
+                            val items = sessions.getJSONArray("items")
+                            for (i in 0 until items.length()) {
+                                val session = items.getJSONObject(i)
+                                val sessionId = session.optString("sessionId")
+                                // Check if this session matches our messageId
+                                // We can't directly check, so register ALL JS Bridge sessions
+                                // This is safe because we're using the same WebView
+                                Log.d(TAG, "🔄 Registering WebView for sessionId: $sessionId")
+                                registerWebView(sessionId, webView)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "⚠️ Failed to re-register WebView with sessionId", e)
+                    }
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to register WebView for session", e)
             }
@@ -233,22 +291,43 @@ class TonConnectInjector internal constructor(
      * @param event The event data to broadcast
      */
     fun sendEvent(event: JSONObject) {
+        Log.d(TAG, "🔔 sendEvent called")
+        Log.d(TAG, "🔔 Event to send: $event")
+        
         scope.launch {
             webView.post {
+                // CRITICAL FIX: The event from Engine already has the correct structure:
+                // { type: "TONCONNECT_BRIDGE_EVENT", source: "...", event: {...} }
+                // We should NOT wrap it again - just extract the inner event
+                val actualEvent = if (event.has("event")) {
+                    // Extract the actual disconnect/connect event from the wrapper
+                    event.getJSONObject("event")
+                } else {
+                    // Fallback if event is already unwrapped
+                    event
+                }
+                
+                // Now create the message for window.postMessage with correct structure
                 val eventMessage = JSONObject().apply {
                     put(BrowserConstants.KEY_TYPE, BrowserConstants.MESSAGE_TYPE_BRIDGE_EVENT)
-                    put(BrowserConstants.KEY_EVENT, event)
+                    put(BrowserConstants.KEY_EVENT, actualEvent)  // ✅ Now this is the actual disconnect event
                 }
 
-                Log.d(TAG, "Broadcasting event to all frames: ${event.optString(BrowserConstants.KEY_EVENT)}")
+                Log.d(TAG, "🔔 Extracted actual event: $actualEvent")
+                Log.d(TAG, "🔔 Formatted event message: $eventMessage")
+                Log.d(TAG, "🔔 Broadcasting event to all frames")
 
                 // Send to main window
-                webView.evaluateJavascript(
-                    """
+                val jsCode = """
                     ${BrowserConstants.JS_WINDOW_POST_MESSAGE}($eventMessage, '*');
-                    """.trimIndent(),
-                    null,
-                )
+                    """.trimIndent()
+                    
+                Log.d(TAG, "🔔 Executing JS to post message to main window")
+                Log.d(TAG, "🔔 JS code: $jsCode")
+                
+                webView.evaluateJavascript(jsCode) { result ->
+                    Log.d(TAG, "✅ JS executed for main window, result: $result")
+                }
 
                 // Send to all iframes
                 webView.evaluateJavascript(

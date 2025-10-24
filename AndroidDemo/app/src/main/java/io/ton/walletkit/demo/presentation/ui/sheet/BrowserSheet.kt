@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.presentation.TONWalletKit
+import io.ton.walletkit.presentation.browser.cleanupTonConnect
 import io.ton.walletkit.presentation.browser.injectTonConnect
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -73,6 +74,8 @@ fun BrowserSheet(
     DisposableEffect(Unit) {
         onDispose {
             if (webViewHolder == null) {
+                // Clean up TonConnect resources before destroying
+                 webView.cleanupTonConnect()
                 webView.destroy()
             }
             // If webViewHolder is provided, the parent composable is responsible for destruction

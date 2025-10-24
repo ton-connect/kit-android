@@ -427,9 +427,11 @@ async function initTonWalletKit(config?: WalletKitBridgeInitConfig, context?: Ca
           messageId: message.messageId,
           hasEvent: !!message.event,
         });
+        console.log('[walletkitBridge] 📤 Full message:', JSON.stringify(message, null, 2));
         
         // For responses with a messageId (replies to requests)
         if (message.messageId) {
+          console.log('[walletkitBridge] 🔵 Message has messageId, checking for pending promise');
           const resolvers = (globalThis as any).__internalBrowserResponseResolvers;
           if (resolvers && resolvers.has(message.messageId)) {
             console.log('[walletkitBridge] ✅ Resolving response promise for messageId:', message.messageId);
@@ -442,13 +444,21 @@ async function initTonWalletKit(config?: WalletKitBridgeInitConfig, context?: Ca
         }
         
         // For events (like disconnect initiated by wallet), send to WebView via Kotlin
+        console.log('[walletkitBridge] 🔍 Checking if message.type === TONCONNECT_BRIDGE_EVENT');
+        console.log('[walletkitBridge] 🔍 message.type:', message.type);
+        console.log('[walletkitBridge] 🔍 Expected: TONCONNECT_BRIDGE_EVENT');
+        
         if (message.type === 'TONCONNECT_BRIDGE_EVENT') {
+          console.log('[walletkitBridge] ✅ Message type matches, sending to WebView via Kotlin');
           console.log('[walletkitBridge] 📤 Sending event to WebView via Kotlin:', message.event);
           postToNative({ 
             kind: 'jsBridgeEvent', 
             tabId, 
             event: message 
           });
+        } else {
+          console.warn('[walletkitBridge] ⚠️ Message type does not match TONCONNECT_BRIDGE_EVENT, not sending to Kotlin');
+          console.warn('[walletkitBridge] ⚠️ This means the disconnect event will not reach the dApp!');
         }
         
         return Promise.resolve();

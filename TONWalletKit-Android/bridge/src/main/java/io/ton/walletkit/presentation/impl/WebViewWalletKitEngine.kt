@@ -16,7 +16,7 @@ import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 import io.ton.walletkit.data.storage.bridge.BridgeStorageAdapter
 import io.ton.walletkit.data.storage.bridge.SecureBridgeStorageAdapter
-import io.ton.walletkit.presentation.browser.TonConnectInjector
+import io.ton.walletkit.presentation.browser.internal.TonConnectInjector
 import io.ton.walletkit.presentation.browser.getTonConnectInjector
 import io.ton.walletkit.domain.constants.BridgeMethodConstants
 import io.ton.walletkit.domain.constants.EventTypeConstants
@@ -50,7 +50,6 @@ import io.ton.walletkit.presentation.listener.TONBridgeEventsHandler
 import io.ton.walletkit.presentation.request.TONWalletConnectionRequest
 import io.ton.walletkit.presentation.request.TONWalletSignDataRequest
 import io.ton.walletkit.presentation.request.TONWalletTransactionRequest
-import io.ton.walletkit.presentation.browser.getTonConnectInjector
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -1141,33 +1140,41 @@ internal class WebViewWalletKitEngine(
         val tabId = payload.optString("tabId")
         val event = payload.optJSONObject("event")
         
-        Log.d(TAG, "📤 handleJsBridgeEvent called - tabId: $tabId")
+        Log.d(TAG, "📤 handleJsBridgeEvent called")
+        Log.d(TAG, "📤 tabId: $tabId")
+        Log.d(TAG, "📤 event: $event")
+        Log.d(TAG, "📤 Full payload: $payload")
         
         if (event == null) {
-            Log.e(TAG, "No event object in jsBridgeEvent payload")
+            Log.e(TAG, "❌ No event object in jsBridgeEvent payload")
             return
         }
         
         mainHandler.post {
             try {
                 // Look up the WebView for this session using the tabId (which is the session ID)
+                Log.d(TAG, "📤 Looking up WebView for session: $tabId")
                 val targetWebView = TonConnectInjector.getWebViewForSession(tabId)
                 
                 if (targetWebView != null) {
+                    Log.d(TAG, "✅ Found WebView for session: $tabId")
                     // Get the injector from the WebView and send the event
                     val injector = targetWebView.getTonConnectInjector()
                     if (injector != null) {
-                        Log.d(TAG, "📤 Sending event via TonConnectInjector to WebView for session: $tabId")
+                        Log.d(TAG, "✅ Found TonConnectInjector, sending event to WebView")
+                        Log.d(TAG, "📤 Event being sent: $event")
                         injector.sendEvent(event)
+                        Log.d(TAG, "✅ Event sent successfully")
                     } else {
                         Log.w(TAG, "⚠️  WebView found but no TonConnectInjector attached for session: $tabId")
                     }
                 } else {
                     // No WebView found for this session - may have been destroyed or never registered
                     Log.w(TAG, "⚠️  No WebView found for session: $tabId (browser may have been closed)")
+                    Log.w(TAG, "⚠️  This means the WebView was never registered or was garbage collected")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to send JS Bridge event", e)
+                Log.e(TAG, "❌ Failed to send JS Bridge event", e)
             }
         }
     }

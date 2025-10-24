@@ -63,6 +63,7 @@ import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.WalletDetailsSheet
 import io.ton.walletkit.domain.model.TONNetwork
+import io.ton.walletkit.presentation.browser.cleanupTonConnect
 
 private const val DEFAULT_DAPP_URL = "https://tonconnect-demo-dapp-with-react-ui.vercel.app/"
 
@@ -108,7 +109,11 @@ fun WalletScreen(
     // Cleanup WebView when WalletScreen is disposed
     DisposableEffect(Unit) {
         onDispose {
-            browserWebViewHolder.value?.destroy()
+            browserWebViewHolder.value?.let { webView ->
+                // Clean up TonConnect resources before destroying WebView
+//                webView.cleanupTonConnect()
+                webView.destroy()
+            }
             browserWebViewHolder.value = null
         }
     }
