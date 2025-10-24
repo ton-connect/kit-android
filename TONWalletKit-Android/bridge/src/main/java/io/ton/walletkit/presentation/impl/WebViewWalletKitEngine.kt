@@ -16,6 +16,8 @@ import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 import io.ton.walletkit.data.storage.bridge.BridgeStorageAdapter
 import io.ton.walletkit.data.storage.bridge.SecureBridgeStorageAdapter
+import io.ton.walletkit.presentation.browser.TonConnectInjector
+import io.ton.walletkit.presentation.browser.getTonConnectInjector
 import io.ton.walletkit.domain.constants.BridgeMethodConstants
 import io.ton.walletkit.domain.constants.EventTypeConstants
 import io.ton.walletkit.domain.constants.JsonConstants
@@ -48,6 +50,7 @@ import io.ton.walletkit.presentation.listener.TONBridgeEventsHandler
 import io.ton.walletkit.presentation.request.TONWalletConnectionRequest
 import io.ton.walletkit.presentation.request.TONWalletSignDataRequest
 import io.ton.walletkit.presentation.request.TONWalletTransactionRequest
+import io.ton.walletkit.presentation.browser.getTonConnectInjector
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -781,12 +784,16 @@ internal class WebViewWalletKitEngine(
             }
 
             // Call the bridge method just like all other methods
+            Log.d(TAG, "🔵 Calling processInternalBrowserRequest via bridge...")
             val result = call(BridgeMethodConstants.METHOD_PROCESS_INTERNAL_BROWSER_REQUEST, requestParams)
-
+            
+            Log.d(TAG, "🟢 Bridge call returned, result: $result")
+            Log.d(TAG, "🟢 Calling responseCallback with result...")
+            
             // Call the response callback with the result
             responseCallback(result)
 
-            Log.d(TAG, "Internal browser request processed: $method")
+            Log.d(TAG, "✅ Internal browser request processed: $method, responseCallback invoked")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to process internal browser request", e)
             val errorResponse = JSONObject().apply {
@@ -1068,7 +1075,16 @@ internal class WebViewWalletKitEngine(
         id: String,
         response: JSONObject,
     ) {
-        val deferred = pending.remove(id) ?: return
+        Log.d(TAG, "🟡 handleResponse called for id: $id")
+        Log.d(TAG, "🟡 response: $response")
+        Log.d(TAG, "🟡 pending.size before remove: ${pending.size}")
+        val deferred = pending.remove(id)
+        if (deferred == null) {
+            Log.w(TAG, "⚠️ handleResponse: No deferred found for id: $id")
+            Log.w(TAG, "⚠️ pending keys: ${pending.keys}")
+            return
+        }
+        Log.d(TAG, "✅ Found deferred for id: $id")
         val error = response.optJSONObject(ResponseConstants.KEY_ERROR)
         if (error != null) {
             val message = error.optString(ResponseConstants.KEY_MESSAGE, ResponseConstants.ERROR_MESSAGE_DEFAULT)
@@ -1077,6 +1093,8 @@ internal class WebViewWalletKitEngine(
             return
         }
         val result = response.opt(ResponseConstants.KEY_RESULT)
+        Log.d(TAG, "🟡 result type: ${result?.javaClass?.simpleName}")
+        Log.d(TAG, "🟡 result: $result")
         val payload =
             when (result) {
                 is JSONObject -> result
@@ -1084,7 +1102,9 @@ internal class WebViewWalletKitEngine(
                 null -> JSONObject()
                 else -> JSONObject().put(ResponseConstants.KEY_VALUE, result)
             }
+        Log.d(TAG, "✅ Completing deferred with payload: $payload")
         deferred.complete(BridgeResponse(payload))
+        Log.d(TAG, "✅ Deferred completed for id: $id")
     }
 
     private fun handleEvent(event: JSONObject) {
@@ -1114,6 +1134,41 @@ internal class WebViewWalletKitEngine(
             }
         } else {
             Log.w(TAG, MSG_FAILED_PARSE_TYPED_EVENT_PREFIX + type)
+        }
+    }
+
+    private fun handleJsBridgeEvent(payload: JSONObject) {
+        val tabId = payload.optString("tabId")
+        val event = payload.optJSONObject("event")
+        
+        Log.d(TAG, "📤 handleJsBridgeEvent called - tabId: $tabId")
+        
+        if (event == null) {
+            Log.e(TAG, "No event object in jsBridgeEvent payload")
+            return
+        }
+        
+        mainHandler.post {
+            try {
+                // Look up the WebView for this session using the tabId (which is the session ID)
+                val targetWebView = TonConnectInjector.getWebViewForSession(tabId)
+                
+                if (targetWebView != null) {
+                    // Get the injector from the WebView and send the event
+                    val injector = targetWebView.getTonConnectInjector()
+                    if (injector != null) {
+                        Log.d(TAG, "📤 Sending event via TonConnectInjector to WebView for session: $tabId")
+                        injector.sendEvent(event)
+                    } else {
+                        Log.w(TAG, "⚠️  WebView found but no TonConnectInjector attached for session: $tabId")
+                    }
+                } else {
+                    // No WebView found for this session - may have been destroyed or never registered
+                    Log.w(TAG, "⚠️  No WebView found for session: $tabId (browser may have been closed)")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to send JS Bridge event", e)
+            }
         }
     }
 
@@ -1405,6 +1460,7 @@ internal class WebViewWalletKitEngine(
                     ResponseConstants.VALUE_KIND_READY -> handleReady(payload)
                     ResponseConstants.VALUE_KIND_EVENT -> payload.optJSONObject(ResponseConstants.KEY_EVENT)?.let { handleEvent(it) }
                     ResponseConstants.VALUE_KIND_RESPONSE -> handleResponse(payload.optString(ResponseConstants.KEY_ID), payload)
+                    "jsBridgeEvent" -> handleJsBridgeEvent(payload)
                 }
             } catch (err: JSONException) {
                 Log.e(TAG, LogConstants.MSG_MALFORMED_PAYLOAD, err)

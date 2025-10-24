@@ -18,6 +18,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -36,6 +37,57 @@ class TonConnectInjector internal constructor(
     private val webView: WebView,
     private val walletKit: TONWalletKit,
 ) {
+    companion object {
+        private const val TAG = "TonConnectInjector"
+        
+        // Registry of active WebViews for JS Bridge sessions
+        // Maps sessionId -> WeakReference<WebView> to allow garbage collection
+        private val activeWebViews = ConcurrentHashMap<String, WeakReference<WebView>>()
+        
+        /**
+         * Register a WebView for a JS Bridge session.
+         * Called internally when a session is created.
+         */
+        @JvmStatic
+        internal fun registerWebView(sessionId: String, webView: WebView) {
+            Log.d(TAG, "Registering WebView for session: $sessionId")
+            activeWebViews[sessionId] = WeakReference(webView)
+        }
+        
+        /**
+         * Unregister a WebView for a JS Bridge session.
+         * Called internally when a session is disconnected or WebView is destroyed.
+         */
+        @JvmStatic
+        internal fun unregisterWebView(sessionId: String) {
+            Log.d(TAG, "Unregistering WebView for session: $sessionId")
+            activeWebViews.remove(sessionId)
+        }
+        
+        /**
+         * Get the WebView associated with a JS Bridge session.
+         * Returns null if the WebView has been garbage collected or was never registered.
+         */
+        @JvmStatic
+        internal fun getWebViewForSession(sessionId: String): WebView? {
+            return activeWebViews[sessionId]?.get()?.also {
+                Log.d(TAG, "Found WebView for session: $sessionId")
+            } ?: run {
+                Log.d(TAG, "No WebView found for session: $sessionId")
+                null
+            }
+        }
+        
+        /**
+         * Clear all WebView registrations.
+         * Called internally during cleanup.
+         */
+        @JvmStatic
+        internal fun clearAllRegistrations() {
+            Log.d(TAG, "Clearing all WebView registrations")
+            activeWebViews.clear()
+        }
+    }
     // Capture context at creation time to avoid null issues later
     private val context = webView.context
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -43,14 +95,18 @@ class TonConnectInjector internal constructor(
     private var isCleanedUp = false
 
     // Listener to automatically cleanup when WebView is detached
+    // NOTE: Disabled automatic cleanup on detach because WebView may be temporarily
+    // detached when showing Connect/Transaction sheets. Cleanup is now manual via
+    // BrowserSheet's DisposableEffect or when the parent screen is destroyed.
     private val detachListener = object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) {
-            // No action needed on attach
+            Log.d(TAG, "WebView attached to window")
         }
 
         override fun onViewDetachedFromWindow(v: View) {
-            Log.d(TAG, "WebView detached from window, cleaning up TonConnect injector")
-            cleanup()
+            Log.d(TAG, "WebView detached from window (NOT cleaning up - may be temporary)")
+            // Do NOT call cleanup() here - the WebView may just be temporarily hidden
+            // when showing Connect/Transaction request sheets
         }
     }
 
@@ -121,9 +177,10 @@ class TonConnectInjector internal constructor(
                 }
             },
             injectBridge = { view -> injectBridgeIntoAllFrames(view) },
-            onTonConnectRequest = { method, params ->
-                Log.d(TAG, "TonConnect request intercepted: $method")
-                handleTonConnectRequest(method, params)
+            onTonConnectUrl = { url ->
+                // Intercept deep link navigation to prevent ERR_UNKNOWN_URL_SCHEME
+                // The dApp should use the injected bridge instead (embedded: true tells it to)
+                Log.d(TAG, "Intercepted deep link navigation (prevented): $url")
             },
         )
 
@@ -140,12 +197,31 @@ class TonConnectInjector internal constructor(
      * @param response The response data to send back
      */
     fun sendResponse(messageId: String, response: JSONObject) {
+        Log.d(TAG, "🔵 sendResponse called for messageId: $messageId")
+        Log.d(TAG, "🔵 Pending requests: ${pendingRequests.keys}")
+        Log.d(TAG, "🔵 Response: $response")
+        
         val pending = pendingRequests.remove(messageId)
         if (pending == null) {
-            Log.w(TAG, "No pending request found for messageId: $messageId")
+            Log.w(TAG, "⚠️ No pending request found for messageId: $messageId")
+            Log.w(TAG, "⚠️ Available pending requests: ${pendingRequests.keys}")
             return
         }
 
+        // If this is a successful connect response, register this WebView for the session
+        if (pending.method == "connect" && response.has(ResponseConstants.KEY_PAYLOAD)) {
+            try {
+                val payload = response.getJSONObject(ResponseConstants.KEY_PAYLOAD)
+                // The payload might contain session info - we'll use the messageId as session identifier
+                // since that's what's used as tabId in the JS bridge transport
+                registerWebView(messageId, webView)
+                Log.d(TAG, "✅ Registered WebView for JS Bridge session: $messageId")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to register WebView for session", e)
+            }
+        }
+
+        Log.d(TAG, "✅ Found pending request, calling sendResponseToFrame")
         sendResponseToFrame(pending, response)
     }
 
@@ -208,6 +284,18 @@ class TonConnectInjector internal constructor(
         isCleanedUp = true
 
         Log.d(TAG, "Cleaning up TonConnect injector")
+
+        // Unregister all sessions for this WebView
+        // We need to iterate through all sessions and remove ones pointing to this WebView
+        val sessionsToRemove = mutableListOf<String>()
+        activeWebViews.forEach { (sessionId, webViewRef) ->
+            if (webViewRef.get() == webView) {
+                sessionsToRemove.add(sessionId)
+            }
+        }
+        sessionsToRemove.forEach { sessionId ->
+            unregisterWebView(sessionId)
+        }
 
         // Remove attach state listener to prevent memory leak
         webView.removeOnAttachStateChangeListener(detachListener)
@@ -302,8 +390,12 @@ class TonConnectInjector internal constructor(
                     method = method,
                     params = json.optJSONObject(ResponseConstants.KEY_PARAMS),
                     responseCallback = { response ->
-                        Log.d(TAG, "✅ WalletKit engine processed request, sending response back to dApp")
+                        Log.d(TAG, "🟣 responseCallback invoked by engine!")
+                        Log.d(TAG, "🟣 Response for messageId: $messageId")
+                        Log.d(TAG, "🟣 Response data: $response")
+                        Log.d(TAG, "🟣 About to call sendResponse...")
                         sendResponse(messageId, response)
+                        Log.d(TAG, "🟣 sendResponse call completed")
                     },
                 )
                 Log.d(TAG, "✅ Request forwarded successfully to WalletKit engine")
@@ -325,6 +417,10 @@ class TonConnectInjector internal constructor(
     }
 
     private fun sendResponseToFrame(pending: PendingRequest, response: JSONObject) {
+        Log.d(TAG, "📤 sendResponseToFrame called for messageId: ${pending.messageId}, method: ${pending.method}")
+        Log.d(TAG, "📤 Response payload: $response")
+        Log.d(TAG, "📤 WebView attached: ${webView.isAttachedToWindow}, WebView parent: ${webView.parent}")
+        
         scope.launch {
             webView.post {
                 val responseJson = JSONObject().apply {
@@ -334,16 +430,18 @@ class TonConnectInjector internal constructor(
                     put(BrowserConstants.KEY_PAYLOAD, response)
                 }
 
-                Log.d(TAG, "Sending response to frame '${pending.frameId}' for ${pending.method} (ID: ${pending.messageId})")
+                Log.d(TAG, "📤 Injecting response into WebView for '${pending.frameId}' for ${pending.method} (ID: ${pending.messageId})")
+                Log.d(TAG, "📤 Response JSON: $responseJson")
 
                 if (pending.frameId == BrowserConstants.DEFAULT_FRAME_ID) {
                     // Send to main window
-                    webView.evaluateJavascript(
-                        """
+                    val jsCode = """
                         ${BrowserConstants.JS_WINDOW_POST_MESSAGE}($responseJson, '*');
-                        """.trimIndent(),
-                        null,
-                    )
+                        """.trimIndent()
+                    Log.d(TAG, "📤 Executing JS to post message to main window")
+                    webView.evaluateJavascript(jsCode) { result ->
+                        Log.d(TAG, "✅ JS executed, result: $result")
+                    }
                 } else {
                     // Find iframe by frameId and send to it
                     webView.evaluateJavascript(
@@ -369,40 +467,5 @@ class TonConnectInjector internal constructor(
                 }
             }
         }
-    }
-
-    /**
-     * Handle TonConnect request intercepted from deep link.
-     * This forwards the request to TONWalletKit as if it came from the bridge.
-     */
-    private fun handleTonConnectRequest(method: String, params: JSONObject) {
-        scope.launch {
-            try {
-                val messageId = "deeplink-${System.currentTimeMillis()}"
-
-                Log.d(TAG, "Forwarding TonConnect $method request to WalletKit engine")
-
-                val engine = walletKit.engine
-                if (engine != null) {
-                    engine.handleTonConnectRequest(
-                        messageId = messageId,
-                        method = method,
-                        params = params,
-                        responseCallback = { response ->
-                            Log.d(TAG, "TonConnect $method completed: $response")
-                            // Response will trigger ConnectRequest event which shows the approval dialog
-                        },
-                    )
-                } else {
-                    Log.e(TAG, "WalletKit engine is null, cannot handle TonConnect request")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to handle TonConnect request", e)
-            }
-        }
-    }
-
-    companion object {
-        private const val TAG = "TonConnectInjector"
     }
 }

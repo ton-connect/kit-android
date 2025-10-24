@@ -35,6 +35,8 @@ import io.ton.walletkit.presentation.TONWalletKit
  *
  * @param walletKit TONWalletKit instance to route requests to
  */
+private const val TAG_TON_CONNECT_INJECTOR = "tonconnect_injector"
+
 fun WebView.injectTonConnect(
     walletKit: TONWalletKit,
 ) {
@@ -43,4 +45,16 @@ fun WebView.injectTonConnect(
         walletKit = walletKit,
     )
     injector.setup()
+    
+    // Store injector in WebView tag for later access
+    setTag(TAG_TON_CONNECT_INJECTOR.hashCode(), injector)
+}
+
+/**
+ * Get the TonConnectInjector attached to this WebView, if any.
+ *
+ * @return The injector, or null if TonConnect has not been injected into this WebView
+ */
+fun WebView.getTonConnectInjector(): TonConnectInjector? {
+    return getTag(TAG_TON_CONNECT_INJECTOR.hashCode()) as? TonConnectInjector
 }

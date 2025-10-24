@@ -7,6 +7,16 @@ if (globalThis && !globalThis.Buffer) {
 }
 
 import { injectBridgeCode } from '@ton/walletkit/bridge';
+import type { InjectedToExtensionBridgeRequestPayload } from '@ton/walletkit';
+
+// Import Transport type - it's available as internal export
+interface Transport {
+    send(request: Omit<InjectedToExtensionBridgeRequestPayload, 'id'>): Promise<unknown>;
+    onEvent(callback: (event: unknown) => void): void;
+    isAvailable(): boolean;
+    requestContentScriptInjection(): void;
+    destroy(): void;
+}
 
 // Polyfill Buffer
 if (typeof window !== 'undefined') {
@@ -52,16 +62,14 @@ const deviceInfo = {
 const walletInfo = {
     name: 'tonkeeper', // key for wallet
     app_name: 'Tonkeeper', // SDK expects app_name not appName
-    about_url: 'https://example.com/about', // SDK expects about_url not aboutUrl  
-    image: 'https://example.com/image.png', // SDK expects image not imageUrl
+    about_url: 'https://tonkeeper.com', // SDK expects about_url not aboutUrl  
+    image: 'https://tonkeeper.com/assets/tonconnect-icon.png', // SDK expects image not imageUrl
     platforms: ['ios' as const, 'android' as const, 'macos' as const, 'windows' as const, 'linux' as const, 'chrome' as const, 'firefox' as const, 'safari' as const], // supported platforms
     jsBridgeKey: 'tonkeeper', // window key for wallet bridge
     injected: true, // wallet is injected into the page (via injectBridgeCode)
-    embedded: false, // dApp is not embedded in wallet (wallet's internal browser)
+    embedded: true, // dApp IS embedded in wallet (wallet's internal browser) - tells dApp to prefer injected bridge
     tondns: 'tonkeeper.ton', // tondns for wallet
     bridgeUrl: 'https://bridge.tonapi.io/bridge', // url for wallet bridge
-    universalLink: 'https://example.com/universal-link', // universal link for wallet
-    deepLink: 'https://example.com/deep-link', // deep link for wallet
     features: [
         'SendTransaction',
         {
@@ -75,37 +83,57 @@ const walletInfo = {
     ] as any
 } as any; // Cast to any to bypass TypeScript type checking
 
-// Inject wallet with proper configuration matching demo wallet extension
-injectBridgeCode(window, {
-    deviceInfo,
-    walletInfo
-});
+/**
+ * Android WebView Transport Implementation
+ * Custom transport that communicates with Android native code instead of extension
+ */
+class AndroidWebViewTransport implements Transport {
+    private pendingRequests = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void; timeout: NodeJS.Timeout }>();
+    private eventCallbacks: Array<(event: unknown) => void> = [];
 
-// Patch the injected bridge to forward to Android
-setTimeout(() => {
-    const bridge = (window as any).tonkeeper?.tonconnect;
-    
-    if (!bridge) {
-        console.warn('[TonConnect] Bridge not found after injection');
-        return;
+    constructor() {
+        // Listen for responses from Android
+        window.addEventListener('message', (event: MessageEvent) => {
+            if (event.source !== window) return;
+            
+            const data = event.data;
+            if (!data || typeof data !== 'object') return;
+            
+            if (data.type === 'TONCONNECT_BRIDGE_RESPONSE' && data.messageId) {
+                console.log(`[AndroidTransport] Response: ${data.messageId}`);
+                const pending = this.pendingRequests.get(data.messageId);
+                if (pending) {
+                    clearTimeout(pending.timeout);
+                    this.pendingRequests.delete(data.messageId);
+                    
+                    if (data.error) {
+                        pending.reject(new Error(data.error.message || 'Failed'));
+                    } else {
+                        pending.resolve(data.payload);
+                    }
+                }
+            } else if (data.type === 'TONCONNECT_BRIDGE_EVENT') {
+                // Handle events from Android wallet
+                console.log(`[AndroidTransport] Event:`, data.event);
+                this.eventCallbacks.forEach(callback => {
+                    try {
+                        callback(data.event);
+                    } catch (error) {
+                        console.error('[AndroidTransport] Event callback error:', error);
+                    }
+                });
+            }
+        });
     }
-    
-    console.log('[TonConnect] Patching bridge for Android WebView');
-    
-    const original = bridge._sendToExtension;
-    
-    bridge._sendToExtension = function(message: any) {
-        console.log('[TonConnect] Intercepting:', message?.method);
-        
-        if (!isAndroidWebView) {
-            return original?.call(this, message);
-        }
+
+    async send(request: Omit<InjectedToExtensionBridgeRequestPayload, 'id'>): Promise<unknown> {
+        console.log('[AndroidTransport] Sending:', request.method);
         
         const messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-        const method = message?.method || 'unknown';
-        const params = message?.params || {};
+        const method = request.method || 'unknown';
+        const params = request.params || {};
         
-        const request = {
+        const payload = {
             type: 'TONCONNECT_BRIDGE_REQUEST',
             messageId,
             method,
@@ -113,55 +141,52 @@ setTimeout(() => {
             frameId
         };
         
-        (window as any).AndroidTonConnect.postMessage(JSON.stringify(request));
+        (window as any).AndroidTonConnect.postMessage(JSON.stringify(payload));
         
         return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Timeout')), 30000);
-            bridge._pendingRequests = bridge._pendingRequests || {};
-            bridge._pendingRequests[messageId] = { resolve, reject, timeout };
-        });
-    };
-    
-    // Test function
-    (window as any).__testTonConnect = async () => {
-        console.log('[TonConnect TEST] Testing...');
-        try {
-            const result = await bridge._sendToExtension({ method: 'connect', params: {} });
-            console.log('[TonConnect TEST] Success:', result);
-            return result;
-        } catch (error) {
-            console.error('[TonConnect TEST] Failed:', error);
-            throw error;
-        }
-    };
-    
-    console.log('[TonConnect] Bridge patched, test: window.__testTonConnect()');
-}, 100);
-
-// Handle responses from Android
-window.addEventListener('message', (event: MessageEvent) => {
-    if (event.source !== window) return;
-    
-    const data = event.data;
-    if (!data || typeof data !== 'object') return;
-    
-    const bridge = (window as any).tonkeeper?.tonconnect;
-    if (!bridge) return;
-    
-    if (data.type === 'TONCONNECT_BRIDGE_RESPONSE' && data.messageId) {
-        console.log(`[TonConnect] Response: ${data.messageId}`);
-        const pending = bridge._pendingRequests?.[data.messageId];
-        if (pending) {
-            clearTimeout(pending.timeout);
-            delete bridge._pendingRequests[data.messageId];
+            const timeout = setTimeout(() => {
+                this.pendingRequests.delete(messageId);
+                reject(new Error('Request timeout'));
+            }, 30000);
             
-            if (data.error) {
-                pending.reject(new Error(data.error.message || 'Failed'));
-            } else {
-                pending.resolve(data.result);
-            }
-        }
+            this.pendingRequests.set(messageId, { resolve, reject, timeout });
+        });
     }
-});
 
-console.log(`[TonConnect] Bridge ready for frame: ${frameId}`);
+    onEvent(callback: (event: unknown) => void): void {
+        this.eventCallbacks.push(callback);
+    }
+
+    isAvailable(): boolean {
+        return isAndroidWebView;
+    }
+
+    requestContentScriptInjection(): void {
+        // Not needed for Android WebView - already injected
+    }
+
+    destroy(): void {
+        // Clear pending requests
+        this.pendingRequests.forEach(({ timeout, reject }) => {
+            clearTimeout(timeout);
+            reject(new Error('Transport destroyed'));
+        });
+        this.pendingRequests.clear();
+        this.eventCallbacks = [];
+    }
+}
+
+// Create custom transport for Android or undefined for default behavior
+const transport: Transport | undefined = isAndroidWebView ? new AndroidWebViewTransport() : undefined;
+
+// Inject wallet with proper configuration and custom transport
+injectBridgeCode(window, {
+    deviceInfo,
+    walletInfo,
+    isWalletBrowser: true  // CRITICAL: tells SDK this is wallet's internal browser
+}, transport);
+
+console.log(`[TonConnect] Bridge ready for frame: ${frameId} (transport: ${transport ? 'Android' : 'default'})`);
+console.log('[TonConnect] Wallet Info:', JSON.stringify(walletInfo, null, 2));
+console.log('[TonConnect] isWalletBrowser check:', (window as any).tonkeeper?.tonconnect?.isWalletBrowser);
+

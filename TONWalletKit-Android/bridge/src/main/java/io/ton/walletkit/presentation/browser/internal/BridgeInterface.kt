@@ -14,6 +14,7 @@ import org.json.JSONObject
 internal class BridgeInterface(
     private val onMessage: (message: JSONObject, type: String) -> Unit,
     private val onError: (error: String) -> Unit,
+    private val onResponse: ((message: JSONObject) -> Unit)? = null,
 ) {
     @JavascriptInterface
     fun postMessage(message: String) {
@@ -28,6 +29,22 @@ internal class BridgeInterface(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle bridge message", e)
             onError("Invalid bridge message: ${e.message}")
+        }
+    }
+
+    /**
+     * Send a TonConnect response from the RPC bridge back to the internal browser WebView.
+     * This is called by bridge.ts jsBridgeTransport to deliver responses.
+     */
+    @JavascriptInterface
+    fun postResponse(message: String) {
+        Log.d(TAG, "🟣 BridgeInterface.postResponse called with response to inject into WebView")
+        try {
+            val json = JSONObject(message)
+            onResponse?.invoke(json) ?: Log.w(TAG, "No response handler configured")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to handle bridge response", e)
+            onError("Invalid bridge response: ${e.message}")
         }
     }
 
