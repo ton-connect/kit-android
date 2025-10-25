@@ -13,11 +13,11 @@ internal object BridgeInjector {
 
     /**
      * Inject the TonConnect bridge into the current frame.
-     * 
+     *
      * NOTE: Android WebView automatically makes JavaScript accessible to ALL frames
      * (main frame + all iframes) when using addJavascriptInterface() and evaluateJavascript().
      * We don't need to manually inject into each iframe - WebView handles this automatically!
-     * 
+     *
      * The script will be re-injected on every page navigation via WebViewClient.onPageFinished.
      */
     fun injectIntoAllFrames(
@@ -52,7 +52,7 @@ internal object BridgeInjector {
             """.trimIndent(),
             null,
         )
-        
+
         Log.d(TAG, "Bridge injected - automatically available to all frames (main + iframes)")
     }
 }

@@ -106,6 +106,11 @@ internal object BridgeMethodConstants {
     const val METHOD_DERIVE_PUBLIC_KEY_FROM_MNEMONIC = "derivePublicKeyFromMnemonic"
 
     /**
+     * Method name for signing arbitrary data with a mnemonic using the JS bundle.
+     */
+    const val METHOD_SIGN_DATA_WITH_MNEMONIC = "signDataWithMnemonic"
+
+    /**
      * Method name for adding a wallet backed by an external signer.
      */
     const val METHOD_ADD_WALLET_WITH_SIGNER = "addWalletWithSigner"

@@ -16,8 +16,6 @@ import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 import io.ton.walletkit.data.storage.bridge.BridgeStorageAdapter
 import io.ton.walletkit.data.storage.bridge.SecureBridgeStorageAdapter
-import io.ton.walletkit.presentation.browser.internal.TonConnectInjector
-import io.ton.walletkit.presentation.browser.getTonConnectInjector
 import io.ton.walletkit.domain.constants.BridgeMethodConstants
 import io.ton.walletkit.domain.constants.EventTypeConstants
 import io.ton.walletkit.domain.constants.JsonConstants
@@ -40,6 +38,8 @@ import io.ton.walletkit.domain.model.WalletState
 import io.ton.walletkit.presentation.WalletKitBridgeException
 import io.ton.walletkit.presentation.WalletKitEngine
 import io.ton.walletkit.presentation.WalletKitEngineKind
+import io.ton.walletkit.presentation.browser.getTonConnectInjector
+import io.ton.walletkit.presentation.browser.internal.TonConnectInjector
 import io.ton.walletkit.presentation.config.SignDataType
 import io.ton.walletkit.presentation.config.TONWalletKitConfiguration
 import io.ton.walletkit.presentation.event.ConnectRequestEvent
@@ -472,6 +472,26 @@ internal class WebViewWalletKitEngine(
         return result.getString(ResponseConstants.KEY_PUBLIC_KEY)
     }
 
+    override suspend fun signDataWithMnemonic(
+        words: List<String>,
+        data: ByteArray,
+        mnemonicType: String,
+    ): ByteArray {
+        ensureWalletKitInitialized()
+        val params =
+            JSONObject().apply {
+                put(JsonConstants.KEY_WORDS, JSONArray(words))
+                put(JsonConstants.KEY_DATA, JSONArray(data.map { it.toInt() and 0xFF }))
+                put(JsonConstants.KEY_MNEMONIC_TYPE, mnemonicType)
+            }
+        val result = call(BridgeMethodConstants.METHOD_SIGN_DATA_WITH_MNEMONIC, params)
+        val signatureArray = result.optJSONArray(ResponseConstants.KEY_SIGNATURE)
+            ?: throw WalletKitBridgeException("Signature missing from signDataWithMnemonic result")
+        return ByteArray(signatureArray.length()) { i ->
+            signatureArray.optInt(i).toByte()
+        }
+    }
+
     override suspend fun createTonMnemonic(wordCount: Int): List<String> {
         ensureWalletKitInitialized()
         val params = JSONObject().apply { put(JsonConstants.KEY_COUNT, wordCount) }
@@ -540,7 +560,7 @@ internal class WebViewWalletKitEngine(
             JSONObject().apply {
                 put(ResponseConstants.KEY_SIGNER_ID, signerId)
                 put(ResponseConstants.KEY_REQUEST_ID, requestId)
-                signature?.let { put(ResponseConstants.KEY_SIGNATURE, JSONArray(it.map { byte -> byte.toInt() and 0xFF })) }
+                signature?.let { put(ResponseConstants.KEY_SIGNATURE, it.toHexString()) }
                 error?.let { put(ResponseConstants.KEY_ERROR, it) }
             }
 
@@ -785,10 +805,10 @@ internal class WebViewWalletKitEngine(
             // Call the bridge method just like all other methods
             Log.d(TAG, "🔵 Calling processInternalBrowserRequest via bridge...")
             val result = call(BridgeMethodConstants.METHOD_PROCESS_INTERNAL_BROWSER_REQUEST, requestParams)
-            
+
             Log.d(TAG, "🟢 Bridge call returned, result: $result")
             Log.d(TAG, "🟢 Calling responseCallback with result...")
-            
+
             // Call the response callback with the result
             responseCallback(result)
 
@@ -1139,23 +1159,23 @@ internal class WebViewWalletKitEngine(
     private fun handleJsBridgeEvent(payload: JSONObject) {
         val tabId = payload.optString("tabId")
         val event = payload.optJSONObject("event")
-        
+
         Log.d(TAG, "📤 handleJsBridgeEvent called")
         Log.d(TAG, "📤 tabId: $tabId")
         Log.d(TAG, "📤 event: $event")
         Log.d(TAG, "📤 Full payload: $payload")
-        
+
         if (event == null) {
             Log.e(TAG, "❌ No event object in jsBridgeEvent payload")
             return
         }
-        
+
         mainHandler.post {
             try {
                 // Look up the WebView for this session using the tabId (which is the session ID)
                 Log.d(TAG, "📤 Looking up WebView for session: $tabId")
                 val targetWebView = TonConnectInjector.getWebViewForSession(tabId)
-                
+
                 if (targetWebView != null) {
                     Log.d(TAG, "✅ Found WebView for session: $tabId")
                     // Get the injector from the WebView and send the event
@@ -1645,4 +1665,18 @@ internal class WebViewWalletKitEngine(
             }
         }
     }
+}
+
+private fun ByteArray.toHexString(): String {
+    if (isEmpty()) return "0x"
+    val result = CharArray(size * 2 + 2)
+    result[0] = '0'
+    result[1] = 'x'
+    val hexChars = "0123456789abcdef".toCharArray()
+    for (i in indices) {
+        val v = this[i].toInt() and 0xFF
+        result[2 + i * 2] = hexChars[v ushr 4]
+        result[3 + i * 2] = hexChars[v and 0x0F]
+    }
+    return String(result)
 }

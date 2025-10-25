@@ -644,6 +644,44 @@ const api = {
     return { publicKey: signer.publicKey };
   },
 
+  async signDataWithMnemonic(
+    args: { words: string[]; data: number[]; mnemonicType?: 'ton' | 'bip39' },
+    context?: CallContext,
+  ) {
+    emitCallCheckpoint(context, 'signDataWithMnemonic:before-ensureWalletKitLoaded');
+    await ensureWalletKitLoaded();
+    emitCallCheckpoint(context, 'signDataWithMnemonic:after-ensureWalletKitLoaded');
+    requireWalletKit();
+    emitCallCheckpoint(context, 'signDataWithMnemonic:after-requireWalletKit');
+
+    if (!args?.words || args.words.length === 0) {
+      throw new Error('Mnemonic words required for signDataWithMnemonic');
+    }
+    if (!Array.isArray(args.data)) {
+      throw new Error('Data array required for signDataWithMnemonic');
+    }
+
+    const signer = await Signer.fromMnemonic(args.words, { type: args.mnemonicType ?? 'ton' });
+    emitCallCheckpoint(context, 'signDataWithMnemonic:after-createSigner');
+
+    const dataBytes = Uint8Array.from(args.data);
+    const signatureResult = await signer.sign(dataBytes);
+    emitCallCheckpoint(context, 'signDataWithMnemonic:after-sign');
+
+    let signatureBytes: Uint8Array;
+    if (typeof signatureResult === 'string') {
+      signatureBytes = hexToBytes(signatureResult);
+    } else if (signatureResult instanceof Uint8Array) {
+      signatureBytes = signatureResult;
+    } else if (Array.isArray(signatureResult)) {
+      signatureBytes = Uint8Array.from(signatureResult);
+    } else {
+      throw new Error('Unsupported signature format from signer');
+    }
+
+    return { signature: Array.from(signatureBytes) };
+  },
+
   async createTonMnemonic(args: { count?: number } = { count: 24 }, context?: CallContext) {
     emitCallCheckpoint(context, 'createTonMnemonic:start');
     await ensureWalletKitLoaded();
@@ -725,10 +763,8 @@ const api = {
     // Store pending sign requests
     const pendingSignRequests = new Map<string, { resolve: (sig: Uint8Array) => void; reject: (err: Error) => void }>();
     
-    // Convert hex public key to Uint8Array
-    const publicKeyBytes = new Uint8Array(
-      args.publicKey.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
-    );
+    // Normalize public key - ensure it has 0x prefix (like Signer.fromMnemonic returns)
+    const publicKeyHex = args.publicKey.startsWith('0x') ? args.publicKey : `0x${args.publicKey}`;
     
     // Create a custom signer that calls back to Android via events
     const customSigner: any = {
@@ -756,7 +792,7 @@ const api = {
           }, 60000);
         });
       },
-      publicKey: publicKeyBytes, // Must be Uint8Array, not hex string
+      publicKey: publicKeyHex, // Must be hex string with 0x prefix (same format as Signer.fromMnemonic)
     };
     
     // Store the pending requests map so Android can respond
@@ -794,7 +830,7 @@ const api = {
     args: {
       signerId: string;
       requestId: string;
-      signature?: number[]; // Array of bytes
+      signature?: number[] | string;
       error?: string;
     },
     _context?: CallContext,
@@ -813,8 +849,11 @@ const api = {
     
     if (args.error) {
       pending.reject(new Error(args.error));
-    } else if (args.signature) {
-      pending.resolve(new Uint8Array(args.signature));
+    } else if (typeof args.signature === 'string') {
+      pending.resolve(normalizeHex(args.signature));
+    } else if (Array.isArray(args.signature)) {
+      const signatureHex = bytesToHex(new Uint8Array(args.signature));
+      pending.resolve(signatureHex);
     } else {
       pending.reject(new Error('No signature or error provided'));
     }
@@ -1684,6 +1723,34 @@ function serializeDate(value: unknown): string | null {
   const timestamp = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(timestamp)) return null;
   return new Date(timestamp).toISOString();
+}
+
+function normalizeHex(hex: string): string {
+  const trimmed = typeof hex === 'string' ? hex.trim() : '';
+  if (!trimmed) {
+    throw new Error('Empty hex string');
+  }
+  return trimmed.startsWith('0x') ? trimmed : `0x${trimmed}`;
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const normalized = normalizeHex(hex).slice(2);
+  if (normalized.length % 2 !== 0) {
+    throw new Error(`Invalid hex string length: ${normalized.length}`);
+  }
+  const bytes = new Uint8Array(normalized.length / 2);
+  for (let i = 0; i < normalized.length; i += 2) {
+    bytes[i / 2] = parseInt(normalized.slice(i, i + 2), 16);
+  }
+  return bytes;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  let hex = '0x';
+  for (let i = 0; i < bytes.length; i++) {
+    hex += bytes[i].toString(16).padStart(2, '0');
+  }
+  return hex;
 }
 
 window.walletkitBridge = api;

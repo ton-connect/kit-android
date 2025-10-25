@@ -47,13 +47,13 @@ fun WebView.injectTonConnect(
         // Injector already exists, no need to recreate
         return
     }
-    
+
     val injector = TonConnectInjector(
         webView = this,
         walletKit = walletKit,
     )
     injector.setup()
-    
+
     // Store injector in WebView tag for later access
     setTag(TAG_TON_CONNECT_INJECTOR.hashCode(), injector)
 }

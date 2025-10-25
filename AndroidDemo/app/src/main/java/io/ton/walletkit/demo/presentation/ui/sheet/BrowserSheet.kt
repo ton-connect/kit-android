@@ -75,7 +75,7 @@ fun BrowserSheet(
         onDispose {
             if (webViewHolder == null) {
                 // Clean up TonConnect resources before destroying
-                 webView.cleanupTonConnect()
+                webView.cleanupTonConnect()
                 webView.destroy()
             }
             // If webViewHolder is provided, the parent composable is responsible for destruction
@@ -133,7 +133,7 @@ fun BrowserSheet(
                         v.parent?.requestDisallowInterceptTouchEvent(true)
                         false // Let WebView handle the event
                     }
-                }
+                },
             )
         }
     }

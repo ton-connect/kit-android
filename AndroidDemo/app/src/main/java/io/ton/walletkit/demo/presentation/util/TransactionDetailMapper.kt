@@ -8,16 +8,16 @@ import io.ton.walletkit.domain.model.TransactionType
  * Mapper for converting domain Transaction objects to UI models.
  */
 object TransactionDetailMapper {
-    
+
     /**
      * Parse a domain Transaction into a TransactionDetailUi for display.
-     * 
+     *
      * @param tx The transaction to parse
      * @param walletAddress The wallet address (used for inferring sender/recipient)
      * @param unknownAddressLabel Label to use for unknown addresses
      * @param defaultFeeLabel Label to use when fee is unavailable
      * @param successStatusLabel Status label for successful transactions
-     * 
+     *
      * @return TransactionDetailUi ready for display
      */
     fun toDetailUi(
@@ -28,7 +28,7 @@ object TransactionDetailMapper {
         successStatusLabel: String,
     ): TransactionDetailUi {
         val isOutgoing = tx.type == TransactionType.OUTGOING
-        
+
         return TransactionDetailUi(
             hash = tx.hash,
             timestamp = tx.timestamp,

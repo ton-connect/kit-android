@@ -70,6 +70,8 @@ class WalletKitEngineFactoryTest {
             setOf(
                 "init",
                 "addWalletFromMnemonic",
+                "derivePublicKeyFromMnemonic",
+                "signDataWithMnemonic",
                 "getRecentTransactions",
                 "sendLocalTransaction",
                 "rejectConnect",

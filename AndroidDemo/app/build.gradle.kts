@@ -58,7 +58,6 @@ dependencies {
     implementation(libs.androidxLifecycleViewmodelCompose)
     implementation(libs.kotlinxCoroutinesAndroid)
     implementation(libs.androidxSecurityCrypto)
-    debugImplementation(libs.leakcanaryAndroid)
 
     // TONWalletKit SDK - AAR file
     // Build and copy with: ./gradlew buildAndCopyWebviewToDemo (or buildAndCopyFullToDemo)
@@ -70,4 +69,6 @@ dependencies {
     implementation(libs.kotlinxSerializationJson)
     // OkHttp only needed if using full variant:
     // implementation(libs.okhttp)
+
+    debugImplementation(libs.leakcanaryAndroid)
 }

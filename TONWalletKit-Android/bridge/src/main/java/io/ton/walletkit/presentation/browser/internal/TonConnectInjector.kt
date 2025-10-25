@@ -35,11 +35,11 @@ internal class TonConnectInjector(
 ) {
     companion object {
         private const val TAG = "TonConnectInjector"
-        
+
         // Registry of active WebViews for JS Bridge sessions
         // Maps sessionId -> WeakReference<WebView> to allow garbage collection
         private val activeWebViews = ConcurrentHashMap<String, WeakReference<WebView>>()
-        
+
         /**
          * Register a WebView for a JS Bridge session.
          * Called internally when a session is created.
@@ -50,7 +50,7 @@ internal class TonConnectInjector(
             activeWebViews[sessionId] = WeakReference(webView)
             cleanupStaleReferences()
         }
-        
+
         /**
          * Unregister a WebView for a JS Bridge session.
          * Called internally when a session is disconnected or WebView is destroyed.
@@ -60,7 +60,7 @@ internal class TonConnectInjector(
             Log.d(TAG, "Unregistering WebView for session: $sessionId")
             activeWebViews.remove(sessionId)
         }
-        
+
         /**
          * Get the WebView associated with a JS Bridge session.
          * Returns null if the WebView has been garbage collected or was never registered.
@@ -70,24 +70,24 @@ internal class TonConnectInjector(
             Log.d(TAG, "🔍 getWebViewForSession called for: $sessionId")
             Log.d(TAG, "🔍 Total registered sessions: ${activeWebViews.size}")
             Log.d(TAG, "🔍 Registered session IDs: ${activeWebViews.keys.joinToString(", ")}")
-            
+
             val webViewRef = activeWebViews[sessionId]
             val webView = webViewRef?.get()
-            
+
             Log.d(TAG, "🔍 WebView reference found: ${webViewRef != null}")
             Log.d(TAG, "🔍 WebView still alive: ${webView != null}")
-            
+
             // Clean up stale reference if WebView was garbage collected
             if (webView == null && webViewRef != null) {
                 activeWebViews.remove(sessionId)
                 Log.d(TAG, "Removed stale WebView reference for session: $sessionId")
             }
-            
+
             return webView?.also {
                 Log.d(TAG, "✅ Found WebView for session: $sessionId")
             }
         }
-        
+
         /**
          * Clean up stale WebView references where the WebView has been garbage collected.
          * Called periodically to prevent map from growing indefinitely.
@@ -97,14 +97,14 @@ internal class TonConnectInjector(
             val staleKeys = activeWebViews.entries
                 .filter { it.value.get() == null }
                 .map { it.key }
-            
+
             staleKeys.forEach { activeWebViews.remove(it) }
-            
+
             if (staleKeys.isNotEmpty()) {
                 Log.d(TAG, "Cleaned up ${staleKeys.size} stale WebView references")
             }
         }
-        
+
         /**
          * Clear all WebView registrations.
          * Called internally during cleanup.
@@ -115,6 +115,7 @@ internal class TonConnectInjector(
             activeWebViews.clear()
         }
     }
+
     // Use application context to avoid leaking Activity context
     private val context = webView.context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -227,7 +228,7 @@ internal class TonConnectInjector(
         Log.d(TAG, "🔵 sendResponse called for messageId: $messageId")
         Log.d(TAG, "🔵 Pending requests: ${pendingRequests.keys}")
         Log.d(TAG, "🔵 Response: $response")
-        
+
         val pending = pendingRequests.remove(messageId)
         if (pending == null) {
             Log.w(TAG, "⚠️ No pending request found for messageId: $messageId")
@@ -241,22 +242,22 @@ internal class TonConnectInjector(
                 // Register with messageId (for immediate responses)
                 registerWebView(messageId, webView)
                 Log.d(TAG, "✅ Registered WebView with messageId: $messageId")
-                
+
                 // CRITICAL FIX: After sending the response, query WalletKit for the sessionId
                 // and register the WebView with it too (for disconnect later)
                 scope.launch {
                     try {
                         // Give WalletKit time to create the session
                         kotlinx.coroutines.delay(500)
-                        
+
                         // Get all sessions from WalletKit
                         val sessions = walletKit.engine?.callBridgeMethod("listSessions", null)
                         Log.d(TAG, "🔍 Got sessions for WebView re-registration: $sessions")
-                        
+
                         // Find the session that was just created (by messageId/tabId)
                         // The session will have tabId = messageId initially
                         // We need to register the WebView with the session's sessionId
-                        
+
                         // Parse sessions and find matching one
                         if (sessions is JSONObject && sessions.has("items")) {
                             val items = sessions.getJSONArray("items")
@@ -293,7 +294,7 @@ internal class TonConnectInjector(
     fun sendEvent(event: JSONObject) {
         Log.d(TAG, "🔔 sendEvent called")
         Log.d(TAG, "🔔 Event to send: $event")
-        
+
         scope.launch {
             webView.post {
                 // CRITICAL FIX: The event from Engine already has the correct structure:
@@ -306,11 +307,11 @@ internal class TonConnectInjector(
                     // Fallback if event is already unwrapped
                     event
                 }
-                
+
                 // Now create the message for window.postMessage with correct structure
                 val eventMessage = JSONObject().apply {
                     put(BrowserConstants.KEY_TYPE, BrowserConstants.MESSAGE_TYPE_BRIDGE_EVENT)
-                    put(BrowserConstants.KEY_EVENT, actualEvent)  // ✅ Now this is the actual disconnect event
+                    put(BrowserConstants.KEY_EVENT, actualEvent) // ✅ Now this is the actual disconnect event
                 }
 
                 Log.d(TAG, "🔔 Extracted actual event: $actualEvent")
@@ -320,11 +321,11 @@ internal class TonConnectInjector(
                 // Send to main window
                 val jsCode = """
                     ${BrowserConstants.JS_WINDOW_POST_MESSAGE}($eventMessage, '*');
-                    """.trimIndent()
-                    
+                """.trimIndent()
+
                 Log.d(TAG, "🔔 Executing JS to post message to main window")
                 Log.d(TAG, "🔔 JS code: $jsCode")
-                
+
                 webView.evaluateJavascript(jsCode) { result ->
                     Log.d(TAG, "✅ JS executed for main window, result: $result")
                 }
@@ -477,7 +478,7 @@ internal class TonConnectInjector(
                 } else {
                     json.optJSONObject(ResponseConstants.KEY_PARAMS)
                 }
-                
+
                 Log.d(TAG, "🔄 Original params: ${json.opt(ResponseConstants.KEY_PARAMS)}")
                 Log.d(TAG, "🔄 Extracted params: $paramsToSend")
 
@@ -516,7 +517,7 @@ internal class TonConnectInjector(
         Log.d(TAG, "📤 sendResponseToFrame called for messageId: ${pending.messageId}, method: ${pending.method}")
         Log.d(TAG, "📤 Response payload: $response")
         Log.d(TAG, "📤 WebView attached: ${webView.isAttachedToWindow}, WebView parent: ${webView.parent}")
-        
+
         scope.launch {
             webView.post {
                 val responseJson = JSONObject().apply {
@@ -533,7 +534,7 @@ internal class TonConnectInjector(
                     // Send to main window
                     val jsCode = """
                         ${BrowserConstants.JS_WINDOW_POST_MESSAGE}($responseJson, '*');
-                        """.trimIndent()
+                    """.trimIndent()
                     Log.d(TAG, "📤 Executing JS to post message to main window")
                     webView.evaluateJavascript(jsCode) { result ->
                         Log.d(TAG, "✅ JS executed, result: $result")

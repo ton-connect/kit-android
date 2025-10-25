@@ -103,6 +103,28 @@ class TONWallet private constructor(
         }
 
         /**
+         * Sign arbitrary data using the SDK's JS signer utilities.
+         *
+         * This helper is intended for demo or testing scenarios where the mnemonic
+         * is available in-app (e.g., simulated external signers). Production apps should
+         * forward [WalletSigner.sign] requests to their secure signer implementation instead.
+         *
+         * @param mnemonic Mnemonic phrase used to derive the signing key
+         * @param data Bytes that need to be signed
+         * @param mnemonicType Mnemonic type ("ton" by default)
+         */
+        suspend fun signDataWithMnemonic(
+            mnemonic: List<String>,
+            data: ByteArray,
+            mnemonicType: String = "ton",
+        ): ByteArray {
+            val engine = TONWalletKit.engine
+                ?: throw WalletKitBridgeException(ERROR_WALLETKIT_NOT_INITIALIZED)
+
+            return engine.signDataWithMnemonic(mnemonic, data, mnemonicType)
+        }
+
+        /**
          * Generate a new TON mnemonic phrase using the SDK's JS utilities.
          * Defaults to 24 words.
          */

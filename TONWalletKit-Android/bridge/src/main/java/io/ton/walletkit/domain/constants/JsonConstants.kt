@@ -21,6 +21,11 @@ internal object JsonConstants {
     const val KEY_WORDS = "words"
 
     /**
+     * JSON key for mnemonic type (e.g., ton or bip39).
+     */
+    const val KEY_MNEMONIC_TYPE = "mnemonicType"
+
+    /**
      * JSON key for wallet name.
      */
     const val KEY_NAME = "name"

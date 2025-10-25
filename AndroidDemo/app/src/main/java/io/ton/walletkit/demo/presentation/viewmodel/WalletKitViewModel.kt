@@ -577,7 +577,7 @@ class WalletKitViewModel(
                     // No browser to restore, dismiss the sheet
                     dismissSheet()
                 }
-                
+
                 refreshSessions()
                 logEvent(R.string.wallet_event_approved_connect, request.dAppName)
             }.onFailure { error ->
@@ -604,7 +604,7 @@ class WalletKitViewModel(
                     // No browser to restore, dismiss the sheet
                     dismissSheet()
                 }
-                
+
                 logEvent(R.string.wallet_event_rejected_connect, request.dAppName)
             }.onFailure { error ->
                 val fallback = uiString(R.string.wallet_error_reject_connect)
@@ -1318,7 +1318,7 @@ class WalletKitViewModel(
         val currentSheet = _state.value.sheetState
         val shouldSavePrevious = currentSheet is SheetState.Browser
         setSheet(SheetState.Connect(uiRequest), savePrevious = shouldSavePrevious)
-        
+
         val eventDAppName = dAppInfo?.name ?: fallbackDAppName
         logEvent(R.string.wallet_event_connect_request, eventDAppName)
     }
@@ -1410,7 +1410,7 @@ class WalletKitViewModel(
 
     /**
      * Create a custom signer that requires explicit user confirmation for each signing operation.
-     * 
+     *
      * This demonstrates the WalletSigner interface for external/remote signing scenarios:
      * - Watch-only wallets (where private keys are stored elsewhere)
      * - Multi-signature wallet coordinators
@@ -1421,7 +1421,7 @@ class WalletKitViewModel(
      * - Only sign complete transactions (not arbitrary data)
      * - Work at a higher level (transaction-level, not raw bytes)
      * - Cannot sign arbitrary payloads from signData requests
-     * 
+     *
      * For hardware wallet integration, use transaction-only signing at the wallet adapter level.
      *
      * This is called when user selects "SIGNER" interface type during wallet import.
@@ -1443,17 +1443,23 @@ class WalletKitViewModel(
 
         Log.d(LOG_TAG, "Derived public key for signer wallet: ${publicKey.take(16)}...")
 
-        // Create and return custom signer
-        // The SDK's WalletSigner interface will handle the actual signing
-        // and our UI confirmation flow will trigger before each signature
+        val signerMnemonic = mnemonic.toList()
+
+        // Create and return custom signer backed by the provided mnemonic
+        // so the demo app can satisfy TonProof/transaction signatures.
         return object : WalletSigner {
             override val publicKey: String = publicKey
 
             override suspend fun sign(data: ByteArray): ByteArray {
-                // This will never actually be called directly -
-                // The SDK manages the signing through the bridge
-                // User confirmation happens via the pendingSignerConfirmation UI flow
-                throw UnsupportedOperationException(ERROR_DIRECT_SIGNING_UNSUPPORTED)
+                Log.d(
+                    LOG_TAG,
+                    "Demo signer signing ${data.size} bytes for wallet=$walletName (used for TonProof/transactions)",
+                )
+                return TONWallet.signDataWithMnemonic(
+                    mnemonic = signerMnemonic,
+                    data = data,
+                    mnemonicType = "ton",
+                )
             }
         }
     }

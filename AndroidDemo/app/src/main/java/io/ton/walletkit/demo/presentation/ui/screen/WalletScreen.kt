@@ -101,23 +101,23 @@ fun WalletScreen(
 ) {
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     // Keep browser WebView alive across sheet changes to prevent destruction during TonConnect requests
     // This WebView persists even when switching to Connect/Transaction sheets
     val browserWebViewHolder = remember { mutableStateOf<android.webkit.WebView?>(null) }
-    
+
     // Cleanup WebView when WalletScreen is disposed
     DisposableEffect(Unit) {
         onDispose {
             browserWebViewHolder.value?.let { webView ->
                 // Clean up TonConnect resources before destroying WebView
-//                webView.cleanupTonConnect()
+                webView.cleanupTonConnect()
                 webView.destroy()
             }
             browserWebViewHolder.value = null
         }
     }
-    
+
     LaunchedEffect(state.error) {
         val error = state.error ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(error)
