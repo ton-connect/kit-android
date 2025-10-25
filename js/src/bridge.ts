@@ -1263,17 +1263,41 @@ const api = {
     event.wallet = wallet;
     event.walletAddress = resolvedAddress;
     
-    // CRITICAL FIX: Android doesn't pass back the full event object with all the fields needed for JS bridge response.
-    // It only passes: id, preview, request, dAppInfo, walletAddress, wallet
-    // We need to restore the missing fields that were in the original event sent to Android.
-    // For internal browser (JS bridge) connections, we must set these fields:
+    // CRITICAL: Determine if this is an internal browser (JS bridge) vs deep link (HTTP bridge) event
+    // Android doesn't pass back the full event object with all fields, so we need to detect the type
+    // 
+    // The problem: Android only sends back: id, preview, request, dAppInfo, walletAddress, wallet
+    // It doesn't preserve isJsBridge, domain, tabId, messageId fields
+    //
+    // Key difference between connection types:
+    // - Deep link/QR (HTTP bridge): Event has a 'from' field (dApp's client session ID from the URL)
+    // - Internal browser (JS bridge): Event has NO 'from' field (wallet generates the session ID)
+    //
+    // The 'from' field comes from the TON Connect URL's client_id parameter, which only exists
+    // for HTTP bridge connections. Internal browser connections don't have this.
     
-    // Check if this is an internal browser event by looking at the manifestUrl
-    const isInternalBrowser = event.preview?.manifest?.url?.includes('tonconnect-demo-dapp') || 
-                              event.dAppInfo?.url?.includes('tonconnect-demo-dapp') ||
-                              !event.isJsBridge; // If isJsBridge is missing, it's likely from Android
+    const hasSessionId = !!(event.request?.from || event.from);
+    const manifestUrl = event.preview?.manifest?.url || event.dAppInfo?.url || '';
     
-    if (isInternalBrowser && !event.isJsBridge) {
+    // Internal browser detection:
+    // - No 'from' field (wallet will generate session ID)
+    // - OR manifestUrl is empty/local
+    const isInternalBrowser = !hasSessionId || 
+                              !manifestUrl ||
+                              manifestUrl.includes('localhost') ||
+                              manifestUrl.includes('127.0.0.1') ||
+                              manifestUrl.includes('appassets.androidplatform.net');
+    
+    console.log('[walletkitBridge] 🔍 Event type detection:', {
+      hasSessionId,
+      manifestUrl,
+      from: event.request?.from || event.from,
+      isInternalBrowser,
+      eventId: event.id,
+    });
+    
+    // Restore JS bridge fields for internal browser events
+    if (isInternalBrowser) {
       console.log('[walletkitBridge] 🔧 Restoring missing JS bridge fields for internal browser event');
       
       // Set JS bridge flag
@@ -1290,6 +1314,8 @@ const api = {
       event.messageId = event.id;
       
       console.log('[walletkitBridge] ✅ Restored fields - isJsBridge:', event.isJsBridge, 'tabId:', event.tabId, 'messageId:', event.messageId);
+    } else {
+      console.log('[walletkitBridge] ℹ️ Deep link/QR event - will use HTTP bridge for response');
     }
     
     emitCallCheckpoint(context, 'approveConnectRequest:before-walletKit.approveConnectRequest');
@@ -1542,6 +1568,10 @@ const api = {
     // Construct the bridge request payload
     // For injected bridge, the 'from' field should be omitted (let wallet generate session ID)
     // This is different from HTTP bridge where dApp provides its session client_id
+    
+    // CRITICAL: For 'send' method, params should be an ARRAY containing the actual request
+    // The dApp sends: { method: 'send', params: [{ method: 'signData', params: [...] }] }
+    // BridgeManager.queueJsBridgeEvent extracts params[0] to get the inner request
     const request: Record<string, unknown> = {
       id: args.messageId,
       method: args.method,
@@ -1551,6 +1581,7 @@ const api = {
     console.log('[walletkitBridge] ========== INJECTED BRIDGE REQUEST ==========');
     console.log('[walletkitBridge] method:', args.method);
     console.log('[walletkitBridge] Omitting from field - wallet will generate session ID');
+    console.log('[walletkitBridge] Original params type:', typeof args.params, 'isArray:', Array.isArray(args.params));
     console.log('[walletkitBridge] ==============================================');
     
     console.log('[walletkitBridge] ========== FORWARDING TO processInjectedBridgeRequest ==========');

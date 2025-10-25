@@ -464,10 +464,27 @@ internal class TonConnectInjector(
             try {
                 Log.d(TAG, "🔄 Forwarding request to WalletKit engine: $method")
 
+                // CRITICAL FIX: For 'send' method, params is an ARRAY containing the actual request
+                // The dApp sends: { method: 'send', params: [{ method: 'signData', params: [...] }] }
+                // We need to extract params[0] to get the actual request params
+                val paramsToSend = if (method == "send") {
+                    val paramsArray = json.optJSONArray(ResponseConstants.KEY_PARAMS)
+                    if (paramsArray != null && paramsArray.length() > 0) {
+                        paramsArray.optJSONObject(0) // Extract first element
+                    } else {
+                        json.optJSONObject(ResponseConstants.KEY_PARAMS) // Fallback to object
+                    }
+                } else {
+                    json.optJSONObject(ResponseConstants.KEY_PARAMS)
+                }
+                
+                Log.d(TAG, "🔄 Original params: ${json.opt(ResponseConstants.KEY_PARAMS)}")
+                Log.d(TAG, "🔄 Extracted params: $paramsToSend")
+
                 engine.handleTonConnectRequest(
                     messageId = messageId,
                     method = method,
-                    params = json.optJSONObject(ResponseConstants.KEY_PARAMS),
+                    params = paramsToSend,
                     responseCallback = { response ->
                         Log.d(TAG, "🟣 responseCallback invoked by engine!")
                         Log.d(TAG, "🟣 Response for messageId: $messageId")
