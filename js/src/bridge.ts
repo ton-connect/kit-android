@@ -1611,10 +1611,15 @@ const api = {
     // CRITICAL: For 'send' method, params should be an ARRAY containing the actual request
     // The dApp sends: { method: 'send', params: [{ method: 'signData', params: [...] }] }
     // BridgeManager.queueJsBridgeEvent extracts params[0] to get the inner request
+    // So we need to wrap the params in an array for the 'send' method
+    const requestParams = args.method === 'send' 
+      ? [args.params] // Wrap in array for 'send' method
+      : args.params || {};
+    
     const request: Record<string, unknown> = {
       id: args.messageId,
       method: args.method,
-      params: args.params || {},
+      params: requestParams,
     };
     
     console.log('[walletkitBridge] ========== INJECTED BRIDGE REQUEST ==========');
