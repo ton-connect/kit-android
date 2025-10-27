@@ -65,7 +65,7 @@ import io.ton.walletkit.demo.presentation.ui.sheet.WalletDetailsSheet
 import io.ton.walletkit.domain.model.TONNetwork
 import io.ton.walletkit.presentation.browser.cleanupTonConnect
 
-private const val DEFAULT_DAPP_URL = "https://tonconnect-demo-dapp-with-react-ui.vercel.app/"
+private const val DEFAULT_DAPP_URL = "https://tonconnect-sdk-demo-dapp.vercel.app/iframe/iframe"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
@@ -120,7 +121,11 @@ internal class TonConnectInjector(
     private val context = webView.context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val pendingRequests = ConcurrentHashMap<String, PendingRequest>()
+    private val pendingResponses = ConcurrentHashMap<String, Pair<PendingRequest, JSONObject>>()
     private var isCleanedUp = false
+    
+    // Store reference to BridgeInterface for response delivery
+    private lateinit var bridgeInterface: BridgeInterface
     
     // Track the current dApp URL for domain extraction
     @Volatile
@@ -133,6 +138,8 @@ internal class TonConnectInjector(
     private val detachListener = object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) {
             Log.d(TAG, "WebView attached to window")
+            // Deliver any pending responses that were queued while detached
+            deliverPendingResponses()
         }
 
         override fun onViewDetachedFromWindow(v: View) {
@@ -150,15 +157,20 @@ internal class TonConnectInjector(
     internal fun setup() {
         // Register automatic cleanup listener
         webView.addOnAttachStateChangeListener(detachListener)
-
         // Add JavaScript interface for bridge communication
+        // Store reference so we can call storeResponse() later
+        bridgeInterface = BridgeInterface(
+            onMessage = { json, type -> handleBridgeMessage(json, type) },
+            onError = { error -> Log.e(TAG, "Bridge error: $error") },
+        )
         webView.addJavascriptInterface(
-            BridgeInterface(
-                onMessage = { json, type -> handleBridgeMessage(json, type) },
-                onError = { error -> Log.e(TAG, "Bridge error: $error") },
-            ),
+            bridgeInterface,
             BrowserConstants.JS_INTERFACE_NAME,
         )
+        
+        // CRITICAL: Inject bridge immediately when WebView is set up
+        // This ensures it's available before any page JavaScript runs
+        injectBridgeIntoAllFrames(webView)
 
         // Set custom WebViewClient to inject bridge on page load
         webView.webViewClient = TonConnectWebViewClient(
@@ -182,21 +194,31 @@ internal class TonConnectInjector(
                 }
             },
             onPageFinished = { url ->
-                // Update current URL
-                currentUrl = url
-                Log.d(TAG, "📍 Current dApp URL confirmed: $url")
-                
-                // Emit page finished event
-                scope.launch {
-                    try {
-                        walletKit.engine?.callBridgeMethod(
-                            method = "emitBrowserPageFinished",
-                            params = JSONObject().apply {
-                                put("url", url)
-                            },
-                        )
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to emit page finished event", e)
+                // Update current URL ONLY if it's an HTML page (not CSS, JSON, etc.)
+                if (url.endsWith(".html") || url.endsWith("/") || !url.contains(".")) {
+                    currentUrl = url
+                    Log.d(TAG, "📍 Current dApp URL confirmed: $url")
+                    
+                    // Emit page finished event
+                    scope.launch {
+                        try {
+                            walletKit.engine?.callBridgeMethod(
+                                method = "emitBrowserPageFinished",
+                                params = JSONObject().apply {
+                                    put("url", url)
+                                },
+                            )
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to emit page finished event", e)
+                        }
+                        
+                        // Check for existing session and restore connection UI
+                        // Only for HTML pages (not resources like CSS, JSON, etc.)
+                        try {
+                            restoreSessionIfExists(url)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to restore session", e)
+                        }
                     }
                 }
             },
@@ -221,6 +243,18 @@ internal class TonConnectInjector(
                 // Intercept deep link navigation to prevent ERR_UNKNOWN_URL_SCHEME
                 // The dApp should use the injected bridge instead (embedded: true tells it to)
                 Log.d(TAG, "Intercepted deep link navigation (prevented): $url")
+                Log.w(TAG, "⚠️ dApp tried to open deep link instead of using injected bridge - this indicates timing issue")
+            },
+            getInjectionScript = {
+                // Load the bridge script from assets for HTML interception
+                try {
+                    context.assets.open(BrowserConstants.INJECT_SCRIPT_PATH)
+                        .bufferedReader()
+                        .use { it.readText() }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to load inject.mjs for HTML interception", e)
+                    ""
+                }
             },
         )
 
@@ -363,6 +397,132 @@ internal class TonConnectInjector(
     }
 
     /**
+     * Restores an existing TonConnect session for the given dApp URL.
+     * When a user reopens the browser to a dApp they previously connected to,
+     * this sends a "connect" event to restore the UI state.
+     */
+    private suspend fun restoreSessionIfExists(url: String) {
+        try {
+            Log.d(TAG, "🔍 Checking for existing session for URL: $url")
+            
+            // Get all sessions from the wallet
+            val engine = walletKit.engine ?: return
+            val result = engine.callBridgeMethod("listSessions", JSONObject())
+            val sessions = result?.optJSONArray("items") ?: return
+            
+            Log.d(TAG, "🔍 Found ${sessions.length()} total sessions")
+            
+            // Find a matching session for this dApp URL
+            for (i in 0 until sessions.length()) {
+                val session = sessions.getJSONObject(i)
+                val sessionUrl = session.optString("dAppUrl", "")
+                val sessionId = session.optString("sessionId", "")
+                
+                // Match by URL (normalize both by removing trailing slash and protocol)
+                val normalizedDAppUrl = sessionUrl.trim().trimEnd('/').removePrefix("https://").removePrefix("http://")
+                val normalizedCurrentUrl = url.trim().trimEnd('/').removePrefix("https://").removePrefix("http://")
+                
+                if (normalizedDAppUrl.isNotEmpty() && normalizedCurrentUrl.startsWith(normalizedDAppUrl)) {
+                    Log.d(TAG, "✅ Found matching session: $sessionId for URL: $sessionUrl")
+                    
+                    // Send a "connect" event to restore the UI
+                    sendRestoreConnectionEvent(session)
+                    return
+                }
+            }
+            
+            Log.d(TAG, "ℹ️ No existing session found for this URL")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error restoring session", e)
+        }
+    }
+    
+    /**
+     * Sends a "connect" event to the dApp to restore the connection UI state.
+     * This makes the dApp show as connected when reopening to a previously connected dApp.
+     */
+    private fun sendRestoreConnectionEvent(session: JSONObject) {
+        try {
+            val sessionId = session.getString("sessionId")
+            val walletAddress = session.getString("walletAddress")
+            val dAppName = session.optString("dAppName", "Unknown dApp")
+            
+            Log.d(TAG, "📤 Sending restore connection event for session: $sessionId")
+            
+            // Create a connect event payload matching the TonConnect spec
+            val connectEvent = JSONObject().apply {
+                put("event", "connect")
+                put("id", System.currentTimeMillis())
+                put("payload", JSONObject().apply {
+                    put("device", JSONObject().apply {
+                        put("platform", "android")
+                        put("appName", "Wallet")
+                        put("appVersion", "1.0")
+                        put("maxProtocolVersion", 2)
+                        put("features", JSONArray().apply {
+                            put(JSONObject().apply {
+                                put("name", "SendTransaction")
+                                put("maxMessages", 4)
+                            })
+                            put(JSONObject().apply {
+                                put("name", "SignData")
+                                put("types", JSONArray().apply {
+                                    put("text")
+                                    put("binary")
+                                    put("cell")
+                                })
+                            })
+                        })
+                    })
+                    put("items", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("name", "ton_addr")
+                            put("address", walletAddress)
+                            put("network", "-239") // Mainnet
+                            // Note: walletStateInit and publicKey would need to be fetched from storage
+                            // For now, the dApp can work with just the address for display purposes
+                        })
+                    })
+                })
+            }
+            
+            // Inject the event into the page
+            // Base64 encode the JSON to avoid any quote/escape issues in JavaScript
+            val eventBytes = connectEvent.toString().toByteArray(Charsets.UTF_8)
+            val base64Event = android.util.Base64.encodeToString(eventBytes, android.util.Base64.NO_WRAP)
+            
+            val jsCode = """
+                (function() {
+                    try {
+                        const event = JSON.parse(atob('$base64Event'));
+                        console.log('[Native] 🔄 Restoring session - sending connect event');
+                        
+                        // Dispatch to TonConnect SDK via postMessage
+                        window.postMessage({
+                            type: 'TONCONNECT_BRIDGE_EVENT',
+                            source: 'tonkeeper-tonconnect',
+                            event: event
+                        }, '*');
+                        
+                        return 'restored-session';
+                    } catch (e) {
+                        console.error('[Native] Error restoring session:', e);
+                        return 'error: ' + e.message;
+                    }
+                })();
+            """.trimIndent()
+            
+            webView.post {
+                webView.evaluateJavascript(jsCode) { result ->
+                    Log.d(TAG, "✅ Session restore JS executed, result: $result")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sending restore connection event", e)
+        }
+    }
+
+    /**
      * Clean up resources.
      *
      * This is called automatically when the WebView is detached from the window.
@@ -394,6 +554,7 @@ internal class TonConnectInjector(
 
         scope.cancel()
         pendingRequests.clear()
+        pendingResponses.clear()
     }
 
     private fun injectBridgeIntoAllFrames(webView: WebView?) {
@@ -530,53 +691,103 @@ internal class TonConnectInjector(
     private fun sendResponseToFrame(pending: PendingRequest, response: JSONObject) {
         Log.d(TAG, "📤 sendResponseToFrame called for messageId: ${pending.messageId}, method: ${pending.method}")
         Log.d(TAG, "📤 Response payload: $response")
-        Log.d(TAG, "📤 WebView attached: ${webView.isAttachedToWindow}, WebView parent: ${webView.parent}")
+        Log.d(TAG, "📤 WebView instance: ${webView}")
+        Log.d(TAG, "📤 WebView parent: ${webView.parent}")
 
-        scope.launch {
-            webView.post {
-                val responseJson = JSONObject().apply {
-                    put(BrowserConstants.KEY_TYPE, BrowserConstants.MESSAGE_TYPE_BRIDGE_RESPONSE)
-                    put(BrowserConstants.KEY_MESSAGE_ID, pending.messageId)
-                    put(BrowserConstants.KEY_SUCCESS, true)
-                    put(BrowserConstants.KEY_PAYLOAD, response)
-                }
+        // CRITICAL FIX: Queue responses if WebView is detached from window
+        if (webView.parent == null) {
+            Log.d(TAG, "⏸️ WebView detached - queueing response for ${pending.messageId}")
+            pendingResponses[pending.messageId] = Pair(pending, response)
+            return
+        }
 
-                Log.d(TAG, "📤 Injecting response into WebView for '${pending.frameId}' for ${pending.method} (ID: ${pending.messageId})")
-                Log.d(TAG, "📤 Response JSON: $responseJson")
+        // CRITICAL FIX: Don't use webView.post{} because the WebView may be detached
+        // when showing wallet approval screens. Just execute directly - we're already
+        // on the main thread via the responseCallback
+        scope.launch(Dispatchers.Main) {
+            Log.d(TAG, "📤 About to deliver response directly")
+            deliverResponse(pending, response)
+        }
+    }
 
-                if (pending.frameId == BrowserConstants.DEFAULT_FRAME_ID) {
-                    // Send to main window
-                    val jsCode = """
-                        ${BrowserConstants.JS_WINDOW_POST_MESSAGE}($responseJson, '*');
-                    """.trimIndent()
-                    Log.d(TAG, "📤 Executing JS to post message to main window")
-                    webView.evaluateJavascript(jsCode) { result ->
-                        Log.d(TAG, "✅ JS executed, result: $result")
+    private fun deliverResponse(pending: PendingRequest, response: JSONObject) {
+        val responseJson = JSONObject().apply {
+            put(BrowserConstants.KEY_TYPE, BrowserConstants.MESSAGE_TYPE_BRIDGE_RESPONSE)
+            put(BrowserConstants.KEY_MESSAGE_ID, pending.messageId)
+            put(BrowserConstants.KEY_SUCCESS, true)
+            put(BrowserConstants.KEY_PAYLOAD, response)
+        }
+
+        Log.d(TAG, "📥 Storing response for messageId: ${pending.messageId}")
+        Log.d(TAG, "📥 Response JSON: $responseJson")
+        
+        // Store response in BridgeInterface - any iframe can pull it
+        // This works because addJavascriptInterface makes BridgeInterface 
+        // available in ALL frames (parent + iframes)
+        bridgeInterface.storeResponse(pending.messageId, responseJson.toString())
+        
+        Log.d(TAG, "📣 Sending notification to all frames for messageId: ${pending.messageId}")
+        
+        // Notify all frames that a response is available
+        // They will poll/pull it via BridgeInterface.pullResponse()
+        val notifyScript = """
+            (function() {
+                console.log('[Native] 📣 Notifying frames about response: ${pending.messageId}');
+                try {
+                    // Notify this frame
+                    window.postMessage({
+                        type: 'TONCONNECT_RESPONSE_AVAILABLE',
+                        messageId: '${pending.messageId}'
+                    }, '*');
+                    console.log('[Native] ✅ Posted to main window');
+                    
+                    // Also notify all iframes
+                    const iframes = document.querySelectorAll('iframe');
+                    console.log('[Native] Found ' + iframes.length + ' iframes');
+                    for (let i = 0; i < iframes.length; i++) {
+                        try {
+                            iframes[i].contentWindow.postMessage({
+                                type: 'TONCONNECT_RESPONSE_AVAILABLE',
+                                messageId: '${pending.messageId}'
+                            }, '*');
+                            console.log('[Native] ✅ Posted to iframe ' + i);
+                        } catch (e) {
+                            console.log('[Native] ⚠️ Failed to post to iframe ' + i + ':', e.message);
+                        }
                     }
-                } else {
-                    // Find iframe by frameId and send to it
-                    webView.evaluateJavascript(
-                        """
-                        (function() {
-                            const iframes = document.querySelectorAll('${BrowserConstants.JS_SELECTOR_IFRAMES}');
-                            for (const iframe of iframes) {
-                                try {
-                                    if (iframe.${BrowserConstants.JS_PROPERTY_CONTENT_WINDOW}.${BrowserConstants.JS_PROPERTY_FRAME_ID} === '${pending.frameId}') {
-                                        iframe.${BrowserConstants.JS_PROPERTY_CONTENT_WINDOW}.postMessage($responseJson, '*');
-                                        console.log('${BrowserConstants.CONSOLE_PREFIX_NATIVE} ${BrowserConstants.CONSOLE_MSG_RESPONSE_SENT} ${pending.frameId}');
-                                        return;
-                                    }
-                                } catch (e) {
-                                    // Cross-origin iframe, skip
-                                }
-                            }
-                            console.warn('${BrowserConstants.CONSOLE_PREFIX_NATIVE} ${BrowserConstants.CONSOLE_MSG_FRAME_NOT_FOUND}: ${pending.frameId}');
-                        })();
-                        """.trimIndent(),
-                        null,
-                    )
+                } catch (e) {
+                    console.error('[Native] ❌ Failed to notify frames:', e);
                 }
+            })();
+        """.trimIndent()
+        
+        webView.post {
+            webView.evaluateJavascript(notifyScript) { result ->
+                Log.d(TAG, "📣 Notification script executed, result: $result")
             }
+        }
+    }
+
+    /**
+     * Deliver all pending responses that were queued while the WebView was detached.
+     * This is called when the WebView is re-attached to the window.
+     */
+    private fun deliverPendingResponses() {
+        if (pendingResponses.isEmpty()) {
+            Log.d(TAG, "📬 No pending responses to deliver")
+            return
+        }
+        
+        Log.d(TAG, "📬 Delivering ${pendingResponses.size} pending response(s)")
+        
+        scope.launch(Dispatchers.Main) {
+            pendingResponses.forEach { (messageId, pair) ->
+                val (pending, response) = pair
+                Log.d(TAG, "📬 Delivering queued response for messageId: $messageId")
+                deliverResponse(pending, response)
+            }
+            pendingResponses.clear()
+            Log.d(TAG, "📬 All pending responses delivered")
         }
     }
 }
