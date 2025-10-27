@@ -15,6 +15,11 @@ data class ConnectRequestEvent(
     val request: List<Request>? = null,
     val dAppInfo: DAppInfo? = null,
     var walletAddress: String? = null,
+    
+    // JS Bridge fields for internal browser
+    val isJsBridge: Boolean? = null,
+    val tabId: String? = null,
+    val messageId: String? = null,
 ) {
     @Serializable
     data class Preview(

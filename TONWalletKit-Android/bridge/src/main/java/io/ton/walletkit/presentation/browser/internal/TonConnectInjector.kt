@@ -121,6 +121,10 @@ internal class TonConnectInjector(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val pendingRequests = ConcurrentHashMap<String, PendingRequest>()
     private var isCleanedUp = false
+    
+    // Track the current dApp URL for domain extraction
+    @Volatile
+    private var currentUrl: String? = null
 
     // Listener to automatically cleanup when WebView is detached
     // NOTE: Disabled automatic cleanup on detach because WebView may be temporarily
@@ -159,6 +163,10 @@ internal class TonConnectInjector(
         // Set custom WebViewClient to inject bridge on page load
         webView.webViewClient = TonConnectWebViewClient(
             onPageStarted = { url ->
+                // Track current URL for domain extraction
+                currentUrl = url
+                Log.d(TAG, "📍 Current dApp URL updated: $url")
+                
                 // Emit page started event
                 scope.launch {
                     try {
@@ -174,6 +182,10 @@ internal class TonConnectInjector(
                 }
             },
             onPageFinished = { url ->
+                // Update current URL
+                currentUrl = url
+                Log.d(TAG, "📍 Current dApp URL confirmed: $url")
+                
                 // Emit page finished event
                 scope.launch {
                     try {
@@ -481,11 +493,13 @@ internal class TonConnectInjector(
 
                 Log.d(TAG, "🔄 Original params: ${json.opt(ResponseConstants.KEY_PARAMS)}")
                 Log.d(TAG, "🔄 Extracted params: $paramsToSend")
+                Log.d(TAG, "🔄 Current dApp URL: $currentUrl")
 
                 engine.handleTonConnectRequest(
                     messageId = messageId,
                     method = method,
                     params = paramsToSend,
+                    url = currentUrl, // Pass the actual dApp URL
                     responseCallback = { response ->
                         Log.d(TAG, "🟣 responseCallback invoked by engine!")
                         Log.d(TAG, "🟣 Response for messageId: $messageId")

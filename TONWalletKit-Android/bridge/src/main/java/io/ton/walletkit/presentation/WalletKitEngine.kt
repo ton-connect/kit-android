@@ -186,12 +186,14 @@ internal interface WalletKitEngine {
      * @param messageId Unique message ID from the dApp
      * @param method Request method (e.g., "connect", "sendTransaction", "signData")
      * @param params Request parameters as JSON
+     * @param url The current dApp URL (for extracting the domain)
      * @param responseCallback Callback to send response back to dApp
      */
     suspend fun handleTonConnectRequest(
         messageId: String,
         method: String,
         params: org.json.JSONObject?,
+        url: String? = null,
         responseCallback: (org.json.JSONObject) -> Unit,
     )
 

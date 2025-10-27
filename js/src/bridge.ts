@@ -1342,8 +1342,29 @@ const api = {
       // Set JS bridge flag
       event.isJsBridge = true;
       
-      // Set domain (used to identify internal browser)
-      event.domain = 'internal-browser';
+      // Set domain to actual dApp domain (required for signature verification)
+      // Note: The bridge bundle is loaded from appassets.androidplatform.net, but we need the actual page URL
+      let actualDomain = 'internal-browser';
+      try {
+        if (typeof window !== 'undefined') {
+          // Try to get the domain from the top window (the actual dApp page)
+          if (window.top && window.top !== window && window.top.location) {
+            actualDomain = window.top.location.hostname;
+          } else if (document.referrer) {
+            // Fallback to document.referrer which should contain the dApp URL
+            const referrerUrl = new URL(document.referrer);
+            actualDomain = referrerUrl.hostname;
+          } else if (window.location && window.location.hostname !== 'appassets.androidplatform.net') {
+            // Only use window.location if it's not the assets domain
+            actualDomain = window.location.hostname;
+          }
+        }
+      } catch (e) {
+        console.log('[walletkitBridge] Could not access parent domain, using fallback:', e);
+      }
+      
+      console.log('[walletkitBridge] Resolved domain for connect:', actualDomain);
+      event.domain = actualDomain;
       
       // tabId is used as sessionId for sendJsBridgeResponse
       // Use the event.id as tabId since that's what was used in messageInfo when queuing
@@ -1352,7 +1373,7 @@ const api = {
       // messageId is used for the bridge response
       event.messageId = event.id;
       
-      console.log('[walletkitBridge] ✅ Restored fields - isJsBridge:', event.isJsBridge, 'tabId:', event.tabId, 'messageId:', event.messageId);
+      console.log('[walletkitBridge] ✅ Restored fields - isJsBridge:', event.isJsBridge, 'domain:', event.domain, 'tabId:', event.tabId, 'messageId:', event.messageId);
     } else {
       console.log('[walletkitBridge] ℹ️ Deep link/QR event - will use HTTP bridge for response');
     }
@@ -1519,7 +1540,7 @@ const api = {
   },
 
   async processInternalBrowserRequest(
-    args: { messageId: string; method: string; params?: unknown; from?: string },
+    args: { messageId: string; method: string; params?: unknown; from?: string; url?: string },
     context?: CallContext,
   ) {
     emitCallCheckpoint(context, 'processInternalBrowserRequest:start');
@@ -1529,6 +1550,7 @@ const api = {
     console.log('[walletkitBridge] ========== FULL ARGS ==========');
     console.log('[walletkitBridge] args keys:', Object.keys(args));
     console.log('[walletkitBridge] args.from:', args.from);
+    console.log('[walletkitBridge] args.url:', args.url);
     console.log('[walletkitBridge] args:', JSON.stringify(args, null, 2));
     console.log('[walletkitBridge] ================================');
     console.log('[walletkitBridge] Processing internal browser request:', args.method, args.messageId);
@@ -1598,10 +1620,29 @@ const api = {
     }
     
     // Construct message info for the bridge event
+    // CRITICAL FIX: Get the domain from the URL passed by Kotlin (the actual dApp WebView URL)
+    // The bridge JavaScript runs in a separate WebView for RPC with Android,
+    // so we can't access the dApp's window.location directly.
+    let actualDomain = 'internal-browser';
+    if (args.url) {
+      // Kotlin passes the actual dApp URL from the WebView
+      try {
+        const dappUrl = new URL(args.url);
+        actualDomain = dappUrl.hostname;
+        console.log('[walletkitBridge] ✅ Domain extracted from dApp URL:', actualDomain);
+      } catch (e) {
+        console.log('[walletkitBridge] ⚠️ Failed to parse dApp URL, using fallback:', e);
+      }
+    } else {
+      console.log('[walletkitBridge] ⚠️ No dApp URL provided by Kotlin, using fallback');
+    }
+    
+    console.log('[walletkitBridge] Resolved domain for signature:', actualDomain);
+    
     const messageInfo = {
       messageId: args.messageId,
       tabId: args.messageId, // Use messageId as tabId for internal browser
-      domain: 'internal-browser', // Mark as internal browser request
+      domain: actualDomain, // Use actual dApp domain for signature verification
     };
     
     // Construct the bridge request payload

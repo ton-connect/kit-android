@@ -785,6 +785,7 @@ internal class WebViewWalletKitEngine(
         messageId: String,
         method: String,
         params: JSONObject?,
+        url: String?,
         responseCallback: (JSONObject) -> Unit,
     ) {
         try {
@@ -792,6 +793,7 @@ internal class WebViewWalletKitEngine(
             ensureEventListenersSetUp()
 
             Log.d(TAG, "Processing internal browser request: $method (messageId: $messageId)")
+            Log.d(TAG, "dApp URL: $url")
 
             // Build params for the bridge call
             val requestParams = JSONObject().apply {
@@ -799,6 +801,10 @@ internal class WebViewWalletKitEngine(
                 put(ResponseConstants.KEY_METHOD, method)
                 if (params != null) {
                     put(ResponseConstants.KEY_PARAMS, params)
+                }
+                // Pass the dApp URL so JavaScript can extract the correct domain
+                if (url != null) {
+                    put(ResponseConstants.KEY_URL, url)
                 }
             }
 

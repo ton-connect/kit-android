@@ -661,6 +661,7 @@ internal class QuickJsWalletKitEngine(
         messageId: String,
         method: String,
         params: JSONObject?,
+        url: String?,
         responseCallback: (JSONObject) -> Unit,
     ) {
         // QuickJS engine doesn't support internal browser mode
