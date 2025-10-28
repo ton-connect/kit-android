@@ -327,9 +327,9 @@ internal class TonConnectInjector(
                         val sessions = walletKit.engine?.callBridgeMethod(BridgeMethodConstants.METHOD_LIST_SESSIONS, null)
                         Log.d(TAG, "🔍 Got sessions for WebView re-registration: $sessions")
 
-                        // Find the session that was just created (by messageId/tabId)
-                        // The session will have tabId = messageId initially
-                        // We need to register the WebView with the session's sessionId
+                        // Find the session that was just created (by messageId)
+                        // Initially we register the WebView with messageId for immediate responses
+                        // Now we need to re-register it with the session's sessionId for events
 
                         // Parse sessions and find matching one
                         if (sessions is JSONObject && sessions.has(ResponseConstants.KEY_ITEMS)) {
@@ -634,22 +634,31 @@ internal class TonConnectInjector(
             try {
                 Log.d(TAG, "🔄 Forwarding request to WalletKit engine: $method")
 
-                // CRITICAL FIX: For 'send' method, params is an ARRAY containing the actual request
-                // The dApp sends: { method: 'send', params: [{ method: 'signData', params: [...] }] }
-                // We need to extract params[0] to get the actual request params
-                val paramsToSend = if (method == METHOD_SEND) {
-                    val paramsArray = json.optJSONArray(ResponseConstants.KEY_PARAMS)
-                    if (paramsArray != null && paramsArray.length() > 0) {
-                        paramsArray.optJSONObject(0) // Extract first element
-                    } else {
-                        json.optJSONObject(ResponseConstants.KEY_PARAMS) // Fallback to object
+                // Keep params as-is - the core BridgeManager handles 'send' method unwrapping
+                // For 'send' method, params can be an ARRAY: [{ method: 'signData', params: [...] }]
+                // For other methods, params is usually a JSONObject
+                // handleTonConnectRequest expects JSONObject, but we need to pass arrays for 'send'
+                // Convert JSONArray to JSONObject wrapper if needed
+                val paramsRaw = json.opt(ResponseConstants.KEY_PARAMS)
+                val paramsToSend: JSONObject? = when {
+                    paramsRaw is JSONObject -> paramsRaw
+                    paramsRaw is JSONArray -> {
+                        // Wrap the array in a special marker object
+                        JSONObject().apply {
+                            put("__isArray", true)
+                            put("__arrayData", paramsRaw)
+                        }
                     }
-                } else {
-                    json.optJSONObject(ResponseConstants.KEY_PARAMS)
+                    paramsRaw == null -> null
+                    else -> {
+                        Log.w(TAG, "Unexpected params type: ${paramsRaw.javaClass.simpleName}")
+                        null
+                    }
                 }
 
-                Log.d(TAG, "🔄 Original params: ${json.opt(ResponseConstants.KEY_PARAMS)}")
-                Log.d(TAG, "🔄 Extracted params: $paramsToSend")
+                Log.d(TAG, "🔄 Method: $method")
+                Log.d(TAG, "🔄 Params type: ${paramsRaw?.javaClass?.simpleName}")
+                Log.d(TAG, "🔄 Params: $paramsToSend")
 
                 // Use WebView's current URL (the main frame URL) instead of tracking it manually
                 // This is more reliable than trying to detect page vs resource loads

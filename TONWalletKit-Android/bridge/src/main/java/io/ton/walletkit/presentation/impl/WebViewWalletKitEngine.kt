@@ -806,6 +806,25 @@ internal class WebViewWalletKitEngine(
                 if (url != null) {
                     put(ResponseConstants.KEY_URL, url)
                 }
+                // For 'connect' method, add manifestUrl if not already present in params
+                // This allows the core to fetch manifest data consistently for both HTTP and JS bridges
+                if (method == "connect" && url != null) {
+                    val connectParams = params
+                    val hasManifestUrl = connectParams?.optString("manifestUrl")?.isNotEmpty() == true ||
+                        connectParams?.optJSONObject("manifest")?.optString("url")?.isNotEmpty() == true
+
+                    if (!hasManifestUrl) {
+                        Log.d(TAG, "Adding manifestUrl for internal browser connect request")
+                        // Construct standard manifest URL: https://dapp-domain/tonconnect-manifest.json
+                        try {
+                            val manifestUrl = url.trimEnd('/') + "/tonconnect-manifest.json"
+                            put("manifestUrl", manifestUrl)
+                            Log.d(TAG, "Constructed manifestUrl: $manifestUrl")
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to construct manifestUrl from dApp URL", e)
+                        }
+                    }
+                }
             }
 
             // Call the bridge method just like all other methods
@@ -1163,11 +1182,11 @@ internal class WebViewWalletKitEngine(
     }
 
     private fun handleJsBridgeEvent(payload: JSONObject) {
-        val tabId = payload.optString("tabId")
+        val sessionId = payload.optString("sessionId")
         val event = payload.optJSONObject("event")
 
         Log.d(TAG, "📤 handleJsBridgeEvent called")
-        Log.d(TAG, "📤 tabId: $tabId")
+        Log.d(TAG, "📤 sessionId: $sessionId")
         Log.d(TAG, "📤 event: $event")
         Log.d(TAG, "📤 Full payload: $payload")
 
@@ -1178,12 +1197,12 @@ internal class WebViewWalletKitEngine(
 
         mainHandler.post {
             try {
-                // Look up the WebView for this session using the tabId (which is the session ID)
-                Log.d(TAG, "📤 Looking up WebView for session: $tabId")
-                val targetWebView = TonConnectInjector.getWebViewForSession(tabId)
+                // Look up the WebView for this session using the sessionId
+                Log.d(TAG, "📤 Looking up WebView for session: $sessionId")
+                val targetWebView = TonConnectInjector.getWebViewForSession(sessionId)
 
                 if (targetWebView != null) {
-                    Log.d(TAG, "✅ Found WebView for session: $tabId")
+                    Log.d(TAG, "✅ Found WebView for session: $sessionId")
                     // Get the injector from the WebView and send the event
                     val injector = targetWebView.getTonConnectInjector()
                     if (injector != null) {
@@ -1192,11 +1211,11 @@ internal class WebViewWalletKitEngine(
                         injector.sendEvent(event)
                         Log.d(TAG, "✅ Event sent successfully")
                     } else {
-                        Log.w(TAG, "⚠️  WebView found but no TonConnectInjector attached for session: $tabId")
+                        Log.w(TAG, "⚠️  WebView found but no TonConnectInjector attached for session: $sessionId")
                     }
                 } else {
                     // No WebView found for this session - may have been destroyed or never registered
-                    Log.w(TAG, "⚠️  No WebView found for session: $tabId (browser may have been closed)")
+                    Log.w(TAG, "⚠️  No WebView found for session: $sessionId (browser may have been closed)")
                     Log.w(TAG, "⚠️  This means the WebView was never registered or was garbage collected")
                 }
             } catch (e: Exception) {

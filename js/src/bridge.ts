@@ -132,7 +132,7 @@ type BridgePayload =
       timestamp: number;
       message?: string;
     }
-  | { kind: 'jsBridgeEvent'; tabId: string; event: any };
+  | { kind: 'jsBridgeEvent'; sessionId: string; event: any };
 
 declare global {
   interface Window {
@@ -420,15 +420,31 @@ async function initTonWalletKit(config?: WalletKitBridgeInitConfig, context?: Ca
       bridgeUrl: resolvedBridgeUrl,
       // Provide custom JS bridge transport for Android WebView
       // This is called when WalletKit needs to send responses back to the injected bridge
-      jsBridgeTransport: async (tabId: string, message: any) => {
+      // For Android, sessionId identifies which WebView should receive the event
+      jsBridgeTransport: async (sessionId: string, message: any) => {
         console.log('[walletkitBridge] 📤 jsBridgeTransport called:', {
-          tabId,
+          sessionId,
           messageType: message.type,
           messageId: message.messageId,
-          hasEvent: !!message.event,
-          eventType: message.event?.event,
+          hasPayload: !!message.payload,
+          payloadEvent: message.payload?.event,
         });
         console.log('[walletkitBridge] 📤 Full message:', JSON.stringify(message, null, 2));
+        
+        // Transform disconnect responses into events (for Android adapter)
+        // Core sends disconnect as a response with payload.event='disconnect', but Android expects an event
+        if (message.type === 'TONCONNECT_BRIDGE_RESPONSE' && 
+            message.payload?.event === 'disconnect' && 
+            !message.messageId) {
+          console.log('[walletkitBridge] 🔄 Transforming disconnect response to event');
+          message = {
+            type: 'TONCONNECT_BRIDGE_EVENT',
+            source: message.source,
+            event: message.payload,
+            traceId: message.traceId,
+          };
+          console.log('[walletkitBridge] � Transformed message:', JSON.stringify(message, null, 2));
+        }
         
         // For responses with a messageId (replies to requests)
         if (message.messageId) {
@@ -444,25 +460,16 @@ async function initTonWalletKit(config?: WalletKitBridgeInitConfig, context?: Ca
           }
         }
         
-        // For events (like disconnect initiated by wallet), send to WebView via Kotlin
-        console.log('[walletkitBridge] 🔍 Checking if message.type === TONCONNECT_BRIDGE_EVENT');
-        console.log('[walletkitBridge] 🔍 message.type:', message.type);
-        console.log('[walletkitBridge] 🔍 Expected: TONCONNECT_BRIDGE_EVENT');
-        
+        // For events (like disconnect initiated by wallet), route to specific WebView via Kotlin
         if (message.type === 'TONCONNECT_BRIDGE_EVENT') {
-          console.log('[walletkitBridge] ✅ Message type matches TONCONNECT_BRIDGE_EVENT');
-          console.log('[walletkitBridge] ✅ Event type:', message.event?.event);
-          console.log('[walletkitBridge] 📤 Sending event to WebView via Kotlin');
+          console.log('[walletkitBridge] 📤 Sending event to WebView for session:', sessionId);
+          
           postToNative({ 
-            kind: 'jsBridgeEvent', 
-            tabId, 
+            kind: 'jsBridgeEvent',
+            sessionId,  // Use sessionId parameter to route to correct WebView
             event: message 
           });
-          console.log('[walletkitBridge] ✅ Event sent to Kotlin successfully');
-        } else {
-          console.warn('[walletkitBridge] ⚠️ Message type does not match TONCONNECT_BRIDGE_EVENT');
-          console.warn('[walletkitBridge] ⚠️ Actual type:', message.type);
-          console.warn('[walletkitBridge] ⚠️ This event will not be sent to the dApp!');
+          console.log('[walletkitBridge] ✅ Event sent successfully');
         }
         
         return Promise.resolve();
@@ -1551,7 +1558,7 @@ const api = {
   },
 
   async processInternalBrowserRequest(
-    args: { messageId: string; method: string; params?: unknown; from?: string; url?: string },
+    args: { messageId: string; method: string; params?: unknown; from?: string; url?: string; manifestUrl?: string },
     context?: CallContext,
   ) {
     emitCallCheckpoint(context, 'processInternalBrowserRequest:start');
@@ -1663,38 +1670,33 @@ const api = {
     // CRITICAL: For 'send' method, params should be an ARRAY containing the actual request
     // The dApp sends: { method: 'send', params: [{ method: 'signData', params: [...] }] }
     // BridgeManager.queueJsBridgeEvent extracts params[0] to get the inner request
-    // The Kotlin layer already extracted the inner request for us:
-    // - It receives: { method: 'send', params: [{ method: 'signData', ... }] }
-    // - It extracts and sends us: args.params = { method: 'signData', params: [...], id: '3' }
-    //
-    // So we need to:
-    // 1. Use the inner method (signData) as the actual method
-    // 2. Wrap the full inner request in an array for BridgeManager to extract again
+    // Kotlin layer wraps JSONArray in a special marker object: { __isArray: true, __arrayData: [...] }
+    // Unwrap it here before sending to core
     
-    // Extract the actual method and params from the inner request
-    let actualMethod = args.method;
-    let actualId = args.messageId;
-    let actualParams = args.params;
+    let finalParams = args.params;
+    if (args.params && typeof args.params === 'object' && '__isArray' in args.params) {
+      const marker = args.params as { __isArray: boolean; __arrayData: unknown };
+      finalParams = marker.__arrayData;
+      console.log('[walletkitBridge] Unwrapped array from Kotlin marker object');
+    }
     
-    // If params is an object with a 'method' field, it's the extracted inner request
-    if (args.method === 'send' && args.params && typeof args.params === 'object' && 'method' in args.params) {
-      const innerRequest = args.params as { method: string; params: unknown; id?: string | number };
-      actualMethod = innerRequest.method;  // Use inner method (signData, sendTransaction, etc)
-      actualParams = innerRequest.params;   // Use inner params
-      if (innerRequest.id) {
-        actualId = String(innerRequest.id); // Preserve inner request ID if present
+    // For 'connect' method, inject manifestUrl if provided by Kotlin and not already in params
+    // This ensures the core can fetch manifest data consistently for both HTTP and JS bridges
+    if (args.method === 'connect' && args.manifestUrl && finalParams && typeof finalParams === 'object' && !Array.isArray(finalParams)) {
+      const paramsObj = finalParams as Record<string, unknown>;
+      const hasManifestUrl = paramsObj.manifestUrl || 
+                            (paramsObj.manifest && typeof paramsObj.manifest === 'object' && (paramsObj.manifest as Record<string, unknown>).url);
+      
+      if (!hasManifestUrl) {
+        console.log('[walletkitBridge] Injecting manifestUrl into connect params:', args.manifestUrl);
+        paramsObj.manifestUrl = args.manifestUrl;
       }
-      console.log('[walletkitBridge] ✅ Extracted inner request:', { 
-        originalMethod: args.method, 
-        actualMethod, 
-        actualId 
-      });
     }
     
     const request: Record<string, unknown> = {
-      id: actualId,
-      method: actualMethod,
-      params: actualParams,
+      id: args.messageId,
+      method: args.method,
+      params: finalParams,
     };
     
     console.log('[walletkitBridge] ========== INJECTED BRIDGE REQUEST ==========');
