@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.util.Log
 import android.view.View
 import android.webkit.WebView
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import io.ton.walletkit.data.browser.PendingRequest
 import io.ton.walletkit.domain.constants.BridgeMethodConstants
 import io.ton.walletkit.domain.constants.BrowserConstants
@@ -167,6 +169,7 @@ internal class TonConnectInjector(
     internal fun setup() {
         // Register automatic cleanup listener
         webView.addOnAttachStateChangeListener(detachListener)
+        
         // Add JavaScript interface for bridge communication
         // Store reference so we can call storeResponse() later
         bridgeInterface = BridgeInterface(
@@ -178,9 +181,40 @@ internal class TonConnectInjector(
             BrowserConstants.JS_INTERFACE_NAME,
         )
 
-        // CRITICAL: Inject bridge immediately when WebView is set up
-        // This ensures it's available before any page JavaScript runs
-        injectBridgeIntoAllFrames(webView)
+        // CRITICAL: Use WebViewCompat.addDocumentStartJavaScript for early injection
+        // This is the proper Android API to inject JavaScript before HTML parsing begins
+        // (similar to iOS WKUserScript with injectionTime = .atDocumentStart)
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            try {
+                // Load inject.mjs from assets
+                val injectionScript = context.assets.open(BrowserConstants.INJECT_SCRIPT_PATH)
+                    .bufferedReader()
+                    .use { it.readText() }
+                
+                // Allow all origins (*) since this is a wallet browser that loads any dApp
+                val allowedOrigins = setOf("*")
+                
+                WebViewCompat.addDocumentStartJavaScript(
+                    webView,
+                    injectionScript,
+                    allowedOrigins
+                )
+                
+                Log.d(TAG, "✅ Bridge script registered via addDocumentStartJavaScript (executes before HTML parsing)")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to add document start script, falling back to onPageStarted injection", e)
+                // Fallback: inject in onPageStarted (less reliable but better than nothing)
+                BridgeInjector.injectIntoAllFrames(context, webView) { error ->
+                    Log.e(TAG, "Bridge injection error: $error")
+                }
+            }
+        } else {
+            Log.w(TAG, "⚠️ DOCUMENT_START_SCRIPT not supported, using fallback injection (may have timing issues)")
+            // Fallback for older Android versions
+            BridgeInjector.injectIntoAllFrames(context, webView) { error ->
+                Log.e(TAG, "Bridge injection error: $error")
+            }
+        }
 
         // Set custom WebViewClient to inject bridge on page load
         webView.webViewClient = TonConnectWebViewClient(

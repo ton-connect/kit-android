@@ -806,25 +806,6 @@ internal class WebViewWalletKitEngine(
                 if (url != null) {
                     put(ResponseConstants.KEY_URL, url)
                 }
-                // For 'connect' method, add manifestUrl if not already present in params
-                // This allows the core to fetch manifest data consistently for both HTTP and JS bridges
-                if (method == "connect" && url != null) {
-                    val connectParams = params
-                    val hasManifestUrl = connectParams?.optString("manifestUrl")?.isNotEmpty() == true ||
-                        connectParams?.optJSONObject("manifest")?.optString("url")?.isNotEmpty() == true
-
-                    if (!hasManifestUrl) {
-                        Log.d(TAG, "Adding manifestUrl for internal browser connect request")
-                        // Construct standard manifest URL: https://dapp-domain/tonconnect-manifest.json
-                        try {
-                            val manifestUrl = url.trimEnd('/') + "/tonconnect-manifest.json"
-                            put("manifestUrl", manifestUrl)
-                            Log.d(TAG, "Constructed manifestUrl: $manifestUrl")
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Failed to construct manifestUrl from dApp URL", e)
-                        }
-                    }
-                }
             }
 
             // Call the bridge method just like all other methods
