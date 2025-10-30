@@ -243,69 +243,7 @@ class AndroidWebViewTransport implements Transport {
         console.log('[AndroidTransport] 📝 Is top window:', window === window.top);
         console.log('[AndroidTransport] 📝 Callbacks before:', this.eventCallbacks.length);
         
-        // Wrap the callback to intercept connect events and fix storage type
-        const wrappedCallback = (event: unknown) => {
-            console.log('[AndroidTransport] 🔔 Event received in wrapped callback:', event);
-            
-            // Check if this is a connect event
-            if (event && typeof event === 'object' && 'event' in event) {
-                const walletEvent = event as { event: string; payload?: any };
-                
-                if (walletEvent.event === 'connect') {
-                    console.log('[AndroidTransport] 🔌 Connect event detected! Fixing storage to use injected provider...');
-                    
-                    // Use setTimeout to allow the BridgeProvider to store the connection first,
-                    // then we modify it to use injected type
-                    setTimeout(() => {
-                        try {
-                            const bridge = (window as any).AndroidTonConnect;
-                            if (!bridge || !bridge.storageGet || !bridge.storageSet) {
-                                console.error('[AndroidTransport] ❌ Bridge storage methods not available');
-                                return;
-                            }
-                            
-                            const storageKey = 'ton-connect-storage_bridge-connection';
-                            const storedConnectionStr = bridge.storageGet(storageKey);
-                            
-                            if (!storedConnectionStr) {
-                                console.log('[AndroidTransport] ⚠️ No stored connection found');
-                                return;
-                            }
-                            
-                            console.log('[AndroidTransport] 📦 Original stored connection:', storedConnectionStr);
-                            
-                            const storedConnection = JSON.parse(storedConnectionStr);
-                            
-                            // Only modify if it's an HTTP connection
-                            if (storedConnection.type === 'http') {
-                                console.log('[AndroidTransport] 🔧 Converting HTTP connection to injected connection');
-                                
-                                // Create injected connection object
-                                const injectedConnection = {
-                                    type: 'injected',
-                                    jsBridgeKey: 'tonkeeper',
-                                    nextRpcRequestId: storedConnection.nextRpcRequestId || 0
-                                };
-                                
-                                console.log('[AndroidTransport] 💾 Storing injected connection:', injectedConnection);
-                                bridge.storageSet(storageKey, JSON.stringify(injectedConnection));
-                                
-                                console.log('[AndroidTransport] ✅ Storage updated! SDK will now use InjectedProvider');
-                            } else {
-                                console.log('[AndroidTransport] ℹ️ Connection is already type:', storedConnection.type);
-                            }
-                        } catch (error) {
-                            console.error('[AndroidTransport] ❌ Failed to update storage:', error);
-                        }
-                    }, 100); // Small delay to ensure BridgeProvider has finished storing
-                }
-            }
-            
-            // Call the original callback
-            callback(event);
-        };
-        
-        this.eventCallbacks.push(wrappedCallback);
+        this.eventCallbacks.push(callback);
         console.log('[AndroidTransport] 📝 Callbacks after:', this.eventCallbacks.length);
     }
 
@@ -398,44 +336,6 @@ const performInjection = () => {
     console.log('[TonConnect] Injecting bridge code...');
     console.log('[TonConnect] document.body exists?', !!document.body);
     console.log('[TonConnect] Current iframes in DOM:', document.querySelectorAll('iframe').length);
-    
-    // CRITICAL: Fix storage type BEFORE SDK initializes
-    // If there's an existing HTTP connection in storage, convert it to injected
-    if (isAndroidWebView) {
-        try {
-            const bridge = (window as any).AndroidTonConnect;
-            if (bridge && bridge.storageGet && bridge.storageSet) {
-                const storageKey = 'ton-connect-storage_bridge-connection';
-                const storedConnectionStr = bridge.storageGet(storageKey);
-                
-                if (storedConnectionStr) {
-                    console.log('[TonConnect] 🔍 Found existing connection in storage');
-                    const storedConnection = JSON.parse(storedConnectionStr);
-                    
-                    if (storedConnection.type === 'http') {
-                        console.log('[TonConnect] 🔧 Converting HTTP connection to injected BEFORE SDK initialization');
-                        
-                        // Create injected connection object
-                        const injectedConnection = {
-                            type: 'injected',
-                            jsBridgeKey: 'tonkeeper',
-                            nextRpcRequestId: storedConnection.nextRpcRequestId || 0
-                        };
-                        
-                        console.log('[TonConnect] 💾 Storing injected connection:', injectedConnection);
-                        bridge.storageSet(storageKey, JSON.stringify(injectedConnection));
-                        console.log('[TonConnect] ✅ Storage updated! SDK will use InjectedProvider on initialization');
-                    } else {
-                        console.log('[TonConnect] ℹ️ Connection is already type:', storedConnection.type);
-                    }
-                } else {
-                    console.log('[TonConnect] ℹ️ No existing connection in storage');
-                }
-            }
-        } catch (error) {
-            console.error('[TonConnect] ❌ Failed to fix storage type:', error);
-        }
-    }
     
     // Inject wallet with proper configuration and custom transport
     injectBridgeCode(window, {
