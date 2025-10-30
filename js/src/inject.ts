@@ -100,7 +100,6 @@ class AndroidWebViewTransport implements Transport {
     private pendingRequests = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void; timeout: NodeJS.Timeout }>();
     private pollingInterval: ReturnType<typeof setInterval> | null = null;
     private eventCallbacks: Array<(event: unknown) => void> = [];
-    private static readonly MAX_EVENT_REQUEUE_ATTEMPTS = 25;
 
     constructor() {
         // Start polling for responses and events
@@ -153,81 +152,33 @@ class AndroidWebViewTransport implements Transport {
             }
             
             // Check for pending events (like disconnect)
+            // Kotlin side now broadcasts events to ALL frames - each frame gets each event once
             if (bridge.hasEvent && bridge.pullEvent) {
-                while (bridge.hasEvent()) {
+                // Check if there are events for this specific frame (Kotlin tracks which frames consumed which events)
+                while (bridge.hasEvent(frameId)) {
                     try {
-                        const eventStr = bridge.pullEvent();
+                        // Pull event for this frame - Kotlin will mark it as consumed by this frame
+                        const eventStr = bridge.pullEvent(frameId);
                         if (eventStr) {
                             const data = JSON.parse(eventStr) as {
                                 type?: string;
                                 event?: unknown;
-                                __requeueCount?: number;
-                            };
-                            const currentRequeueCount =
-                                typeof data.__requeueCount === 'number' ? data.__requeueCount : 0;
-
-                            const tryRequeue = (reason: string): boolean => {
-                                const nextCount = currentRequeueCount + 1;
-                                if (nextCount > AndroidWebViewTransport.MAX_EVENT_REQUEUE_ATTEMPTS) {
-                                    console.log(
-                                        `[AndroidTransport] ⏭️ Requeue limit reached (${reason}), processing in this frame`,
-                                    );
-                                    delete data.__requeueCount;
-                                    return false;
-                                }
-
-                                console.log(
-                                    `[AndroidTransport] 🔁 Re-queuing event (${reason}), attempt ${nextCount}/${AndroidWebViewTransport.MAX_EVENT_REQUEUE_ATTEMPTS}`,
-                                );
-                                data.__requeueCount = nextCount;
-                                if (bridge.storeEvent) {
-                                    bridge.storeEvent(JSON.stringify(data));
-                                }
-                                return true;
                             };
 
-                            console.log('[AndroidTransport] 🔔 Pulled event from BridgeInterface:', data);
+                            console.log('[AndroidTransport] 🔔 Pulled event from BridgeInterface (broadcast)');
                             console.log('[AndroidTransport] 🔔 Frame ID:', frameId);
                             console.log('[AndroidTransport] 🔔 Window location:', window.location.href);
                             console.log('[AndroidTransport] 🔔 Is top window:', window === window.top);
-
-                            // If this frame does not have any TonConnect listeners but nested frames exist,
-                            // re-queue the event so that the frame with active listeners can process it.
-                            const hasTonConnectBridge = !!(window as any).tonkeeper?.tonconnect;
-                            const bridgeHasListeners =
-                                hasTonConnectBridge &&
-                                typeof (window as any).tonkeeper.tonconnect.hasListeners === 'function'
-                                    ? (window as any).tonkeeper.tonconnect.hasListeners()
-                                    : this.eventCallbacks.length > 0;
-                            const hasChildFrames =
-                                typeof document !== 'undefined' &&
-                                typeof document.querySelectorAll === 'function' &&
-                                document.querySelectorAll('iframe').length > 0;
-
-                            if (!bridgeHasListeners && hasChildFrames) {
-                                if (tryRequeue('no-listeners-with-child-frames')) {
-                                    break;
-                                }
-                            }
+                            console.log('[AndroidTransport] 🔔 Event data:', JSON.stringify(data).substring(0, 200));
 
                             if (data.type === 'TONCONNECT_BRIDGE_EVENT' && data.event) {
                                 console.log('[AndroidTransport] 🔔 Processing event:', data.event);
                                 console.log('[AndroidTransport] 🔔 Event callbacks count:', this.eventCallbacks.length);
 
-                                if (this.eventCallbacks.length === 0) {
-                                    // No callbacks in this frame - put event back for other frames (within limit)
-                                    if (tryRequeue('no-event-callbacks')) {
-                                        break; // Stop pulling events in this frame
-                                    }
-                                    console.log(
-                                        '[AndroidTransport] ⚠️ No callbacks available after requeue limit, dropping event in this frame',
-                                    );
-                                    delete data.__requeueCount;
-                                    continue;
-                                } else {
+                                // Process event if we have callbacks
+                                if (this.eventCallbacks.length > 0) {
                                     console.log('[AndroidTransport] 🔔 Event callback details:', this.eventCallbacks.map((cb, i) => `#${i}: ${typeof cb}`));
 
-                                    delete data.__requeueCount;
                                     this.eventCallbacks.forEach((callback, index) => {
                                         try {
                                             console.log(`[AndroidTransport] 🔔 Calling event callback #${index}`);
@@ -237,6 +188,8 @@ class AndroidWebViewTransport implements Transport {
                                             console.error(`[AndroidTransport] ❌ Event callback #${index} error:`, error);
                                         }
                                     });
+                                } else {
+                                    console.log('[AndroidTransport] ⏭️ No callbacks in this frame');
                                 }
                             }
                         }

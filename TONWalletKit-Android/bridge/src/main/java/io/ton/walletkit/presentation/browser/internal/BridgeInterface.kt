@@ -25,12 +25,18 @@ internal class BridgeInterface(
     // Limit size to prevent unbounded growth if responses are never pulled
     private val availableResponses = ConcurrentHashMap<String, ResponseEntry>()
 
-    // Thread-safe queue for events (like disconnect) that any frame can pull
-    // Using a bounded queue to prevent memory leaks
-    private val pendingEvents = LinkedBlockingQueue<String>(MAX_PENDING_EVENTS)
+    // Thread-safe storage for events that need to be broadcast to ALL frames
+    // Maps event ID to EventBroadcast (event data + consumed frame IDs)
+    private val broadcastEvents = ConcurrentHashMap<String, EventBroadcast>()
 
     private data class ResponseEntry(
         val response: String,
+        val timestamp: Long = System.currentTimeMillis()
+    )
+
+    private data class EventBroadcast(
+        val eventData: String,
+        val consumedByFrames: MutableSet<String> = mutableSetOf(),
         val timestamp: Long = System.currentTimeMillis()
     )
 
@@ -59,17 +65,33 @@ internal class BridgeInterface(
 
     private fun cleanupStaleResponses() {
         val now = System.currentTimeMillis()
-        val staleEntries = availableResponses.entries.filter { (_, entry) ->
+        
+        // Clean up stale responses
+        val staleResponses = availableResponses.entries.filter { (_, entry) ->
             now - entry.timestamp > RESPONSE_TTL_MS
         }
         
-        staleEntries.forEach { (messageId, _) ->
+        staleResponses.forEach { (messageId, _) ->
             availableResponses.remove(messageId)
             Log.d(TAG, "🧹 Removed stale response for messageId: $messageId")
         }
 
-        if (staleEntries.isNotEmpty()) {
-            Log.d(TAG, "🧹 Cleaned up ${staleEntries.size} stale response(s)")
+        if (staleResponses.isNotEmpty()) {
+            Log.d(TAG, "🧹 Cleaned up ${staleResponses.size} stale response(s)")
+        }
+
+        // Clean up stale broadcast events (older than 5 minutes)
+        val staleEvents = broadcastEvents.entries.filter { (_, broadcast) ->
+            now - broadcast.timestamp > RESPONSE_TTL_MS
+        }
+
+        staleEvents.forEach { (eventId, _) ->
+            broadcastEvents.remove(eventId)
+            Log.d(TAG, "🧹 Removed stale broadcast event: $eventId")
+        }
+
+        if (staleEvents.isNotEmpty()) {
+            Log.d(TAG, "🧹 Cleaned up ${staleEvents.size} stale broadcast event(s)")
         }
     }
 
@@ -149,44 +171,84 @@ internal class BridgeInterface(
     }
 
     /**
-     * Store an event (like disconnect) that any frame can pull.
+     * Store an event (like disconnect) that ALL frames can pull.
      * Called from Kotlin when an event needs to be delivered to the dApp.
-     * Also exposed to JavaScript so frames can re-queue events for other frames.
+     * Events are broadcast - each frame can pull independently.
      */
     @JavascriptInterface
     fun storeEvent(event: String) {
-        Log.d(TAG, "📥 Storing event: ${event.take(100)}")
-        pendingEvents.offer(event)
+        try {
+            val json = JSONObject(event)
+            val eventId = "${System.currentTimeMillis()}-${event.hashCode()}"
+            
+            Log.d(TAG, "📥 Broadcasting event to all frames: ${event.take(100)}")
+            
+            // Enforce max size limit for broadcast events
+            if (broadcastEvents.size >= MAX_BROADCAST_EVENTS) {
+                // Remove oldest event
+                val oldestEntry = broadcastEvents.entries.minByOrNull { it.value.timestamp }
+                oldestEntry?.let {
+                    broadcastEvents.remove(it.key)
+                    Log.w(TAG, "⚠️ Broadcast storage full, removed oldest event: ${it.key}")
+                }
+            }
+            
+            broadcastEvents[eventId] = EventBroadcast(event)
+            Log.d(TAG, "✅ Event stored for broadcast with ID: $eventId (total: ${broadcastEvents.size})")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to store event for broadcast", e)
+        }
     }
 
     /**
-     * Pull the next pending event.
+     * Pull an event for a specific frame.
      * Called from JavaScript in any frame to check for new events.
-     * Returns the event JSON string or null if no events are pending.
+     * Returns an event JSON string that this frame hasn't seen yet, or null.
+     * 
+     * This implements broadcast: each frame gets each event once.
      */
     @JavascriptInterface
-    fun pullEvent(): String? {
-        val event = pendingEvents.poll()
-        if (event != null) {
-            Log.d(TAG, "📤 Pulled event: ${event.take(100)}")
+    fun pullEvent(frameId: String): String? {
+        // Find first event that this frame hasn't consumed yet
+        for ((eventId, broadcast) in broadcastEvents) {
+            synchronized(broadcast) {
+                if (!broadcast.consumedByFrames.contains(frameId)) {
+                    // Mark this frame as having consumed the event
+                    broadcast.consumedByFrames.add(frameId)
+                    Log.d(TAG, "📤 Frame '$frameId' pulled event $eventId (consumed by ${broadcast.consumedByFrames.size} frames)")
+                    
+                    // If all expected frames have consumed this event, or if too many frames have seen it, remove it
+                    // We use a generous limit (10 frames) to ensure all legitimate frames get the event
+                    if (broadcast.consumedByFrames.size >= MAX_FRAMES_PER_EVENT) {
+                        broadcastEvents.remove(eventId)
+                        Log.d(TAG, "🗑️ Removed event $eventId after being consumed by ${broadcast.consumedByFrames.size} frames")
+                    }
+                    
+                    return broadcast.eventData
+                }
+            }
         }
-        return event
+        
+        return null
     }
 
     /**
-     * Check if there are any pending events.
+     * Check if there are any pending events for a specific frame.
      * Called from JavaScript to poll for events.
      */
     @JavascriptInterface
-    fun hasEvent(): Boolean {
-        return pendingEvents.isNotEmpty()
+    fun hasEvent(frameId: String): Boolean {
+        return broadcastEvents.any { (_, broadcast) ->
+            !broadcast.consumedByFrames.contains(frameId)
+        }
     }
 
     companion object {
         private const val TAG = "BridgeInterface"
-        private const val MAX_PENDING_EVENTS = 100 // Maximum events in queue
+        private const val MAX_BROADCAST_EVENTS = 50 // Maximum broadcast events stored
+        private const val MAX_FRAMES_PER_EVENT = 10 // Maximum frames that can consume one event
         private const val MAX_STORED_RESPONSES = 100 // Maximum responses in map
         private const val CLEANUP_INTERVAL_MS = 60_000L // Clean up every 60 seconds
-        private const val RESPONSE_TTL_MS = 300_000L // Responses expire after 5 minutes
+        private const val RESPONSE_TTL_MS = 300_000L // Responses/events expire after 5 minutes
     }
 }
