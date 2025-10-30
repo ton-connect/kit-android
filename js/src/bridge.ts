@@ -1573,65 +1573,7 @@ const api = {
     console.log('[walletkitBridge] ================================');
     console.log('[walletkitBridge] Processing internal browser request:', args.method, args.messageId);
     
-    // Handle restoreConnection specially - check if there's an active session
-    if (args.method === 'restoreConnection') {
-      console.log('[walletkitBridge] Handling restoreConnection request');
-      
-      // Get the current domain from the window location
-      const domain = typeof window !== 'undefined' && window.location ? window.location.hostname : 'internal-browser';
-      
-      // Check if there's an active session for this domain
-      const sessions = await walletKit.listSessions();
-      const activeSession = sessions.find((s: { domain: string; isJsBridge?: boolean }) => s.domain === domain && s.isJsBridge);
-      
-      if (activeSession) {
-        console.log('[walletkitBridge] Found active session for domain:', domain);
-        // Return a connect event with the existing session info
-        const wallet = walletKit.getWallets()[0]; // Get first wallet
-        if (!wallet) {
-          console.log('[walletkitBridge] No wallet available, returning disconnect');
-          return {
-            event: 'disconnect',
-            payload: {}
-          };
-        }
-        
-        return {
-          event: 'connect',
-          id: Date.now(),
-          payload: {
-            device: {
-              platform: 'android',
-              appName: 'Wallet',
-              appVersion: '1.0',
-              maxProtocolVersion: 2,
-              features: [
-                { name: 'SendTransaction', maxMessages: 4 },
-                { name: 'SignData', types: ['text', 'binary', 'cell'] }
-              ]
-            },
-            items: [
-              {
-                name: 'ton_addr',
-                address: wallet.getAddress(),
-                network: '-239',
-                walletStateInit: await wallet.getStateInit(),
-                publicKey: wallet.publicKey.replace('0x', '')
-              }
-            ]
-          }
-        };
-      } else {
-        console.log('[walletkitBridge] No active session found for domain:', domain, '- returning disconnect');
-        // No active session - return disconnect event
-        return {
-          event: 'disconnect',
-          payload: {}
-        };
-      }
-    }
-    
-    // Forward all other requests to processInjectedBridgeRequest (like the extension does)
+    // Forward all requests to processInjectedBridgeRequest (like the extension does)
     // Deep links are now handled at the Kotlin layer by calling handleTonConnectUrl directly
     if (typeof walletKit.processInjectedBridgeRequest !== 'function') {
       throw new Error('walletKit.processInjectedBridgeRequest is not available');

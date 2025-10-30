@@ -440,20 +440,6 @@ console.log('[TonConnect] Android WebView injects bridge into all frames automat
 // Create custom transport for Android or undefined for default behavior
 const transport: Transport | undefined = isAndroidWebView ? new AndroidWebViewTransport() : undefined;
 
-/**
- * Iframe Connector Initialization
- * If this script runs inside an iframe (window !== window.parent),
- * we DON'T initialize a connector because Android WebView automatically
- * injects the bridge into ALL frames (same-origin and cross-origin).
- * The iframe can directly use window.tonkeeper.tonconnect injected by the parent.
- * 
- * NOTE: This is different from browser extensions which need postMessage bridges.
- */
-if (window !== window.parent && window.top !== window) {
-    console.log('[TonConnect] Running inside iframe - bridge will be injected directly');
-    console.log('[TonConnect] No need for postMessage connector in Android WebView');
-}
-
 // Function to inject the bridge
 const performInjection = () => {
     console.log('[TonConnect] Injecting bridge code...');
