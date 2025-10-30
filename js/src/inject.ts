@@ -94,32 +94,173 @@ const walletInfo = {
 
 /**
  * Android WebView Transport Implementation
- * Custom transport that communicates with Android native code instead of extension
+ * Uses BridgeInterface as message bus with postMessage for iframe communication
  */
 class AndroidWebViewTransport implements Transport {
     private pendingRequests = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void; timeout: NodeJS.Timeout }>();
-    private pollingInterval: ReturnType<typeof setInterval> | null = null;
     private eventCallbacks: Array<(event: unknown) => void> = [];
 
     constructor() {
-        // Start polling for responses and events
-        // This works in ALL frames (main + iframes) via @JavascriptInterface
-        this.startPolling();
+        // Set up notification handlers and postMessage relay
+        this.setupNotificationHandlers();
+        this.setupPostMessageRelay();
     }
 
+    private setupNotificationHandlers(): void {
+        const bridge = (window as any).AndroidTonConnect;
+        if (!bridge) {
+            console.warn('[AndroidTransport] ⚠️ AndroidTonConnect bridge not available');
+            return;
+        }
+        
+        console.log('[AndroidTransport] 🔧 Setting up notification handlers in frame:', frameId);
+        console.log('[AndroidTransport] 🔧 Is top window:', window === window.top);
+        console.log('[AndroidTransport] 🔧 Window location:', window.location.href);
+        
+        // Main frame: Pull from BridgeInterface and broadcast to iframes
+        if (window === window.top) {
+            bridge.__notifyResponse = (messageId: string) => {
+                console.log(`[AndroidTransport] 📬 Main frame notified of response: ${messageId}`);
+                this.handleResponseNotification(messageId);
+            };
+            
+            bridge.__notifyEvent = () => {
+                console.log('[AndroidTransport] � Main frame notified of event');
+                this.handleEventNotification();
+            };
+        }
+        
+        console.log('[AndroidTransport] ✅ Notification handlers registered');
+    }
 
-    private tryPullResponse(messageId: string): void {
+    private setupPostMessageRelay(): void {
+        // Listen for messages from parent frames and relay to children (recursive cascade)
+        window.addEventListener('message', (event) => {
+            // Prevent infinite loops - don't process messages from self
+            if (event.source === window) {
+                console.log(`[AndroidTransport] 🔄 Frame ${frameId} ignoring self-message`);
+                return;
+            }
+            
+            console.log(`[AndroidTransport] 📬 Frame ${frameId} received postMessage:`, event.data?.type, 'from origin:', event.origin);
+            
+            // Handle response notifications
+            if (event.data?.type === 'ANDROID_BRIDGE_RESPONSE') {
+                const messageId = event.data.messageId;
+                console.log(`[AndroidTransport] 📨 Frame ${frameId} received response notification: ${messageId}`);
+                
+                // 1. Try to handle in THIS frame (if we have pending request)
+                this.pullAndDeliverResponse(messageId);
+                
+                // 2. Relay to ALL child iframes (recursive cascade to reach nested iframes)
+                const childIframes = document.querySelectorAll('iframe');
+                if (childIframes.length > 0) {
+                    console.log(`[AndroidTransport] 🔁 Frame ${frameId} relaying response to ${childIframes.length} child iframe(s)`);
+                    childIframes.forEach((iframe, index) => {
+                        try {
+                            iframe.contentWindow?.postMessage(event.data, '*');
+                            console.log(`[AndroidTransport] ✅ Frame ${frameId} relayed to child iframe #${index}`);
+                        } catch (e) {
+                            console.warn(`[AndroidTransport] ❌ Frame ${frameId} failed to relay to child iframe #${index}:`, e);
+                        }
+                    });
+                } else {
+                    console.log(`[AndroidTransport] 📭 Frame ${frameId} has no child iframes to relay to`);
+                }
+            } 
+            // Handle event notifications
+            else if (event.data?.type === 'ANDROID_BRIDGE_EVENT') {
+                console.log(`[AndroidTransport] 📨 Frame ${frameId} received event notification`);
+                
+                // 1. Try to handle in THIS frame
+                this.pullAndDeliverEvent();
+                
+                // 2. Relay to ALL child iframes (recursive cascade)
+                const childIframes = document.querySelectorAll('iframe');
+                if (childIframes.length > 0) {
+                    console.log(`[AndroidTransport] 🔁 Frame ${frameId} relaying event to ${childIframes.length} child iframe(s)`);
+                    childIframes.forEach((iframe, index) => {
+                        try {
+                            iframe.contentWindow?.postMessage(event.data, '*');
+                            console.log(`[AndroidTransport] ✅ Frame ${frameId} relayed event to child iframe #${index}`);
+                        } catch (e) {
+                            console.warn(`[AndroidTransport] ❌ Frame ${frameId} failed to relay event to child iframe #${index}:`, e);
+                        }
+                    });
+                } else {
+                    console.log(`[AndroidTransport] 📭 Frame ${frameId} has no child iframes to relay to`);
+                }
+            }
+        });
+        
+        console.log(`[AndroidTransport] ✅ postMessage listener with recursive relay registered in frame: ${frameId}`);
+    }
+
+    private handleResponseNotification(messageId: string): void {
+        // Main frame: Pull response and deliver locally, then trigger recursive cascade
+        console.log(`[AndroidTransport] 📡 Main frame initiating response notification cascade for: ${messageId}`);
+        
+        // 1. Try to handle in main frame first
+        this.pullAndDeliverResponse(messageId);
+        
+        // 2. Broadcast to direct child iframes (they will relay to their children recursively)
+        const iframes = document.querySelectorAll('iframe');
+        console.log(`[AndroidTransport] 📡 Main frame broadcasting to ${iframes.length} direct child iframe(s)`);
+        
+        iframes.forEach((iframe, index) => {
+            try {
+                iframe.contentWindow?.postMessage({
+                    type: 'ANDROID_BRIDGE_RESPONSE',
+                    messageId
+                }, '*');
+                console.log(`[AndroidTransport] ✅ Main frame sent to direct child iframe #${index}`);
+            } catch (e) {
+                console.warn(`[AndroidTransport] ❌ Main frame failed to notify iframe #${index}:`, e);
+            }
+        });
+    }
+
+    private handleEventNotification(): void {
+        // Main frame: Pull event and deliver locally, then trigger recursive cascade
+        console.log('[AndroidTransport] 📡 Main frame initiating event notification cascade');
+        
+        // 1. Try to handle in main frame first
+        this.pullAndDeliverEvent();
+        
+        // 2. Broadcast to direct child iframes (they will relay to their children recursively)
+        const iframes = document.querySelectorAll('iframe');
+        console.log(`[AndroidTransport] 📡 Main frame broadcasting to ${iframes.length} direct child iframe(s)`);
+        
+        iframes.forEach((iframe, index) => {
+            try {
+                iframe.contentWindow?.postMessage({
+                    type: 'ANDROID_BRIDGE_EVENT'
+                }, '*');
+                console.log(`[AndroidTransport] ✅ Main frame sent event to direct child iframe #${index}`);
+            } catch (e) {
+                console.warn(`[AndroidTransport] ❌ Main frame failed to notify iframe #${index}:`, e);
+            }
+        });
+    }
+
+    private pullAndDeliverResponse(messageId: string): void {
         const pending = this.pendingRequests.get(messageId);
-        if (!pending) return;
+        if (!pending) {
+            console.log(`[AndroidTransport] No pending request for: ${messageId} in frame: ${frameId}`);
+            return;
+        }
 
         try {
             const bridge = (window as any).AndroidTonConnect;
-            if (!bridge || !bridge.pullResponse) return;
+            if (!bridge?.pullResponse) {
+                console.error(`[AndroidTransport] Bridge not available in frame: ${frameId}`);
+                return;
+            }
 
             const responseStr = bridge.pullResponse(messageId);
             if (responseStr) {
                 const response = JSON.parse(responseStr);
-                console.log(`[AndroidTransport] Pulled response for: ${messageId}`);
+                console.log(`[AndroidTransport] ✅ Pulled and processing response for: ${messageId} in frame: ${frameId}`);
                 
                 clearTimeout(pending.timeout);
                 this.pendingRequests.delete(messageId);
@@ -129,88 +270,56 @@ class AndroidWebViewTransport implements Transport {
                 } else {
                     pending.resolve(response.payload);
                 }
+            } else {
+                console.warn(`[AndroidTransport] Response ${messageId} already pulled or not available in frame: ${frameId}`);
             }
         } catch (error) {
-            console.error("[AndroidTransport] Failed to pull response:", error);
+            console.error("[AndroidTransport] Failed to pull/process response:", error);
+            pending.reject(error as Error);
         }
     }
 
-    private startPolling(): void {
-        // Poll every 100ms to check for responses AND events
-        this.pollingInterval = setInterval(() => {
+    private pullAndDeliverEvent(): void {
+        try {
             const bridge = (window as any).AndroidTonConnect;
-            if (!bridge) return;
-            
-            // Check for pending responses
-            if (this.pendingRequests.size > 0 && bridge.hasResponse) {
-                this.pendingRequests.forEach((pending, messageId) => {
-                    if (bridge.hasResponse(messageId)) {
-                        console.log(`[AndroidTransport] Polling detected response for: ${messageId}`);
-                        this.tryPullResponse(messageId);
-                    }
-                });
-            }
-            
-            // Check for pending events (like disconnect)
-            // Kotlin side now broadcasts events to ALL frames - each frame gets each event once
-            if (bridge.hasEvent && bridge.pullEvent) {
-                // Check if there are events for this specific frame (Kotlin tracks which frames consumed which events)
-                while (bridge.hasEvent(frameId)) {
-                    try {
-                        // Pull event for this frame - Kotlin will mark it as consumed by this frame
-                        const eventStr = bridge.pullEvent(frameId);
-                        if (eventStr) {
-                            const data = JSON.parse(eventStr) as {
-                                type?: string;
-                                event?: unknown;
-                            };
+            if (!bridge?.pullEvent || !bridge?.hasEvent) return;
 
-                            console.log('[AndroidTransport] 🔔 Pulled event from BridgeInterface (broadcast)');
-                            console.log('[AndroidTransport] 🔔 Frame ID:', frameId);
-                            console.log('[AndroidTransport] 🔔 Window location:', window.location.href);
-                            console.log('[AndroidTransport] 🔔 Is top window:', window === window.top);
-                            console.log('[AndroidTransport] 🔔 Event data:', JSON.stringify(data).substring(0, 200));
+            // Pull event for this frame (Kotlin tracks per-frame consumption)
+            while (bridge.hasEvent(frameId)) {
+                const eventStr = bridge.pullEvent(frameId);
+                if (eventStr) {
+                    const data = JSON.parse(eventStr) as {
+                        type?: string;
+                        event?: unknown;
+                    };
 
-                            if (data.type === 'TONCONNECT_BRIDGE_EVENT' && data.event) {
-                                console.log('[AndroidTransport] 🔔 Processing event:', data.event);
-                                console.log('[AndroidTransport] 🔔 Event callbacks count:', this.eventCallbacks.length);
+                    console.log('[AndroidTransport] 🔔 Pulled event in frame:', frameId);
+                    console.log('[AndroidTransport] 🔔 Event data:', JSON.stringify(data).substring(0, 200));
 
-                                // Process event if we have callbacks
-                                if (this.eventCallbacks.length > 0) {
-                                    console.log('[AndroidTransport] 🔔 Event callback details:', this.eventCallbacks.map((cb, i) => `#${i}: ${typeof cb}`));
+                    if (data.type === 'TONCONNECT_BRIDGE_EVENT' && data.event) {
+                        console.log('[AndroidTransport] 🔔 Event callbacks count:', this.eventCallbacks.length);
 
-                                    this.eventCallbacks.forEach((callback, index) => {
-                                        try {
-                                            console.log(`[AndroidTransport] 🔔 Calling event callback #${index}`);
-                                            callback(data.event);
-                                            console.log(`[AndroidTransport] ✅ Event callback #${index} completed`);
-                                        } catch (error) {
-                                            console.error(`[AndroidTransport] ❌ Event callback #${index} error:`, error);
-                                        }
-                                    });
-                                } else {
-                                    console.log('[AndroidTransport] ⏭️ No callbacks in this frame');
-                                }
+                        this.eventCallbacks.forEach((callback, index) => {
+                            try {
+                                console.log(`[AndroidTransport] 🔔 Calling event callback #${index}`);
+                                callback(data.event);
+                                console.log(`[AndroidTransport] ✅ Event callback #${index} completed`);
+                            } catch (error) {
+                                console.error(`[AndroidTransport] ❌ Event callback #${index} error:`, error);
                             }
-                        }
-                    } catch (error) {
-                        console.error('[AndroidTransport] Failed to pull/process event:', error);
-                        break; // Stop pulling if there's an error
+                        });
                     }
                 }
             }
-        }, 100);
-    }
-
-    private stopPolling(): void {
-        if (this.pollingInterval) {
-            clearInterval(this.pollingInterval);
-            this.pollingInterval = null;
+        } catch (error) {
+            console.error('[AndroidTransport] Failed to pull/process event:', error);
         }
     }
 
     async send(request: Omit<InjectedToExtensionBridgeRequestPayload, 'id'>): Promise<unknown> {
-        console.log('[AndroidTransport] Sending:', request.method);
+        console.log('[AndroidTransport] 📤 Sending request:', request.method);
+        console.log('[AndroidTransport] 📤 Frame ID:', frameId);
+        console.log('[AndroidTransport] 📤 Is top window:', window === window.top);
         
         const messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
         const method = request.method || 'unknown';
@@ -224,14 +333,17 @@ class AndroidWebViewTransport implements Transport {
             frameId
         };
         
+        console.log('[AndroidTransport] 📤 Sending to Kotlin with messageId:', messageId);
         (window as any).AndroidTonConnect.postMessage(JSON.stringify(payload));
         
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
+                console.error(`[AndroidTransport] ⏱️ Timeout waiting for response to ${messageId}`);
                 this.pendingRequests.delete(messageId);
                 reject(new Error('Request timeout'));
             }, 30000);
             
+            console.log('[AndroidTransport] ⏳ Waiting for response to messageId:', messageId);
             this.pendingRequests.set(messageId, { resolve, reject, timeout });
         });
     }
@@ -301,14 +413,19 @@ class AndroidWebViewTransport implements Transport {
     }
 
     destroy(): void {
-        this.stopPolling();
-        this.pendingRequests.clear();
-        this.eventCallbacks = [];
-        // Clear pending requests
         this.pendingRequests.forEach(({ timeout, reject }) => {
             clearTimeout(timeout);
             reject(new Error('Transport destroyed'));
         });
+        this.pendingRequests.clear();
+        this.eventCallbacks = [];
+        
+        // Clean up notification handlers
+        const bridge = (window as any).AndroidTonConnect;
+        if (bridge && window === window.top) {
+            delete bridge.__notifyResponse;
+            delete bridge.__notifyEvent;
+        }
     }
 }
 

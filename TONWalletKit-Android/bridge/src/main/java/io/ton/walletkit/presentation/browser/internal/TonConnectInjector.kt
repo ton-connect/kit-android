@@ -401,11 +401,29 @@ internal class TonConnectInjector(
 
         Log.d(TAG, "🔔 Extracted actual event: $actualEvent")
         Log.d(TAG, "🔔 Formatted event message: $eventMessage")
+        Log.d(TAG, "🔔 WebView attached: ${webView.parent != null}")
 
-        // Store the event in BridgeInterface so ANY frame can pull it
-        // This works automatically for all frames (main + iframes) via @JavascriptInterface
+        // Store event in BridgeInterface - available to ALL frames via @JavascriptInterface
         bridgeInterface.storeEvent(eventMessage.toString())
-        Log.d(TAG, "✅ Event stored in BridgeInterface, accessible to all frames via pullEvent()")
+
+        // Notify the main frame via JavaScript injection - main frame will broadcast to iframes via postMessage
+        val script = """
+            (function() {
+                console.log('[Kotlin→JS] Event available');
+                if (window.AndroidTonConnect && window.AndroidTonConnect.__notifyEvent) {
+                    window.AndroidTonConnect.__notifyEvent();
+                } else {
+                    console.error('[Kotlin→JS] ❌ __notifyEvent not available!');
+                }
+            })();
+        """.trimIndent()
+        
+        Log.d(TAG, "📤 Notifying main frame about event availability...")
+        webView.post {
+            webView.evaluateJavascript(script) { result ->
+                Log.d(TAG, "📣 Event notification result: $result")
+            }
+        }
     }
 
     /**
@@ -736,17 +754,30 @@ internal class TonConnectInjector(
             put(BrowserConstants.KEY_PAYLOAD, response)
         }
 
-        Log.d(TAG, "📥 Storing response for messageId: ${pending.messageId}")
+        Log.d(TAG, "📥 Storing response in BridgeInterface for messageId: ${pending.messageId}")
+        Log.d(TAG, "📥 Frame ID: ${pending.frameId}")
         Log.d(TAG, "📥 Response JSON: $responseJson")
+        Log.d(TAG, "📥 WebView attached: ${webView.parent != null}")
 
-        // Store response in BridgeInterface - any iframe can pull it
-        // This works because addJavascriptInterface makes BridgeInterface
-        // available in ALL frames (parent + iframes)
+        // Store response in BridgeInterface - available to ALL frames via @JavascriptInterface
         bridgeInterface.storeResponse(pending.messageId, responseJson.toString())
 
-        // Frames poll for available responses through AndroidTonConnect.hasResponse(),
-        // so no explicit JavaScript notification is required (or reliable for iframes).
-        Log.d(TAG, "📣 Response queued via BridgeInterface for polling frames")
+        // Notify the main frame via JavaScript injection - main frame will broadcast to iframes via postMessage
+        val script = """
+            (function() {
+                console.log('[Kotlin→JS] Response available for messageId: ${pending.messageId}');
+                if (window.AndroidTonConnect && window.AndroidTonConnect.__notifyResponse) {
+                    window.AndroidTonConnect.__notifyResponse('${pending.messageId}');
+                } else {
+                    console.error('[Kotlin→JS] ❌ __notifyResponse not available!');
+                }
+            })();
+        """.trimIndent()
+        
+        Log.d(TAG, "📤 Notifying main frame about response availability...")
+        webView.evaluateJavascript(script) { result ->
+            Log.d(TAG, "📣 Notification result: $result")
+        }
     }
 
     /**
