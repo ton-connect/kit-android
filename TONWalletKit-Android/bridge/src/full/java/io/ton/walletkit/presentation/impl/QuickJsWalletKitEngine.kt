@@ -660,7 +660,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun handleTonConnectRequest(
         messageId: String,
         method: String,
-        params: JSONObject?,
+        paramsJson: String?,
         url: String?,
         responseCallback: (JSONObject) -> Unit,
     ) {

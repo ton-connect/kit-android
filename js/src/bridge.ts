@@ -1622,15 +1622,8 @@ const api = {
     // CRITICAL: For 'send' method, params should be an ARRAY containing the actual request
     // The dApp sends: { method: 'send', params: [{ method: 'signData', params: [...] }] }
     // BridgeManager.queueJsBridgeEvent extracts params[0] to get the inner request
-    // Kotlin layer wraps JSONArray in a special marker object: { __isArray: true, __arrayData: [...] }
-    // Unwrap it here before sending to core
     
-    let finalParams = args.params;
-    if (args.params && typeof args.params === 'object' && '__isArray' in args.params) {
-      const marker = args.params as { __isArray: boolean; __arrayData: unknown };
-      finalParams = marker.__arrayData;
-      console.log('[walletkitBridge] Unwrapped array from Kotlin marker object');
-    }
+    const finalParams = args.params;
     
     // For 'connect' method, inject manifestUrl if provided by Kotlin and not already in params
     // This ensures the core can fetch manifest data consistently for both HTTP and JS bridges

@@ -784,7 +784,7 @@ internal class WebViewWalletKitEngine(
     override suspend fun handleTonConnectRequest(
         messageId: String,
         method: String,
-        params: JSONObject?,
+        paramsJson: String?,
         url: String?,
         responseCallback: (JSONObject) -> Unit,
     ) {
@@ -794,6 +794,17 @@ internal class WebViewWalletKitEngine(
 
             Log.d(TAG, "Processing internal browser request: $method (messageId: $messageId)")
             Log.d(TAG, "dApp URL: $url")
+
+            // Parse the JSON string params (can be JSONObject or JSONArray)
+            val params: Any? = when {
+                paramsJson == null -> null
+                paramsJson.trimStart().startsWith("[") -> JSONArray(paramsJson)
+                paramsJson.trimStart().startsWith("{") -> JSONObject(paramsJson)
+                else -> {
+                    Log.w(TAG, "Unexpected params format: $paramsJson")
+                    null
+                }
+            }
 
             // Build params for the bridge call
             val requestParams = JSONObject().apply {

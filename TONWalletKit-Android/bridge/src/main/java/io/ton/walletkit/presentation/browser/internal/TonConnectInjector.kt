@@ -650,22 +650,14 @@ internal class TonConnectInjector(
             try {
                 Log.d(TAG, "🔄 Forwarding request to WalletKit engine: $method")
 
-                // Keep params as-is - the core BridgeManager handles 'send' method unwrapping
-                // For 'send' method, params can be an ARRAY: [{ method: 'signData', params: [...] }]
-                // For other methods, params is usually a JSONObject
-                // handleTonConnectRequest expects JSONObject, but we need to pass arrays for 'send'
-                // Convert JSONArray to JSONObject wrapper if needed
+                // Get params - can be JSONObject, JSONArray, or null
                 val paramsRaw = json.opt(ResponseConstants.KEY_PARAMS)
-                val paramsToSend: JSONObject? = when {
-                    paramsRaw is JSONObject -> paramsRaw
-                    paramsRaw is JSONArray -> {
-                        // Wrap the array in a special marker object
-                        JSONObject().apply {
-                            put("__isArray", true)
-                            put("__arrayData", paramsRaw)
-                        }
-                    }
-                    paramsRaw == null -> null
+                
+                // Convert to JSON string for engine (engine will parse it properly)
+                val paramsJson: String? = when (paramsRaw) {
+                    is JSONObject -> paramsRaw.toString()
+                    is JSONArray -> paramsRaw.toString()
+                    null -> null
                     else -> {
                         Log.w(TAG, "Unexpected params type: ${paramsRaw.javaClass.simpleName}")
                         null
@@ -673,8 +665,7 @@ internal class TonConnectInjector(
                 }
 
                 Log.d(TAG, "🔄 Method: $method")
-                Log.d(TAG, "🔄 Params type: ${paramsRaw?.javaClass?.simpleName}")
-                Log.d(TAG, "🔄 Params: $paramsToSend")
+                Log.d(TAG, "🔄 Params JSON: $paramsJson")
 
                 // Use WebView's current URL (the main frame URL) instead of tracking it manually
                 // This is more reliable than trying to detect page vs resource loads
@@ -686,7 +677,7 @@ internal class TonConnectInjector(
                 engine.handleTonConnectRequest(
                     messageId = messageId,
                     method = method,
-                    params = paramsToSend,
+                    paramsJson = paramsJson,
                     url = dAppUrl,
                     responseCallback = { response ->
                         Log.d(TAG, "🟣 responseCallback invoked by engine!")
