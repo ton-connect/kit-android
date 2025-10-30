@@ -13,22 +13,23 @@ let WalletV4R2Adapter: any;
 let WalletV5R1Adapter: any;
 let Address: any;
 let Cell: any;
-// Bridge uses numeric chain ids only: '-239' = mainnet, '-3' = testnet
-let currentNetwork: '-239' | '-3' = '-3';
+let CHAIN: any; // CHAIN enum from @ton/walletkit
+let currentNetwork: string = ''; // Will be set to CHAIN.TESTNET or CHAIN.MAINNET after init
 let currentApiBase = 'https://testnet.tonapi.io';
 type TonChainEnum = { MAINNET: number; TESTNET: number };
 let tonConnectChain: TonChainEnum | null = null;
 
 async function ensureWalletKitLoaded() {
-  if (TonWalletKit && createWalletInitConfigMnemonic && tonConnectChain && Address && Cell && Signer && WalletV4R2Adapter && WalletV5R1Adapter) {
+  if (TonWalletKit && createWalletInitConfigMnemonic && tonConnectChain && CHAIN && Address && Cell && Signer && WalletV4R2Adapter && WalletV5R1Adapter) {
     return;
   }
-  if (!TonWalletKit || !createWalletInitConfigMnemonic || !Signer || !WalletV4R2Adapter || !WalletV5R1Adapter) {
+  if (!TonWalletKit || !createWalletInitConfigMnemonic || !Signer || !WalletV4R2Adapter || !WalletV5R1Adapter || !CHAIN) {
     const module = await walletKitModulePromise;
     TonWalletKit = (module as any).TonWalletKit;
     createWalletInitConfigMnemonic = (module as any).createWalletInitConfigMnemonic;
   CreateTonMnemonic = (module as any).CreateTonMnemonic ?? (module as any).CreateTonMnemonic;
     createWalletManifest = (module as any).createWalletManifest ?? createWalletManifest;
+    CHAIN = (module as any).CHAIN; // Load CHAIN enum
     tonConnectChain = (module as any).CHAIN ?? tonConnectChain;
     Signer = (module as any).Signer;
     WalletV4R2Adapter = (module as any).WalletV4R2Adapter;
@@ -40,26 +41,28 @@ async function ensureWalletKitLoaded() {
     Address = (coreModule as any).Address;
     Cell = (coreModule as any).Cell;
   }
-  if (!tonConnectChain) {
+  if (!tonConnectChain || !CHAIN) {
     const module = await walletKitModulePromise;
     tonConnectChain = (module as any).CHAIN ?? null;
-    if (!tonConnectChain) {
+    CHAIN = (module as any).CHAIN;
+    if (!tonConnectChain || !CHAIN) {
       throw new Error('TonWalletKit did not expose CHAIN enum');
     }
   }
 }
 
-// Normalize network input (accept legacy names but bridge stores numeric ids)
-function normalizeNetworkValue(n?: string | null): '-239' | '-3' {
-  if (!n) return '-3';
-  if (n === '-239' || n === '-3') return n as '-239' | '-3';
+// Normalize network input (accept legacy names but return CHAIN enum values)
+function normalizeNetworkValue(n?: string | null): string {
+  if (!n) return CHAIN.TESTNET;
+  if (n === CHAIN.MAINNET) return CHAIN.MAINNET;
+  if (n === CHAIN.TESTNET) return CHAIN.TESTNET;
   if (typeof n === 'string') {
     const lowered = n.toLowerCase();
-    if (lowered === 'mainnet') return '-239';
-    if (lowered === 'testnet') return '-3';
+    if (lowered === 'mainnet') return CHAIN.MAINNET;
+    if (lowered === 'testnet') return CHAIN.TESTNET;
   }
   // default to testnet
-  return '-3';
+  return CHAIN.TESTNET;
 }
 
 // Helper to convert raw address (0:hex) to user-friendly format (UQ...)
@@ -67,7 +70,7 @@ function toUserFriendlyAddress(rawAddress: string | null): string | null {
   if (!rawAddress || !Address) return rawAddress;
   try {
     const addr = Address.parse(rawAddress);
-    return addr.toString({ bounceable: false, testOnly: currentNetwork === '-3' });
+    return addr.toString({ bounceable: false, testOnly: currentNetwork === CHAIN.TESTNET });
   } catch (e) {
     console.warn('[walletkitBridge] Failed to parse address:', rawAddress, e);
     return rawAddress;
@@ -375,15 +378,16 @@ async function initTonWalletKit(config?: WalletKitBridgeInitConfig, context?: Ca
   const networkRaw = (config?.network as string | undefined) ?? 'testnet';
   const network = normalizeNetworkValue(networkRaw);
   currentNetwork = network;
-  const tonApiUrl = config?.tonApiUrl || config?.apiBaseUrl || (network === '-239' ? 'https://tonapi.io' : 'https://testnet.tonapi.io');
-  const clientEndpoint = config?.tonClientEndpoint || config?.apiUrl || (network === '-239' ? 'https://toncenter.com/api/v2/jsonRPC' : 'https://testnet.toncenter.com/api/v2/jsonRPC');
+  const isMainnet = network === CHAIN.MAINNET;
+  const tonApiUrl = config?.tonApiUrl || config?.apiBaseUrl || (isMainnet ? 'https://tonapi.io' : 'https://testnet.tonapi.io');
+  const clientEndpoint = config?.tonClientEndpoint || config?.apiUrl || (isMainnet ? 'https://toncenter.com/api/v2/jsonRPC' : 'https://testnet.toncenter.com/api/v2/jsonRPC');
   currentApiBase = tonApiUrl;
   emitCallCheckpoint(context, 'initTonWalletKit:constructing-tonwalletkit');
   const chains = tonConnectChain;
   if (!chains) {
     throw new Error('TON Connect chain constants unavailable');
   }
-  const chain = network === '-239' ? chains.MAINNET : chains.TESTNET;
+  const chain = isMainnet ? chains.MAINNET : chains.TESTNET;
 
   console.log('[walletkitBridge] initTonWalletKit config:', JSON.stringify(config, null, 2));
   
@@ -717,9 +721,10 @@ const api = {
       throw new Error('TON Connect chain constants unavailable');
     }
     // Support both network names (mainnet/testnet) and chain IDs (-239/-3)
-  // Normalize network input (accept legacy names but convert to numeric ids)
+  // Normalize network input (accept legacy names but convert to CHAIN enum values)
   const networkValue = normalizeNetworkValue(args.network as string | undefined);
-  const chain = networkValue === '-239' ? chains.MAINNET : chains.TESTNET;
+  const isMainnet = networkValue === CHAIN.MAINNET;
+  const chain = isMainnet ? chains.MAINNET : chains.TESTNET;
     
     // Create wallet adapter based on version
     let walletAdapter: any;
@@ -769,7 +774,8 @@ const api = {
     }
     
   const networkValue = normalizeNetworkValue(args.network as string | undefined);
-  const chain = networkValue === '-239' ? chains.MAINNET : chains.TESTNET;
+  const isMainnet = networkValue === CHAIN.MAINNET;
+  const chain = isMainnet ? chains.MAINNET : chains.TESTNET;
     
     // Store pending sign requests
     const pendingSignRequests = new Map<string, { resolve: (sig: Uint8Array) => void; reject: (err: Error) => void }>();
@@ -888,7 +894,8 @@ const api = {
       throw new Error('TON Connect chain constants unavailable');
     }
   const networkValue = normalizeNetworkValue(args.network as string | undefined);
-  const chain = networkValue === '-239' ? chains.MAINNET : chains.TESTNET;
+  const isMainnet = networkValue === CHAIN.MAINNET;
+  const chain = isMainnet ? chains.MAINNET : chains.TESTNET;
     const signer = await Signer.fromMnemonic(args.mnemonic, { type: 'ton' });
     return await WalletV4R2Adapter.create(signer, {
       client: walletKit.getApiClient(),
@@ -912,7 +919,8 @@ const api = {
       throw new Error('TON Connect chain constants unavailable');
     }
   const networkValue = normalizeNetworkValue(args.network as string | undefined);
-  const chain = networkValue === '-239' ? chains.MAINNET : chains.TESTNET;
+  const isMainnet = networkValue === CHAIN.MAINNET;
+  const chain = isMainnet ? chains.MAINNET : chains.TESTNET;
     const signer = await Signer.fromPrivateKey(args.secretKey);
     return await WalletV4R2Adapter.create(signer, {
       client: walletKit.getApiClient(),
@@ -936,7 +944,8 @@ const api = {
       throw new Error('TON Connect chain constants unavailable');
     }
   const networkValue = normalizeNetworkValue(args.network as string | undefined);
-  const chain = networkValue === '-239' ? chains.MAINNET : chains.TESTNET;
+  const isMainnet = networkValue === CHAIN.MAINNET;
+  const chain = isMainnet ? chains.MAINNET : chains.TESTNET;
     const signer = await Signer.fromMnemonic(args.mnemonic, { type: 'ton' });
     return await WalletV5R1Adapter.create(signer, {
       client: walletKit.getApiClient(),
@@ -960,7 +969,8 @@ const api = {
       throw new Error('TON Connect chain constants unavailable');
     }
   const networkValue = normalizeNetworkValue(args.network as string | undefined);
-  const chain = networkValue === '-239' ? chains.MAINNET : chains.TESTNET;
+  const isMainnet = networkValue === CHAIN.MAINNET;
+  const chain = isMainnet ? chains.MAINNET : chains.TESTNET;
     const signer = await Signer.fromPrivateKey(args.secretKey);
     return await WalletV5R1Adapter.create(signer, {
       client: walletKit.getApiClient(),
