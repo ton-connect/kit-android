@@ -19,14 +19,14 @@ internal interface BridgeStorageAdapter {
     /**
      * Get a value from storage by key.
      * @param key The storage key
-     * @return The stored value as a JSON string, or null if not found
+     * @return The stored value as a raw string, or null if not found
      */
     suspend fun get(key: String): String?
 
     /**
      * Set a value in storage.
      * @param key The storage key
-     * @param value The value to store as a JSON string
+     * @param value The value to store as a raw string (JSON serialization is handled by the JS layer)
      */
     suspend fun set(key: String, value: String)
 

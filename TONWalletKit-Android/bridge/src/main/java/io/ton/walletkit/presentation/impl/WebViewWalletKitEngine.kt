@@ -465,16 +465,24 @@ internal class WebViewWalletKitEngine private constructor(
     ): WalletAccount {
         ensureWalletKitInitialized()
 
-        // Call addWalletFromMnemonic on the bridge (which handles creating and adding the wallet)
+        // Call version-specific method on the bridge (matching iOS implementation)
+        // These methods create the wallet AND add it to WalletKit in one step
         val normalizedVersion = version.lowercase()
+        val methodName = when (normalizedVersion) {
+            "v4r2" -> "createV4R2WalletUsingMnemonic"
+            "v5r1" -> "createV5R1WalletUsingMnemonic"
+            else -> throw IllegalArgumentException("Unsupported wallet version: $version. Use 'v4r2' or 'v5r1'.")
+        }
+        
         val params =
             JSONObject().apply {
-                put(JsonConstants.KEY_WORDS, JSONArray(words))
-                put(JsonConstants.KEY_VERSION, normalizedVersion)
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
+                // Use "mnemonic" to match iOS bridge parameter name
+                put("mnemonic", JSONArray(words))
+                network?.let { put("network", it) }
             }
 
-        call(BridgeMethodConstants.METHOD_ADD_WALLET_FROM_MNEMONIC, params)
+        // Create and add wallet (combined operation)
+        call(methodName, params)
 
         // Get wallets to find the one we just added
         val walletsResult = call(BridgeMethodConstants.METHOD_GET_WALLETS)
@@ -532,9 +540,10 @@ internal class WebViewWalletKitEngine private constructor(
         ensureWalletKitInitialized()
         val params = JSONObject().apply { put(JsonConstants.KEY_COUNT, wordCount) }
         val result = call(BridgeMethodConstants.METHOD_CREATE_TON_MNEMONIC, params)
-        val items = result.optJSONArray(ResponseConstants.KEY_ITEMS)
-        if (items == null) return emptyList()
-        return List(items.length()) { i -> items.optString(i) }
+        // Bridge returns { mnemonic: [...] }, not { items: [...] }
+        val mnemonicArray = result.optJSONArray("mnemonic")
+        if (mnemonicArray == null) return emptyList()
+        return List(mnemonicArray.length()) { i -> mnemonicArray.optString(i) }
     }
 
     override suspend fun addWalletWithSigner(
@@ -645,16 +654,14 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun getWalletState(address: String): WalletState {
         ensureWalletKitInitialized()
+        
+        // Call getWalletBalance to get the balance
         val params = JSONObject().apply { put(ResponseConstants.KEY_ADDRESS, address) }
-        val result = call(BridgeMethodConstants.METHOD_GET_WALLET_STATE, params)
+        val result = call("getWalletBalance", params)
+        
         return WalletState(
-            balance =
-            when {
-                result.has(ResponseConstants.KEY_BALANCE) -> result.optString(ResponseConstants.KEY_BALANCE)
-                result.has(ResponseConstants.KEY_VALUE) -> result.optString(ResponseConstants.KEY_VALUE)
-                else -> null
-            },
-            transactions = parseTransactions(result.optJSONArray(ResponseConstants.KEY_TRANSACTIONS)),
+            balance = result.optString(ResponseConstants.KEY_BALANCE),
+            transactions = emptyList(), // Transactions fetched separately via getRecentTransactions
         )
     }
 
@@ -1355,6 +1362,12 @@ internal class WebViewWalletKitEngine private constructor(
         pending[callId] = deferred
 
         val payload = params?.toString()
+        // Debug: log raw payload string to help debug serialization issues
+        if (payload != null) {
+            Log.d(TAG, "call: raw payload string: $payload")
+        } else {
+            Log.d(TAG, "call: payload is null")
+        }
         val idLiteral = JSONObject.quote(callId)
         val methodLiteral = JSONObject.quote(method)
         val script =

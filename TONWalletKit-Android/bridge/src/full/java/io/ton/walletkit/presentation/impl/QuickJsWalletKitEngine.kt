@@ -278,15 +278,23 @@ internal class QuickJsWalletKitEngine(
     ): WalletAccount {
         ensureWalletKitInitialized()
 
-        // Call addWalletFromMnemonic on the bridge (which handles creating and adding the wallet)
+        // Call version-specific method on the bridge (matching iOS implementation)
+        // These methods create the wallet AND add it to WalletKit in one step
         val normalizedVersion = version.lowercase()
+        val methodName = when (normalizedVersion) {
+            "v4r2" -> "createV4R2WalletUsingMnemonic"
+            "v5r1" -> "createV5R1WalletUsingMnemonic"
+            else -> throw IllegalArgumentException("Unsupported wallet version: $version. Use 'v4r2' or 'v5r1'.")
+        }
+        
         val params = JSONObject().apply {
-            put("words", JSONArray(words))
-            put("version", normalizedVersion)
+            // Use "mnemonic" to match iOS bridge parameter name
+            put("mnemonic", JSONArray(words))
             network?.let { put("network", it) }
         }
 
-        call("addWalletFromMnemonic", params)
+        // Create and add wallet (combined operation)
+        call(methodName, params)
 
         // Get wallets to find the one we just added
         val walletsResult = call("getWallets")
@@ -330,7 +338,13 @@ internal class QuickJsWalletKitEngine(
     }
 
     override suspend fun createTonMnemonic(wordCount: Int): List<String> {
-        TODO("Not yet implemented")
+        ensureWalletKitInitialized()
+        val params = JSONObject().apply { put("count", wordCount) }
+        val result = call("createTonMnemonic", params)
+        // Bridge returns { mnemonic: [...] }, not { items: [...] }
+        val mnemonicArray = result.optJSONArray("mnemonic")
+        if (mnemonicArray == null) return emptyList()
+        return List(mnemonicArray.length()) { i -> mnemonicArray.optString(i) }
     }
 
     override suspend fun addWalletWithSigner(
@@ -396,19 +410,19 @@ internal class QuickJsWalletKitEngine(
     override suspend fun getWalletState(address: String): WalletState {
         ensureWalletKitInitialized()
         Log.d(logTag, "getWalletState called for address: $address")
+        
+        // Call getWalletBalance to get the balance
         val params = JSONObject().apply { put("address", address) }
-        Log.d(logTag, "getWalletState calling JavaScript...")
-        val result = call("getWalletState", params)
+        Log.d(logTag, "getWalletState calling JavaScript getWalletBalance...")
+        val result = call("getWalletBalance", params)
         Log.d(logTag, "getWalletState result: $result")
-        val balance = when {
-            result.has("balance") -> result.optString("balance")
-            result.has("value") -> result.optString("value")
-            else -> null
-        }
+        
+        val balance = result.optString("balance")
         Log.d(logTag, "getWalletState balance: $balance")
+        
         return WalletState(
             balance = balance,
-            transactions = parseTransactions(result.optJSONArray("transactions")),
+            transactions = emptyList(), // Transactions fetched separately via getRecentTransactions
         )
     }
 
@@ -861,6 +875,11 @@ internal class QuickJsWalletKitEngine(
         val deferred = CompletableDeferred<BridgeResponse>()
         pending[callId] = deferred
         val payload = params?.toString()
+        if (payload != null) {
+            Log.d(logTag, "call: raw payload string: $payload")
+        } else {
+            Log.d(logTag, "call: payload is null")
+        }
         val idLiteral = JSONObject.quote(callId)
         val methodLiteral = JSONObject.quote(method)
         val script =

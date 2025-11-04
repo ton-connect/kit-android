@@ -2,4 +2,5 @@ import { setupPolyfills } from './setupPolyfills';
 
 setupPolyfills();
 
-void import('./bridge');
+// Import new layered bridge architecture
+void import('./bridge/index');

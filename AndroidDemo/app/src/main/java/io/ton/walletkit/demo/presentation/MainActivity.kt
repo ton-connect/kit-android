@@ -1,26 +1,36 @@
 package io.ton.walletkit.demo.presentation
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import io.ton.walletkit.demo.core.TONWalletKitHelper
 import io.ton.walletkit.demo.core.WalletKitDemoApp
 import io.ton.walletkit.demo.presentation.ui.screen.SetupPasswordScreen
 import io.ton.walletkit.demo.presentation.ui.screen.UnlockWalletScreen
 import io.ton.walletkit.demo.presentation.ui.screen.WalletScreen
 import io.ton.walletkit.demo.presentation.viewmodel.WalletKitViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -28,35 +38,65 @@ class MainActivity : ComponentActivity() {
         val app = application as WalletKitDemoApp
         WalletKitViewModel.factory(app, app.storage, app.sdkEvents, app.sdkInitialized)
     }
+    
+    private var walletKit: io.ton.walletkit.presentation.TONWalletKit? = null
+    private var walletKitError: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MaterialTheme {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    AppNavigation(viewModel = viewModel)
+        
+        // Initialize WalletKit ONCE before setContent to avoid composition cancellation issues
+        lifecycleScope.launch {
+            try {
+                Log.d("MainActivity", "🔄 Starting WalletKit initialization...")
+                val app = application as WalletKitDemoApp
+                walletKit = TONWalletKitHelper.mainnet(app)
+                Log.d("MainActivity", "✅ WalletKit initialized successfully")
+                // Trigger recomposition after initialization
+                setContent {
+                    MainContent()
                 }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "❌ Failed to initialize WalletKit", e)
+                walletKitError = e.message
+                // Show content even if initialization failed
+                setContent {
+                    MainContent()
+                }
+            }
+        }
+        
+        // Show initial content with loading state
+        setContent {
+            MainContent()
+        }
+    }
+    
+    @Composable
+    private fun MainContent() {
+        MaterialTheme {
+            Surface(color = MaterialTheme.colorScheme.background) {
+                AppNavigation(
+                    viewModel = viewModel,
+                    walletKit = walletKit,
+                    walletKitError = walletKitError
+                )
             }
         }
     }
 }
 
 @Composable
-private fun AppNavigation(viewModel: WalletKitViewModel) {
+private fun AppNavigation(
+    viewModel: WalletKitViewModel,
+    walletKit: io.ton.walletkit.presentation.TONWalletKit?,
+    walletKitError: String?
+) {
     val isPasswordSet by viewModel.isPasswordSet.collectAsState()
     val isUnlocked by viewModel.isUnlocked.collectAsState()
     val state by viewModel.state.collectAsState()
     val nftsViewModel by viewModel.nftsViewModel.collectAsState()
     val hasWallet = state.wallets.isNotEmpty()
-
-    // Get wallet kit instance for browser sheet
-    val context = LocalContext.current
-    val walletKit = remember { mutableStateOf<io.ton.walletkit.presentation.TONWalletKit?>(null) }
-
-    LaunchedEffect(Unit) {
-        val app = context.applicationContext as WalletKitDemoApp
-        walletKit.value = TONWalletKitHelper.mainnet(app)
-    }
 
     when {
         // Step 1: Setup password (first time user)
@@ -85,11 +125,36 @@ private fun AppNavigation(viewModel: WalletKitViewModel) {
         // Step 3 & 4: Main wallet screen (unlocked)
         // The AddWalletSheet will be shown automatically if no wallets exist
         else -> {
-            // Only show WalletScreen if walletKit is loaded
-            walletKit.value?.let { kit ->
+            when {
+                // Show error if WalletKit failed to initialize
+                walletKitError != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Failed to initialize WalletKit:\n$walletKitError",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
+                }
+                
+                // Show loading while WalletKit initializes
+                walletKit == null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                
+                // Show WalletScreen when walletKit is ready
+                else -> {
                 WalletScreen(
                     state = state,
-                    walletKit = kit,
+                    walletKit = walletKit,
                     nftsViewModel = nftsViewModel,
                     onAddWalletClick = viewModel::openAddWalletSheet,
                     onUrlPromptClick = viewModel::showUrlPrompt,
@@ -124,6 +189,7 @@ private fun AppNavigation(viewModel: WalletKitViewModel) {
                     onLoadMoreJettons = viewModel::loadMoreJettons,
                     onRefreshJettons = viewModel::refreshJettons,
                 )
+                }
             }
         }
     }

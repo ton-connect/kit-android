@@ -25,7 +25,8 @@ data class ConnectRequestEvent(
     val messageId: String? = null,
     val traceId: String? = null,
     val method: String? = null,
-    val params: List<String>? = null,
+    // Note: params field is not deserialized as it varies by request type
+    // Actual connection data is in preview/request fields
 ) {
     @Serializable
     data class Preview(
