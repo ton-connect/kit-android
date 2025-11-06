@@ -105,6 +105,9 @@ kotlin {
 }
 
 // WalletKit Bundle Build & Copy Tasks
+// Note: The JavaScript bundles are built in the main monorepo at:
+// https://github.com/ton-connect/kit/tree/main/packages/walletkit-android-bridge
+// Pre-built bundles should be placed in dist-android/ directory
 val walletKitDistDir: File =
     rootProject.rootDir
         .toPath()
@@ -119,34 +122,23 @@ val walletKitQuickJsDistDir: File =
         .toFile()
 val walletKitAssetsDir: File = layout.projectDirectory.dir("src/main/assets/walletkit").asFile
 
-// Task to build both WebView and QuickJS bundles using pnpm
-val buildWalletKitBundles =
-    tasks.register<Exec>("buildWalletKitBundles") {
-        group = "walletkit"
-        description = "Build both WebView and QuickJS WalletKit bundles using pnpm"
-        workingDir = rootProject.rootDir.parentFile
-        commandLine("sh", "-c", "cd ${rootProject.rootDir.parentFile.absolutePath} && pnpm run build:all")
-        // Only fail if pnpm is not found and we're actually building (not testing)
-        isIgnoreExitValue = true
-        doLast {
-            val result = executionResult.get()
-            if (result.exitValue != 0) {
-                logger.warn("pnpm build failed or pnpm not found. Skipping bundle generation.")
-            }
-        }
-    }
-
 // Task to copy WebView bundle
 val syncWalletKitWebViewAssets =
     tasks.register<Copy>("syncWalletKitWebViewAssets") {
         group = "walletkit"
-        description = "Copy WalletKit WebView bundle into impl module assets (packaged in AAR)."
-        dependsOn(buildWalletKitBundles)
+        description = "Copy WalletKit WebView bundle from dist-android into impl module assets (packaged in AAR)."
 
         doFirst {
             if (!walletKitDistDir.exists()) {
-                logger.warn(
-                    "WebView bundle not found at $walletKitDistDir. Skipping asset copy.",
+                logger.error(
+                    """
+                    ❌ WebView bundle not found at $walletKitDistDir
+                    
+                    The JavaScript bridge bundles must be built from the monorepo:
+                    https://github.com/ton-connect/kit/tree/main/packages/walletkit-android-bridge
+                    
+                    Then copy the dist-android/ directory to the kit-android repository root.
+                    """.trimIndent()
                 )
                 throw StopActionException()
             }
@@ -163,14 +155,10 @@ val syncWalletKitWebViewAssets =
             }
         }
 
-        // Copy JS bundles from dist-android
+        // Copy JS bundles and HTML from dist-android
         from(walletKitDistDir) {
             include("walletkit-android-bridge.mjs", "walletkit-android-bridge.mjs.map")
             include("inject.mjs", "inject.mjs.map")
-        }
-
-        // Copy HTML entry point from source
-        from(rootProject.rootDir.parentFile.resolve("js/src")) {
             include("index.html")
         }
 
@@ -189,8 +177,7 @@ val syncWalletKitWebViewAssets =
 val syncWalletKitQuickJsAssets =
     tasks.register<Copy>("syncWalletKitQuickJsAssets") {
         group = "walletkit"
-        description = "Copy WalletKit QuickJS bundle into impl module assets (packaged in AAR)."
-        dependsOn(buildWalletKitBundles)
+        description = "Copy WalletKit QuickJS bundle from dist-android-quickjs into impl module assets (packaged in AAR)."
         from(walletKitQuickJsDistDir) {
             include("walletkit.quickjs.js")
             rename("walletkit.quickjs.js", "index.js")

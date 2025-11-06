@@ -4,22 +4,19 @@ TON blockchain wallet SDK for Android.
 
 ## Structure
 
-- `TONWalletKit-Android/` - SDK library
+- `TONWalletKit-Android/` - SDK library (Kotlin/Java)
 - `AndroidDemo/` - Demo app
-- `js/` - TypeScript source for bridge
+
+> **Note**: The JavaScript bridge code is maintained in the [main monorepo](https://github.com/ton-connect/kit) at `packages/walletkit-android-bridge`. Pre-built bundles are included in the `dist-android/` directory.
 
 ## Quick Start
 
 ```bash
-# 1. Build JavaScript bundles
-pnpm install
-pnpm run build:all
-
-# 2. Build SDK and copy to demo
+# Build SDK and copy to demo
 cd TONWalletKit-Android
 ./gradlew buildAndCopyWebviewToDemo
 
-# 3. Run demo
+# Run demo
 cd ../AndroidDemo
 ./gradlew installDebug
 ```

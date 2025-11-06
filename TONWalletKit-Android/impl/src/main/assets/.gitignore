@@ -1,1 +1,6 @@
-walletkit/
+# WalletKit bundles are built from monorepo and committed to git
+# This ensures SDK consumers don't need to build JS bundles themselves
+# Only ignore temporary/cache files
+walletkit/.vite
+walletkit/assets
+walletkit/.DS_Store
