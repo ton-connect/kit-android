@@ -21,11 +21,11 @@
  */
 package io.ton.walletkit.engine.parsing
 
-import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.TransactionType
 import org.json.JSONArray

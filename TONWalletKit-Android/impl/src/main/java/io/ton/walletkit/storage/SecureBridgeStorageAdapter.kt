@@ -22,9 +22,9 @@
 package io.ton.walletkit.storage
 
 import android.content.Context
-import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.StorageConstants
+import io.ton.walletkit.internal.util.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

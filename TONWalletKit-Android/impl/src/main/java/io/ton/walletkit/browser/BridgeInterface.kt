@@ -21,9 +21,9 @@
  */
 package io.ton.walletkit.browser
 
-import io.ton.walletkit.internal.util.Logger
 import android.webkit.JavascriptInterface
 import io.ton.walletkit.internal.constants.BrowserConstants
+import io.ton.walletkit.internal.util.Logger
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 

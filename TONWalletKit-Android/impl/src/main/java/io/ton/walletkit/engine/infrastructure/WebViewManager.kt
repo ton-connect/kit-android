@@ -24,7 +24,6 @@ package io.ton.walletkit.engine.infrastructure
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import io.ton.walletkit.internal.util.Logger
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
@@ -42,6 +41,7 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
+import io.ton.walletkit.internal.util.Logger
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -134,7 +134,7 @@ internal class WebViewManager(
             webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
             webView.settings.allowFileAccess = true
             webView.addJavascriptInterface(JsBinding(), WebViewConstants.JS_INTERFACE_NAME)
-            
+
             // Set WebChromeClient to suppress console logs in release builds
             webView.webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
@@ -145,7 +145,7 @@ internal class WebViewManager(
                     return true // Suppress default logging
                 }
             }
-            
+
             webView.webViewClient =
                 object : WebViewClient() {
                     override fun onReceivedError(

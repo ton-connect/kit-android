@@ -22,10 +22,10 @@
 package io.ton.walletkit.browser
 
 import android.content.Context
-import io.ton.walletkit.internal.util.Logger
 import android.webkit.WebView
-import io.ton.walletkit.internal.constants.BrowserConstants
 import io.ton.walletkit.bridge.BuildConfig
+import io.ton.walletkit.internal.constants.BrowserConstants
+import io.ton.walletkit.internal.util.Logger
 
 /**
  * Handles injection of the TonConnect bridge script into WebView frames.

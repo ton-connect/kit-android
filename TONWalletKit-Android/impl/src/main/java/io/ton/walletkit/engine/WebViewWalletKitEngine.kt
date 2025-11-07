@@ -22,7 +22,6 @@
 package io.ton.walletkit.engine
 
 import android.content.Context
-import io.ton.walletkit.internal.util.Logger
 import android.view.ViewGroup
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -47,6 +46,7 @@ import io.ton.walletkit.event.TransactionRequestEvent
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.TONJettonTransferParams
 import io.ton.walletkit.model.TONJettonWallets

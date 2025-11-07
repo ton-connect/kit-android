@@ -22,7 +22,6 @@
 package io.ton.walletkit.browser
 
 import android.annotation.SuppressLint
-import io.ton.walletkit.internal.util.Logger
 import android.view.View
 import android.webkit.WebView
 import androidx.webkit.WebViewCompat
@@ -38,6 +37,7 @@ import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.TONNetwork
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

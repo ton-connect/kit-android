@@ -15,7 +15,7 @@ android {
         minSdk = 24
         consumerProguardFiles("consumer-rules.pro")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
+
         // Enable logging in debug builds only
         buildConfigField("boolean", "ENABLE_LOGGING", "true")
     }
@@ -56,7 +56,7 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            
+
             // Disable logging in release builds
             buildConfigField("boolean", "ENABLE_LOGGING", "false")
         }
@@ -69,7 +69,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    
+
     buildFeatures {
         buildConfig = true
     }

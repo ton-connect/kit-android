@@ -21,7 +21,6 @@
  */
 package io.ton.walletkit.engine.operations
 
-import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.event.ConnectRequestEvent
@@ -31,6 +30,7 @@ import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.WalletSession
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

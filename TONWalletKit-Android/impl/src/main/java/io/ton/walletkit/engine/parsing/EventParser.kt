@@ -21,7 +21,6 @@
  */
 package io.ton.walletkit.engine.parsing
 
-import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.event.ConnectRequestEvent
@@ -32,6 +31,7 @@ import io.ton.walletkit.internal.constants.EventTypeConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.DAppInfo
 import io.ton.walletkit.model.SignDataRequest
 import io.ton.walletkit.model.TransactionRequest

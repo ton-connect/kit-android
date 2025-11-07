@@ -21,9 +21,9 @@
  */
 package io.ton.walletkit.engine.state
 
-import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.internal.constants.LogConstants
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

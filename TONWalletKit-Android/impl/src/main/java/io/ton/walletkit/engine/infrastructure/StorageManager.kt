@@ -21,8 +21,8 @@
  */
 package io.ton.walletkit.engine.infrastructure
 
-import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.internal.constants.LogConstants
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.storage.BridgeStorageAdapter
 
 /**

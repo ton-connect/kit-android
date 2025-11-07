@@ -22,13 +22,13 @@
 package io.ton.walletkit.storage
 
 import android.content.Context
-import io.ton.walletkit.internal.util.Logger
 import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.StorageConstants
+import io.ton.walletkit.internal.util.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

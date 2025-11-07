@@ -22,7 +22,6 @@
 package io.ton.walletkit.engine.infrastructure
 
 import android.content.Context
-import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -31,6 +30,7 @@ import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.TONNetwork
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
