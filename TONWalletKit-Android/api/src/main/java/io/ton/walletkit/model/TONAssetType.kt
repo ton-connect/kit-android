@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.model
 
-import io.ton.walletkit.internal.constants.JsonConstants
+import io.ton.walletkit.internal.constants.JsonConsts
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -33,10 +33,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class TONAssetType {
     /** Native TON currency */
-    @SerialName(JsonConstants.VALUE_ASSET_TON)
+    @SerialName(JsonConsts.VALUE_ASSET_TON)
     TON,
 
     /** Jetton token */
-    @SerialName(JsonConstants.VALUE_ASSET_JETTON)
+    @SerialName(JsonConsts.VALUE_ASSET_JETTON)
     JETTON,
 }

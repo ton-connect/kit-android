@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.event
 
-import io.ton.walletkit.internal.constants.JsonConstants
+import io.ton.walletkit.internal.constants.JsonConsts
 import io.ton.walletkit.model.DAppInfo
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -57,7 +57,7 @@ data class TransactionRequestEvent(
     data class Request(
         val messages: List<Message>? = null,
         val network: String? = null,
-        @SerialName(JsonConstants.KEY_VALID_UNTIL)
+        @SerialName(JsonConsts.KEY_VALID_UNTIL)
         val validUntil: Long? = null,
         val from: String? = null,
     )
