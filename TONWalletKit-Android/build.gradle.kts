@@ -16,6 +16,7 @@ subprojects {
                 "**/build/**/*.kt",
                 "**/WalletKitEngineFactoryTest.kt",
             )
+            licenseHeaderFile(rootProject.file("../LICENSE_HEADER"))
             ktlint("1.0.1")
                 .editorConfigOverride(
                     mapOf(

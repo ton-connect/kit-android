@@ -138,7 +138,7 @@ val syncWalletKitWebViewAssets =
                     https://github.com/ton-connect/kit/tree/main/packages/walletkit-android-bridge
                     
                     Then copy the dist-android/ directory to the kit-android repository root.
-                    """.trimIndent()
+                    """.trimIndent(),
                 )
                 throw StopActionException()
             }

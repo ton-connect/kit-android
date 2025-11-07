@@ -12,6 +12,7 @@ spotless {
     kotlin {
         target("**/*.kt")
         targetExclude("**/build/**/*.kt", "**/generated/**/*.kt")
+        licenseHeaderFile(rootProject.file("../LICENSE_HEADER"))
         ktlint().editorConfigOverride(
             mapOf("ktlint_function_naming_ignore_when_annotated_with" to "Composable"),
         )
