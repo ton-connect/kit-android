@@ -1,0 +1,137 @@
+name: Android SDK CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'TONWalletKit-Android/**'
+      - 'AndroidDemo/**'
+      - '.github/workflows/android-ci.yml'
+
+jobs:
+  # Code formatting check with Spotless
+  spotless:
+    name: Spotless Check
+    # runs-on: ubuntu-latest
+    runs-on: [self-hosted, k8s, linux]
+    container:
+      image: cimg/android:2025.10-node
+      options: --user root
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      # - name: Setup Android SDK
+      #   uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        working-directory: TONWalletKit-Android
+        run: chmod +x gradlew
+
+      - name: Run Spotless Check
+        working-directory: TONWalletKit-Android
+        run: ./gradlew spotlessCheck
+
+  # Build and test SDK
+  test-sdk:
+    name: Test & Build SDK
+    # runs-on: ubuntu-latest
+    runs-on: [self-hosted, k8s, linux]
+    container:
+      image: cimg/android:2025.10-node
+      options: --user root
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      # - name: Setup Android SDK
+      #   uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        working-directory: TONWalletKit-Android
+        run: chmod +x gradlew
+
+      - name: Run unit tests
+        working-directory: TONWalletKit-Android
+        run: ./gradlew :bridge:testWebviewReleaseUnitTest
+
+      - name: Build WebView variant
+        working-directory: TONWalletKit-Android
+        run: ./gradlew buildWebview
+
+      - name: Upload WebView AAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridge-webview-release
+          path: TONWalletKit-Android/bridge/build/outputs/aar/bridge-webview-release.aar
+          retention-days: 7
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TONWalletKit-Android/bridge/build/test-results/
+          retention-days: 7
+
+  # Build Demo App
+  build-demo:
+    name: Build Demo App
+    # runs-on: ubuntu-latest
+    runs-on: [self-hosted, k8s, linux]
+    container:
+      image: cimg/android:2025.10-node
+      options: --user root
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+      # - name: Setup Android SDK
+      #   uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew (SDK)
+        working-directory: TONWalletKit-Android
+        run: chmod +x gradlew
+
+      - name: Build SDK for Demo
+        working-directory: TONWalletKit-Android
+        run: ./gradlew buildWebview
+
+      - name: Copy AAR to Demo app libs
+        run: |
+          mkdir -p AndroidDemo/app/libs
+          cp TONWalletKit-Android/bridge/build/outputs/aar/bridge-webview-release.aar AndroidDemo/app/libs/bridge-release.aar
+
+      - name: Grant execute permission for gradlew (Demo)
+        working-directory: AndroidDemo
+        run: chmod +x gradlew
+
+      - name: Build Demo App
+        working-directory: AndroidDemo
+        run: ./gradlew assembleDebug
+
+      - name: Upload Demo APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-app-debug
+          path: AndroidDemo/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
