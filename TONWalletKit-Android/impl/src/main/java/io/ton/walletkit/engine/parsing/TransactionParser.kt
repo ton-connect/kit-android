@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.engine.parsing
 
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.MiscConstants
@@ -87,7 +87,7 @@ internal class TransactionParser {
 
                 // Skip non-TON transactions
                 if (isJettonOrTokenTx) {
-                    Log.d(TAG, "Skipping jetton/token transaction: ${txJson.optString(ResponseConstants.KEY_HASH_HEX, ResponseConstants.VALUE_UNKNOWN)}")
+                    Logger.d(TAG, "Skipping jetton/token transaction: ${txJson.optString(ResponseConstants.KEY_HASH_HEX, ResponseConstants.VALUE_UNKNOWN)}")
                     continue
                 }
 

@@ -22,7 +22,7 @@
 package io.ton.walletkit.browser
 
 import android.annotation.SuppressLint
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import android.view.View
 import android.webkit.WebView
 import androidx.webkit.WebViewCompat
@@ -86,7 +86,7 @@ internal class TonConnectInjector(
          */
         @JvmStatic
         internal fun registerWebView(sessionId: String, webView: WebView) {
-            Log.d(TAG, "Registering WebView for session: $sessionId")
+            Logger.d(TAG, "Registering WebView for session: $sessionId")
             activeWebViews[sessionId] = WeakReference(webView)
             cleanupStaleReferences()
         }
@@ -97,7 +97,7 @@ internal class TonConnectInjector(
          */
         @JvmStatic
         internal fun unregisterWebView(sessionId: String) {
-            Log.d(TAG, "Unregistering WebView for session: $sessionId")
+            Logger.d(TAG, "Unregistering WebView for session: $sessionId")
             activeWebViews.remove(sessionId)
         }
 
@@ -107,24 +107,24 @@ internal class TonConnectInjector(
          */
         @JvmStatic
         internal fun getWebViewForSession(sessionId: String): WebView? {
-            Log.d(TAG, "🔍 getWebViewForSession called for: $sessionId")
-            Log.d(TAG, "🔍 Total registered sessions: ${activeWebViews.size}")
-            Log.d(TAG, "🔍 Registered session IDs: ${activeWebViews.keys.joinToString(", ")}")
+            Logger.d(TAG, "🔍 getWebViewForSession called for: $sessionId")
+            Logger.d(TAG, "🔍 Total registered sessions: ${activeWebViews.size}")
+            Logger.d(TAG, "🔍 Registered session IDs: ${activeWebViews.keys.joinToString(", ")}")
 
             val webViewRef = activeWebViews[sessionId]
             val webView = webViewRef?.get()
 
-            Log.d(TAG, "🔍 WebView reference found: ${webViewRef != null}")
-            Log.d(TAG, "🔍 WebView still alive: ${webView != null}")
+            Logger.d(TAG, "🔍 WebView reference found: ${webViewRef != null}")
+            Logger.d(TAG, "🔍 WebView still alive: ${webView != null}")
 
             // Clean up stale reference if WebView was garbage collected
             if (webView == null && webViewRef != null) {
                 activeWebViews.remove(sessionId)
-                Log.d(TAG, "Removed stale WebView reference for session: $sessionId")
+                Logger.d(TAG, "Removed stale WebView reference for session: $sessionId")
             }
 
             return webView?.also {
-                Log.d(TAG, "✅ Found WebView for session: $sessionId")
+                Logger.d(TAG, "✅ Found WebView for session: $sessionId")
             }
         }
 
@@ -141,7 +141,7 @@ internal class TonConnectInjector(
             staleKeys.forEach { activeWebViews.remove(it) }
 
             if (staleKeys.isNotEmpty()) {
-                Log.d(TAG, "Cleaned up ${staleKeys.size} stale WebView references")
+                Logger.d(TAG, "Cleaned up ${staleKeys.size} stale WebView references")
             }
         }
 
@@ -151,7 +151,7 @@ internal class TonConnectInjector(
          */
         @JvmStatic
         internal fun clearAllRegistrations() {
-            Log.d(TAG, "Clearing all WebView registrations")
+            Logger.d(TAG, "Clearing all WebView registrations")
             activeWebViews.clear()
         }
     }
@@ -176,13 +176,13 @@ internal class TonConnectInjector(
     // BrowserSheet's DisposableEffect or when the parent screen is destroyed.
     private val detachListener = object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) {
-            Log.d(TAG, "WebView attached to window")
+            Logger.d(TAG, "WebView attached to window")
             // Deliver any pending responses that were queued while detached
             deliverPendingResponses()
         }
 
         override fun onViewDetachedFromWindow(v: View) {
-            Log.d(TAG, "WebView detached from window (NOT cleaning up - may be temporary)")
+            Logger.d(TAG, "WebView detached from window (NOT cleaning up - may be temporary)")
             // Do NOT call cleanup() here - the WebView may just be temporarily hidden
             // when showing Connect/Transaction request sheets
         }
@@ -201,7 +201,7 @@ internal class TonConnectInjector(
         // Store reference so we can call storeResponse() later
         bridgeInterface = BridgeInterface(
             onMessage = { json, type -> handleBridgeMessage(json, type) },
-            onError = { error -> Log.e(TAG, "Bridge error: $error") },
+            onError = { error -> Logger.e(TAG, "Bridge error: $error") },
         )
         webView.addJavascriptInterface(
             bridgeInterface,
@@ -227,19 +227,19 @@ internal class TonConnectInjector(
                     allowedOrigins,
                 )
 
-                Log.d(TAG, "✅ Bridge script registered via addDocumentStartJavaScript (executes before HTML parsing)")
+                Logger.d(TAG, "✅ Bridge script registered via addDocumentStartJavaScript (executes before HTML parsing)")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to add document start script, falling back to onPageStarted injection", e)
+                Logger.e(TAG, "Failed to add document start script, falling back to onPageStarted injection", e)
                 // Fallback: inject in onPageStarted (less reliable but better than nothing)
                 BridgeInjector.injectIntoAllFrames(context, webView) { error ->
-                    Log.e(TAG, "Bridge injection error: $error")
+                    Logger.e(TAG, "Bridge injection error: $error")
                 }
             }
         } else {
-            Log.w(TAG, "⚠️ DOCUMENT_START_SCRIPT not supported, using fallback injection (may have timing issues)")
+            Logger.w(TAG, "⚠️ DOCUMENT_START_SCRIPT not supported, using fallback injection (may have timing issues)")
             // Fallback for older Android versions
             BridgeInjector.injectIntoAllFrames(context, webView) { error ->
-                Log.e(TAG, "Bridge injection error: $error")
+                Logger.e(TAG, "Bridge injection error: $error")
             }
         }
 
@@ -249,7 +249,7 @@ internal class TonConnectInjector(
                 // Update current URL for domain extraction
                 // Always update - user can navigate from host/a to host/b
                 currentUrl = url
-                Log.d(TAG, "✅ Current dApp URL updated: $url")
+                Logger.d(TAG, "✅ Current dApp URL updated: $url")
 
                 // Emit page started event
                 scope.launch {
@@ -261,12 +261,12 @@ internal class TonConnectInjector(
                             },
                         )
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to emit page started event", e)
+                        Logger.w(TAG, "Failed to emit page started event", e)
                     }
                 }
             },
             onPageFinished = { url ->
-                Log.d(TAG, "📍 Page finished loading: $url")
+                Logger.d(TAG, "📍 Page finished loading: $url")
 
                 // Emit page finished event
                 scope.launch {
@@ -278,7 +278,7 @@ internal class TonConnectInjector(
                             },
                         )
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to emit page finished event", e)
+                        Logger.w(TAG, "Failed to emit page finished event", e)
                     }
 
                     // Check for existing session and restore connection UI
@@ -287,13 +287,13 @@ internal class TonConnectInjector(
                         try {
                             restoreSessionIfExists(url)
                         } catch (e: Exception) {
-                            Log.w(TAG, "Failed to restore session", e)
+                            Logger.w(TAG, "Failed to restore session", e)
                         }
                     }
                 }
             },
             onError = { error ->
-                Log.e(TAG, "WebView error: $error")
+                Logger.e(TAG, "WebView error: $error")
                 // Emit error event
                 scope.launch {
                     try {
@@ -304,7 +304,7 @@ internal class TonConnectInjector(
                             },
                         )
                     } catch (e: Exception) {
-                        Log.w(TAG, "Failed to emit error event", e)
+                        Logger.w(TAG, "Failed to emit error event", e)
                     }
                 }
             },
@@ -312,8 +312,8 @@ internal class TonConnectInjector(
             onTonConnectUrl = { url ->
                 // Intercept deep link navigation to prevent ERR_UNKNOWN_URL_SCHEME
                 // The dApp should use the injected bridge instead (embedded: true tells it to)
-                Log.d(TAG, "Intercepted deep link navigation (prevented): $url")
-                Log.w(TAG, "⚠️ dApp tried to open deep link instead of using injected bridge - this indicates timing issue")
+                Logger.d(TAG, "Intercepted deep link navigation (prevented): $url")
+                Logger.w(TAG, "⚠️ dApp tried to open deep link instead of using injected bridge - this indicates timing issue")
             },
             getInjectionScript = {
                 // Load the bridge script from assets for HTML interception
@@ -322,7 +322,7 @@ internal class TonConnectInjector(
                         .bufferedReader()
                         .use { it.readText() }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to load inject.mjs for HTML interception", e)
+                    Logger.e(TAG, "Failed to load inject.mjs for HTML interception", e)
                     ""
                 }
             },
@@ -341,14 +341,14 @@ internal class TonConnectInjector(
      * @param response The response data to send back
      */
     fun sendResponse(messageId: String, response: JSONObject) {
-        Log.d(TAG, "🔵 sendResponse called for messageId: $messageId")
-        Log.d(TAG, "🔵 Pending requests: ${pendingRequests.keys}")
-        Log.d(TAG, "🔵 Response: $response")
+        Logger.d(TAG, "🔵 sendResponse called for messageId: $messageId")
+        Logger.d(TAG, "🔵 Pending requests: ${pendingRequests.keys}")
+        Logger.d(TAG, "🔵 Response: $response")
 
         val pending = pendingRequests.remove(messageId)
         if (pending == null) {
-            Log.w(TAG, "⚠️ No pending request found for messageId: $messageId")
-            Log.w(TAG, "⚠️ Available pending requests: ${pendingRequests.keys}")
+            Logger.w(TAG, "⚠️ No pending request found for messageId: $messageId")
+            Logger.w(TAG, "⚠️ Available pending requests: ${pendingRequests.keys}")
             return
         }
 
@@ -357,7 +357,7 @@ internal class TonConnectInjector(
             try {
                 // Register with messageId (for immediate responses)
                 registerWebView(messageId, webView)
-                Log.d(TAG, "✅ Registered WebView with messageId: $messageId")
+                Logger.d(TAG, "✅ Registered WebView with messageId: $messageId")
 
                 // CRITICAL FIX: After sending the response, query WalletKit for the sessionId
                 // and register the WebView with it too (for disconnect later)
@@ -368,7 +368,7 @@ internal class TonConnectInjector(
 
                         // Get all sessions from WalletKit
                         val sessions = engine?.callBridgeMethod(BridgeMethodConstants.METHOD_LIST_SESSIONS, null)
-                        Log.d(TAG, "🔍 Got sessions for WebView re-registration: $sessions")
+                        Logger.d(TAG, "🔍 Got sessions for WebView re-registration: $sessions")
 
                         // Find the session that was just created (by messageId)
                         // Initially we register the WebView with messageId for immediate responses
@@ -383,20 +383,20 @@ internal class TonConnectInjector(
                                 // Check if this session matches our messageId
                                 // We can't directly check, so register ALL JS Bridge sessions
                                 // This is safe because we're using the same WebView
-                                Log.d(TAG, "🔄 Registering WebView for sessionId: $sessionId")
+                                Logger.d(TAG, "🔄 Registering WebView for sessionId: $sessionId")
                                 registerWebView(sessionId, webView)
                             }
                         }
                     } catch (e: Exception) {
-                        Log.w(TAG, "⚠️ Failed to re-register WebView with sessionId", e)
+                        Logger.w(TAG, "⚠️ Failed to re-register WebView with sessionId", e)
                     }
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to register WebView for session", e)
+                Logger.w(TAG, "Failed to register WebView for session", e)
             }
         }
 
-        Log.d(TAG, "✅ Found pending request, calling sendResponseToFrame")
+        Logger.d(TAG, "✅ Found pending request, calling sendResponseToFrame")
         sendResponseToFrame(pending, response)
     }
 
@@ -408,8 +408,8 @@ internal class TonConnectInjector(
      * @param event The event data to broadcast
      */
     fun sendEvent(event: JSONObject) {
-        Log.d(TAG, "🔔 sendEvent called")
-        Log.d(TAG, "🔔 Event to send: $event")
+        Logger.d(TAG, "🔔 sendEvent called")
+        Logger.d(TAG, "🔔 Event to send: $event")
 
         // CRITICAL FIX: The event from Engine already has the correct structure:
         // { type: "TONCONNECT_BRIDGE_EVENT", source: "...", event: {...} }
@@ -426,9 +426,9 @@ internal class TonConnectInjector(
             put(BrowserConstants.KEY_EVENT, actualEvent)
         }
 
-        Log.d(TAG, "🔔 Extracted actual event: $actualEvent")
-        Log.d(TAG, "🔔 Formatted event message: $eventMessage")
-        Log.d(TAG, "🔔 WebView attached: ${webView.parent != null}")
+        Logger.d(TAG, "🔔 Extracted actual event: $actualEvent")
+        Logger.d(TAG, "🔔 Formatted event message: $eventMessage")
+        Logger.d(TAG, "🔔 WebView attached: ${webView.parent != null}")
 
         // Store event in BridgeInterface - available to ALL frames via @JavascriptInterface
         bridgeInterface.storeEvent(eventMessage.toString())
@@ -445,10 +445,10 @@ internal class TonConnectInjector(
             })();
         """.trimIndent()
 
-        Log.d(TAG, "📤 Notifying main frame about event availability...")
+        Logger.d(TAG, "📤 Notifying main frame about event availability...")
         webView.post {
             webView.evaluateJavascript(script) { result ->
-                Log.d(TAG, "📣 Event notification result: $result")
+                Logger.d(TAG, "📣 Event notification result: $result")
             }
         }
     }
@@ -460,14 +460,14 @@ internal class TonConnectInjector(
      */
     private suspend fun restoreSessionIfExists(url: String) {
         try {
-            Log.d(TAG, "🔍 Checking for existing session for URL: $url")
+            Logger.d(TAG, "🔍 Checking for existing session for URL: $url")
 
             // Get all sessions from the wallet
             val engine = engine ?: return
             val result = engine.callBridgeMethod(BridgeMethodConstants.METHOD_LIST_SESSIONS, JSONObject())
             val sessions = result?.optJSONArray(ResponseConstants.KEY_ITEMS) ?: return
 
-            Log.d(TAG, "🔍 Found ${sessions.length()} total sessions")
+            Logger.d(TAG, "🔍 Found ${sessions.length()} total sessions")
 
             // Find a matching session for this dApp URL
             for (i in 0 until sessions.length()) {
@@ -482,7 +482,7 @@ internal class TonConnectInjector(
                     url.trim().trimEnd('/').removePrefix(MiscConstants.SCHEME_HTTPS).removePrefix(MiscConstants.SCHEME_HTTP)
 
                 if (normalizedDAppUrl.isNotEmpty() && normalizedCurrentUrl.startsWith(normalizedDAppUrl)) {
-                    Log.d(TAG, "✅ Found matching session: $sessionId for URL: $sessionUrl")
+                    Logger.d(TAG, "✅ Found matching session: $sessionId for URL: $sessionUrl")
 
                     // Send a "connect" event to restore the UI
                     sendRestoreConnectionEvent(session)
@@ -490,9 +490,9 @@ internal class TonConnectInjector(
                 }
             }
 
-            Log.d(TAG, "ℹ️ No existing session found for this URL")
+            Logger.d(TAG, "ℹ️ No existing session found for this URL")
         } catch (e: Exception) {
-            Log.e(TAG, "Error restoring session", e)
+            Logger.e(TAG, "Error restoring session", e)
         }
     }
 
@@ -506,7 +506,7 @@ internal class TonConnectInjector(
             val walletAddress = session.getString(ResponseConstants.KEY_WALLET_ADDRESS)
             val dAppName = session.optString(ResponseConstants.KEY_DAPP_NAME, ResponseConstants.VALUE_UNKNOWN_DAPP)
 
-            Log.d(TAG, "📤 Sending restore connection event for session: $sessionId (dApp: $dAppName)")
+            Logger.d(TAG, "📤 Sending restore connection event for session: $sessionId (dApp: $dAppName)")
 
             // Create a connect event payload matching the TonConnect spec
             val connectEvent = JSONObject().apply {
@@ -568,14 +568,14 @@ internal class TonConnectInjector(
             }
 
             // Reuse TonConnect event pipeline so every frame (including iframes) receives the restore event.
-            Log.d(TAG, "🔔 Queueing connect event via BridgeInterface for session restore")
+            Logger.d(TAG, "🔔 Queueing connect event via BridgeInterface for session restore")
             sendEvent(
                 JSONObject().apply {
                     put(BrowserConstants.KEY_EVENT, connectEvent)
                 },
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Error sending restore connection event", e)
+            Logger.e(TAG, "Error sending restore connection event", e)
         }
     }
 
@@ -592,7 +592,7 @@ internal class TonConnectInjector(
         }
         isCleanedUp = true
 
-        Log.d(TAG, "Cleaning up TonConnect injector")
+        Logger.d(TAG, "Cleaning up TonConnect injector")
 
         // Unregister all sessions for this WebView
         // We need to iterate through all sessions and remove ones pointing to this WebView
@@ -619,7 +619,7 @@ internal class TonConnectInjector(
             BridgeInjector.injectIntoAllFrames(
                 context = context,
                 webView = webView,
-                onError = { error -> Log.e(TAG, "Bridge injection error: $error") },
+                onError = { error -> Logger.e(TAG, "Bridge injection error: $error") },
             )
         }
     }
@@ -628,7 +628,7 @@ internal class TonConnectInjector(
         scope.launch {
             when (type) {
                 BrowserConstants.MESSAGE_TYPE_BRIDGE_REQUEST -> handleBridgeRequest(json)
-                else -> Log.w(TAG, "Unknown message type: $type")
+                else -> Logger.w(TAG, "Unknown message type: $type")
             }
         }
     }
@@ -638,10 +638,10 @@ internal class TonConnectInjector(
         val messageId = json.optString(BrowserConstants.KEY_MESSAGE_ID)
         val method = json.optString(BrowserConstants.KEY_METHOD, BrowserConstants.DEFAULT_METHOD)
 
-        Log.d(TAG, "🟢 TonConnect request: frameId=$frameId, messageId=$messageId, method=$method")
+        Logger.d(TAG, "🟢 TonConnect request: frameId=$frameId, messageId=$messageId, method=$method")
 
         if (messageId.isEmpty()) {
-            Log.e(TAG, "Bridge request missing messageId")
+            Logger.e(TAG, "Bridge request missing messageId")
             return
         }
 
@@ -654,12 +654,12 @@ internal class TonConnectInjector(
         )
         pendingRequests[messageId] = pending
 
-        Log.d(TAG, "✅ Request stored: $method from '$frameId' (ID: $messageId)")
+        Logger.d(TAG, "✅ Request stored: $method from '$frameId' (ID: $messageId)")
 
         // Get the engine from the provided TONWalletKit instance
         val engine = engine
         if (engine == null) {
-            Log.e(TAG, "❌ WalletKit engine not available!")
+            Logger.e(TAG, "❌ WalletKit engine not available!")
             // Send error response back to dApp
             val errorResponse = JSONObject().apply {
                 put(
@@ -686,14 +686,14 @@ internal class TonConnectInjector(
                     },
                 )
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to emit browser bridge request event", e)
+                Logger.w(TAG, "Failed to emit browser bridge request event", e)
             }
         }
 
         // Forward to TONWalletKit engine - it handles everything internally!
         scope.launch {
             try {
-                Log.d(TAG, "🔄 Forwarding request to WalletKit engine: $method")
+                Logger.d(TAG, "🔄 Forwarding request to WalletKit engine: $method")
 
                 // Get params - can be JSONObject, JSONArray, or null
                 val paramsRaw = json.opt(ResponseConstants.KEY_PARAMS)
@@ -704,20 +704,20 @@ internal class TonConnectInjector(
                     is JSONArray -> paramsRaw.toString()
                     null -> null
                     else -> {
-                        Log.w(TAG, "Unexpected params type: ${paramsRaw.javaClass.simpleName}")
+                        Logger.w(TAG, "Unexpected params type: ${paramsRaw.javaClass.simpleName}")
                         null
                     }
                 }
 
-                Log.d(TAG, "🔄 Method: $method")
-                Log.d(TAG, "🔄 Params JSON: $paramsJson")
+                Logger.d(TAG, "🔄 Method: $method")
+                Logger.d(TAG, "🔄 Params JSON: $paramsJson")
 
                 // Use WebView's current URL (the main frame URL) instead of tracking it manually
                 // This is more reliable than trying to detect page vs resource loads
-                Log.d(TAG, "🔄 webView.url = ${webView.url}")
-                Log.d(TAG, "🔄 currentUrl = $currentUrl")
+                Logger.d(TAG, "🔄 webView.url = ${webView.url}")
+                Logger.d(TAG, "🔄 currentUrl = $currentUrl")
                 val dAppUrl = webView.url ?: currentUrl
-                Log.d(TAG, "🔄 Final dApp URL used: $dAppUrl")
+                Logger.d(TAG, "🔄 Final dApp URL used: $dAppUrl")
 
                 engine.handleTonConnectRequest(
                     messageId = messageId,
@@ -725,17 +725,17 @@ internal class TonConnectInjector(
                     paramsJson = paramsJson,
                     url = dAppUrl,
                     responseCallback = { response ->
-                        Log.d(TAG, "🟣 responseCallback invoked by engine!")
-                        Log.d(TAG, "🟣 Response for messageId: $messageId")
-                        Log.d(TAG, "🟣 Response data: $response")
-                        Log.d(TAG, "🟣 About to call sendResponse...")
+                        Logger.d(TAG, "🟣 responseCallback invoked by engine!")
+                        Logger.d(TAG, "🟣 Response for messageId: $messageId")
+                        Logger.d(TAG, "🟣 Response data: $response")
+                        Logger.d(TAG, "🟣 About to call sendResponse...")
                         sendResponse(messageId, response)
-                        Log.d(TAG, "🟣 sendResponse call completed")
+                        Logger.d(TAG, "🟣 sendResponse call completed")
                     },
                 )
-                Log.d(TAG, "✅ Request forwarded successfully to WalletKit engine")
+                Logger.d(TAG, "✅ Request forwarded successfully to WalletKit engine")
             } catch (e: Exception) {
-                Log.e(TAG, "❌ Failed to forward request to WalletKit engine", e)
+                Logger.e(TAG, "❌ Failed to forward request to WalletKit engine", e)
                 // Send error response back to dApp
                 val errorResponse = JSONObject().apply {
                     put(
@@ -752,14 +752,14 @@ internal class TonConnectInjector(
     }
 
     private fun sendResponseToFrame(pending: PendingRequest, response: JSONObject) {
-        Log.d(TAG, "📤 sendResponseToFrame called for messageId: ${pending.messageId}, method: ${pending.method}")
-        Log.d(TAG, "📤 Response payload: $response")
-        Log.d(TAG, "📤 WebView instance: $webView")
-        Log.d(TAG, "📤 WebView parent: ${webView.parent}")
+        Logger.d(TAG, "📤 sendResponseToFrame called for messageId: ${pending.messageId}, method: ${pending.method}")
+        Logger.d(TAG, "📤 Response payload: $response")
+        Logger.d(TAG, "📤 WebView instance: $webView")
+        Logger.d(TAG, "📤 WebView parent: ${webView.parent}")
 
         // CRITICAL FIX: Queue responses if WebView is detached from window
         if (webView.parent == null) {
-            Log.d(TAG, "⏸️ WebView detached - queueing response for ${pending.messageId}")
+            Logger.d(TAG, "⏸️ WebView detached - queueing response for ${pending.messageId}")
             pendingResponses[pending.messageId] = Pair(pending, response)
             return
         }
@@ -768,7 +768,7 @@ internal class TonConnectInjector(
         // when showing wallet approval screens. Just execute directly - we're already
         // on the main thread via the responseCallback
         scope.launch(Dispatchers.Main) {
-            Log.d(TAG, "📤 About to deliver response directly")
+            Logger.d(TAG, "📤 About to deliver response directly")
             deliverResponse(pending, response)
         }
     }
@@ -781,10 +781,10 @@ internal class TonConnectInjector(
             put(BrowserConstants.KEY_PAYLOAD, response)
         }
 
-        Log.d(TAG, "📥 Storing response in BridgeInterface for messageId: ${pending.messageId}")
-        Log.d(TAG, "📥 Frame ID: ${pending.frameId}")
-        Log.d(TAG, "📥 Response JSON: $responseJson")
-        Log.d(TAG, "📥 WebView attached: ${webView.parent != null}")
+        Logger.d(TAG, "📥 Storing response in BridgeInterface for messageId: ${pending.messageId}")
+        Logger.d(TAG, "📥 Frame ID: ${pending.frameId}")
+        Logger.d(TAG, "📥 Response JSON: $responseJson")
+        Logger.d(TAG, "📥 WebView attached: ${webView.parent != null}")
 
         // Store response in BridgeInterface - available to ALL frames via @JavascriptInterface
         bridgeInterface.storeResponse(pending.messageId, responseJson.toString())
@@ -801,9 +801,9 @@ internal class TonConnectInjector(
             })();
         """.trimIndent()
 
-        Log.d(TAG, "📤 Notifying main frame about response availability...")
+        Logger.d(TAG, "📤 Notifying main frame about response availability...")
         webView.evaluateJavascript(script) { result ->
-            Log.d(TAG, "📣 Notification result: $result")
+            Logger.d(TAG, "📣 Notification result: $result")
         }
     }
 
@@ -813,20 +813,20 @@ internal class TonConnectInjector(
      */
     private fun deliverPendingResponses() {
         if (pendingResponses.isEmpty()) {
-            Log.d(TAG, "📬 No pending responses to deliver")
+            Logger.d(TAG, "📬 No pending responses to deliver")
             return
         }
 
-        Log.d(TAG, "📬 Delivering ${pendingResponses.size} pending response(s)")
+        Logger.d(TAG, "📬 Delivering ${pendingResponses.size} pending response(s)")
 
         scope.launch(Dispatchers.Main) {
             pendingResponses.forEach { (messageId, pair) ->
                 val (pending, response) = pair
-                Log.d(TAG, "📬 Delivering queued response for messageId: $messageId")
+                Logger.d(TAG, "📬 Delivering queued response for messageId: $messageId")
                 deliverResponse(pending, response)
             }
             pendingResponses.clear()
-            Log.d(TAG, "📬 All pending responses delivered")
+            Logger.d(TAG, "📬 All pending responses delivered")
         }
     }
 }

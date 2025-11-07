@@ -37,194 +37,6 @@ function _mergeNamespaces(n, m2) {
   }
   return Object.freeze(Object.defineProperty(n, Symbol.toStringTag, { value: "Module" }));
 }
-const textEncoder = function(window2) {
-  var fromCharCode = String.fromCharCode;
-  var Object_prototype_toString = {}.toString;
-  var sharedArrayBufferString = Object_prototype_toString.call(window2["SharedArrayBuffer"]);
-  var undefinedObjectString = Object_prototype_toString();
-  var NativeUint8Array = window2.Uint8Array;
-  var patchedU8Array = NativeUint8Array || Array;
-  var nativeArrayBuffer = NativeUint8Array ? ArrayBuffer : patchedU8Array;
-  var arrayBuffer_isView = nativeArrayBuffer.isView || function(x2) {
-    return x2 && "length" in x2;
-  };
-  var arrayBufferString = Object_prototype_toString.call(nativeArrayBuffer.prototype);
-  var TextEncoderPrototype = TextEncoder2["prototype"];
-  var GlobalTextEncoder = window2["TextEncoder"];
-  var tmpBufferU16 = new (NativeUint8Array ? Uint16Array : patchedU8Array)(32);
-  function TextDecoder2() {
-  }
-  TextDecoder2["prototype"]["decode"] = function(inputArrayOrBuffer) {
-    var inputAs8 = inputArrayOrBuffer, asObjectString;
-    if (!arrayBuffer_isView(inputAs8)) {
-      asObjectString = Object_prototype_toString.call(inputAs8);
-      if (asObjectString !== arrayBufferString && asObjectString !== sharedArrayBufferString && asObjectString !== undefinedObjectString)
-        throw TypeError("Failed to execute 'decode' on 'TextDecoder': The provided value is not of type '(ArrayBuffer or ArrayBufferView)'");
-      inputAs8 = NativeUint8Array ? new patchedU8Array(inputAs8) : inputAs8 || [];
-    }
-    var resultingString = "", tmpStr = "", index2 = 0, len = inputAs8.length | 0, lenMinus32 = len - 32 | 0, nextEnd = 0, cp0 = 0, codePoint = 0, minBits = 0, cp1 = 0, pos = 0, tmp = -1;
-    for (; index2 < len; ) {
-      nextEnd = index2 <= lenMinus32 ? 32 : len - index2 | 0;
-      for (; pos < nextEnd; index2 = index2 + 1 | 0, pos = pos + 1 | 0) {
-        cp0 = inputAs8[index2] & 255;
-        switch (cp0 >> 4) {
-          case 15:
-            cp1 = inputAs8[index2 = index2 + 1 | 0] & 255;
-            if (cp1 >> 6 !== 2 || 247 < cp0) {
-              index2 = index2 - 1 | 0;
-              break;
-            }
-            codePoint = (cp0 & 7) << 6 | cp1 & 63;
-            minBits = 5;
-            cp0 = 256;
-          case 14:
-            cp1 = inputAs8[index2 = index2 + 1 | 0] & 255;
-            codePoint <<= 6;
-            codePoint |= (cp0 & 15) << 6 | cp1 & 63;
-            minBits = cp1 >> 6 === 2 ? minBits + 4 | 0 : 24;
-            cp0 = cp0 + 256 & 768;
-          case 13:
-          case 12:
-            cp1 = inputAs8[index2 = index2 + 1 | 0] & 255;
-            codePoint <<= 6;
-            codePoint |= (cp0 & 31) << 6 | cp1 & 63;
-            minBits = minBits + 7 | 0;
-            if (index2 < len && cp1 >> 6 === 2 && codePoint >> minBits && codePoint < 1114112) {
-              cp0 = codePoint;
-              codePoint = codePoint - 65536 | 0;
-              if (0 <= codePoint) {
-                tmp = (codePoint >> 10) + 55296 | 0;
-                cp0 = (codePoint & 1023) + 56320 | 0;
-                if (pos < 31) {
-                  tmpBufferU16[pos] = tmp;
-                  pos = pos + 1 | 0;
-                  tmp = -1;
-                } else {
-                  cp1 = tmp;
-                  tmp = cp0;
-                  cp0 = cp1;
-                }
-              } else nextEnd = nextEnd + 1 | 0;
-            } else {
-              cp0 >>= 8;
-              index2 = index2 - cp0 - 1 | 0;
-              cp0 = 65533;
-            }
-            minBits = 0;
-            codePoint = 0;
-            nextEnd = index2 <= lenMinus32 ? 32 : len - index2 | 0;
-          default:
-            tmpBufferU16[pos] = cp0;
-            continue;
-          case 11:
-          case 10:
-          case 9:
-          case 8:
-        }
-        tmpBufferU16[pos] = 65533;
-      }
-      tmpStr += fromCharCode(
-        tmpBufferU16[0],
-        tmpBufferU16[1],
-        tmpBufferU16[2],
-        tmpBufferU16[3],
-        tmpBufferU16[4],
-        tmpBufferU16[5],
-        tmpBufferU16[6],
-        tmpBufferU16[7],
-        tmpBufferU16[8],
-        tmpBufferU16[9],
-        tmpBufferU16[10],
-        tmpBufferU16[11],
-        tmpBufferU16[12],
-        tmpBufferU16[13],
-        tmpBufferU16[14],
-        tmpBufferU16[15],
-        tmpBufferU16[16],
-        tmpBufferU16[17],
-        tmpBufferU16[18],
-        tmpBufferU16[19],
-        tmpBufferU16[20],
-        tmpBufferU16[21],
-        tmpBufferU16[22],
-        tmpBufferU16[23],
-        tmpBufferU16[24],
-        tmpBufferU16[25],
-        tmpBufferU16[26],
-        tmpBufferU16[27],
-        tmpBufferU16[28],
-        tmpBufferU16[29],
-        tmpBufferU16[30],
-        tmpBufferU16[31]
-      );
-      if (pos < 32) tmpStr = tmpStr.slice(0, pos - 32 | 0);
-      if (index2 < len) {
-        tmpBufferU16[0] = tmp;
-        pos = ~tmp >>> 31;
-        tmp = -1;
-        if (tmpStr.length < resultingString.length) continue;
-      } else if (tmp !== -1) {
-        tmpStr += fromCharCode(tmp);
-      }
-      resultingString += tmpStr;
-      tmpStr = "";
-    }
-    return resultingString;
-  };
-  function TextEncoder2() {
-  }
-  TextEncoderPrototype["encode"] = function(inputString) {
-    var encodedString = inputString === void 0 ? "" : "" + inputString, len = encodedString.length | 0;
-    var result = new patchedU8Array((len << 1) + 8 | 0), tmpResult;
-    var i = 0, pos = 0, point = 0, nextcode = 0;
-    var upgradededArraySize = !NativeUint8Array;
-    for (i = 0; i < len; i = i + 1 | 0, pos = pos + 1 | 0) {
-      point = encodedString.charCodeAt(i) | 0;
-      if (point <= 127) {
-        result[pos] = point;
-      } else if (point <= 2047) {
-        result[pos] = 6 << 5 | point >> 6;
-        result[pos = pos + 1 | 0] = 2 << 6 | point & 63;
-      } else {
-        widenCheck: {
-          if (55296 <= point) {
-            if (point <= 56319) {
-              nextcode = encodedString.charCodeAt(i = i + 1 | 0) | 0;
-              if (56320 <= nextcode && nextcode <= 57343) {
-                point = (point << 10) + nextcode - 56613888 | 0;
-                if (point > 65535) {
-                  result[pos] = 30 << 3 | point >> 18;
-                  result[pos = pos + 1 | 0] = 2 << 6 | point >> 12 & 63;
-                  result[pos = pos + 1 | 0] = 2 << 6 | point >> 6 & 63;
-                  result[pos = pos + 1 | 0] = 2 << 6 | point & 63;
-                  continue;
-                }
-                break widenCheck;
-              }
-              point = 65533;
-            } else if (point <= 57343) {
-              point = 65533;
-            }
-          }
-          if (!upgradededArraySize && i << 1 < pos && i << 1 < (pos - 7 | 0)) {
-            upgradededArraySize = true;
-            tmpResult = new patchedU8Array(len * 3);
-            tmpResult.set(result);
-            result = tmpResult;
-          }
-        }
-        result[pos] = 14 << 4 | point >> 12;
-        result[pos = pos + 1 | 0] = 2 << 6 | point >> 6 & 63;
-        result[pos = pos + 1 | 0] = 2 << 6 | point & 63;
-      }
-    }
-    return NativeUint8Array ? result.subarray(0, pos) : result.slice(0, pos);
-  };
-  if (!GlobalTextEncoder) {
-    window2["TextDecoder"] = TextDecoder2;
-    window2["TextEncoder"] = TextEncoder2;
-  }
-};
 var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
 function getDefaultExportFromCjs(x2) {
   return x2 && x2.__esModule && Object.prototype.hasOwnProperty.call(x2, "default") ? x2["default"] : x2;
@@ -53138,6 +52950,196 @@ urlStateMachine.cannotHaveAUsernamePasswordPort;
 urlStateMachine.hasAnOpaquePath;
 percentEncoding.percentDecodeString;
 percentEncoding.percentDecodeBytes;
+const textEncoder = function(window2) {
+  var fromCharCode = String.fromCharCode;
+  var Object_prototype_toString = {}.toString;
+  var sharedArrayBufferString = Object_prototype_toString.call(window2["SharedArrayBuffer"]);
+  var undefinedObjectString = Object_prototype_toString();
+  var NativeUint8Array = window2.Uint8Array;
+  var patchedU8Array = NativeUint8Array || Array;
+  var nativeArrayBuffer = NativeUint8Array ? ArrayBuffer : patchedU8Array;
+  var arrayBuffer_isView = nativeArrayBuffer.isView || function(x2) {
+    return x2 && "length" in x2;
+  };
+  var arrayBufferString = Object_prototype_toString.call(nativeArrayBuffer.prototype);
+  var TextEncoderPrototype = TextEncoder2["prototype"];
+  var GlobalTextEncoder = window2["TextEncoder"];
+  var tmpBufferU16 = new (NativeUint8Array ? Uint16Array : patchedU8Array)(32);
+  function TextDecoder2() {
+  }
+  TextDecoder2["prototype"]["decode"] = function(inputArrayOrBuffer) {
+    var inputAs8 = inputArrayOrBuffer, asObjectString;
+    if (!arrayBuffer_isView(inputAs8)) {
+      asObjectString = Object_prototype_toString.call(inputAs8);
+      if (asObjectString !== arrayBufferString && asObjectString !== sharedArrayBufferString && asObjectString !== undefinedObjectString)
+        throw TypeError(
+          "Failed to execute 'decode' on 'TextDecoder': The provided value is not of type '(ArrayBuffer or ArrayBufferView)'"
+        );
+      inputAs8 = NativeUint8Array ? new patchedU8Array(inputAs8) : inputAs8 || [];
+    }
+    var resultingString = "", tmpStr = "", index2 = 0, len = inputAs8.length | 0, lenMinus32 = len - 32 | 0, nextEnd = 0, cp0 = 0, codePoint = 0, minBits = 0, cp1 = 0, pos = 0, tmp = -1;
+    for (; index2 < len; ) {
+      nextEnd = index2 <= lenMinus32 ? 32 : len - index2 | 0;
+      for (; pos < nextEnd; index2 = index2 + 1 | 0, pos = pos + 1 | 0) {
+        cp0 = inputAs8[index2] & 255;
+        switch (cp0 >> 4) {
+          case 15:
+            cp1 = inputAs8[index2 = index2 + 1 | 0] & 255;
+            if (cp1 >> 6 !== 2 || 247 < cp0) {
+              index2 = index2 - 1 | 0;
+              break;
+            }
+            codePoint = (cp0 & 7) << 6 | cp1 & 63;
+            minBits = 5;
+            cp0 = 256;
+          case 14:
+            cp1 = inputAs8[index2 = index2 + 1 | 0] & 255;
+            codePoint <<= 6;
+            codePoint |= (cp0 & 15) << 6 | cp1 & 63;
+            minBits = cp1 >> 6 === 2 ? minBits + 4 | 0 : 24;
+            cp0 = cp0 + 256 & 768;
+          case 13:
+          case 12:
+            cp1 = inputAs8[index2 = index2 + 1 | 0] & 255;
+            codePoint <<= 6;
+            codePoint |= (cp0 & 31) << 6 | cp1 & 63;
+            minBits = minBits + 7 | 0;
+            if (index2 < len && cp1 >> 6 === 2 && codePoint >> minBits && codePoint < 1114112) {
+              cp0 = codePoint;
+              codePoint = codePoint - 65536 | 0;
+              if (0 <= codePoint) {
+                tmp = (codePoint >> 10) + 55296 | 0;
+                cp0 = (codePoint & 1023) + 56320 | 0;
+                if (pos < 31) {
+                  tmpBufferU16[pos] = tmp;
+                  pos = pos + 1 | 0;
+                  tmp = -1;
+                } else {
+                  cp1 = tmp;
+                  tmp = cp0;
+                  cp0 = cp1;
+                }
+              } else nextEnd = nextEnd + 1 | 0;
+            } else {
+              cp0 >>= 8;
+              index2 = index2 - cp0 - 1 | 0;
+              cp0 = 65533;
+            }
+            minBits = 0;
+            codePoint = 0;
+            nextEnd = index2 <= lenMinus32 ? 32 : len - index2 | 0;
+          default:
+            tmpBufferU16[pos] = cp0;
+            continue;
+          case 11:
+          case 10:
+          case 9:
+          case 8:
+        }
+        tmpBufferU16[pos] = 65533;
+      }
+      tmpStr += fromCharCode(
+        tmpBufferU16[0],
+        tmpBufferU16[1],
+        tmpBufferU16[2],
+        tmpBufferU16[3],
+        tmpBufferU16[4],
+        tmpBufferU16[5],
+        tmpBufferU16[6],
+        tmpBufferU16[7],
+        tmpBufferU16[8],
+        tmpBufferU16[9],
+        tmpBufferU16[10],
+        tmpBufferU16[11],
+        tmpBufferU16[12],
+        tmpBufferU16[13],
+        tmpBufferU16[14],
+        tmpBufferU16[15],
+        tmpBufferU16[16],
+        tmpBufferU16[17],
+        tmpBufferU16[18],
+        tmpBufferU16[19],
+        tmpBufferU16[20],
+        tmpBufferU16[21],
+        tmpBufferU16[22],
+        tmpBufferU16[23],
+        tmpBufferU16[24],
+        tmpBufferU16[25],
+        tmpBufferU16[26],
+        tmpBufferU16[27],
+        tmpBufferU16[28],
+        tmpBufferU16[29],
+        tmpBufferU16[30],
+        tmpBufferU16[31]
+      );
+      if (pos < 32) tmpStr = tmpStr.slice(0, pos - 32 | 0);
+      if (index2 < len) {
+        tmpBufferU16[0] = tmp;
+        pos = ~tmp >>> 31;
+        tmp = -1;
+        if (tmpStr.length < resultingString.length) continue;
+      } else if (tmp !== -1) {
+        tmpStr += fromCharCode(tmp);
+      }
+      resultingString += tmpStr;
+      tmpStr = "";
+    }
+    return resultingString;
+  };
+  function TextEncoder2() {
+  }
+  TextEncoderPrototype["encode"] = function(inputString) {
+    var encodedString = inputString === void 0 ? "" : "" + inputString, len = encodedString.length | 0;
+    var result = new patchedU8Array((len << 1) + 8 | 0), tmpResult;
+    var i = 0, pos = 0, point = 0, nextcode = 0;
+    var upgradededArraySize = !NativeUint8Array;
+    for (i = 0; i < len; i = i + 1 | 0, pos = pos + 1 | 0) {
+      point = encodedString.charCodeAt(i) | 0;
+      if (point <= 127) {
+        result[pos] = point;
+      } else if (point <= 2047) {
+        result[pos] = 6 << 5 | point >> 6;
+        result[pos = pos + 1 | 0] = 2 << 6 | point & 63;
+      } else {
+        widenCheck: {
+          if (55296 <= point) {
+            if (point <= 56319) {
+              nextcode = encodedString.charCodeAt(i = i + 1 | 0) | 0;
+              if (56320 <= nextcode && nextcode <= 57343) {
+                point = (point << 10) + nextcode - 56613888 | 0;
+                if (point > 65535) {
+                  result[pos] = 30 << 3 | point >> 18;
+                  result[pos = pos + 1 | 0] = 2 << 6 | point >> 12 & 63;
+                  result[pos = pos + 1 | 0] = 2 << 6 | point >> 6 & 63;
+                  result[pos = pos + 1 | 0] = 2 << 6 | point & 63;
+                  continue;
+                }
+                break widenCheck;
+              }
+              point = 65533;
+            } else if (point <= 57343) {
+              point = 65533;
+            }
+          }
+          if (!upgradededArraySize && i << 1 < pos && i << 1 < (pos - 7 | 0)) {
+            upgradededArraySize = true;
+            tmpResult = new patchedU8Array(len * 3);
+            tmpResult.set(result);
+            result = tmpResult;
+          }
+        }
+        result[pos] = 14 << 4 | point >> 12;
+        result[pos = pos + 1 | 0] = 2 << 6 | point >> 6 & 63;
+        result[pos = pos + 1 | 0] = 2 << 6 | point & 63;
+      }
+    }
+    return NativeUint8Array ? result.subarray(0, pos) : result.slice(0, pos);
+  };
+  if (!GlobalTextEncoder) {
+    window2["TextDecoder"] = TextDecoder2;
+    window2["TextEncoder"] = TextEncoder2;
+  }
+};
 function applyTextEncoder(target) {
   try {
     textEncoder(target);
@@ -53469,7 +53471,10 @@ function initTonWalletKit(config, context, deps) {
             console.log("[walletkitBridge] 🔵 Message has messageId, checking for pending promise");
             const resolvers2 = globalThis.__internalBrowserResponseResolvers;
             if (resolvers2 && resolvers2.has(message2.messageId)) {
-              console.log("[walletkitBridge] ✅ Resolving response promise for messageId:", message2.messageId);
+              console.log(
+                "[walletkitBridge] ✅ Resolving response promise for messageId:",
+                message2.messageId
+              );
               const { resolve } = resolvers2.get(message2.messageId);
               resolvers2.delete(message2.messageId);
               resolve(message2);
@@ -54610,7 +54615,10 @@ function getRecentTransactions(args, context) {
       return tx;
     });
     if (processedTransactions.length > 0) {
-      console.log("[walletkitBridge] First transaction after processing - hash_hex:", processedTransactions[0].hash_hex);
+      console.log(
+        "[walletkitBridge] First transaction after processing - hash_hex:",
+        processedTransactions[0].hash_hex
+      );
       console.log(
         "[walletkitBridge] First transaction after processing - in_msg.source_friendly:",
         (_d2 = processedTransactions[0].in_msg) == null ? void 0 : _d2.source_friendly
@@ -55295,12 +55303,7 @@ function createTransferNftTransaction(args, context) {
     emitCallCheckpoint(context, "createTransferNftTransaction:before-ensureWalletKitLoaded");
     yield ensureWalletKitLoaded();
     emitCallCheckpoint(context, "createTransferNftTransaction:after-ensureWalletKitLoaded");
-    console.log(
-      "[walletkitBridge] createTransferNftTransaction for NFT:",
-      args.nftAddress,
-      "to:",
-      args.toAddress
-    );
+    console.log("[walletkitBridge] createTransferNftTransaction for NFT:", args.nftAddress, "to:", args.toAddress);
     emitCallCheckpoint(context, "createTransferNftTransaction:before-wallet.createTransferNftTransaction");
     const params = {
       nftAddress: args.nftAddress,
@@ -55427,12 +55430,7 @@ function getJettonBalance(args, context) {
     }
     console.log("[walletkitBridge] getJettonBalance for jetton:", jettonAddress);
     emitCallCheckpoint(context, "getJettonBalance:before-wallet.getJettonBalance");
-    const result = yield callOnWallet(
-      { walletKit, requireWalletKit },
-      args.address,
-      "getJettonBalance",
-      jettonAddress
-    );
+    const result = yield callOnWallet({ walletKit, requireWalletKit }, args.address, "getJettonBalance", jettonAddress);
     emitCallCheckpoint(context, "getJettonBalance:after-wallet.getJettonBalance");
     console.log("[walletkitBridge] getJettonBalance result:", result);
     return result;

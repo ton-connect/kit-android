@@ -22,9 +22,10 @@
 package io.ton.walletkit.browser
 
 import android.content.Context
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import android.webkit.WebView
 import io.ton.walletkit.internal.constants.BrowserConstants
+import io.ton.walletkit.bridge.BuildConfig
 
 /**
  * Handles injection of the TonConnect bridge script into WebView frames.
@@ -54,10 +55,14 @@ internal object BridgeInjector {
                 .bufferedReader()
                 .use { it.readText() }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load inject.mjs", e)
+            Logger.e(TAG, "Failed to load inject.mjs", e)
             onError("Failed to load bridge script: ${e.message}")
             return
         }
+
+        // Set debug flag before injecting - enables console logs only in debug builds
+        val debugFlag = if (BuildConfig.ENABLE_LOGGING) "true" else "false"
+        webView.evaluateJavascript("window.__TONCONNECT_DEBUG__ = $debugFlag;", null)
 
         // Inject once - WebView automatically makes this available to all frames!
         // The script includes a guard to prevent double-injection.
@@ -74,6 +79,6 @@ internal object BridgeInjector {
             null,
         )
 
-        Log.d(TAG, "Bridge injected - automatically available to all frames (main + iframes)")
+        Logger.d(TAG, "Bridge injected - automatically available to all frames (main + iframes)")
     }
 }

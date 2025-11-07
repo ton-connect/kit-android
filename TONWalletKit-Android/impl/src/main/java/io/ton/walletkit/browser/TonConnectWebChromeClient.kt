@@ -21,17 +21,24 @@
  */
 package io.ton.walletkit.browser
 
+import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import io.ton.walletkit.bridge.BuildConfig
 import io.ton.walletkit.internal.constants.BrowserConstants
+import io.ton.walletkit.internal.util.Logger
 
 /**
  * WebChromeClient that re-injects the bridge when page loads more content.
- * This handles dynamically created iframes.
+ * This handles dynamically created iframes and suppresses console logs in release builds.
  */
 internal class TonConnectWebChromeClient(
     private val injectBridge: (webView: WebView?) -> Unit,
 ) : WebChromeClient() {
+
+    companion object {
+        private const val TAG = "TonConnectWebChromeClient"
+    }
 
     override fun onProgressChanged(view: WebView?, newProgress: Int) {
         super.onProgressChanged(view, newProgress)
@@ -39,5 +46,13 @@ internal class TonConnectWebChromeClient(
         if (newProgress > BrowserConstants.WEBVIEW_INJECTION_PROGRESS_THRESHOLD) {
             injectBridge(view)
         }
+    }
+
+    override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+        // Only show console logs in debug builds
+        if (BuildConfig.ENABLE_LOGGING) {
+            Logger.d(TAG, "[JS Console] ${consoleMessage.message()} (${consoleMessage.sourceId()}:${consoleMessage.lineNumber()})")
+        }
+        return true // Suppress default logging in release builds
     }
 }

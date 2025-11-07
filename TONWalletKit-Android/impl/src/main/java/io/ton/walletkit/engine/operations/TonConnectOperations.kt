@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.engine.operations
 
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.event.ConnectRequestEvent
@@ -70,8 +70,8 @@ internal class TonConnectOperations(
         try {
             ensureInitialized()
 
-            Log.d(TAG, "Processing internal browser request: $method (messageId: $messageId)")
-            Log.d(TAG, "dApp URL: $url")
+            Logger.d(TAG, "Processing internal browser request: $method (messageId: $messageId)")
+            Logger.d(TAG, "dApp URL: $url")
 
             val params: Any? =
                 when {
@@ -79,7 +79,7 @@ internal class TonConnectOperations(
                     paramsJson.trimStart().startsWith("[") -> JSONArray(paramsJson)
                     paramsJson.trimStart().startsWith("{") -> JSONObject(paramsJson)
                     else -> {
-                        Log.w(TAG, "Unexpected params format: $paramsJson")
+                        Logger.w(TAG, "Unexpected params format: $paramsJson")
                         null
                     }
                 }
@@ -96,17 +96,17 @@ internal class TonConnectOperations(
                     }
                 }
 
-            Log.d(TAG, "🔵 Calling processInternalBrowserRequest via bridge...")
+            Logger.d(TAG, "🔵 Calling processInternalBrowserRequest via bridge...")
             val result = rpcClient.call(BridgeMethodConstants.METHOD_PROCESS_INTERNAL_BROWSER_REQUEST, requestParams)
 
-            Log.d(TAG, "🟢 Bridge call returned, result: $result")
-            Log.d(TAG, "🟢 Calling responseCallback with result...")
+            Logger.d(TAG, "🟢 Bridge call returned, result: $result")
+            Logger.d(TAG, "🟢 Calling responseCallback with result...")
 
             responseCallback(result)
 
-            Log.d(TAG, "✅ Internal browser request processed: $method, responseCallback invoked")
+            Logger.d(TAG, "✅ Internal browser request processed: $method, responseCallback invoked")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to process internal browser request", e)
+            Logger.e(TAG, "Failed to process internal browser request", e)
             val errorResponse =
                 JSONObject().apply {
                     put(
@@ -196,13 +196,13 @@ internal class TonConnectOperations(
         ensureInitialized()
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_LIST_SESSIONS)
-        Log.d(TAG, "listSessions raw result: $result")
+        Logger.d(TAG, "listSessions raw result: $result")
         val items = result.optJSONArray(ResponseConstants.KEY_ITEMS) ?: JSONArray()
 
         return buildList(items.length()) {
             for (index in 0 until items.length()) {
                 val entry = items.optJSONObject(index) ?: continue
-                Log.d(
+                Logger.d(
                     TAG,
                     "listSessions entry[$index]: keys=${entry.keys().asSequence().toList()}, sessionId=${entry.optString(ResponseConstants.KEY_SESSION_ID)}",
                 )

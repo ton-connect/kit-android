@@ -22,7 +22,7 @@
 package io.ton.walletkit.storage
 
 import android.content.Context
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
@@ -65,7 +65,7 @@ internal class SecureWalletKitStorage(
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                 .build()
         } catch (e: Exception) {
-            Log.e(TAG, ERROR_FAILED_CREATE_MASTER_KEY, e)
+            Logger.e(TAG, ERROR_FAILED_CREATE_MASTER_KEY, e)
             throw SecurityException(ERROR_FAILED_INIT_SECURE_STORAGE, e)
         }
     }
@@ -81,7 +81,7 @@ internal class SecureWalletKitStorage(
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
             )
         } catch (e: Exception) {
-            Log.e(TAG, ERROR_FAILED_CREATE_ENCRYPTED_PREFS, e)
+            Logger.e(TAG, ERROR_FAILED_CREATE_ENCRYPTED_PREFS, e)
             throw SecurityException(ERROR_FAILED_INIT_SECURE_STORAGE, e)
         }
     }
@@ -97,7 +97,7 @@ internal class SecureWalletKitStorage(
         try {
             encryptedPrefs.getString(key, null)
         } catch (e: Exception) {
-            Log.e(TAG, ERROR_FAILED_GET_RAW_VALUE + key, e)
+            Logger.e(TAG, ERROR_FAILED_GET_RAW_VALUE + key, e)
             null
         }
     }
@@ -117,7 +117,7 @@ internal class SecureWalletKitStorage(
                     putString(key, value)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, ERROR_FAILED_SET_RAW_VALUE + key, e)
+                Logger.e(TAG, ERROR_FAILED_SET_RAW_VALUE + key, e)
                 throw e
             }
         }
@@ -134,7 +134,7 @@ internal class SecureWalletKitStorage(
                     remove(key)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, ERROR_FAILED_REMOVE_RAW_VALUE + key, e)
+                Logger.e(TAG, ERROR_FAILED_REMOVE_RAW_VALUE + key, e)
             }
         }
     }
@@ -149,9 +149,9 @@ internal class SecureWalletKitStorage(
                 encryptedPrefs.edit {
                     bridgeKeys.forEach { remove(it) }
                 }
-                Log.d(TAG, "Cleared ${bridgeKeys.size}${MiscConstants.BRIDGE_STORAGE_KEYS_COUNT_SUFFIX}")
+                Logger.d(TAG, "Cleared ${bridgeKeys.size}${MiscConstants.BRIDGE_STORAGE_KEYS_COUNT_SUFFIX}")
             } catch (e: Exception) {
-                Log.e(TAG, ERROR_FAILED_CLEAR_BRIDGE_DATA, e)
+                Logger.e(TAG, ERROR_FAILED_CLEAR_BRIDGE_DATA, e)
             }
         }
     }

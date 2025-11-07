@@ -24,9 +24,11 @@ package io.ton.walletkit.engine.infrastructure
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import android.view.ViewGroup
+import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -35,6 +37,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.bridge.BuildConfig
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
@@ -123,14 +126,26 @@ internal class WebViewManager(
 
     private fun initializeWebView() {
         try {
-            Log.d(TAG, "Initializing WebView on thread: ${Thread.currentThread().name}")
+            Logger.d(TAG, "Initializing WebView on thread: ${Thread.currentThread().name}")
             webView = WebView(appContext)
-            WebView.setWebContentsDebuggingEnabled(true)
+            WebView.setWebContentsDebuggingEnabled(BuildConfig.ENABLE_LOGGING)
             webView.settings.javaScriptEnabled = true
             webView.settings.domStorageEnabled = true
             webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
             webView.settings.allowFileAccess = true
             webView.addJavascriptInterface(JsBinding(), WebViewConstants.JS_INTERFACE_NAME)
+            
+            // Set WebChromeClient to suppress console logs in release builds
+            webView.webChromeClient = object : WebChromeClient() {
+                override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+                    // Only show console logs in debug builds
+                    if (BuildConfig.ENABLE_LOGGING) {
+                        Logger.d(TAG, "[JS Console] ${consoleMessage.message()} (${consoleMessage.sourceId()}:${consoleMessage.lineNumber()})")
+                    }
+                    return true // Suppress default logging
+                }
+            }
+            
             webView.webViewClient =
                 object : WebViewClient() {
                     override fun onReceivedError(
@@ -141,7 +156,7 @@ internal class WebViewManager(
                         super.onReceivedError(view, request, error)
                         val description = error?.description?.toString() ?: ResponseConstants.VALUE_UNKNOWN
                         val failingUrl = request?.url?.toString()
-                        Log.e(TAG, WebViewConstants.ERROR_WEBVIEW_LOAD_PREFIX + description + MSG_URL_SEPARATOR + (failingUrl ?: ResponseConstants.VALUE_UNKNOWN))
+                        Logger.e(TAG, WebViewConstants.ERROR_WEBVIEW_LOAD_PREFIX + description + MSG_URL_SEPARATOR + (failingUrl ?: ResponseConstants.VALUE_UNKNOWN))
                         if (request?.isForMainFrame == true) {
                             val exception =
                                 WalletKitBridgeException(
@@ -154,12 +169,12 @@ internal class WebViewManager(
 
                     override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                         super.onPageStarted(view, url, favicon)
-                        Log.d(TAG, "WebView page started loading: $url")
+                        Logger.d(TAG, "WebView page started loading: $url")
                     }
 
                     override fun onPageFinished(view: WebView?, url: String?) {
                         super.onPageFinished(view, url)
-                        Log.d(TAG, "WebView page finished loading: $url")
+                        Logger.d(TAG, "WebView page finished loading: $url")
                         if (!bridgeLoaded.isCompleted) {
                             bridgeLoaded.complete(Unit)
                         }
@@ -171,19 +186,19 @@ internal class WebViewManager(
                         request: WebResourceRequest?,
                     ): WebResourceResponse? {
                         val url = request?.url ?: return super.shouldInterceptRequest(view, request)
-                        Log.d(TAG, "WebView intercepting request: $url")
+                        Logger.d(TAG, "WebView intercepting request: $url")
                         return assetLoader.shouldInterceptRequest(url)
                             ?: super.shouldInterceptRequest(view, request)
                     }
                 }
             val safeAssetPath = assetPath.trimStart('/')
             val fullUrl = WebViewConstants.URL_PREFIX_HTTPS + WebViewConstants.ASSET_LOADER_DOMAIN + WebViewConstants.ASSET_LOADER_PATH + safeAssetPath
-            Log.d(TAG, "Loading WebView URL: $fullUrl")
+            Logger.d(TAG, "Loading WebView URL: $fullUrl")
             webView.loadUrl(fullUrl)
-            Log.d(TAG, "WebView initialization completed, webViewInitialized completing")
+            Logger.d(TAG, "WebView initialization completed, webViewInitialized completing")
             webViewInitialized.complete(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, MSG_FAILED_INITIALIZE_WEBVIEW, e)
+            Logger.e(TAG, MSG_FAILED_INITIALIZE_WEBVIEW, e)
             webViewInitialized.completeExceptionally(e)
             bridgeLoaded.completeExceptionally(e)
             jsBridgeReady.completeExceptionally(e)
@@ -209,7 +224,7 @@ internal class WebViewManager(
                 }
             }
         } catch (err: Throwable) {
-            Log.e(TAG, MSG_FAILED_EVALUATE_JS_BRIDGE, err)
+            Logger.e(TAG, MSG_FAILED_EVALUATE_JS_BRIDGE, err)
             val safeMessage = err.message ?: ResponseConstants.VALUE_UNKNOWN
             val exception =
                 WalletKitBridgeException(
@@ -233,14 +248,14 @@ internal class WebViewManager(
         @JavascriptInterface
         fun postMessage(json: String) {
             try {
-                Log.d(TAG, "📨 JsBinding.postMessage received from JS")
-                Log.d(TAG, "📨 Thread: ${Thread.currentThread().name}")
-                Log.v(TAG, "📨 Raw JSON: $json")
+                Logger.d(TAG, "📨 JsBinding.postMessage received from JS")
+                Logger.d(TAG, "📨 Thread: ${Thread.currentThread().name}")
+                Logger.v(TAG, "📨 Raw JSON: $json")
 
                 val payload = JSONObject(json)
                 onMessage(payload)
             } catch (err: JSONException) {
-                Log.e(TAG, "❌ " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
+                Logger.e(TAG, "❌ " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
                 onBridgeError(WalletKitBridgeException(LogConstants.ERROR_MALFORMED_PAYLOAD_PREFIX + err.message))
             }
         }

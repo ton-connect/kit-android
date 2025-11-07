@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.engine.operations
 
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
@@ -66,7 +66,7 @@ internal class CryptoOperations(
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TON_MNEMONIC, params)
         val items = result.optJSONArray(ResponseConstants.KEY_ITEMS)
         if (items == null) {
-            Log.w(TAG, "Mnemonic generation returned no items (wordCount=$wordCount)")
+            Logger.w(TAG, "Mnemonic generation returned no items (wordCount=$wordCount)")
             return emptyList()
         }
 

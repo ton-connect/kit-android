@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.browser
 
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import android.webkit.JavascriptInterface
 import io.ton.walletkit.internal.constants.BrowserConstants
 import org.json.JSONObject
@@ -93,11 +93,11 @@ internal class BridgeInterface(
 
         staleResponses.forEach { (messageId, _) ->
             availableResponses.remove(messageId)
-            Log.d(TAG, "🧹 Removed stale response for messageId: $messageId")
+            Logger.d(TAG, "🧹 Removed stale response for messageId: $messageId")
         }
 
         if (staleResponses.isNotEmpty()) {
-            Log.d(TAG, "🧹 Cleaned up ${staleResponses.size} stale response(s)")
+            Logger.d(TAG, "🧹 Cleaned up ${staleResponses.size} stale response(s)")
         }
 
         // Clean up stale broadcast events (older than 5 minutes)
@@ -107,26 +107,26 @@ internal class BridgeInterface(
 
         staleEvents.forEach { (eventId, _) ->
             broadcastEvents.remove(eventId)
-            Log.d(TAG, "🧹 Removed stale broadcast event: $eventId")
+            Logger.d(TAG, "🧹 Removed stale broadcast event: $eventId")
         }
 
         if (staleEvents.isNotEmpty()) {
-            Log.d(TAG, "🧹 Cleaned up ${staleEvents.size} stale broadcast event(s)")
+            Logger.d(TAG, "🧹 Cleaned up ${staleEvents.size} stale broadcast event(s)")
         }
     }
 
     @JavascriptInterface
     fun postMessage(message: String) {
-        Log.d(TAG, "🔵 BridgeInterface.postMessage called with: $message")
+        Logger.d(TAG, "🔵 BridgeInterface.postMessage called with: $message")
         try {
             val json = JSONObject(message)
             val type = json.optString(BrowserConstants.KEY_TYPE)
 
-            Log.d(TAG, "🔵Message type: $type")
+            Logger.d(TAG, "🔵Message type: $type")
 
             onMessage(json, type)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to handle bridge message", e)
+            Logger.e(TAG, "Failed to handle bridge message", e)
             onError("Invalid bridge message: ${e.message}")
         }
     }
@@ -142,11 +142,11 @@ internal class BridgeInterface(
             val oldestEntry = availableResponses.entries.minByOrNull { it.value.timestamp }
             oldestEntry?.let {
                 availableResponses.remove(it.key)
-                Log.w(TAG, "⚠️ Response storage full, removed oldest response: ${it.key}")
+                Logger.w(TAG, "⚠️ Response storage full, removed oldest response: ${it.key}")
             }
         }
 
-        Log.d(TAG, "📥 Storing response for messageId: $messageId")
+        Logger.d(TAG, "📥 Storing response for messageId: $messageId")
         availableResponses[messageId] = ResponseEntry(response)
     }
 
@@ -159,7 +159,7 @@ internal class BridgeInterface(
     fun pullResponse(messageId: String): String? {
         val entry = availableResponses.remove(messageId)
         if (entry != null) {
-            Log.d(TAG, "📤 Pulled response for messageId: $messageId")
+            Logger.d(TAG, "📤 Pulled response for messageId: $messageId")
             return entry.response
         }
         return null
@@ -180,12 +180,12 @@ internal class BridgeInterface(
      */
     @JavascriptInterface
     fun postResponse(message: String) {
-        Log.d(TAG, "🟣 BridgeInterface.postResponse called with response to inject into WebView")
+        Logger.d(TAG, "🟣 BridgeInterface.postResponse called with response to inject into WebView")
         try {
             val json = JSONObject(message)
-            onResponse?.invoke(json) ?: Log.w(TAG, "No response handler configured")
+            onResponse?.invoke(json) ?: Logger.w(TAG, "No response handler configured")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to handle bridge response", e)
+            Logger.e(TAG, "Failed to handle bridge response", e)
             onError("Invalid bridge response: ${e.message}")
         }
     }
@@ -201,7 +201,7 @@ internal class BridgeInterface(
             val json = JSONObject(event)
             val eventId = "${System.currentTimeMillis()}-${event.hashCode()}"
 
-            Log.d(TAG, "📥 Broadcasting event to all frames: ${event.take(100)}")
+            Logger.d(TAG, "📥 Broadcasting event to all frames: ${event.take(100)}")
 
             // Enforce max size limit for broadcast events
             if (broadcastEvents.size >= MAX_BROADCAST_EVENTS) {
@@ -209,14 +209,14 @@ internal class BridgeInterface(
                 val oldestEntry = broadcastEvents.entries.minByOrNull { it.value.timestamp }
                 oldestEntry?.let {
                     broadcastEvents.remove(it.key)
-                    Log.w(TAG, "⚠️ Broadcast storage full, removed oldest event: ${it.key}")
+                    Logger.w(TAG, "⚠️ Broadcast storage full, removed oldest event: ${it.key}")
                 }
             }
 
             broadcastEvents[eventId] = EventBroadcast(event)
-            Log.d(TAG, "✅ Event stored for broadcast with ID: $eventId (total: ${broadcastEvents.size})")
+            Logger.d(TAG, "✅ Event stored for broadcast with ID: $eventId (total: ${broadcastEvents.size})")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to store event for broadcast", e)
+            Logger.e(TAG, "Failed to store event for broadcast", e)
         }
     }
 
@@ -235,13 +235,13 @@ internal class BridgeInterface(
                 if (!broadcast.consumedByFrames.contains(frameId)) {
                     // Mark this frame as having consumed the event
                     broadcast.consumedByFrames.add(frameId)
-                    Log.d(TAG, "📤 Frame '$frameId' pulled event $eventId (consumed by ${broadcast.consumedByFrames.size} frames)")
+                    Logger.d(TAG, "📤 Frame '$frameId' pulled event $eventId (consumed by ${broadcast.consumedByFrames.size} frames)")
 
                     // If all expected frames have consumed this event, or if too many frames have seen it, remove it
                     // We use a generous limit (10 frames) to ensure all legitimate frames get the event
                     if (broadcast.consumedByFrames.size >= MAX_FRAMES_PER_EVENT) {
                         broadcastEvents.remove(eventId)
-                        Log.d(TAG, "🗑️ Removed event $eventId after being consumed by ${broadcast.consumedByFrames.size} frames")
+                        Logger.d(TAG, "🗑️ Removed event $eventId after being consumed by ${broadcast.consumedByFrames.size} frames")
                     }
 
                     return broadcast.eventData

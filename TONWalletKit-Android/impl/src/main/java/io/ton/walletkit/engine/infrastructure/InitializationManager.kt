@@ -22,7 +22,7 @@
 package io.ton.walletkit.engine.infrastructure
 
 import android.content.Context
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -89,14 +89,14 @@ internal class InitializationManager(
             val effectiveConfig = configuration ?: pendingInitConfig ?: throw WalletKitBridgeException(ERROR_INIT_CONFIG_REQUIRED)
             pendingInitConfig = null
 
-            Log.d(TAG, "Auto-initializing WalletKit with config: network=${resolveNetworkName(effectiveConfig)}")
+            Logger.d(TAG, "Auto-initializing WalletKit with config: network=${resolveNetworkName(effectiveConfig)}")
 
             try {
                 performInitialization(effectiveConfig)
                 isWalletKitInitialized = true
-                Log.d(TAG, "WalletKit auto-initialization completed successfully")
+                Logger.d(TAG, "WalletKit auto-initialization completed successfully")
             } catch (err: Throwable) {
-                Log.e(TAG, ERROR_WALLETKIT_AUTO_INIT_FAILED, err)
+                Logger.e(TAG, ERROR_WALLETKIT_AUTO_INIT_FAILED, err)
                 throw WalletKitBridgeException(ERROR_FAILED_AUTO_INIT_WALLETKIT + err.message)
             }
         }
@@ -138,7 +138,7 @@ internal class InitializationManager(
                 val packageInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
                 packageInfo.versionName ?: NetworkConstants.DEFAULT_APP_VERSION
             } catch (e: Exception) {
-                Log.w(TAG, ERROR_FAILED_GET_APP_VERSION, e)
+                Logger.w(TAG, ERROR_FAILED_GET_APP_VERSION, e)
                 NetworkConstants.DEFAULT_APP_VERSION
             }
 
@@ -155,7 +155,7 @@ internal class InitializationManager(
                     }
                 }
             } catch (e: Exception) {
-                Log.w(TAG, ERROR_FAILED_GET_APP_NAME, e)
+                Logger.w(TAG, ERROR_FAILED_GET_APP_NAME, e)
                 appContext.packageName
             }
 
@@ -213,7 +213,7 @@ internal class InitializationManager(
                 )
             }
 
-        Log.d(
+        Logger.d(
             TAG,
             buildString {
                 append("Initializing WalletKit with persistent storage: ")
@@ -226,7 +226,7 @@ internal class InitializationManager(
         )
         rpcClient.call(BridgeMethodConstants.METHOD_INIT, payload)
 
-        Log.d(TAG, "WalletKit initialized. Event listeners will be set up on-demand.")
+        Logger.d(TAG, "WalletKit initialized. Event listeners will be set up on-demand.")
     }
 
     private fun resolveNetworkName(configuration: TONWalletKitConfiguration): String =

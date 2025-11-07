@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.engine.parsing
 
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.event.ConnectRequestEvent
@@ -74,7 +74,7 @@ internal class EventParser(
                         )
                     TONWalletKitEvent.ConnectRequest(request)
                 } catch (e: Exception) {
-                    Log.e(TAG, ERROR_FAILED_PARSE_CONNECT_REQUEST, e)
+                    Logger.e(TAG, ERROR_FAILED_PARSE_CONNECT_REQUEST, e)
                     null
                 }
             }
@@ -92,7 +92,7 @@ internal class EventParser(
                         )
                     TONWalletKitEvent.TransactionRequest(request)
                 } catch (e: Exception) {
-                    Log.e(TAG, ERROR_FAILED_PARSE_TRANSACTION_REQUEST, e)
+                    Logger.e(TAG, ERROR_FAILED_PARSE_TRANSACTION_REQUEST, e)
                     null
                 }
             }
@@ -110,7 +110,7 @@ internal class EventParser(
                         )
                     TONWalletKitEvent.SignDataRequest(request)
                 } catch (e: Exception) {
-                    Log.e(TAG, ERROR_FAILED_PARSE_SIGN_DATA_REQUEST, e)
+                    Logger.e(TAG, ERROR_FAILED_PARSE_SIGN_DATA_REQUEST, e)
                     null
                 }
             }
@@ -120,7 +120,7 @@ internal class EventParser(
                     data.optNullableString(ResponseConstants.KEY_SESSION_ID)
                         ?: data.optNullableString(JsonConstants.KEY_ID)
                         ?: return null
-                Log.d(TAG, "Disconnect event received. sessionId=$sessionId, dataKeys=${data.keys().asSequence().toList()}")
+                Logger.d(TAG, "Disconnect event received. sessionId=$sessionId, dataKeys=${data.keys().asSequence().toList()}")
                 TONWalletKitEvent.Disconnect(io.ton.walletkit.event.DisconnectEvent(sessionId))
             }
 
@@ -262,7 +262,7 @@ internal class EventParser(
                         else -> schema
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to parse sign data params", e)
+                    Logger.e(TAG, "Failed to parse sign data params", e)
                 }
             }
         }
@@ -288,12 +288,12 @@ internal class EventParser(
                         val signature = signer.sign(dataBytes)
                         engine.respondToSignRequest(signerId, requestId, signature, null)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Signer failed to sign data", e)
+                        Logger.e(TAG, "Signer failed to sign data", e)
                         engine.respondToSignRequest(signerId, requestId, null, e.message ?: "Signing failed")
                     }
                 }
             } else {
-                Log.w(TAG, "Unknown signer ID: $signerId")
+                Logger.w(TAG, "Unknown signer ID: $signerId")
             }
         }
     }

@@ -22,12 +22,12 @@
 package io.ton.walletkit.engine.infrastructure
 
 import android.os.Handler
-import android.util.Log
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.EventRouter
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.internal.constants.EventTypeConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
@@ -68,7 +68,7 @@ internal class MessageDispatcher(
 
     fun dispatchMessage(payload: JSONObject) {
         val kind = payload.optString(ResponseConstants.KEY_KIND)
-        Log.d(TAG, "📨 Message kind: $kind")
+        Logger.d(TAG, "📨 Message kind: $kind")
 
         when (kind) {
             ResponseConstants.VALUE_KIND_READY -> handleReady(payload)
@@ -77,7 +77,7 @@ internal class MessageDispatcher(
                 if (event != null) {
                     handleEvent(event)
                 } else {
-                    Log.w(TAG, "⚠️ EVENT kind but no event object in payload")
+                    Logger.w(TAG, "⚠️ EVENT kind but no event object in payload")
                 }
             }
             ResponseConstants.VALUE_KIND_RESPONSE -> {
@@ -85,42 +85,42 @@ internal class MessageDispatcher(
                 rpcClient.handleResponse(id, payload)
             }
             ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT -> handleJsBridgeEvent(payload)
-            else -> Log.w(TAG, "⚠️ Unknown message kind: $kind")
+            else -> Logger.w(TAG, "⚠️ Unknown message kind: $kind")
         }
     }
 
     suspend fun ensureEventListenersSetUp() {
-        Log.d(TAG, "🔵 ensureEventListenersSetUp() called, areEventListenersSetUp=$areEventListenersSetUp")
+        Logger.d(TAG, "🔵 ensureEventListenersSetUp() called, areEventListenersSetUp=$areEventListenersSetUp")
         if (areEventListenersSetUp) {
-            Log.d(TAG, "⚡ Event listeners already set up, skipping")
+            Logger.d(TAG, "⚡ Event listeners already set up, skipping")
             return
         }
 
-        Log.d(TAG, "🔵 Acquiring eventListenersSetupMutex...")
+        Logger.d(TAG, "🔵 Acquiring eventListenersSetupMutex...")
         eventListenersSetupMutex.withLock {
-            Log.d(TAG, "🔵 eventListenersSetupMutex acquired")
+            Logger.d(TAG, "🔵 eventListenersSetupMutex acquired")
 
             if (areEventListenersSetUp) {
-                Log.d(TAG, "⚡ Event listeners already set up (double-check), skipping")
+                Logger.d(TAG, "⚡ Event listeners already set up (double-check), skipping")
                 return@withLock
             }
 
             try {
-                Log.d(TAG, "🔵 Waiting for WalletKit initialization...")
+                Logger.d(TAG, "🔵 Waiting for WalletKit initialization...")
                 initManager.ensureInitialized()
                 onInitialized()
-                Log.d(TAG, "✅ WalletKit initialization complete")
+                Logger.d(TAG, "✅ WalletKit initialization complete")
 
-                Log.d(TAG, "🔵 Calling JS setEventsListeners()...")
+                Logger.d(TAG, "🔵 Calling JS setEventsListeners()...")
                 rpcClient.call(BridgeMethodConstants.METHOD_SET_EVENTS_LISTENERS, JSONObject())
                 areEventListenersSetUp = true
-                Log.d(TAG, "✅✅✅ Event listeners set up successfully! areEventListenersSetUp=true")
+                Logger.d(TAG, "✅✅✅ Event listeners set up successfully! areEventListenersSetUp=true")
             } catch (err: Throwable) {
-                Log.e(TAG, "❌ Failed to set up event listeners", err)
+                Logger.e(TAG, "❌ Failed to set up event listeners", err)
                 throw WalletKitBridgeException(ERROR_FAILED_SET_UP_EVENT_LISTENERS + err.message)
             }
         }
-        Log.d(TAG, "🔵 eventListenersSetupMutex released")
+        Logger.d(TAG, "🔵 eventListenersSetupMutex released")
     }
 
     suspend fun removeEventListenersIfNeeded() {
@@ -130,16 +130,16 @@ internal class MessageDispatcher(
         try {
             rpcClient.call(BridgeMethodConstants.METHOD_REMOVE_EVENT_LISTENERS, JSONObject())
             areEventListenersSetUp = false
-            Log.d(TAG, "Event listeners removed from JS bridge (no handlers remaining)")
+            Logger.d(TAG, "Event listeners removed from JS bridge (no handlers remaining)")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to remove event listeners from JS bridge", e)
+            Logger.e(TAG, "Failed to remove event listeners from JS bridge", e)
         }
     }
 
     fun areEventListenersSetUp(): Boolean = areEventListenersSetUp
 
     private fun handleReady(payload: JSONObject) {
-        Log.d(TAG, "🚀 handleReady() called")
+        Logger.d(TAG, "🚀 handleReady() called")
 
         val network = payload.optNullableString(ResponseConstants.KEY_NETWORK)
         initManager.updateNetwork(network)
@@ -149,32 +149,32 @@ internal class MessageDispatcher(
         onApiBaseUrlChanged(apiBaseUrl)
         if (!webViewManager.bridgeLoaded.isCompleted) {
             webViewManager.bridgeLoaded.complete(Unit)
-            Log.d(TAG, "🚀 bridgeLoaded completed")
+            Logger.d(TAG, "🚀 bridgeLoaded completed")
         }
         webViewManager.markJsBridgeReady()
 
         val wasAlreadyReady = rpcClient.isReady()
-        Log.d(TAG, "🚀 wasAlreadyReady=$wasAlreadyReady, ready.isCompleted=${rpcClient.isReady()}")
+        Logger.d(TAG, "🚀 wasAlreadyReady=$wasAlreadyReady, ready.isCompleted=${rpcClient.isReady()}")
 
         if (!rpcClient.isReady()) {
-            Log.d(TAG, "🚀 Completing ready for the first time")
+            Logger.d(TAG, "🚀 Completing ready for the first time")
             rpcClient.markReady()
         }
 
         if (wasAlreadyReady && areEventListenersSetUp) {
-            Log.w(TAG, "⚠️⚠️⚠️ Bridge ready event received again - JavaScript context was lost! Re-setting up event listeners...")
+            Logger.w(TAG, "⚠️⚠️⚠️ Bridge ready event received again - JavaScript context was lost! Re-setting up event listeners...")
             areEventListenersSetUp = false
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    Log.d(TAG, "🔵 Re-setting up event listeners after JS context loss...")
+                    Logger.d(TAG, "🔵 Re-setting up event listeners after JS context loss...")
                     ensureEventListenersSetUp()
-                    Log.d(TAG, "✅ Event listeners re-established after JS context loss")
+                    Logger.d(TAG, "✅ Event listeners re-established after JS context loss")
                 } catch (e: Exception) {
-                    Log.e(TAG, "❌ Failed to re-setup event listeners after JS context loss", e)
+                    Logger.e(TAG, "❌ Failed to re-setup event listeners after JS context loss", e)
                 }
             }
         } else {
-            Log.d(TAG, "🚀 Normal ready event (wasAlreadyReady=$wasAlreadyReady, areEventListenersSetUp=$areEventListenersSetUp)")
+            Logger.d(TAG, "🚀 Normal ready event (wasAlreadyReady=$wasAlreadyReady, areEventListenersSetUp=$areEventListenersSetUp)")
         }
 
         val data = JSONObject()
@@ -193,9 +193,9 @@ internal class MessageDispatcher(
                 put(ResponseConstants.KEY_TYPE, ResponseConstants.VALUE_KIND_READY)
                 put(ResponseConstants.KEY_DATA, data)
             }
-        Log.d(TAG, "🚀 Calling handleEvent for ready event")
+        Logger.d(TAG, "🚀 Calling handleEvent for ready event")
         handleEvent(readyEvent)
-        Log.d(TAG, "🚀 handleReady() complete")
+        Logger.d(TAG, "🚀 handleReady() complete")
     }
 
     private fun handleEvent(event: JSONObject) {
@@ -203,26 +203,26 @@ internal class MessageDispatcher(
         val data = event.optJSONObject(ResponseConstants.KEY_DATA) ?: JSONObject()
         val eventId = event.optString(JsonConstants.KEY_ID, java.util.UUID.randomUUID().toString())
 
-        Log.d(TAG, "🟢🟢🟢 === handleEvent called ===")
-        Log.d(TAG, "🟢 Event type: $type")
-        Log.d(TAG, "🟢 Event ID: $eventId")
-        Log.d(TAG, "🟢 Event data keys: ${data.keys().asSequence().toList()}")
-        Log.d(TAG, "🟢 Thread: ${Thread.currentThread().name}")
+        Logger.d(TAG, "🟢🟢🟢 === handleEvent called ===")
+        Logger.d(TAG, "🟢 Event type: $type")
+        Logger.d(TAG, "🟢 Event ID: $eventId")
+        Logger.d(TAG, "🟢 Event data keys: ${data.keys().asSequence().toList()}")
+        Logger.d(TAG, "🟢 Thread: ${Thread.currentThread().name}")
 
         val typedEvent = eventParser.parseEvent(type, data, event)
-        Log.d(TAG, "🟢 Parsed typed event: ${(typedEvent?.javaClass?.simpleName ?: ResponseConstants.VALUE_UNKNOWN)}")
+        Logger.d(TAG, "🟢 Parsed typed event: ${(typedEvent?.javaClass?.simpleName ?: ResponseConstants.VALUE_UNKNOWN)}")
 
         if (typedEvent != null) {
-            Log.d(TAG, "🟢 Typed event is NOT null, posting to main handler...")
+            Logger.d(TAG, "🟢 Typed event is NOT null, posting to main handler...")
 
             mainHandler.post {
-                Log.d(TAG, "🟢 Main handler runnable executing for event $type")
+                Logger.d(TAG, "🟢 Main handler runnable executing for event $type")
                 runBlocking {
                     eventRouter.dispatchEvent(eventId, type, typedEvent)
                 }
             }
         } else {
-            Log.w(TAG, "⚠️ " + MSG_FAILED_PARSE_TYPED_EVENT_PREFIX + type + " - event will be ignored")
+            Logger.w(TAG, "⚠️ " + MSG_FAILED_PARSE_TYPED_EVENT_PREFIX + type + " - event will be ignored")
         }
     }
 
@@ -230,38 +230,38 @@ internal class MessageDispatcher(
         val sessionId = payload.optString("sessionId")
         val event = payload.optJSONObject("event")
 
-        Log.d(TAG, "📤 handleJsBridgeEvent called")
-        Log.d(TAG, "📤 sessionId: $sessionId")
-        Log.d(TAG, "📤 event: $event")
-        Log.d(TAG, "📤 Full payload: $payload")
+        Logger.d(TAG, "📤 handleJsBridgeEvent called")
+        Logger.d(TAG, "📤 sessionId: $sessionId")
+        Logger.d(TAG, "📤 event: $event")
+        Logger.d(TAG, "📤 Full payload: $payload")
 
         if (event == null) {
-            Log.e(TAG, "❌ No event object in ${ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT} payload")
+            Logger.e(TAG, "❌ No event object in ${ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT} payload")
             return
         }
 
         mainHandler.post {
             try {
-                Log.d(TAG, "📤 Looking up WebView for session: $sessionId")
+                Logger.d(TAG, "📤 Looking up WebView for session: $sessionId")
                 val targetWebView = TonConnectInjector.getWebViewForSession(sessionId)
 
                 if (targetWebView != null) {
-                    Log.d(TAG, "✅ Found WebView for session: $sessionId")
+                    Logger.d(TAG, "✅ Found WebView for session: $sessionId")
                     val injector = targetWebView.getTonConnectInjector()
                     if (injector != null) {
-                        Log.d(TAG, "✅ Found TonConnectInjector, sending event to WebView")
-                        Log.d(TAG, "📤 Event being sent: $event")
+                        Logger.d(TAG, "✅ Found TonConnectInjector, sending event to WebView")
+                        Logger.d(TAG, "📤 Event being sent: $event")
                         injector.sendEvent(event)
-                        Log.d(TAG, "✅ Event sent successfully")
+                        Logger.d(TAG, "✅ Event sent successfully")
                     } else {
-                        Log.w(TAG, "⚠️  WebView found but no TonConnectInjector attached for session: $sessionId")
+                        Logger.w(TAG, "⚠️  WebView found but no TonConnectInjector attached for session: $sessionId")
                     }
                 } else {
-                    Log.w(TAG, "⚠️  No WebView found for session: $sessionId (browser may have been closed)")
-                    Log.w(TAG, "⚠️  This means the WebView was never registered or was garbage collected")
+                    Logger.w(TAG, "⚠️  No WebView found for session: $sessionId (browser may have been closed)")
+                    Logger.w(TAG, "⚠️  This means the WebView was never registered or was garbage collected")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "❌ Failed to send JS Bridge event", e)
+                Logger.e(TAG, "❌ Failed to send JS Bridge event", e)
             }
         }
     }

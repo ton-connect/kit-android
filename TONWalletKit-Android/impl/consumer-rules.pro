@@ -144,7 +144,7 @@
 
 
 # Keep engine implementations for reflection-based factory
--keep class io.ton.walletkit.presentation.impl.WebViewWalletKitEngine {
+-keep class io.ton.walletkit.engine.WebViewWalletKitEngine {
     <init>(android.content.Context, java.lang.String);
 }
 
@@ -194,3 +194,37 @@
 # 10. AndroidX WebKit (used by WebView engine)
 # ------------------------------------------------------------
 -dontwarn androidx.webkit.**
+
+# ------------------------------------------------------------
+# 11. Remove Logging in Release Builds
+# Strip debug/verbose/info logs from SDK in consumer apps
+# ------------------------------------------------------------
+
+# Remove all Log.v (VERBOSE) calls from SDK
+-assumenosideeffects class android.util.Log {
+    public static *** v(...);
+}
+
+# Remove all Log.d (DEBUG) calls from SDK
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+}
+
+# Remove all Log.i (INFO) calls from SDK
+-assumenosideeffects class android.util.Log {
+    public static *** i(...);
+}
+
+# Keep Log.w (WARNING) and Log.e (ERROR) for important messages
+# Uncomment below to also remove warnings and errors:
+# -assumenosideeffects class android.util.Log {
+#     public static *** w(...);
+#     public static *** e(...);
+# }
+
+# Remove println statements from SDK
+-assumenosideeffects class java.io.PrintStream {
+    public void println(%);
+    public void println(**);
+}
+

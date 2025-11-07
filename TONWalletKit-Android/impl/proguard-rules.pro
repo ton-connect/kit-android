@@ -40,3 +40,41 @@
 #     native <methods>;
 # }
 
+# ------------------------------------------------------------
+# Remove Logging in Release Builds
+# ------------------------------------------------------------
+
+# Remove all Log.v (VERBOSE) calls
+-assumenosideeffects class android.util.Log {
+    public static *** v(...);
+}
+
+# Remove all Log.d (DEBUG) calls
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+}
+
+# Remove all Log.i (INFO) calls
+-assumenosideeffects class android.util.Log {
+    public static *** i(...);
+}
+
+# Keep Log.w (WARNING) and Log.e (ERROR) for important messages
+# Uncomment below to also remove warnings and errors:
+# -assumenosideeffects class android.util.Log {
+#     public static *** w(...);
+#     public static *** e(...);
+# }
+
+# Remove println statements
+-assumenosideeffects class java.io.PrintStream {
+    public void println(%);
+    public void println(**);
+}
+
+# Remove System.out and System.err print statements
+-assumenosideeffects class java.lang.System {
+    public static java.io.PrintStream out;
+    public static java.io.PrintStream err;
+}
+

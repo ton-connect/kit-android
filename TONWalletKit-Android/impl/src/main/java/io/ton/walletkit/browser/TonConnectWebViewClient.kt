@@ -22,7 +22,7 @@
 package io.ton.walletkit.browser
 
 import android.graphics.Bitmap
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -51,11 +51,11 @@ internal class TonConnectWebViewClient(
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
         val url = request?.url?.toString() ?: return false
 
-        Log.d(TAG, "shouldOverrideUrlLoading: $url")
+        Logger.d(TAG, "shouldOverrideUrlLoading: $url")
 
         // Intercept tc://, tonkeeper:// deep links AND https://app.tonkeeper.com/ton-connect URLs
         if (isTonConnectUrl(url)) {
-            Log.d(TAG, "Intercepted TonConnect URL (preventing navigation, dApp should use injected bridge): $url")
+            Logger.d(TAG, "Intercepted TonConnect URL (preventing navigation, dApp should use injected bridge): $url")
             onTonConnectUrl?.invoke(url)
             return true // Prevent navigation - dApp should use injected bridge (embedded: true)
         }
@@ -64,11 +64,11 @@ internal class TonConnectWebViewClient(
     }
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-        Log.d(TAG, "onPageStarted: $url")
+        Logger.d(TAG, "onPageStarted: $url")
 
         // Also intercept in onPageStarted as a safety net
         if (url != null && isTonConnectUrl(url)) {
-            Log.d(TAG, "Intercepted TonConnect URL in onPageStarted (stopping load, dApp should use injected bridge): $url")
+            Logger.d(TAG, "Intercepted TonConnect URL in onPageStarted (stopping load, dApp should use injected bridge): $url")
             onTonConnectUrl?.invoke(url)
             view?.stopLoading()
             return // Don't call callbacks
@@ -81,7 +81,7 @@ internal class TonConnectWebViewClient(
         injectBridge(view)
 
         url?.let {
-            Log.d(TAG, "onPageStarted - URL: $it")
+            Logger.d(TAG, "onPageStarted - URL: $it")
             onPageStarted(it)
         }
     }
@@ -94,7 +94,7 @@ internal class TonConnectWebViewClient(
         injectBridge(view)
 
         url?.let {
-            Log.d(TAG, "onPageFinished - URL: $it")
+            Logger.d(TAG, "onPageFinished - URL: $it")
             onPageFinished(it)
         }
     }

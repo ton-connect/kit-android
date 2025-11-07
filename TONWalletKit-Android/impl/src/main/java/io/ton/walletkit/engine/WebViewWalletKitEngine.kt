@@ -22,7 +22,7 @@
 package io.ton.walletkit.engine
 
 import android.content.Context
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import android.view.ViewGroup
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -422,46 +422,46 @@ internal class WebViewWalletKitEngine private constructor(
     }
 
     override suspend fun addEventsHandler(eventsHandler: TONBridgeEventsHandler) {
-        Log.w(TAG, "🔵🔵🔵 addEventsHandler() called!")
-        Log.w(TAG, "🔵 Handler class: ${eventsHandler.javaClass.name}")
-        Log.w(TAG, "🔵 Handler identity: ${System.identityHashCode(eventsHandler)}")
-        Log.w(TAG, "🔵 Current handlers count: ${eventRouter.getHandlerCount()}")
-        Log.w(TAG, "🔵 Current areEventListenersSetUp: ${messageDispatcher.areEventListenersSetUp()}")
+        Logger.w(TAG, "🔵🔵🔵 addEventsHandler() called!")
+        Logger.w(TAG, "🔵 Handler class: ${eventsHandler.javaClass.name}")
+        Logger.w(TAG, "🔵 Handler identity: ${System.identityHashCode(eventsHandler)}")
+        Logger.w(TAG, "🔵 Current handlers count: ${eventRouter.getHandlerCount()}")
+        Logger.w(TAG, "🔵 Current areEventListenersSetUp: ${messageDispatcher.areEventListenersSetUp()}")
 
         val outcome = eventRouter.addHandler(eventsHandler, logAcquired = true)
 
         outcome.handlersBeforeAdd.forEachIndexed { index, handler ->
-            Log.d(TAG, "🔵 Existing handler[$index]: ${handler.javaClass.name} (identity: ${System.identityHashCode(handler)})")
+            Logger.d(TAG, "🔵 Existing handler[$index]: ${handler.javaClass.name} (identity: ${System.identityHashCode(handler)})")
         }
 
         if (outcome.alreadyRegistered) {
-            Log.w(TAG, "⚠️⚠️⚠️ Handler already registered (found via .contains()), skipping!")
-            Log.w(TAG, "🔵 eventHandlersMutex released, shouldSetupListeners=${outcome.isFirstHandler}")
+            Logger.w(TAG, "⚠️⚠️⚠️ Handler already registered (found via .contains()), skipping!")
+            Logger.w(TAG, "🔵 eventHandlersMutex released, shouldSetupListeners=${outcome.isFirstHandler}")
             return
         }
 
-        Log.w(TAG, "✅✅✅ Added event handler! Total handlers: ${eventRouter.getHandlerCount()}, isFirstHandler=${outcome.isFirstHandler}")
-        Log.w(TAG, "🔵 eventHandlersMutex released, shouldSetupListeners=${outcome.isFirstHandler}")
+        Logger.w(TAG, "✅✅✅ Added event handler! Total handlers: ${eventRouter.getHandlerCount()}, isFirstHandler=${outcome.isFirstHandler}")
+        Logger.w(TAG, "🔵 eventHandlersMutex released, shouldSetupListeners=${outcome.isFirstHandler}")
 
         if (outcome.isFirstHandler) {
-            Log.w(TAG, "🔵🔵🔵 First handler registered, setting up event listeners...")
+            Logger.w(TAG, "🔵🔵🔵 First handler registered, setting up event listeners...")
             ensureEventListenersSetUp()
-            Log.w(TAG, "✅✅✅ Event listener setup complete after first handler registration")
+            Logger.w(TAG, "✅✅✅ Event listener setup complete after first handler registration")
         } else {
-            Log.w(TAG, "⚡⚡⚡ Not first handler, event listeners should already be set up (areEventListenersSetUp=${messageDispatcher.areEventListenersSetUp()})")
+            Logger.w(TAG, "⚡⚡⚡ Not first handler, event listeners should already be set up (areEventListenersSetUp=${messageDispatcher.areEventListenersSetUp()})")
         }
     }
 
     override suspend fun removeEventsHandler(eventsHandler: TONBridgeEventsHandler) {
         val outcome = eventRouter.removeHandler(eventsHandler)
         if (outcome.removed) {
-            Log.d(TAG, "Removed event handler: ${eventsHandler.javaClass.simpleName}. Total handlers: ${eventRouter.getHandlerCount()}")
+            Logger.d(TAG, "Removed event handler: ${eventsHandler.javaClass.simpleName}. Total handlers: ${eventRouter.getHandlerCount()}")
 
             if (outcome.isEmpty && messageDispatcher.areEventListenersSetUp()) {
                 try {
                     messageDispatcher.removeEventListenersIfNeeded()
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to remove event listeners from JS bridge", e)
+                    Logger.e(TAG, "Failed to remove event listeners from JS bridge", e)
                 }
             }
         }
@@ -471,11 +471,11 @@ internal class WebViewWalletKitEngine private constructor(
         withContext(Dispatchers.Main) {
             try {
                 if (initManager.isInitialized()) {
-                    Log.d(TAG, "Removing event listeners before destroy...")
+                    Logger.d(TAG, "Removing event listeners before destroy...")
                     messageDispatcher.removeEventListenersIfNeeded()
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove event listeners during destroy", e)
+                Logger.w(TAG, "Failed to remove event listeners during destroy", e)
             }
 
             webViewManager.destroy()
@@ -505,7 +505,7 @@ internal class WebViewWalletKitEngine private constructor(
             val network = configuration.network
 
             instances[network]?.let { existingInstance ->
-                Log.w(TAG, "♻️♻️♻️ Reusing existing WebView engine for network: $network")
+                Logger.w(TAG, "♻️♻️♻️ Reusing existing WebView engine for network: $network")
                 if (eventsHandler != null) {
                     if (!existingInstance.eventRouter.containsHandler(eventsHandler)) {
                         existingInstance.addEventsHandler(eventsHandler)
@@ -517,11 +517,11 @@ internal class WebViewWalletKitEngine private constructor(
             val instance =
                 instanceMutex.withLock {
                     instances[network]?.let {
-                        Log.w(TAG, "♻️♻️♻️ Reusing existing WebView engine for network: $network (after lock)")
+                        Logger.w(TAG, "♻️♻️♻️ Reusing existing WebView engine for network: $network (after lock)")
                         return@withLock it
                     }
 
-                    Log.w(TAG, "🔶🔶🔶 Creating NEW WebView engine for network: $network")
+                    Logger.w(TAG, "🔶🔶🔶 Creating NEW WebView engine for network: $network")
                     WebViewWalletKitEngine(context, configuration, eventsHandler, assetPath).also {
                         instances[network] = it
                     }
@@ -542,11 +542,11 @@ internal class WebViewWalletKitEngine private constructor(
                 if (network != null) {
                     instances[network]?.destroy()
                     instances.remove(network)
-                    Log.w(TAG, "🗑️ Cleared WebView engine for network: $network")
+                    Logger.w(TAG, "🗑️ Cleared WebView engine for network: $network")
                 } else {
                     instances.values.forEach { it.destroy() }
                     instances.clear()
-                    Log.w(TAG, "🗑️ Cleared all WebView engine instances")
+                    Logger.w(TAG, "🗑️ Cleared all WebView engine instances")
                 }
             }
         }

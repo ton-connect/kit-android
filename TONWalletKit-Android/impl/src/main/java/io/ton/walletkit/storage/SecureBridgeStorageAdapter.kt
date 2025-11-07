@@ -22,7 +22,7 @@
 package io.ton.walletkit.storage
 
 import android.content.Context
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.StorageConstants
 import kotlinx.coroutines.Dispatchers
@@ -55,7 +55,7 @@ internal class SecureBridgeStorageAdapter(
         try {
             secureStorage.getRawValue(bridgeKey(key))
         } catch (e: Exception) {
-            Log.e(TAG, ERROR_FAILED_GET_RAW_VALUE + key, e)
+            Logger.e(TAG, ERROR_FAILED_GET_RAW_VALUE + key, e)
             null
         }
     }
@@ -68,7 +68,7 @@ internal class SecureBridgeStorageAdapter(
             try {
                 secureStorage.setRawValue(bridgeKey(key), value)
             } catch (e: Exception) {
-                Log.e(TAG, ERROR_FAILED_SET_RAW_VALUE + key, e)
+                Logger.e(TAG, ERROR_FAILED_SET_RAW_VALUE + key, e)
                 throw e
             }
         }
@@ -79,7 +79,7 @@ internal class SecureBridgeStorageAdapter(
             try {
                 secureStorage.removeRawValue(bridgeKey(key))
             } catch (e: Exception) {
-                Log.e(TAG, ERROR_FAILED_REMOVE_RAW_VALUE + key, e)
+                Logger.e(TAG, ERROR_FAILED_REMOVE_RAW_VALUE + key, e)
             }
         }
     }
@@ -89,7 +89,7 @@ internal class SecureBridgeStorageAdapter(
             try {
                 secureStorage.clearBridgeData()
             } catch (e: Exception) {
-                Log.e(TAG, ERROR_FAILED_CLEAR_BRIDGE_DATA, e)
+                Logger.e(TAG, ERROR_FAILED_CLEAR_BRIDGE_DATA, e)
             }
         }
     }

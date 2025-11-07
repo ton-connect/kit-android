@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.engine.infrastructure
 
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.storage.BridgeStorageAdapter
 
@@ -44,10 +44,10 @@ internal class StorageManager(
         }
 
         return try {
-            Log.d(TAG, "storageGet called with key=$key")
+            Logger.d(TAG, "storageGet called with key=$key")
             storageAdapter.get(key)
         } catch (e: Exception) {
-            Log.e(TAG, LogConstants.MSG_STORAGE_GET_FAILED + key, e)
+            Logger.e(TAG, LogConstants.MSG_STORAGE_GET_FAILED + key, e)
             null
         }
     }
@@ -58,10 +58,10 @@ internal class StorageManager(
         }
 
         try {
-            Log.d(TAG, "storageSet called with key=$key, valueLength=${value.length}")
+            Logger.d(TAG, "storageSet called with key=$key, valueLength=${value.length}")
             storageAdapter.set(key, value)
         } catch (e: Exception) {
-            Log.e(TAG, LogConstants.MSG_STORAGE_SET_FAILED + key, e)
+            Logger.e(TAG, LogConstants.MSG_STORAGE_SET_FAILED + key, e)
         }
     }
 
@@ -71,10 +71,10 @@ internal class StorageManager(
         }
 
         try {
-            Log.d(TAG, "storageRemove called with key=$key")
+            Logger.d(TAG, "storageRemove called with key=$key")
             storageAdapter.remove(key)
         } catch (e: Exception) {
-            Log.e(TAG, LogConstants.MSG_STORAGE_REMOVE_FAILED + key, e)
+            Logger.e(TAG, LogConstants.MSG_STORAGE_REMOVE_FAILED + key, e)
         }
     }
 
@@ -86,7 +86,7 @@ internal class StorageManager(
         try {
             storageAdapter.clear()
         } catch (e: Exception) {
-            Log.e(TAG, LogConstants.MSG_STORAGE_CLEAR_FAILED, e)
+            Logger.e(TAG, LogConstants.MSG_STORAGE_CLEAR_FAILED, e)
         }
     }
 

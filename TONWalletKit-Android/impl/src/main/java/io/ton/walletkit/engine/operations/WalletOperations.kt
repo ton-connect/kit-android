@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.engine.operations
 
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.parsing.TransactionParser
@@ -331,7 +331,7 @@ internal class WalletOperations(
 
         val params = JSONObject().apply { put(ResponseConstants.KEY_ADDRESS, address) }
         val result = rpcClient.call(BridgeMethodConstants.METHOD_REMOVE_WALLET, params)
-        Log.d(TAG, "removeWallet result: $result")
+        Logger.d(TAG, "removeWallet result: $result")
 
         val removed =
             when {

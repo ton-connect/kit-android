@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.engine.state
 
-import android.util.Log
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.listener.TONBridgeEventsHandler
@@ -50,7 +50,7 @@ internal class EventRouter {
     suspend fun addHandler(handler: TONBridgeEventsHandler, logAcquired: Boolean = false): AddHandlerOutcome =
         mutex.withLock {
             if (logAcquired) {
-                Log.d(TAG, "🔵 eventHandlersMutex acquired in addEventsHandler")
+                Logger.d(TAG, "🔵 eventHandlersMutex acquired in addEventsHandler")
             }
             val existingHandlers = eventHandlers.toList()
             if (eventHandlers.contains(handler)) {
@@ -100,26 +100,26 @@ internal class EventRouter {
         event: TONWalletKitEvent,
     ) {
         try {
-            Log.d(TAG, "🟢 Acquiring eventHandlersMutex to get handlers list...")
+            Logger.d(TAG, "🟢 Acquiring eventHandlersMutex to get handlers list...")
             val handlers =
                 mutex.withLock {
-                    Log.d(TAG, "🟢 eventHandlersMutex acquired, eventHandlers.size=${eventHandlers.size}")
+                    Logger.d(TAG, "🟢 eventHandlersMutex acquired, eventHandlers.size=${eventHandlers.size}")
                     eventHandlers.toList()
                 }
 
-            Log.d(TAG, "🟢 Got ${handlers.size} handlers, notifying each...")
+            Logger.d(TAG, "🟢 Got ${handlers.size} handlers, notifying each...")
             for (handler in handlers) {
                 try {
-                    Log.d(TAG, "🟢 Calling handler.handle() for ${handler.javaClass.simpleName}")
+                    Logger.d(TAG, "🟢 Calling handler.handle() for ${handler.javaClass.simpleName}")
                     handler.handle(event)
-                    Log.d(TAG, "✅ Handler ${handler.javaClass.simpleName} processed event successfully")
+                    Logger.d(TAG, "✅ Handler ${handler.javaClass.simpleName} processed event successfully")
                 } catch (e: Exception) {
-                    Log.e(TAG, "❌ " + MSG_HANDLER_EXCEPTION_PREFIX + eventId + " for handler ${handler.javaClass.simpleName}", e)
+                    Logger.e(TAG, "❌ " + MSG_HANDLER_EXCEPTION_PREFIX + eventId + " for handler ${handler.javaClass.simpleName}", e)
                 }
             }
-            Log.d(TAG, "✅ All handlers notified for event $type")
+            Logger.d(TAG, "✅ All handlers notified for event $type")
         } catch (e: Exception) {
-            Log.e(TAG, "❌ " + MSG_HANDLER_EXCEPTION_PREFIX + eventId, e)
+            Logger.e(TAG, "❌ " + MSG_HANDLER_EXCEPTION_PREFIX + eventId, e)
         }
     }
 

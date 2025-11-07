@@ -15,6 +15,9 @@ android {
         minSdk = 24
         consumerProguardFiles("consumer-rules.pro")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Enable logging in debug builds only
+        buildConfigField("boolean", "ENABLE_LOGGING", "true")
     }
 
     flavorDimensions += "engine"
@@ -53,6 +56,9 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            
+            // Disable logging in release builds
+            buildConfigField("boolean", "ENABLE_LOGGING", "false")
         }
         debug {
             isMinifyEnabled = false
@@ -62,6 +68,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+    
+    buildFeatures {
+        buildConfig = true
     }
 
     // Only build native libs for full variant
