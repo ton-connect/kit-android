@@ -22,6 +22,7 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.parsing.TransactionParser
 import io.ton.walletkit.engine.state.SignerManager
@@ -32,7 +33,9 @@ import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.WalletAccount
+import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
+import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.model.WalletState
 import org.json.JSONArray
 import org.json.JSONObject
@@ -60,220 +63,14 @@ internal class WalletOperations(
 ) {
 
     /**
-     * Create a v5r1 wallet instance for the provided mnemonic words.
+     * Create a signer from mnemonic phrase.
+     * Step 1 of the wallet creation pattern from JS docs.
+     *
+     * Example:
+     * ```
+     * val signer = walletOperations.createSignerFromMnemonic(mnemonic)
+     * ```
      */
-    suspend fun createV5R1Wallet(words: List<String>, network: String?): Any {
-        ensureInitialized()
-
-        val params =
-            JSONObject().apply {
-                put(JsonConstants.KEY_MNEMONIC, JSONArray(words))
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-            }
-
-        return rpcClient.call(BridgeMethodConstants.METHOD_CREATE_V5R1_WALLET_USING_MNEMONIC, params)
-    }
-
-    /**
-     * Create a V5R1 wallet from mnemonic and return WalletAccount.
-     * If mnemonic is null, generates a new random mnemonic.
-     */
-    suspend fun createV5R1WalletUsingMnemonic(
-        mnemonic: List<String>?,
-        network: String?,
-    ): WalletAccount {
-        ensureInitialized()
-
-        // Generate mnemonic if not provided
-        val actualMnemonic = mnemonic ?: run {
-            val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TON_MNEMONIC, JSONObject())
-            val items = result.optJSONArray("items")
-                ?: throw IllegalStateException("Failed to generate mnemonic: no items returned")
-            List(items.length()) { items.getString(it) }
-        }
-
-        val params =
-            JSONObject().apply {
-                put(JsonConstants.KEY_MNEMONIC, JSONArray(actualMnemonic))
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_V5R1_WALLET_USING_MNEMONIC, params)
-
-        return WalletAccount(
-            address = result.optString(ResponseConstants.KEY_ADDRESS),
-            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
-            name = null,
-            version = "v5r1",
-            network = network ?: currentNetworkProvider(),
-            index = 0,
-        )
-    }
-
-    /**
-     * Create a v4r2 wallet instance for the provided mnemonic words.
-     */
-    suspend fun createV4R2Wallet(words: List<String>, network: String?): Any {
-        ensureInitialized()
-
-        val params =
-            JSONObject().apply {
-                put(JsonConstants.KEY_MNEMONIC, JSONArray(words))
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-            }
-
-        return rpcClient.call(BridgeMethodConstants.METHOD_CREATE_V4R2_WALLET_USING_MNEMONIC, params)
-    }
-
-    /**
-     * Create a V4R2 wallet from mnemonic and return WalletAccount.
-     * If mnemonic is null, generates a new random mnemonic.
-     */
-    suspend fun createV4R2WalletUsingMnemonic(
-        mnemonic: List<String>?,
-        network: String?,
-    ): WalletAccount {
-        ensureInitialized()
-
-        // Generate mnemonic if not provided
-        val actualMnemonic = mnemonic ?: run {
-            val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TON_MNEMONIC, JSONObject())
-            val items = result.optJSONArray("items")
-                ?: throw IllegalStateException("Failed to generate mnemonic: no items returned")
-            List(items.length()) { items.getString(it) }
-        }
-
-        val params =
-            JSONObject().apply {
-                put(JsonConstants.KEY_MNEMONIC, JSONArray(actualMnemonic))
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_V4R2_WALLET_USING_MNEMONIC, params)
-
-        return WalletAccount(
-            address = result.optString(ResponseConstants.KEY_ADDRESS),
-            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
-            name = null,
-            version = "v4r2",
-            network = network ?: currentNetworkProvider(),
-            index = 0,
-        )
-    }
-
-    /**
-     * Create a V4R2 wallet from secret key (private key bytes).
-     */
-    suspend fun createV4R2WalletUsingSecretKey(
-        secretKey: ByteArray,
-        network: String?,
-    ): WalletAccount {
-        ensureInitialized()
-
-        val params =
-            JSONObject().apply {
-                put(JsonConstants.KEY_SECRET_KEY, secretKey.joinToString("") { "%02x".format(it) })
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_V4R2_WALLET_USING_SECRET_KEY, params)
-
-        return WalletAccount(
-            address = result.optString(ResponseConstants.KEY_ADDRESS),
-            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
-            name = null,
-            version = "v4r2",
-            network = network ?: currentNetworkProvider(),
-            index = 0,
-        )
-    }
-
-    /**
-     * Create a V5R1 wallet from secret key (private key bytes).
-     */
-    suspend fun createV5R1WalletUsingSecretKey(
-        secretKey: ByteArray,
-        network: String?,
-    ): WalletAccount {
-        ensureInitialized()
-
-        val params =
-            JSONObject().apply {
-                put(JsonConstants.KEY_SECRET_KEY, secretKey.joinToString("") { "%02x".format(it) })
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_V5R1_WALLET_USING_SECRET_KEY, params)
-
-        return WalletAccount(
-            address = result.optString(ResponseConstants.KEY_ADDRESS),
-            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
-            name = null,
-            version = "v5r1",
-            network = network ?: currentNetworkProvider(),
-            index = 0,
-        )
-    }
-
-    /**
-     * Create a V4R2 wallet using a signer implementation.
-     */
-    suspend fun createV4R2WalletWithSigner(
-        signer: WalletSigner,
-        network: String?,
-    ): WalletAccount {
-        ensureInitialized()
-
-        val signerId = signerManager.registerSigner(signer)
-
-        val params =
-            JSONObject().apply {
-                put(ResponseConstants.KEY_PUBLIC_KEY, signer.publicKey)
-                put(ResponseConstants.KEY_SIGNER_ID, signerId)
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_V4R2_WALLET_WITH_SIGNER, params)
-
-        return WalletAccount(
-            address = result.optString(ResponseConstants.KEY_ADDRESS),
-            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
-            name = null,
-            version = "v4r2",
-            network = network ?: currentNetworkProvider(),
-            index = 0,
-        )
-    }
-
-    /**
-     * Create a V5R1 wallet using a signer implementation.
-     */
-    suspend fun createV5R1WalletWithSigner(
-        signer: WalletSigner,
-        network: String?,
-    ): WalletAccount {
-        ensureInitialized()
-
-        val signerId = signerManager.registerSigner(signer)
-
-        val params =
-            JSONObject().apply {
-                put(ResponseConstants.KEY_PUBLIC_KEY, signer.publicKey)
-                put(ResponseConstants.KEY_SIGNER_ID, signerId)
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_V5R1_WALLET_WITH_SIGNER, params)
-
-        return WalletAccount(
-            address = result.optString(ResponseConstants.KEY_ADDRESS),
-            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
-            name = null,
-            version = "v5r1",
-            network = network ?: currentNetworkProvider(),
-            index = 0,
-        )
-    }
 
     /**
      * Deliver a signature or error for a signer request originating from the bridge.
@@ -290,11 +87,195 @@ internal class WalletOperations(
             JSONObject().apply {
                 put(ResponseConstants.KEY_SIGNER_ID, signerId)
                 put(ResponseConstants.KEY_REQUEST_ID, requestId)
-                signature?.let { put(ResponseConstants.KEY_SIGNATURE, it.toHexString()) }
+                signature?.let { put(ResponseConstants.KEY_SIGNATURE, WalletKitUtils.byteArrayToHex(it)) }
                 error?.let { put(ResponseConstants.KEY_ERROR, it) }
             }
 
         rpcClient.call(BridgeMethodConstants.METHOD_RESPOND_TO_SIGN_REQUEST, params)
+    }
+
+    /**
+     * Create a signer from mnemonic phrase.
+     * Step 1 of the wallet creation pattern from JS docs.
+     *
+     * This is the Android equivalent of JS WalletKit's `Signer.fromMnemonic()`.
+     *
+     * Example:
+     * ```
+     * val signer = walletOperations.createSignerFromMnemonic(mnemonic)
+     * ```
+     */
+    suspend fun createSignerFromMnemonic(
+        mnemonic: List<String>,
+        mnemonicType: String = "ton",
+    ): WalletSignerInfo {
+        ensureInitialized()
+
+        val params =
+            JSONObject().apply {
+                put(JsonConstants.KEY_MNEMONIC, JSONArray(mnemonic))
+                put("mnemonicType", mnemonicType)
+            }
+
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, params)
+
+        return WalletSignerInfo(
+            signerId = result.optString(ResponseConstants.KEY_SIGNER_ID),
+            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
+        )
+    }
+
+    /**
+     * Create a signer from a secret key.
+     * Step 1 of the wallet creation pattern from JS docs.
+     *
+     * This is the Android equivalent of JS WalletKit's `Signer.fromPrivateKey()`.
+     *
+     * Example:
+     * ```
+     * val signer = walletOperations.createSignerFromSecretKey(secretKey)
+     * ```
+     */
+    suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo {
+        ensureInitialized()
+
+        val params =
+            JSONObject().apply {
+                put(JsonConstants.KEY_SECRET_KEY, WalletKitUtils.byteArrayToHexNoPrefix(secretKey))
+            }
+
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, params)
+
+        return WalletSignerInfo(
+            signerId = result.optString(ResponseConstants.KEY_SIGNER_ID),
+            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
+        )
+    }
+
+    /**
+     * Create a signer from a custom WalletSigner implementation.
+     * Step 1 of the wallet creation pattern, enabling hardware wallet integration.
+     *
+     * This is the Android equivalent of JS WalletKit's `Signer.custom()`.
+     *
+     * Example:
+     * ```
+     * val customSigner = object : WalletSigner {
+     *     override val publicKey = "0x..."
+     *     override suspend fun sign(data: ByteArray) = hardwareDevice.sign(data)
+     * }
+     * val signer = walletOperations.createSignerFromCustom(customSigner)
+     * ```
+     */
+    suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): WalletSignerInfo {
+        ensureInitialized()
+
+        // Register the custom signer in the SignerManager to handle sign requests
+        val signerId = signerManager.registerSigner(signer)
+
+        // Return signer info with the registered ID and public key from the custom signer
+        return WalletSignerInfo(
+            signerId = signerId,
+            publicKey = signer.publicKey,
+        )
+    }
+
+    /**
+     * Create a V5R1 wallet adapter from a signer.
+     * Step 2 of the wallet creation pattern from JS docs.
+     *
+     * Example:
+     * ```
+     * val adapter = walletOperations.createV5R1Adapter(signer.signerId, network, workchain, walletId)
+     * ```
+     */
+    suspend fun createV5R1Adapter(
+        signerId: String,
+        network: String?,
+        workchain: Int = 0,
+        walletId: Long = 2147483409L,
+    ): WalletAdapterInfo {
+        ensureInitialized()
+
+        val params =
+            JSONObject().apply {
+                put(ResponseConstants.KEY_SIGNER_ID, signerId)
+                put("walletVersion", "v5r1")
+                network?.let { put(JsonConstants.KEY_NETWORK, it) }
+                put("workchain", workchain)
+                put("walletId", walletId)
+            }
+
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
+
+        return WalletAdapterInfo(
+            adapterId = result.optString("adapterId"),
+            address = result.optString(ResponseConstants.KEY_ADDRESS),
+        )
+    }
+
+    /**
+     * Create a V4R2 wallet adapter from a signer.
+     * Step 2 of the wallet creation pattern from JS docs.
+     *
+     * Example:
+     * ```
+     * val adapter = walletOperations.createV4R2Adapter(signer.signerId, network, workchain, walletId)
+     * ```
+     */
+    suspend fun createV4R2Adapter(
+        signerId: String,
+        network: String?,
+        workchain: Int = 0,
+        walletId: Long = 698983191L,
+    ): WalletAdapterInfo {
+        ensureInitialized()
+
+        val params =
+            JSONObject().apply {
+                put(ResponseConstants.KEY_SIGNER_ID, signerId)
+                put("walletVersion", "v4r2")
+                network?.let { put(JsonConstants.KEY_NETWORK, it) }
+                put("workchain", workchain)
+                put("walletId", walletId)
+            }
+
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
+
+        return WalletAdapterInfo(
+            adapterId = result.optString("adapterId"),
+            address = result.optString(ResponseConstants.KEY_ADDRESS),
+        )
+    }
+
+    /**
+     * Add a wallet to the kit using an adapter.
+     * Step 3 of the wallet creation pattern from JS docs.
+     *
+     * Example:
+     * ```
+     * val wallet = walletOperations.addWallet(adapter.adapterId)
+     * ```
+     */
+    suspend fun addWallet(adapterId: String): WalletAccount {
+        ensureInitialized()
+
+        val params =
+            JSONObject().apply {
+                put("adapterId", adapterId)
+            }
+
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, params)
+
+        return WalletAccount(
+            address = result.optString(ResponseConstants.KEY_ADDRESS),
+            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
+            name = null,
+            // Version is determined by the adapter
+            version = "unknown",
+            network = currentNetworkProvider(),
+            index = 0,
+        )
     }
 
     /**
@@ -321,6 +302,30 @@ internal class WalletOperations(
                 )
             }
         }
+    }
+
+    /**
+     * Get a single wallet by address using RPC call.
+     */
+    suspend fun getWallet(address: String): WalletAccount? {
+        ensureInitialized()
+
+        val params = JSONObject().apply { put(ResponseConstants.KEY_ADDRESS, address) }
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_WALLET, params)
+
+        // If result is null or doesn't have required fields, wallet doesn't exist
+        if (result.length() == 0 || !result.has(ResponseConstants.KEY_ADDRESS)) {
+            return null
+        }
+
+        return WalletAccount(
+            address = result.optString(ResponseConstants.KEY_ADDRESS),
+            publicKey = result.optNullableString(ResponseConstants.KEY_PUBLIC_KEY),
+            name = result.optNullableString(JsonConstants.KEY_NAME),
+            version = result.optString(JsonConstants.KEY_VERSION, ResponseConstants.VALUE_UNKNOWN),
+            network = result.optString(JsonConstants.KEY_NETWORK, currentNetworkProvider()),
+            index = result.optInt(ResponseConstants.KEY_INDEX, 0),
+        )
     }
 
     /**
@@ -390,22 +395,7 @@ internal class WalletOperations(
         }
     }
 
-    private fun ByteArray.toHexString(): String {
-        if (isEmpty()) return "0x"
-        val result = CharArray(size * 2 + 2)
-        result[0] = '0'
-        result[1] = 'x'
-        val hexChars = HEX_CHARS
-        for (i in indices) {
-            val v = this[i].toInt() and 0xFF
-            result[2 + i * 2] = hexChars[v ushr 4]
-            result[3 + i * 2] = hexChars[v and 0x0F]
-        }
-        return String(result)
-    }
-
     companion object {
-        private val HEX_CHARS = "0123456789abcdef".toCharArray()
         private const val TAG = "${LogConstants.TAG_WEBVIEW_ENGINE}:WalletOps"
 
         internal const val ERROR_NEW_WALLET_NOT_FOUND = "Failed to retrieve newly added wallet"

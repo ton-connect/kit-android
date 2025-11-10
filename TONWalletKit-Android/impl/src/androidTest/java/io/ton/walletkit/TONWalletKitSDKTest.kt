@@ -46,7 +46,7 @@ import org.junit.runner.RunWith
  * These tests show how applications should use the new instance-based SDK:
  * 1. Initialize with ITONWalletKit.initialize()
  * 2. Add event handlers with addEventsHandler()
- * 3. Create wallets with createV4R2WalletFromMnemonic() or createV5R1WalletFromMnemonic()
+ * 3. Create wallets using the 3-step pattern: createSigner → createAdapter → addWallet
  * 4. Perform operations on wallet instances
  * 5. Clean up with destroy()
  *
@@ -181,11 +181,10 @@ class TONWalletKitSDKTest {
                     "abandon", "abandon", "abandon", "abandon", "abandon", "art",
                 )
 
-                // Create V4R2 wallet
-                val wallet = sdk.createV4R2WalletFromMnemonic(
-                    mnemonic = mnemonic,
-                    network = TONNetwork.MAINNET,
-                )
+                // Create V4R2 wallet using 3-step pattern
+                val signer = sdk.createSignerFromMnemonic(mnemonic)
+                val adapter = sdk.createV4R2Adapter(signer.signerId, TONNetwork.MAINNET)
+                val wallet = sdk.addWallet(adapter.adapterId)
 
                 assertNotNull("Wallet should be created", wallet)
                 assertNotNull("Wallet should have address", wallet.address)
@@ -209,11 +208,10 @@ class TONWalletKitSDKTest {
                     "abandon", "abandon", "abandon", "abandon", "abandon", "art",
                 )
 
-                // Create V5R1 wallet
-                val wallet = sdk.createV5R1WalletFromMnemonic(
-                    mnemonic = mnemonic,
-                    network = TONNetwork.TESTNET,
-                )
+                // Create V5R1 wallet using 3-step pattern
+                val signer = sdk.createSignerFromMnemonic(mnemonic)
+                val adapter = sdk.createV5R1Adapter(signer.signerId, TONNetwork.TESTNET)
+                val wallet = sdk.addWallet(adapter.adapterId)
 
                 assertNotNull("V5R1 wallet should be created", wallet)
                 assertNotNull("Wallet should have address", wallet.address)

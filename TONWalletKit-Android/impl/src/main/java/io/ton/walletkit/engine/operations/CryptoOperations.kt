@@ -28,6 +28,7 @@ import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.model.KeyPair
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -74,51 +75,64 @@ internal class CryptoOperations(
     }
 
     /**
-     * Derive a hex-encoded public key from the provided mnemonic words.
+     * Convert a mnemonic phrase to an Ed25519 key pair.
      *
-     * @param words Mnemonic seed words.
-     * @return Hex-encoded public key.
+     * @param words Mnemonic seed words (12 or 24 words).
+     * @param mnemonicType Derivation type: "ton" (default) or "bip39".
+     * @return KeyPair containing public key (32 bytes) and secret key (64 bytes).
      * @throws WalletKitBridgeException If the bridge call fails.
      */
-    suspend fun derivePublicKeyFromMnemonic(words: List<String>): String {
+    suspend fun mnemonicToKeyPair(
+        words: List<String>,
+        mnemonicType: String = "ton",
+    ): KeyPair {
         ensureInitialized()
 
         val params =
             JSONObject().apply {
                 put(JsonConstants.KEY_MNEMONIC, JSONArray(words))
+                put(JsonConstants.KEY_MNEMONIC_TYPE, mnemonicType)
             }
 
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_DERIVE_PUBLIC_KEY_FROM_MNEMONIC, params)
-        return result.getString(ResponseConstants.KEY_PUBLIC_KEY)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_MNEMONIC_TO_KEY_PAIR, params)
+
+        val publicKeyArray =
+            result.optJSONArray(ResponseConstants.KEY_PUBLIC_KEY)
+                ?: throw WalletKitBridgeException("Missing publicKey in mnemonicToKeyPair response")
+        val secretKeyArray =
+            result.optJSONArray(ResponseConstants.KEY_SECRET_KEY)
+                ?: throw WalletKitBridgeException("Missing secretKey in mnemonicToKeyPair response")
+
+        val publicKey = ByteArray(publicKeyArray.length()) { i -> publicKeyArray.optInt(i).toByte() }
+        val secretKey = ByteArray(secretKeyArray.length()) { i -> secretKeyArray.optInt(i).toByte() }
+
+        return KeyPair(publicKey, secretKey)
     }
 
     /**
-     * Sign arbitrary data with the provided mnemonic.
+     * Sign arbitrary data using a secret key via the bridge.
      *
-     * @param words Mnemonic seed words.
-     * @param data Payload that should be signed.
-     * @param mnemonicType Mnemonic type required by the bridge (e.g. "ton" or "bip39").
+     * @param data Data bytes to sign.
+     * @param secretKey Secret key bytes for signing.
      * @return Signature bytes returned by the bridge.
      * @throws WalletKitBridgeException If the bridge call fails or omits the signature.
      */
-    suspend fun signDataWithMnemonic(
-        words: List<String>,
+    suspend fun sign(
         data: ByteArray,
-        mnemonicType: String,
+        secretKey: ByteArray,
     ): ByteArray {
         ensureInitialized()
 
         val params =
             JSONObject().apply {
-                put(JsonConstants.KEY_WORDS, JSONArray(words))
                 put(JsonConstants.KEY_DATA, JSONArray(data.map { it.toInt() and 0xFF }))
-                put(JsonConstants.KEY_MNEMONIC_TYPE, mnemonicType)
+                put(JsonConstants.KEY_SECRET_KEY, JSONArray(secretKey.map { it.toInt() and 0xFF }))
             }
 
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_SIGN_DATA_WITH_MNEMONIC, params)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_SIGN, params)
         val signatureArray =
             result.optJSONArray(ResponseConstants.KEY_SIGNATURE)
-                ?: throw WalletKitBridgeException(ERROR_SIGNATURE_MISSING_SIGN_DATA_RESULT)
+                ?: throw WalletKitBridgeException(ERROR_SIGNATURE_MISSING_SIGN_RESULT)
 
         return ByteArray(signatureArray.length()) { index ->
             signatureArray.optInt(index).toByte()
@@ -127,7 +141,7 @@ internal class CryptoOperations(
 
     companion object {
         private const val TAG = "${LogConstants.TAG_WEBVIEW_ENGINE}:CryptoOps"
-        private const val ERROR_SIGNATURE_MISSING_SIGN_DATA_RESULT =
-            "Signature missing from signDataWithMnemonic result"
+        private const val ERROR_SIGNATURE_MISSING_SIGN_RESULT =
+            "Signature missing from sign result"
     }
 }

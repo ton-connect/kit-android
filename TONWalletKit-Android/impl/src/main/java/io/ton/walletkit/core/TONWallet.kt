@@ -25,6 +25,7 @@ import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.engine.WalletKitEngine
+import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.SignDataResult
 import io.ton.walletkit.model.TONJettonTransferParams
 import io.ton.walletkit.model.TONJettonWallets
@@ -32,13 +33,11 @@ import io.ton.walletkit.model.TONNFTItem
 import io.ton.walletkit.model.TONNFTItems
 import io.ton.walletkit.model.TONNFTTransferParamsHuman
 import io.ton.walletkit.model.TONNFTTransferParamsRaw
-import io.ton.walletkit.model.TONNetwork
 import io.ton.walletkit.model.TONTransactionPreview
 import io.ton.walletkit.model.TONTransferParams
 import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletSession
-import io.ton.walletkit.model.WalletSigner
 
 /**
  * Represents a TON wallet with balance and state management.
@@ -75,143 +74,39 @@ internal class TONWallet internal constructor(
     override val publicKey: String? get() = account?.publicKey
     companion object {
         /**
-         * Derive a public key from a mnemonic phrase without creating a wallet.
-         *
-         * This is useful for external signers (hardware wallets, watch-only wallets)
-         * where you need the public key but don't want to store the mnemonic.
-         *
-         * Example:
-         * ```kotlin
-         * val kit = TONWalletKit.initialize(context, config)
-         * val mnemonic = listOf("word1", "word2", ..., "word24")
-         * val publicKey = TONWallet.derivePublicKey(kit, mnemonic)
-         *
-         * // Now create a custom signer with this public key
-         * val signer = object : WalletSigner {
-         *     override val publicKey = publicKey
-         *     override suspend fun sign(data: ByteArray): ByteArray {
-         *         // Forward to hardware wallet for signing
-         *         return hardwareWallet.sign(data)
-         *     }
-         * }
-         * ```
-         *
-         * @param mnemonic 24-word mnemonic phrase
-         * @return Hex-encoded public key
-         * @throws io.ton.walletkit.WalletKitBridgeException if derivation fails or SDK not initialized
-         */
-        suspend fun derivePublicKey(kit: TONWalletKit, mnemonic: List<String>): String {
-            return kit.engine.derivePublicKeyFromMnemonic(mnemonic)
-        }
-
-        /**
-         * Sign arbitrary data using the SDK's JS signer utilities.
-         *
-         * This helper is intended for demo or testing scenarios where the mnemonic
-         * is available in-app (e.g., simulated external signers). Production apps should
-         * forward [WalletSigner.sign] requests to their secure signer implementation instead.
+         * Convert a mnemonic phrase to a key pair.
          *
          * @param kit The TONWalletKit instance
-         * @param mnemonic Mnemonic phrase used to derive the signing key
-         * @param data Bytes that need to be signed
+         * @param mnemonic Mnemonic phrase (12 or 24 words)
          * @param mnemonicType Mnemonic type ("ton" by default)
+         * @return KeyPair with publicKey and secretKey
+         * @throws WalletKitBridgeException if conversion fails or SDK not initialized
          */
-        suspend fun signDataWithMnemonic(
+        suspend fun mnemonicToKeyPair(
             kit: TONWalletKit,
             mnemonic: List<String>,
-            data: ByteArray,
             mnemonicType: String = "ton",
+        ): KeyPair {
+            return kit.engine.mnemonicToKeyPair(mnemonic, mnemonicType)
+        }
+
+        /**
+         * Sign arbitrary data using a secret key.
+         *
+         * This is a low-level signing primitive. Typically used in conjunction with
+         * [mnemonicToKeyPair] to derive keys and then sign data.
+         *
+         * @param kit The TONWalletKit instance
+         * @param data Data bytes to sign
+         * @param secretKey Secret key bytes for signing
+         * @return Signature bytes
+         */
+        suspend fun sign(
+            kit: TONWalletKit,
+            data: ByteArray,
+            secretKey: ByteArray,
         ): ByteArray {
-            return kit.engine.signDataWithMnemonic(mnemonic, data, mnemonicType)
-        }
-
-        /**
-         * Add a new wallet using an external signer.
-         *
-         * Use this method to create wallets where the private key is managed externally,
-         * such as hardware wallets, watch-only wallets, or separate secure modules.
-         *
-         * @param kit The TONWalletKit instance
-         *
-         * The [signer] will be called whenever the wallet needs to sign a transaction or data.
-         *
-         * Example:
-         * ```kotlin
-         * val signer = object : WalletSigner {
-         *     override val publicKey = "your_public_key_hex"
-         *
-         *     override suspend fun sign(data: ByteArray): ByteArray {
-         *         // Show confirmation dialog to user
-         *         // Call hardware wallet or external signing service
-         *         return signature
-         *     }
-         * }
-         *
-         * val wallet = TONWallet.addWithSigner(
-         *     signer = signer,
-         *     version = "v4r2",
-         *     network = TONNetwork.MAINNET
-         * )
-         * ```
-         *
-         * @param kit The TONWalletKit instance
-         * @param signer The external signer that will handle all signing operations
-         * @param network Network to use (default: MAINNET)
-         * @return The newly created V4R2 wallet
-         * @throws io.ton.walletkit.WalletKitBridgeException if wallet creation fails
-         */
-        suspend fun createV4R2WithSigner(
-            kit: TONWalletKit,
-            signer: WalletSigner,
-            network: TONNetwork = TONNetwork.MAINNET,
-        ): TONWallet {
-            val account = kit.engine.createV4R2WalletWithSigner(
-                signer = signer,
-                network = network.value,
-            )
-
-            return TONWallet(
-                address = account.address,
-                engine = kit.engine,
-                account = account,
-            )
-        }
-
-        /**
-         * Create a V5R1 wallet backed by an external signer.
-         *
-         * Similar to [createV4R2WithSigner] but creates a V5R1 wallet contract.
-         *
-         * Example:
-         * ```kotlin
-         * val wallet = TONWallet.createV5R1WithSigner(
-         *     kit = walletKit,
-         *     signer = myHardwareWalletSigner,
-         *     network = TONNetwork.MAINNET
-         * )
-         * ```
-         *
-         * @param kit The TONWalletKit instance
-         * @param signer The external signer that will handle all signing operations
-         * @param network Network to use (default: MAINNET)
-         * @return The newly created V5R1 wallet
-         * @throws io.ton.walletkit.WalletKitBridgeException if wallet creation fails
-         */
-        suspend fun createV5R1WithSigner(
-            kit: TONWalletKit,
-            signer: WalletSigner,
-            network: TONNetwork = TONNetwork.MAINNET,
-        ): TONWallet {
-            val account = kit.engine.createV5R1WalletWithSigner(
-                signer = signer,
-                network = network.value,
-            )
-
-            return TONWallet(
-                address = account.address,
-                engine = kit.engine,
-                account = account,
-            )
+            return kit.engine.sign(data, secretKey)
         }
 
         /**
@@ -530,7 +425,7 @@ internal class TONWallet internal constructor(
         type: SignDataType,
     ): SignDataResult {
         // Sign data is handled via request/response flow, not direct signing
-        // Use TONWallet.signDataWithMnemonic for static helper
+        // Use TONWallet.mnemonicToKeyPair and TONWallet.sign for low-level signing
         throw UnsupportedOperationException("Direct signing not supported. Use request/response flow via events.")
     }
 

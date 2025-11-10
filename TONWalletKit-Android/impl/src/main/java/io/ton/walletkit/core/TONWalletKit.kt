@@ -22,7 +22,6 @@
 package io.ton.walletkit.core
 
 import android.content.Context
-import android.util.Base64
 import android.webkit.WebView
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
@@ -31,9 +30,11 @@ import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.listener.TONBridgeEventsHandler
-import io.ton.walletkit.model.SignDataResult
+import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
+import io.ton.walletkit.model.WalletSignerInfo
 
 /**
  * Main entry point for TON Wallet Kit SDK.
@@ -154,149 +155,81 @@ internal class TONWalletKit private constructor(
     // === Wallet Management Methods ===
 
     /**
-     * Create a new V4R2 wallet from mnemonic phrase.
-     * If mnemonic is null, a new random mnemonic will be generated.
-     *
-     * @param mnemonic 24-word mnemonic phrase, or null to generate a new one
-     * @param network Network to use (MAINNET or TESTNET)
-     * @return The newly created wallet
+     * Create a signer from mnemonic phrase.
+     * Step 1 of the wallet creation pattern matching JS WalletKit.
      */
-    override suspend fun createV4R2WalletFromMnemonic(
-        mnemonic: List<String>?,
-        network: TONNetwork,
-    ): ITONWallet {
+    override suspend fun createSignerFromMnemonic(
+        mnemonic: List<String>,
+        mnemonicType: String,
+    ): WalletSignerInfo {
         checkNotDestroyed()
+        return engine.createSignerFromMnemonic(mnemonic, mnemonicType)
+    }
 
-        val account = engine.createV4R2WalletFromMnemonic(
-            mnemonic = mnemonic,
+    /**
+     * Create a signer from secret key (private key).
+     * Step 1 of the wallet creation pattern matching JS WalletKit.
+     */
+    override suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo {
+        checkNotDestroyed()
+        return engine.createSignerFromSecretKey(secretKey)
+    }
+
+    /**
+     * Create a signer from a custom WalletSigner implementation.
+     * Step 1 of the wallet creation pattern, enabling hardware wallet integration.
+     */
+    override suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo {
+        checkNotDestroyed()
+        return engine.createSignerFromCustom(signer)
+    }
+
+    /**
+     * Create a V5R1 wallet adapter from a signer.
+     * Step 2 of the wallet creation pattern matching JS WalletKit.
+     */
+    override suspend fun createV5R1Adapter(
+        signer: WalletSignerInfo,
+        network: TONNetwork,
+        workchain: Int,
+        walletId: Long,
+    ): WalletAdapterInfo {
+        checkNotDestroyed()
+        return engine.createV5R1Adapter(
+            signerId = signer.signerId,
             network = network.value,
-        )
-
-        return TONWallet(
-            address = account.address,
-            engine = engine,
-            account = account,
+            workchain = workchain,
+            walletId = walletId,
         )
     }
 
     /**
-     * Create a new V5R1 wallet from mnemonic phrase.
-     * If mnemonic is null, a new random mnemonic will be generated.
-     *
-     * @param mnemonic 24-word mnemonic phrase, or null to generate a new one
-     * @param network Network to use (MAINNET or TESTNET)
-     * @return The newly created wallet
+     * Create a V4R2 wallet adapter from a signer.
+     * Step 2 of the wallet creation pattern matching JS WalletKit.
      */
-    override suspend fun createV5R1WalletFromMnemonic(
-        mnemonic: List<String>?,
+    override suspend fun createV4R2Adapter(
+        signer: WalletSignerInfo,
         network: TONNetwork,
-    ): ITONWallet {
+        workchain: Int,
+        walletId: Long,
+    ): WalletAdapterInfo {
         checkNotDestroyed()
-
-        val account = engine.createV5R1WalletFromMnemonic(
-            mnemonic = mnemonic,
+        return engine.createV4R2Adapter(
+            signerId = signer.signerId,
             network = network.value,
-        )
-
-        return TONWallet(
-            address = account.address,
-            engine = engine,
-            account = account,
+            workchain = workchain,
+            walletId = walletId,
         )
     }
 
     /**
-     * Create a new V4R2 wallet from secret key (private key).
-     *
-     * @param secretKey 32-byte secret key
-     * @param network Network to use (MAINNET or TESTNET)
-     * @return The newly created wallet
+     * Add a wallet to the kit using an adapter.
+     * Step 3 of the wallet creation pattern matching JS WalletKit.
      */
-    override suspend fun createV4R2WalletFromSecretKey(
-        secretKey: ByteArray,
-        network: TONNetwork,
-    ): ITONWallet {
+    override suspend fun addWallet(adapterId: String): ITONWallet {
         checkNotDestroyed()
 
-        val account = engine.createV4R2WalletFromSecretKey(
-            secretKey = secretKey,
-            network = network.value,
-        )
-
-        return TONWallet(
-            address = account.address,
-            engine = engine,
-            account = account,
-        )
-    }
-
-    /**
-     * Create a new V5R1 wallet from secret key (private key).
-     *
-     * @param secretKey 32-byte secret key
-     * @param network Network to use (MAINNET or TESTNET)
-     * @return The newly created wallet
-     */
-    override suspend fun createV5R1WalletFromSecretKey(
-        secretKey: ByteArray,
-        network: TONNetwork,
-    ): ITONWallet {
-        checkNotDestroyed()
-
-        val account = engine.createV5R1WalletFromSecretKey(
-            secretKey = secretKey,
-            network = network.value,
-        )
-
-        return TONWallet(
-            address = account.address,
-            engine = engine,
-            account = account,
-        )
-    }
-
-    /**
-     * Create a new V4R2 wallet with an external signer.
-     *
-     * @param signer External wallet signer interface
-     * @param network Network to use (MAINNET or TESTNET)
-     * @return The newly created wallet
-     */
-    override suspend fun createV4R2WalletWithSigner(
-        signer: WalletSigner,
-        network: TONNetwork,
-    ): ITONWallet {
-        checkNotDestroyed()
-
-        val account = engine.createV4R2WalletWithSigner(
-            signer = signer,
-            network = network.value,
-        )
-
-        return TONWallet(
-            address = account.address,
-            engine = engine,
-            account = account,
-        )
-    }
-
-    /**
-     * Create a new V5R1 wallet with an external signer.
-     *
-     * @param signer External wallet signer interface
-     * @param network Network to use (MAINNET or TESTNET)
-     * @return The newly created wallet
-     */
-    override suspend fun createV5R1WalletWithSigner(
-        signer: WalletSigner,
-        network: TONNetwork,
-    ): ITONWallet {
-        checkNotDestroyed()
-
-        val account = engine.createV5R1WalletWithSigner(
-            signer = signer,
-            network = network.value,
-        )
+        val account = engine.addWallet(adapterId)
 
         return TONWallet(
             address = account.address,
@@ -324,25 +257,69 @@ internal class TONWalletKit private constructor(
     }
 
     /**
-     * Derive a public key from a mnemonic without creating a wallet.
+     * Get a single wallet by its address.
      */
-    override suspend fun derivePublicKey(mnemonic: List<String>): String {
+    override suspend fun getWallet(address: String): ITONWallet? {
         checkNotDestroyed()
-        return engine.derivePublicKeyFromMnemonic(mnemonic)
+        val account = engine.getWallet(address) ?: return null
+        return TONWallet(
+            address = account.address,
+            engine = engine,
+            account = account,
+        )
     }
 
     /**
-     * Sign data with a mnemonic (for custom signers).
+     * Remove a wallet by its address.
      */
-    override suspend fun signDataWithMnemonic(
-        mnemonic: List<String>,
-        data: ByteArray,
-        mnemonicType: String,
-    ): SignDataResult {
+    override suspend fun removeWallet(address: String): Boolean {
         checkNotDestroyed()
-        val signatureBytes = engine.signDataWithMnemonic(mnemonic, data, mnemonicType)
-        val signatureBase64 = Base64.encodeToString(signatureBytes, Base64.NO_WRAP)
-        return SignDataResult(signature = signatureBase64)
+        val wallet = getWallet(address)
+        return if (wallet != null) {
+            wallet.remove()
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
+     * Clear all wallets from the SDK.
+     */
+    override suspend fun clearWallets() {
+        checkNotDestroyed()
+        val wallets = getWallets()
+        wallets.forEach { it.remove() }
+    }
+
+    /**
+     * Generate a new TON mnemonic phrase.
+     */
+    override suspend fun createTonMnemonic(): List<String> {
+        checkNotDestroyed()
+        return engine.createTonMnemonic(wordCount = 24)
+    }
+
+    /**
+     * Convert a mnemonic to an Ed25519 key pair.
+     */
+    override suspend fun mnemonicToKeyPair(
+        mnemonic: List<String>,
+        mnemonicType: String,
+    ): KeyPair {
+        checkNotDestroyed()
+        return engine.mnemonicToKeyPair(mnemonic, mnemonicType)
+    }
+
+    /**
+     * Sign arbitrary data using a secret key.
+     */
+    override suspend fun sign(
+        data: ByteArray,
+        secretKey: ByteArray,
+    ): ByteArray {
+        checkNotDestroyed()
+        return engine.sign(data, secretKey)
     }
 
     /**

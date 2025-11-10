@@ -26,9 +26,13 @@ import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.event.ConnectRequestEvent
 import io.ton.walletkit.event.SignDataRequestEvent
 import io.ton.walletkit.event.TransactionRequestEvent
+import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.WalletAccount
+import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSession
+import io.ton.walletkit.model.WalletSigner
+import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.model.WalletState
 import io.ton.walletkit.request.RequestHandler
 
@@ -62,62 +66,28 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun init(configuration: TONWalletKitConfiguration)
 
     /**
-     * Create a V5R1 wallet from mnemonic and add it to the kit.
-     * Matches the JS API `createV5R1WalletUsingMnemonic()` function.
+     * Convert a mnemonic phrase to an Ed25519 key pair.
      *
-     * @param words Mnemonic phrase as a list of words
-     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
-     * @return Object containing wallet address and publicKey
-     * @throws WalletKitBridgeException if wallet creation fails
+     * This matches the JS WalletKit's `MnemonicToKeyPair` utility function.
+     *
+     * @param words Mnemonic phrase as a list of words (12 or 24 words)
+     * @param mnemonicType Derivation type: "ton" (default) or "bip39"
+     * @return KeyPair containing public key (32 bytes) and secret key (64 bytes)
+     * @throws WalletKitBridgeException if conversion fails
      */
-    suspend fun createV5R1WalletAdapter(
-        words: List<String>,
-        network: String? = null,
-    ): Any
+    suspend fun mnemonicToKeyPair(words: List<String>, mnemonicType: String = "ton"): KeyPair
 
     /**
-     * Create a V4R2 wallet from mnemonic and add it to the kit.
-     * Matches the JS API `createV4R2WalletUsingMnemonic()` function.
+     * Sign arbitrary data using a secret key.
      *
-     * @param words Mnemonic phrase as a list of words
-     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
-     * @return Object containing wallet address and publicKey
-     * @throws WalletKitBridgeException if wallet creation fails
-     */
-    suspend fun createV4R2WalletAdapter(
-        words: List<String>,
-        network: String? = null,
-    ): Any
-
-    /**
-     * Derive public key from a mnemonic phrase without creating a wallet.
-     *
-     * This is useful for creating external signers (hardware wallets, watch-only wallets)
-     * where you need the public key but don't want to store the mnemonic in the SDK.
-     *
-     * @param words Mnemonic phrase as a list of words
-     * @return The hex-encoded public key
-     * @throws WalletKitBridgeException if derivation fails
-     */
-    suspend fun derivePublicKeyFromMnemonic(words: List<String>): String
-
-    /**
-     * Sign arbitrary data using a mnemonic via the embedded JS bundle.
-     *
-     * This helper is primarily intended for demo environments where the mnemonic
-     * is available in-app (e.g., simulated external signers). Production apps
-     * should forward [WalletSigner.sign] requests to their secure signer instead.
-     *
-     * @param words Mnemonic phrase as a list of words
-     * @param data Raw bytes that need to be signed
-     * @param mnemonicType Mnemonic type ("ton" or "bip39"), defaults to "ton"
+     * @param data Data bytes to sign
+     * @param secretKey Secret key bytes for signing
      * @return Signature bytes
      * @throws WalletKitBridgeException if signing fails
      */
-    suspend fun signDataWithMnemonic(
-        words: List<String>,
+    suspend fun sign(
         data: ByteArray,
-        mnemonicType: String = "ton",
+        secretKey: ByteArray,
     ): ByteArray
 
     /**
@@ -130,93 +100,90 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun createTonMnemonic(wordCount: Int = 24): List<String>
 
     /**
-     * Create a V4R2 wallet from mnemonic phrase.
-     * If mnemonic is null, a new random mnemonic will be generated.
+     * Create a signer from mnemonic phrase.
+     * Step 1 of the wallet creation pattern matching JS WalletKit.
      *
-     * @param mnemonic Mnemonic phrase as a list of words, or null to generate a new one
-     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
-     * @return The newly created wallet account
-     * @throws WalletKitBridgeException if wallet creation fails
+     * @param mnemonic Mnemonic phrase as a list of words
+     * @param mnemonicType Mnemonic type ("ton" or "bip39"), defaults to "ton"
+     * @return Signer info with ID and public key
+     * @throws WalletKitBridgeException if signer creation fails
      */
-    suspend fun createV4R2WalletFromMnemonic(
-        mnemonic: List<String>? = null,
-        network: String? = null,
-    ): WalletAccount
+    suspend fun createSignerFromMnemonic(
+        mnemonic: List<String>,
+        mnemonicType: String = "ton",
+    ): WalletSignerInfo
 
     /**
-     * Create a V5R1 wallet from mnemonic phrase.
-     * If mnemonic is null, a new random mnemonic will be generated.
-     *
-     * @param mnemonic Mnemonic phrase as a list of words, or null to generate a new one
-     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
-     * @return The newly created wallet account
-     * @throws WalletKitBridgeException if wallet creation fails
-     */
-    suspend fun createV5R1WalletFromMnemonic(
-        mnemonic: List<String>? = null,
-        network: String? = null,
-    ): WalletAccount
-
-    /**
-     * Create a V4R2 wallet from secret key (private key bytes).
+     * Create a signer from secret key (private key).
+     * Step 1 of the wallet creation pattern matching JS WalletKit.
      *
      * @param secretKey Private key as byte array (32 bytes for Ed25519)
-     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
-     * @return The newly created wallet account
-     * @throws WalletKitBridgeException if wallet creation fails
+     * @return Signer info with ID and public key
+     * @throws WalletKitBridgeException if signer creation fails
      */
-    suspend fun createV4R2WalletFromSecretKey(
-        secretKey: ByteArray,
-        network: String? = null,
-    ): WalletAccount
+    suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo
 
     /**
-     * Create a V5R1 wallet from secret key (private key bytes).
+     * Create a signer from a custom WalletSigner implementation.
+     * Step 1 of the wallet creation pattern, enabling hardware wallet integration.
      *
-     * @param secretKey Private key as byte array (32 bytes for Ed25519)
-     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
-     * @return The newly created wallet account
-     * @throws WalletKitBridgeException if wallet creation fails
+     * @param signer Custom WalletSigner implementation (e.g., hardware wallet)
+     * @return Signer info with ID and public key
+     * @throws WalletKitBridgeException if signer creation fails
      */
-    suspend fun createV5R1WalletFromSecretKey(
-        secretKey: ByteArray,
-        network: String? = null,
-    ): WalletAccount
+    suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo
 
     /**
-     * Create a V4R2 wallet backed by an external signer implementation
-     * (e.g., hardware wallet, watch-only wallet, separate secure module).
+     * Create a V5R1 wallet adapter from a signer.
+     * Step 2 of the wallet creation pattern matching JS WalletKit.
      *
-     * @param signer The external signer that will handle signing operations
+     * @param signerId Signer ID from createSignerFromMnemonic or createSignerFromSecretKey
      * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
-     * @return The newly created wallet account
-     * @throws WalletKitBridgeException if wallet creation fails
+     * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
+     * @param walletId Wallet ID for address uniqueness
+     * @return Adapter info with ID and wallet address
+     * @throws WalletKitBridgeException if adapter creation fails
      */
-    suspend fun createV4R2WalletWithSigner(
-        signer: io.ton.walletkit.model.WalletSigner,
+    suspend fun createV5R1Adapter(
+        signerId: String,
         network: String? = null,
-    ): WalletAccount
+        workchain: Int = 0,
+        walletId: Long = 2147483409L,
+    ): WalletAdapterInfo
 
     /**
-     * Create a V5R1 wallet backed by an external signer implementation
-     * (e.g., hardware wallet, watch-only wallet, separate secure module).
+     * Create a V4R2 wallet adapter from a signer.
+     * Step 2 of the wallet creation pattern matching JS WalletKit.
      *
-     * @param signer The external signer that will handle signing operations
+     * @param signerId Signer ID from createSignerFromMnemonic or createSignerFromSecretKey
      * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
-     * @return The newly created wallet account
-     * @throws WalletKitBridgeException if wallet creation fails
+     * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
+     * @param walletId Wallet ID for address uniqueness
+     * @return Adapter info with ID and wallet address
+     * @throws WalletKitBridgeException if adapter creation fails
      */
-    suspend fun createV5R1WalletWithSigner(
-        signer: io.ton.walletkit.model.WalletSigner,
+    suspend fun createV4R2Adapter(
+        signerId: String,
         network: String? = null,
-    ): WalletAccount
+        workchain: Int = 0,
+        walletId: Long = 698983191L,
+    ): WalletAdapterInfo
+
+    /**
+     * Add a wallet to the kit using an adapter.
+     * Step 3 of the wallet creation pattern matching JS WalletKit.
+     *
+     * @param adapterId Adapter ID from createV5R1Adapter or createV4R2Adapter
+     * @return The newly added wallet account
+     * @throws WalletKitBridgeException if wallet addition fails
+     */
+    suspend fun addWallet(adapterId: String): WalletAccount
 
     /**
      * Respond to a sign request from an external signer wallet.
      *
-     * When a wallet created with [createV4R2WalletWithSigner] or [createV5R1WalletWithSigner] needs to sign data,
-     * it will emit a signerSignRequest event. The app should call this method
-     * to provide the signature or error.
+     * When signing is required, the JS side will emit a signerSignRequest event.
+     * The app should call this method to provide the signature or error.
      *
      * @param signerId The signer ID from the sign request event
      * @param requestId The request ID from the sign request event
@@ -236,6 +203,14 @@ internal interface WalletKitEngine : RequestHandler {
      * @return List of wallet accounts
      */
     suspend fun getWallets(): List<WalletAccount>
+
+    /**
+     * Get a single wallet by address using RPC call.
+     *
+     * @param address Wallet address to find
+     * @return Wallet account or null if not found
+     */
+    suspend fun getWallet(address: String): WalletAccount?
 
     /**
      * Remove a wallet by address.

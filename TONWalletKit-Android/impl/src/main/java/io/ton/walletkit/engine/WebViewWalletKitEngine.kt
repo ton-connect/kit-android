@@ -48,6 +48,7 @@ import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONJettonTransferParams
 import io.ton.walletkit.model.TONJettonWallets
 import io.ton.walletkit.model.TONNFTItem
@@ -59,8 +60,10 @@ import io.ton.walletkit.model.TONTransactionPreview
 import io.ton.walletkit.model.TONTransferParams
 import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.WalletAccount
+import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSession
 import io.ton.walletkit.model.WalletSigner
+import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.model.WalletState
 import io.ton.walletkit.storage.BridgeStorageAdapter
 import io.ton.walletkit.storage.SecureBridgeStorageAdapter
@@ -246,57 +249,42 @@ internal class WebViewWalletKitEngine private constructor(
         refreshDerivedState()
     }
 
-    override suspend fun createV5R1WalletAdapter(
-        words: List<String>,
-        network: String?,
-    ): Any = walletOperations.createV5R1Wallet(words, network)
+    override suspend fun mnemonicToKeyPair(words: List<String>, mnemonicType: String): KeyPair =
+        cryptoOperations.mnemonicToKeyPair(words, mnemonicType)
 
-    override suspend fun createV4R2WalletAdapter(
-        words: List<String>,
-        network: String?,
-    ): Any = walletOperations.createV4R2Wallet(words, network)
-
-    override suspend fun derivePublicKeyFromMnemonic(words: List<String>): String =
-        cryptoOperations.derivePublicKeyFromMnemonic(words)
-
-    override suspend fun signDataWithMnemonic(
-        words: List<String>,
-        data: ByteArray,
-        mnemonicType: String,
-    ): ByteArray = cryptoOperations.signDataWithMnemonic(words, data, mnemonicType)
+    override suspend fun sign(data: ByteArray, secretKey: ByteArray): ByteArray =
+        cryptoOperations.sign(data, secretKey)
 
     override suspend fun createTonMnemonic(wordCount: Int): List<String> =
         cryptoOperations.createTonMnemonic(wordCount)
 
-    override suspend fun createV4R2WalletFromMnemonic(
-        mnemonic: List<String>?,
-        network: String?,
-    ): WalletAccount = walletOperations.createV4R2WalletUsingMnemonic(mnemonic, network)
+    override suspend fun createSignerFromMnemonic(
+        mnemonic: List<String>,
+        mnemonicType: String,
+    ): WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType)
 
-    override suspend fun createV5R1WalletFromMnemonic(
-        mnemonic: List<String>?,
-        network: String?,
-    ): WalletAccount = walletOperations.createV5R1WalletUsingMnemonic(mnemonic, network)
+    override suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo =
+        walletOperations.createSignerFromSecretKey(secretKey)
 
-    override suspend fun createV4R2WalletFromSecretKey(
-        secretKey: ByteArray,
-        network: String?,
-    ): WalletAccount = walletOperations.createV4R2WalletUsingSecretKey(secretKey, network)
+    override suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo =
+        walletOperations.createSignerFromCustom(signer)
 
-    override suspend fun createV5R1WalletFromSecretKey(
-        secretKey: ByteArray,
+    override suspend fun createV5R1Adapter(
+        signerId: String,
         network: String?,
-    ): WalletAccount = walletOperations.createV5R1WalletUsingSecretKey(secretKey, network)
+        workchain: Int,
+        walletId: Long,
+    ): WalletAdapterInfo = walletOperations.createV5R1Adapter(signerId, network, workchain, walletId)
 
-    override suspend fun createV4R2WalletWithSigner(
-        signer: WalletSigner,
+    override suspend fun createV4R2Adapter(
+        signerId: String,
         network: String?,
-    ): WalletAccount = walletOperations.createV4R2WalletWithSigner(signer, network)
+        workchain: Int,
+        walletId: Long,
+    ): WalletAdapterInfo = walletOperations.createV4R2Adapter(signerId, network, workchain, walletId)
 
-    override suspend fun createV5R1WalletWithSigner(
-        signer: WalletSigner,
-        network: String?,
-    ): WalletAccount = walletOperations.createV5R1WalletWithSigner(signer, network)
+    override suspend fun addWallet(adapterId: String): WalletAccount =
+        walletOperations.addWallet(adapterId)
 
     override suspend fun respondToSignRequest(
         signerId: String,
@@ -306,6 +294,8 @@ internal class WebViewWalletKitEngine private constructor(
     ) = walletOperations.respondToSignRequest(signerId, requestId, signature, error)
 
     override suspend fun getWallets(): List<WalletAccount> = walletOperations.getWallets()
+
+    override suspend fun getWallet(address: String): WalletAccount? = walletOperations.getWallet(address)
 
     override suspend fun removeWallet(address: String) = walletOperations.removeWallet(address)
 

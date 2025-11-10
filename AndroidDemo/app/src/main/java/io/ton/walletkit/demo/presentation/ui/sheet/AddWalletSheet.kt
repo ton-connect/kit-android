@@ -158,7 +158,7 @@ fun AddWalletSheet(
 
         Text(stringResource(R.string.label_wallet_version), style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(DEFAULT_WALLET_VERSION, "v5r1", "v3r2").forEach { version ->
+            listOf("v5r1", "v4r2").forEach { version ->
                 FilterChip(
                     selected = walletVersion == version,
                     onClick = { walletVersion = version },
@@ -330,9 +330,34 @@ fun AddWalletSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    
+                    // Show info message if Custom Signer or Secret Key is selected
+                    when (interfaceType) {
+                        WalletInterfaceType.SIGNER -> {
+                            Text(
+                                stringResource(R.string.wallet_error_signer_cannot_generate),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                        }
+                        WalletInterfaceType.SECRET_KEY -> {
+                            Text(
+                                stringResource(R.string.wallet_error_secret_key_cannot_generate),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                        }
+                        WalletInterfaceType.MNEMONIC -> {
+                            // No warning for mnemonic
+                        }
+                    }
+                    
                     Button(
                         onClick = { onGenerateWallet(walletName, network, walletVersion, interfaceType) },
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = interfaceType == WalletInterfaceType.MNEMONIC, // Only enable for Mnemonic
                     ) { Text(stringResource(R.string.action_generate_wallet)) }
                 }
             }
@@ -348,7 +373,7 @@ private enum class AddWalletTab(@StringRes val labelRes: Int) {
 }
 
 private const val MNEMONIC_WORD_COUNT = 24
-private const val DEFAULT_WALLET_VERSION = "v4r2"
+private const val DEFAULT_WALLET_VERSION = "v5r1"
 
 @Preview(showBackground = true)
 @Composable

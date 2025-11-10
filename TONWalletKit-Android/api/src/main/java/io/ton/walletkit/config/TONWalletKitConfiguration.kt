@@ -32,10 +32,11 @@ import kotlinx.serialization.Serializable
  * Mirrors the shared TON Wallet Kit configuration contract for cross-platform consistency.
  *
  * @property network Blockchain network
+ * @property deviceInfo Device and app information (optional, auto-detected if not provided)
  * @property walletManifest Wallet app manifest for TON Connect
  * @property bridge Bridge configuration
  * @property apiClient API client configuration (optional)
- * @property features Supported wallet features
+ * @property features Supported wallet features (used if deviceInfo not provided)
  * @property storage Storage configuration
  */
 @Serializable
@@ -46,6 +47,8 @@ data class TONWalletKitConfiguration(
     val apiClient: APIClient? = null,
     val features: List<Feature>,
     val storage: Storage = Storage(),
+    @kotlinx.serialization.Transient
+    val deviceInfo: DeviceInfo? = null,
 ) {
     /**
      * Wallet manifest for TON Connect.

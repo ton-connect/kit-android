@@ -25,15 +25,18 @@ import android.content.Context
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
-import io.ton.walletkit.model.SignDataResult
+import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
+import io.ton.walletkit.model.WalletSignerInfo
 
 /**
  * TON Wallet Kit SDK for managing wallets and TON Connect.
  *
  * Create an instance via [initialize], add event handlers with [addEventsHandler],
- * then manage wallets via [addWallet], [createV4R2WalletWithSigner], or [createV5R1WalletWithSigner].
+ * then create wallets using the 3-step pattern: createSigner → createAdapter → addWallet.
+ * For external signers (hardware wallets), create a WalletSigner object and use it in step 2.
  */
 interface ITONWalletKit {
     companion object {
@@ -66,82 +69,96 @@ interface ITONWalletKit {
     suspend fun destroy()
 
     /**
-     * Create V4R2 wallet from mnemonic phrase.
-     * If mnemonic is null, a new random mnemonic will be generated.
+     * Create a signer from mnemonic phrase.
      *
-     * @param mnemonic 24-word mnemonic phrase, or null to generate a new one
-     * @param network Network to use (MAINNET or TESTNET)
-     * @return Created wallet instance
+     * This is step 1 of the wallet creation pattern matching JS WalletKit:
+     * ```kotlin
+     * // Step 1: Create signer
+     * val signer = walletKit.createSignerFromMnemonic(mnemonic)
+     *
+     * // Step 2: Create adapter
+     * val adapter = walletKit.createV5R1Adapter(signer)
+     *
+     * // Step 3: Add wallet
+     * val wallet = walletKit.addWallet(adapter)
+     * ```
+     *
+     * @param mnemonic 24-word mnemonic phrase
+     * @param mnemonicType Mnemonic derivation type: "ton" (default) or "bip39"
+     * @return Signer info containing ID and public key
      */
-    suspend fun createV4R2WalletFromMnemonic(
-        mnemonic: List<String>? = null,
-        network: TONNetwork = TONNetwork.MAINNET,
-    ): ITONWallet
+    suspend fun createSignerFromMnemonic(
+        mnemonic: List<String>,
+        mnemonicType: String = "ton",
+    ): WalletSignerInfo
 
     /**
-     * Create V5R1 wallet from mnemonic phrase.
-     * If mnemonic is null, a new random mnemonic will be generated.
+     * Create a signer from secret key (private key).
      *
-     * @param mnemonic 24-word mnemonic phrase, or null to generate a new one
-     * @param network Network to use (MAINNET or TESTNET)
-     * @return Created wallet instance
-     */
-    suspend fun createV5R1WalletFromMnemonic(
-        mnemonic: List<String>? = null,
-        network: TONNetwork = TONNetwork.MAINNET,
-    ): ITONWallet
-
-    /**
-     * Create V4R2 wallet from secret key (private key).
+     * This is step 1 of the wallet creation pattern matching JS WalletKit.
      *
      * @param secretKey 32-byte secret key
+     * @return Signer info containing ID and public key
+     */
+    suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo
+
+    /**
+     * Create a signer from a custom WalletSigner implementation.
+     *
+     * This is step 1 of the wallet creation pattern, enabling hardware wallet integration.
+     * The WalletSigner interface must be implemented to provide custom signing logic.
+     *
+     * @param signer Custom WalletSigner implementation (e.g., hardware wallet)
+     * @return Signer info containing ID and public key
+     * @see WalletSigner
+     */
+    suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo
+
+    /**
+     * Create a V5R1 wallet adapter from a signer.
+     *
+     * This is step 2 of the wallet creation pattern matching JS WalletKit.
+     *
+     * @param signer Signer info from createSignerFromMnemonic or createSignerFromSecretKey
      * @param network Network to use (MAINNET or TESTNET)
-     * @return Created wallet instance
+     * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
+     * @param walletId Wallet ID for address uniqueness. Use different IDs to create multiple wallets from same signer.
+     * @return Adapter info containing ID and wallet address
      */
-    suspend fun createV4R2WalletFromSecretKey(
-        secretKey: ByteArray,
+    suspend fun createV5R1Adapter(
+        signer: WalletSignerInfo,
         network: TONNetwork = TONNetwork.MAINNET,
-    ): ITONWallet
+        workchain: Int = WalletKitConstants.DEFAULT_WORKCHAIN,
+        walletId: Long = WalletKitConstants.DEFAULT_WALLET_ID_V5R1,
+    ): WalletAdapterInfo
 
     /**
-     * Create V5R1 wallet from secret key (private key).
+     * Create a V4R2 wallet adapter from a signer.
      *
-     * @param secretKey 32-byte secret key
+     * This is step 2 of the wallet creation pattern matching JS WalletKit.
+     *
+     * @param signer Signer info from createSignerFromMnemonic or createSignerFromSecretKey
      * @param network Network to use (MAINNET or TESTNET)
-     * @return Created wallet instance
+     * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
+     * @param walletId Wallet ID for address uniqueness. Use different IDs to create multiple wallets from same signer.
+     * @return Adapter info containing ID and wallet address
      */
-    suspend fun createV5R1WalletFromSecretKey(
-        secretKey: ByteArray,
+    suspend fun createV4R2Adapter(
+        signer: WalletSignerInfo,
         network: TONNetwork = TONNetwork.MAINNET,
-    ): ITONWallet
+        workchain: Int = WalletKitConstants.DEFAULT_WORKCHAIN,
+        walletId: Long = WalletKitConstants.DEFAULT_WALLET_ID_V4R2,
+    ): WalletAdapterInfo
 
     /**
-     * Create V4R2 wallet with external signer (hardware wallet, watch-only).
+     * Add a wallet to the kit using an adapter.
      *
-     * The signer will be called for all signing operations.
+     * This is step 3 of the wallet creation pattern matching JS WalletKit.
      *
-     * @param signer External signer implementation
-     * @param network Network to use
+     * @param adapter Adapter info from createV5R1Adapter or createV4R2Adapter
      * @return Created wallet instance
      */
-    suspend fun createV4R2WalletWithSigner(
-        signer: WalletSigner,
-        network: TONNetwork = TONNetwork.MAINNET,
-    ): ITONWallet
-
-    /**
-     * Create V5R1 wallet with external signer (hardware wallet, watch-only).
-     *
-     * The signer will be called for all signing operations.
-     *
-     * @param signer External signer implementation
-     * @param network Network to use
-     * @return Created wallet instance
-     */
-    suspend fun createV5R1WalletWithSigner(
-        signer: WalletSigner,
-        network: TONNetwork = TONNetwork.MAINNET,
-    ): ITONWallet
+    suspend fun addWallet(adapterId: String): ITONWallet
 
     /**
      * Get all wallets managed by SDK.
@@ -149,29 +166,65 @@ interface ITONWalletKit {
     suspend fun getWallets(): List<ITONWallet>
 
     /**
-     * Derive public key from mnemonic without creating wallet.
+     * Get a single wallet by its address.
      *
-     * Useful for custom signers where you need the public key
-     * but don't want to store the mnemonic.
-     *
-     * @param mnemonic 24-word mnemonic phrase
-     * @return Hex-encoded public key
+     * @param address Wallet address in user-friendly format (UQ... or EQ...)
+     * @return Wallet instance or null if not found
      */
-    suspend fun derivePublicKey(mnemonic: List<String>): String
+    suspend fun getWallet(address: String): ITONWallet?
 
     /**
-     * Sign data with mnemonic (for custom signer implementations).
+     * Remove a wallet by its address.
      *
-     * @param mnemonic Mnemonic phrase
-     * @param data Bytes to sign
-     * @param mnemonicType Mnemonic type (ton or bip39)
-     * @return Signature result
+     * @param address Wallet address in user-friendly format
+     * @return True if wallet was found and removed, false otherwise
      */
-    suspend fun signDataWithMnemonic(
+    suspend fun removeWallet(address: String): Boolean
+
+    /**
+     * Clear all wallets from the SDK.
+     *
+     * Removes all wallets from storage. This action cannot be undone.
+     */
+    suspend fun clearWallets()
+
+    /**
+     * Generate a new TON mnemonic phrase.
+     *
+     * Creates a 24-word mnemonic using TON-specific derivation.
+     * This function should only be called once per wallet and the result
+     * must be stored securely.
+     *
+     * @return List of 24 mnemonic words
+     */
+    suspend fun createTonMnemonic(): List<String>
+
+    /**
+     * Convert a mnemonic phrase to an Ed25519 key pair.
+     *
+     * This matches the JS WalletKit's `MnemonicToKeyPair` utility function.
+     * Use this to derive both public and secret keys from a mnemonic.
+     *
+     * @param mnemonic 12 or 24-word mnemonic phrase
+     * @param mnemonicType Derivation type: "ton" (default) or "bip39"
+     * @return KeyPair containing public key (32 bytes) and secret key (64 bytes)
+     */
+    suspend fun mnemonicToKeyPair(
         mnemonic: List<String>,
-        data: ByteArray,
         mnemonicType: String = "ton",
-    ): SignDataResult
+    ): KeyPair
+
+    /**
+     * Sign arbitrary data using a secret key.
+     *
+     * @param data Data bytes to sign
+     * @param secretKey Secret key bytes for signing
+     * @return Signature bytes
+     */
+    suspend fun sign(
+        data: ByteArray,
+        secretKey: ByteArray,
+    ): ByteArray
 
     /**
      * Trigger transaction approval flow.
