@@ -146,11 +146,6 @@ internal class EventParser(
                 TONWalletKitEvent.BrowserBridgeRequest(messageId, method, request)
             }
 
-            EventTypeConstants.EVENT_SIGNER_SIGN_REQUEST -> {
-                handleSignerSignRequest(data)
-                null
-            }
-
             EventTypeConstants.EVENT_STATE_CHANGED,
             EventTypeConstants.EVENT_WALLET_STATE_CHANGED,
             EventTypeConstants.EVENT_SESSIONS_CHANGED,
@@ -271,31 +266,6 @@ internal class EventParser(
             payload = payload,
             schema = schema,
         )
-    }
-
-    private fun handleSignerSignRequest(data: JSONObject) {
-        val signerId = data.optString(ResponseConstants.KEY_SIGNER_ID)
-        val requestId = data.optString(ResponseConstants.KEY_REQUEST_ID)
-        val dataArray = data.optJSONArray(ResponseConstants.KEY_DATA)
-
-        if (signerId.isNotEmpty() && requestId.isNotEmpty() && dataArray != null) {
-            val signer: WalletSigner? = signerManager.getSigner(signerId)
-            if (signer != null) {
-                val dataBytes = ByteArray(dataArray.length()) { i -> dataArray.optInt(i).toByte() }
-
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val signature = signer.sign(dataBytes)
-                        engine.respondToSignRequest(signerId, requestId, signature, null)
-                    } catch (e: Exception) {
-                        Logger.e(TAG, "Signer failed to sign data", e)
-                        engine.respondToSignRequest(signerId, requestId, null, e.message ?: "Signing failed")
-                    }
-                }
-            } else {
-                Logger.w(TAG, "Unknown signer ID: $signerId")
-            }
-        }
     }
 
     private fun JSONObject.optNullableString(key: String): String? {

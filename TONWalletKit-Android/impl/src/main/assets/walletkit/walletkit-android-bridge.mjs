@@ -52950,201 +52950,76 @@ urlStateMachine.cannotHaveAUsernamePasswordPort;
 urlStateMachine.hasAnOpaquePath;
 percentEncoding.percentDecodeString;
 percentEncoding.percentDecodeBytes;
-const textEncoder = function(window2) {
-  var fromCharCode = String.fromCharCode;
-  var Object_prototype_toString = {}.toString;
-  var sharedArrayBufferString = Object_prototype_toString.call(window2["SharedArrayBuffer"]);
-  var undefinedObjectString = Object_prototype_toString();
-  var NativeUint8Array = window2.Uint8Array;
-  var patchedU8Array = NativeUint8Array || Array;
-  var nativeArrayBuffer = NativeUint8Array ? ArrayBuffer : patchedU8Array;
-  var arrayBuffer_isView = nativeArrayBuffer.isView || function(x2) {
-    return x2 && "length" in x2;
-  };
-  var arrayBufferString = Object_prototype_toString.call(nativeArrayBuffer.prototype);
-  var TextEncoderPrototype = TextEncoder2["prototype"];
-  var GlobalTextEncoder = window2["TextEncoder"];
-  var tmpBufferU16 = new (NativeUint8Array ? Uint16Array : patchedU8Array)(32);
-  function TextDecoder2() {
+function toUint8Array(input) {
+  if (input instanceof Uint8Array) {
+    return input;
   }
-  TextDecoder2["prototype"]["decode"] = function(inputArrayOrBuffer) {
-    var inputAs8 = inputArrayOrBuffer, asObjectString;
-    if (!arrayBuffer_isView(inputAs8)) {
-      asObjectString = Object_prototype_toString.call(inputAs8);
-      if (asObjectString !== arrayBufferString && asObjectString !== sharedArrayBufferString && asObjectString !== undefinedObjectString)
-        throw TypeError(
-          "Failed to execute 'decode' on 'TextDecoder': The provided value is not of type '(ArrayBuffer or ArrayBufferView)'"
-        );
-      inputAs8 = NativeUint8Array ? new patchedU8Array(inputAs8) : inputAs8 || [];
-    }
-    var resultingString = "", tmpStr = "", index2 = 0, len = inputAs8.length | 0, lenMinus32 = len - 32 | 0, nextEnd = 0, cp0 = 0, codePoint = 0, minBits = 0, cp1 = 0, pos = 0, tmp = -1;
-    for (; index2 < len; ) {
-      nextEnd = index2 <= lenMinus32 ? 32 : len - index2 | 0;
-      for (; pos < nextEnd; index2 = index2 + 1 | 0, pos = pos + 1 | 0) {
-        cp0 = inputAs8[index2] & 255;
-        switch (cp0 >> 4) {
-          case 15:
-            cp1 = inputAs8[index2 = index2 + 1 | 0] & 255;
-            if (cp1 >> 6 !== 2 || 247 < cp0) {
-              index2 = index2 - 1 | 0;
-              break;
-            }
-            codePoint = (cp0 & 7) << 6 | cp1 & 63;
-            minBits = 5;
-            cp0 = 256;
-          case 14:
-            cp1 = inputAs8[index2 = index2 + 1 | 0] & 255;
-            codePoint <<= 6;
-            codePoint |= (cp0 & 15) << 6 | cp1 & 63;
-            minBits = cp1 >> 6 === 2 ? minBits + 4 | 0 : 24;
-            cp0 = cp0 + 256 & 768;
-          case 13:
-          case 12:
-            cp1 = inputAs8[index2 = index2 + 1 | 0] & 255;
-            codePoint <<= 6;
-            codePoint |= (cp0 & 31) << 6 | cp1 & 63;
-            minBits = minBits + 7 | 0;
-            if (index2 < len && cp1 >> 6 === 2 && codePoint >> minBits && codePoint < 1114112) {
-              cp0 = codePoint;
-              codePoint = codePoint - 65536 | 0;
-              if (0 <= codePoint) {
-                tmp = (codePoint >> 10) + 55296 | 0;
-                cp0 = (codePoint & 1023) + 56320 | 0;
-                if (pos < 31) {
-                  tmpBufferU16[pos] = tmp;
-                  pos = pos + 1 | 0;
-                  tmp = -1;
-                } else {
-                  cp1 = tmp;
-                  tmp = cp0;
-                  cp0 = cp1;
-                }
-              } else nextEnd = nextEnd + 1 | 0;
-            } else {
-              cp0 >>= 8;
-              index2 = index2 - cp0 - 1 | 0;
-              cp0 = 65533;
-            }
-            minBits = 0;
-            codePoint = 0;
-            nextEnd = index2 <= lenMinus32 ? 32 : len - index2 | 0;
-          default:
-            tmpBufferU16[pos] = cp0;
-            continue;
-          case 11:
-          case 10:
-          case 9:
-          case 8:
-        }
-        tmpBufferU16[pos] = 65533;
-      }
-      tmpStr += fromCharCode(
-        tmpBufferU16[0],
-        tmpBufferU16[1],
-        tmpBufferU16[2],
-        tmpBufferU16[3],
-        tmpBufferU16[4],
-        tmpBufferU16[5],
-        tmpBufferU16[6],
-        tmpBufferU16[7],
-        tmpBufferU16[8],
-        tmpBufferU16[9],
-        tmpBufferU16[10],
-        tmpBufferU16[11],
-        tmpBufferU16[12],
-        tmpBufferU16[13],
-        tmpBufferU16[14],
-        tmpBufferU16[15],
-        tmpBufferU16[16],
-        tmpBufferU16[17],
-        tmpBufferU16[18],
-        tmpBufferU16[19],
-        tmpBufferU16[20],
-        tmpBufferU16[21],
-        tmpBufferU16[22],
-        tmpBufferU16[23],
-        tmpBufferU16[24],
-        tmpBufferU16[25],
-        tmpBufferU16[26],
-        tmpBufferU16[27],
-        tmpBufferU16[28],
-        tmpBufferU16[29],
-        tmpBufferU16[30],
-        tmpBufferU16[31]
-      );
-      if (pos < 32) tmpStr = tmpStr.slice(0, pos - 32 | 0);
-      if (index2 < len) {
-        tmpBufferU16[0] = tmp;
-        pos = ~tmp >>> 31;
-        tmp = -1;
-        if (tmpStr.length < resultingString.length) continue;
-      } else if (tmp !== -1) {
-        tmpStr += fromCharCode(tmp);
-      }
-      resultingString += tmpStr;
-      tmpStr = "";
-    }
-    return resultingString;
-  };
-  function TextEncoder2() {
+  if (input instanceof ArrayBuffer) {
+    return new Uint8Array(input);
   }
-  TextEncoderPrototype["encode"] = function(inputString) {
-    var encodedString = inputString === void 0 ? "" : "" + inputString, len = encodedString.length | 0;
-    var result = new patchedU8Array((len << 1) + 8 | 0), tmpResult;
-    var i = 0, pos = 0, point = 0, nextcode = 0;
-    var upgradededArraySize = !NativeUint8Array;
-    for (i = 0; i < len; i = i + 1 | 0, pos = pos + 1 | 0) {
-      point = encodedString.charCodeAt(i) | 0;
-      if (point <= 127) {
-        result[pos] = point;
-      } else if (point <= 2047) {
-        result[pos] = 6 << 5 | point >> 6;
-        result[pos = pos + 1 | 0] = 2 << 6 | point & 63;
-      } else {
-        widenCheck: {
-          if (55296 <= point) {
-            if (point <= 56319) {
-              nextcode = encodedString.charCodeAt(i = i + 1 | 0) | 0;
-              if (56320 <= nextcode && nextcode <= 57343) {
-                point = (point << 10) + nextcode - 56613888 | 0;
-                if (point > 65535) {
-                  result[pos] = 30 << 3 | point >> 18;
-                  result[pos = pos + 1 | 0] = 2 << 6 | point >> 12 & 63;
-                  result[pos = pos + 1 | 0] = 2 << 6 | point >> 6 & 63;
-                  result[pos = pos + 1 | 0] = 2 << 6 | point & 63;
-                  continue;
-                }
-                break widenCheck;
-              }
-              point = 65533;
-            } else if (point <= 57343) {
-              point = 65533;
-            }
-          }
-          if (!upgradededArraySize && i << 1 < pos && i << 1 < (pos - 7 | 0)) {
-            upgradededArraySize = true;
-            tmpResult = new patchedU8Array(len * 3);
-            tmpResult.set(result);
-            result = tmpResult;
-          }
-        }
-        result[pos] = 14 << 4 | point >> 12;
-        result[pos = pos + 1 | 0] = 2 << 6 | point >> 6 & 63;
-        result[pos = pos + 1 | 0] = 2 << 6 | point & 63;
-      }
-    }
-    return NativeUint8Array ? result.subarray(0, pos) : result.slice(0, pos);
-  };
-  if (!GlobalTextEncoder) {
-    window2["TextDecoder"] = TextDecoder2;
-    window2["TextEncoder"] = TextEncoder2;
+  return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
+}
+class BufferTextEncoder {
+  constructor() {
+    this.encoding = "utf-8";
   }
+  encode(input = "") {
+    return Uint8Array.from(buffer.Buffer.from(input, "utf-8"));
+  }
+  encodeInto(source, destination) {
+    const encoded = this.encode(source);
+    const writable = Math.min(encoded.length, destination.length);
+    destination.set(encoded.subarray(0, writable));
+    return { read: source.length, written: writable };
+  }
+}
+class BufferTextDecoder {
+  constructor(label = "utf-8", options) {
+    this.encoding = label.toLowerCase();
+    this.fatal = Boolean(options == null ? void 0 : options.fatal);
+    this.ignoreBOM = Boolean(options == null ? void 0 : options.ignoreBOM);
+  }
+  decode(input, options) {
+    if (!input) {
+      return "";
+    }
+    const view = toUint8Array(input);
+    if (options == null ? void 0 : options.stream) ;
+    return buffer.Buffer.from(view).toString("utf-8");
+  }
+}
+function applyTextEncoderPolyfill(target) {
+  if (typeof target.TextEncoder === "undefined") {
+    target.TextEncoder = BufferTextEncoder;
+  }
+  if (typeof target.TextDecoder === "undefined") {
+    target.TextDecoder = BufferTextDecoder;
+  }
+}
+const debugWindow = window;
+const DEBUG_ENABLED = Boolean(debugWindow.__WALLETKIT_DEBUG__);
+const consoleRef = globalThis.console;
+const debugLog = (...args) => {
+  var _a3;
+  if (DEBUG_ENABLED) {
+    (_a3 = consoleRef == null ? void 0 : consoleRef.log) == null ? void 0 : _a3.call(consoleRef, ...args);
+  }
+};
+const debugWarn = (...args) => {
+  var _a3;
+  if (DEBUG_ENABLED) {
+    (_a3 = consoleRef == null ? void 0 : consoleRef.warn) == null ? void 0 : _a3.call(consoleRef, ...args);
+  }
+};
+const logError = (...args) => {
+  var _a3;
+  (_a3 = consoleRef == null ? void 0 : consoleRef.error) == null ? void 0 : _a3.call(consoleRef, ...args);
 };
 function applyTextEncoder(target) {
   try {
-    textEncoder(target);
+    applyTextEncoderPolyfill(target);
   } catch (err) {
-    console.error("[walletkitBridge] Failed to apply TextEncoder polyfill", err);
+    logError("[walletkitBridge] Failed to apply TextEncoder polyfill", err);
   }
 }
 function ensureFetch(target) {
@@ -53181,11 +53056,11 @@ function ensureAbortController(target) {
 function overrideLocalStorage(target) {
   const bridge = target.AndroidBridge || target.WalletKitNative;
   if (!bridge) {
-    console.warn("[walletkitBridge] No native bridge found, localStorage will not be overridden");
+    debugWarn("[walletkitBridge] No native bridge found, localStorage will not be overridden");
     return;
   }
   if (typeof bridge.storageGet !== "function" || typeof bridge.storageSet !== "function" || typeof bridge.storageRemove !== "function" || typeof bridge.storageClear !== "function") {
-    console.warn("[walletkitBridge] Bridge is missing storage methods, localStorage will not be overridden");
+    debugWarn("[walletkitBridge] Bridge is missing storage methods, localStorage will not be overridden");
     return;
   }
   try {
@@ -53195,7 +53070,7 @@ function overrideLocalStorage(target) {
           const value = bridge.storageGet(key2);
           return value === void 0 || value === null ? null : String(value);
         } catch (err) {
-          console.error("[walletkitBridge] Error in WalletKitNativeStorage.getItem:", err);
+          logError("[walletkitBridge] Error in WalletKitNativeStorage.getItem:", err);
           return null;
         }
       },
@@ -53203,22 +53078,28 @@ function overrideLocalStorage(target) {
         try {
           bridge.storageSet(key2, String(value));
         } catch (err) {
-          console.error("[walletkitBridge] Error in WalletKitNativeStorage.setItem:", err);
+          logError("[walletkitBridge] Error in WalletKitNativeStorage.setItem:", err);
         }
       },
       removeItem(key2) {
         try {
           bridge.storageRemove(key2);
         } catch (err) {
-          console.error("[walletkitBridge] Error in WalletKitNativeStorage.removeItem:", err);
+          logError("[walletkitBridge] Error in WalletKitNativeStorage.removeItem:", err);
         }
       },
       clear() {
         try {
           bridge.storageClear();
         } catch (err) {
-          console.error("[walletkitBridge] Error in WalletKitNativeStorage.clear:", err);
+          logError("[walletkitBridge] Error in WalletKitNativeStorage.clear:", err);
         }
+      },
+      get length() {
+        return 0;
+      },
+      key() {
+        return null;
       }
     };
     if (typeof target.WalletKitNativeStorage === "undefined") {
@@ -53227,12 +53108,12 @@ function overrideLocalStorage(target) {
         writable: false,
         configurable: true
       });
-      console.log("[walletkitBridge] ✅ WalletKitNativeStorage exposed for secure native storage");
+      debugLog("[walletkitBridge] ✅ WalletKitNativeStorage exposed for secure native storage");
     } else {
-      console.warn("[walletkitBridge] WalletKitNativeStorage already present, not overriding");
+      debugWarn("[walletkitBridge] WalletKitNativeStorage already present, not overriding");
     }
   } catch (err) {
-    console.error("[walletkitBridge] Failed to expose WalletKitNativeStorage:", err);
+    logError("[walletkitBridge] Failed to expose WalletKitNativeStorage:", err);
   }
 }
 function setupPolyfills() {
@@ -53258,7 +53139,7 @@ function setupPolyfills() {
     }
   });
 }
-var __async$c = (__this, __arguments, generator2) => {
+var __async$d = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -53280,48 +53161,48 @@ var __async$c = (__this, __arguments, generator2) => {
 };
 const walletKitModulePromise = Promise.resolve().then(() => index);
 const tonCoreModulePromise = Promise.resolve().then(() => index$2);
-let TonWalletKit$1;
-let createWalletInitConfigMnemonic;
-let createWalletManifest$1;
-let CreateTonMnemonic$1;
-let MnemonicToKeyPair$1;
-let Signer$1;
-let DefaultSignature$1;
-let WalletV4R2Adapter$1;
-let WalletV5R1Adapter$1;
+let TonWalletKit$1 = null;
+let createWalletInitConfigMnemonic = null;
+let createWalletManifest$1 = null;
+let CreateTonMnemonic$1 = null;
+let MnemonicToKeyPair$1 = null;
+let Signer$1 = null;
+let DefaultSignature$1 = null;
+let WalletV4R2Adapter$1 = null;
+let WalletV5R1Adapter$1 = null;
 let Address$3;
 let Cell$1;
 let CHAIN$1 = null;
 let tonConnectChain = null;
 function ensureWalletKitLoaded() {
-  return __async$c(this, null, function* () {
-    var _a3, _b2, _c2, _d2, _e3;
+  return __async$d(this, null, function* () {
+    var _a3, _b2, _c2, _d2, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2;
     if (TonWalletKit$1 && createWalletInitConfigMnemonic && tonConnectChain && CHAIN$1 && Address$3 && Cell$1 && Signer$1 && MnemonicToKeyPair$1 && DefaultSignature$1 && WalletV4R2Adapter$1 && WalletV5R1Adapter$1) {
       return;
     }
     if (!TonWalletKit$1 || !createWalletInitConfigMnemonic || !Signer$1 || !MnemonicToKeyPair$1 || !DefaultSignature$1 || !WalletV4R2Adapter$1 || !WalletV5R1Adapter$1 || !CHAIN$1) {
       const module = yield walletKitModulePromise;
       TonWalletKit$1 = module.TonWalletKit;
-      createWalletInitConfigMnemonic = module.createWalletInitConfigMnemonic;
-      CreateTonMnemonic$1 = (_a3 = module.CreateTonMnemonic) != null ? _a3 : module.CreateTonMnemonic;
-      MnemonicToKeyPair$1 = (_b2 = module.MnemonicToKeyPair) != null ? _b2 : module.MnemonicToKeyPair;
-      createWalletManifest$1 = (_c2 = module.createWalletManifest) != null ? _c2 : createWalletManifest$1;
-      CHAIN$1 = module.CHAIN;
-      tonConnectChain = (_d2 = module.CHAIN) != null ? _d2 : tonConnectChain;
-      Signer$1 = module.Signer;
-      DefaultSignature$1 = module.DefaultSignature;
-      WalletV4R2Adapter$1 = module.WalletV4R2Adapter;
-      WalletV5R1Adapter$1 = module.WalletV5R1Adapter;
+      createWalletInitConfigMnemonic = (_a3 = module.createWalletInitConfigMnemonic) != null ? _a3 : createWalletInitConfigMnemonic;
+      CreateTonMnemonic$1 = (_b2 = module.CreateTonMnemonic) != null ? _b2 : CreateTonMnemonic$1;
+      MnemonicToKeyPair$1 = (_c2 = module.MnemonicToKeyPair) != null ? _c2 : MnemonicToKeyPair$1;
+      createWalletManifest$1 = (_d2 = module.createWalletManifest) != null ? _d2 : createWalletManifest$1;
+      CHAIN$1 = (_e3 = module.CHAIN) != null ? _e3 : CHAIN$1;
+      tonConnectChain = (_f = module.CHAIN) != null ? _f : tonConnectChain;
+      Signer$1 = (_g = module.Signer) != null ? _g : Signer$1;
+      DefaultSignature$1 = (_h = module.DefaultSignature) != null ? _h : DefaultSignature$1;
+      WalletV4R2Adapter$1 = (_i = module.WalletV4R2Adapter) != null ? _i : WalletV4R2Adapter$1;
+      WalletV5R1Adapter$1 = (_j = module.WalletV5R1Adapter) != null ? _j : WalletV5R1Adapter$1;
     }
     if (!Address$3 || !Cell$1) {
       const coreModule = yield tonCoreModulePromise;
-      Address$3 = coreModule.Address;
-      Cell$1 = coreModule.Cell;
+      Address$3 = (_k = coreModule.Address) != null ? _k : Address$3;
+      Cell$1 = (_l = coreModule.Cell) != null ? _l : Cell$1;
     }
     if (!tonConnectChain || !CHAIN$1) {
       const module = yield walletKitModulePromise;
-      tonConnectChain = (_e3 = module.CHAIN) != null ? _e3 : null;
-      CHAIN$1 = module.CHAIN;
+      tonConnectChain = (_m = module.CHAIN) != null ? _m : tonConnectChain;
+      CHAIN$1 = (_n2 = module.CHAIN) != null ? _n2 : CHAIN$1;
       if (!tonConnectChain || !CHAIN$1) {
         throw new Error("TonWalletKit did not expose CHAIN enum");
       }
@@ -53364,23 +53245,33 @@ function normalizeNetworkValue(value, chain) {
   }
   return testnet;
 }
-var __defProp$2 = Object.defineProperty;
-var __getOwnPropSymbols$2 = Object.getOwnPropertySymbols;
-var __hasOwnProp$2 = Object.prototype.hasOwnProperty;
-var __propIsEnum$2 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$2 = (obj, key2, value) => key2 in obj ? __defProp$2(obj, key2, { enumerable: true, configurable: true, writable: true, value }) : obj[key2] = value;
-var __spreadValues$2 = (a2, b2) => {
+const internalBrowserGlobal = globalThis;
+function getInternalBrowserResolverMap() {
+  return internalBrowserGlobal.__internalBrowserResponseResolvers;
+}
+function ensureInternalBrowserResolverMap() {
+  if (!internalBrowserGlobal.__internalBrowserResponseResolvers) {
+    internalBrowserGlobal.__internalBrowserResponseResolvers = /* @__PURE__ */ new Map();
+  }
+  return internalBrowserGlobal.__internalBrowserResponseResolvers;
+}
+var __defProp$1 = Object.defineProperty;
+var __getOwnPropSymbols$1 = Object.getOwnPropertySymbols;
+var __hasOwnProp$1 = Object.prototype.hasOwnProperty;
+var __propIsEnum$1 = Object.prototype.propertyIsEnumerable;
+var __defNormalProp$1 = (obj, key2, value) => key2 in obj ? __defProp$1(obj, key2, { enumerable: true, configurable: true, writable: true, value }) : obj[key2] = value;
+var __spreadValues$1 = (a2, b2) => {
   for (var prop in b2 || (b2 = {}))
-    if (__hasOwnProp$2.call(b2, prop))
-      __defNormalProp$2(a2, prop, b2[prop]);
-  if (__getOwnPropSymbols$2)
-    for (var prop of __getOwnPropSymbols$2(b2)) {
-      if (__propIsEnum$2.call(b2, prop))
-        __defNormalProp$2(a2, prop, b2[prop]);
+    if (__hasOwnProp$1.call(b2, prop))
+      __defNormalProp$1(a2, prop, b2[prop]);
+  if (__getOwnPropSymbols$1)
+    for (var prop of __getOwnPropSymbols$1(b2)) {
+      if (__propIsEnum$1.call(b2, prop))
+        __defNormalProp$1(a2, prop, b2[prop]);
     }
   return a2;
 };
-var __async$b = (__this, __arguments, generator2) => {
+var __async$c = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -53400,42 +53291,48 @@ var __async$b = (__this, __arguments, generator2) => {
     step((generator2 = generator2.apply(__this, __arguments)).next());
   });
 };
-function initTonWalletKit(config, context, deps) {
-  return __async$b(this, null, function* () {
+function resolveManifestBridgeUrl(manifest) {
+  if (manifest && typeof manifest === "object") {
+    const manifestObj = manifest;
+    return typeof manifestObj.bridgeUrl === "string" ? manifestObj.bridgeUrl : void 0;
+  }
+  return void 0;
+}
+function initTonWalletKit(config, deps) {
+  return __async$c(this, null, function* () {
     var _a3, _b2, _c2, _d2, _e3, _f;
     if (initialized && walletKit) {
-      deps.emitCallCheckpoint(context, "initTonWalletKit:already-initialized");
       return { ok: true };
     }
-    deps.emitCallCheckpoint(context, "initTonWalletKit:begin");
     yield ensureWalletKitLoaded();
     if (!CHAIN$1) {
       throw new Error("CHAIN constants not loaded");
     }
     const networkRaw = (_a3 = config == null ? void 0 : config.network) != null ? _a3 : "testnet";
     const network = normalizeNetworkValue(networkRaw, CHAIN$1);
-    setCurrentNetwork(network);
+    setCurrentNetwork(networkRaw);
     const isMainnet = network === CHAIN$1.MAINNET;
-    const tonApiUrl = (config == null ? void 0 : config.tonApiUrl) || (config == null ? void 0 : config.apiBaseUrl) || (isMainnet ? "https://tonapi.io" : "https://testnet.tonapi.io");
-    const clientEndpoint = (config == null ? void 0 : config.tonClientEndpoint) || (config == null ? void 0 : config.apiUrl) || (isMainnet ? "https://toncenter.com/api/v2/jsonRPC" : "https://testnet.toncenter.com/api/v2/jsonRPC");
-    setCurrentApiBase(tonApiUrl);
-    deps.emitCallCheckpoint(context, "initTonWalletKit:constructing-tonwalletkit");
+    const tonApiUrl = (config == null ? void 0 : config.tonApiUrl) || (config == null ? void 0 : config.apiBaseUrl);
+    const clientEndpoint = (config == null ? void 0 : config.tonClientEndpoint) || (config == null ? void 0 : config.apiUrl);
+    if (tonApiUrl) {
+      setCurrentApiBase(tonApiUrl);
+    }
     const chains = tonConnectChain;
     if (!chains) {
       throw new Error("TON Connect chain constants unavailable");
     }
     const chain = isMainnet ? chains.MAINNET : chains.TESTNET;
-    console.log("[walletkitBridge] initTonWalletKit config:", JSON.stringify(config, null, 2));
+    debugLog("[walletkitBridge] initTonWalletKit config:", JSON.stringify(config, null, 2));
     let walletManifest = config == null ? void 0 : config.walletManifest;
-    console.log("[walletkitBridge] walletManifest from config:", walletManifest);
+    debugLog("[walletkitBridge] walletManifest from config:", walletManifest);
     if (!walletManifest && (config == null ? void 0 : config.bridgeUrl) && typeof createWalletManifest$1 === "function") {
-      console.log("[walletkitBridge] Creating wallet manifest with bridgeName:", config.bridgeName);
+      debugLog("[walletkitBridge] Creating wallet manifest with bridgeName:", config.bridgeName);
       walletManifest = createWalletManifest$1({
         bridgeUrl: config.bridgeUrl,
         name: (_b2 = config.bridgeName) != null ? _b2 : "Wallet",
         appName: (_c2 = config.bridgeName) != null ? _c2 : "Wallet"
       });
-      console.log("[walletkitBridge] Created wallet manifest:", walletManifest);
+      debugLog("[walletkitBridge] Created wallet manifest:", walletManifest);
     }
     const kitOptions = {
       network: chain,
@@ -53447,86 +53344,88 @@ function initTonWalletKit(config, context, deps) {
     if (walletManifest) {
       kitOptions.walletManifest = walletManifest;
     }
-    const resolvedBridgeUrl = (_d2 = config == null ? void 0 : config.bridgeUrl) != null ? _d2 : walletManifest && typeof walletManifest === "object" ? walletManifest.bridgeUrl : void 0;
+    const resolvedBridgeUrl = (_d2 = config == null ? void 0 : config.bridgeUrl) != null ? _d2 : resolveManifestBridgeUrl(walletManifest);
     if (resolvedBridgeUrl) {
       kitOptions.bridge = {
         bridgeUrl: resolvedBridgeUrl,
-        jsBridgeTransport: (sessionId, message2) => __async$b(this, null, function* () {
+        jsBridgeTransport: (sessionId, message2) => __async$c(this, null, function* () {
           var _a22, _b22;
-          console.log("[walletkitBridge] 📤 jsBridgeTransport called:", {
+          debugLog("[walletkitBridge] 📤 jsBridgeTransport called:", {
             sessionId,
             messageType: message2.type,
             messageId: message2.messageId,
             hasPayload: !!message2.payload,
             payloadEvent: (_a22 = message2.payload) == null ? void 0 : _a22.event
           });
-          console.log("[walletkitBridge] 📤 Full message:", JSON.stringify(message2, null, 2));
-          if (message2.type === "TONCONNECT_BRIDGE_RESPONSE" && ((_b22 = message2.payload) == null ? void 0 : _b22.event) === "disconnect" && !message2.messageId) {
-            console.log("[walletkitBridge] 🔄 Transforming disconnect response to event");
-            message2 = {
+          debugLog("[walletkitBridge] 📤 Full message:", JSON.stringify(message2, null, 2));
+          let bridgeMessage = message2;
+          if (bridgeMessage.type === "TONCONNECT_BRIDGE_RESPONSE" && ((_b22 = bridgeMessage.payload) == null ? void 0 : _b22.event) === "disconnect" && !bridgeMessage.messageId) {
+            debugLog("[walletkitBridge] 🔄 Transforming disconnect response to event");
+            bridgeMessage = {
               type: "TONCONNECT_BRIDGE_EVENT",
-              source: message2.source,
-              event: message2.payload,
-              traceId: message2.traceId
+              source: bridgeMessage.source,
+              event: bridgeMessage.payload,
+              traceId: bridgeMessage.traceId
             };
-            console.log("[walletkitBridge] 🔄 Transformed message:", JSON.stringify(message2, null, 2));
+            debugLog("[walletkitBridge] 🔄 Transformed message:", JSON.stringify(bridgeMessage, null, 2));
           }
-          if (message2.messageId) {
-            console.log("[walletkitBridge] 🔵 Message has messageId, checking for pending promise");
-            const resolvers2 = globalThis.__internalBrowserResponseResolvers;
-            if (resolvers2 && resolvers2.has(message2.messageId)) {
-              console.log(
+          if (bridgeMessage.messageId) {
+            debugLog("[walletkitBridge] 🔵 Message has messageId, checking for pending promise");
+            const resolvers2 = getInternalBrowserResolverMap();
+            const resolver = resolvers2 == null ? void 0 : resolvers2.get(bridgeMessage.messageId);
+            if (resolver) {
+              debugLog(
                 "[walletkitBridge] ✅ Resolving response promise for messageId:",
-                message2.messageId
+                bridgeMessage.messageId
               );
-              const { resolve } = resolvers2.get(message2.messageId);
-              resolvers2.delete(message2.messageId);
-              resolve(message2);
+              resolvers2 == null ? void 0 : resolvers2.delete(bridgeMessage.messageId);
+              resolver.resolve(bridgeMessage);
             } else {
-              console.warn("[walletkitBridge] ⚠️ No pending promise for messageId:", message2.messageId);
+              debugWarn("[walletkitBridge] ⚠️ No pending promise for messageId:", bridgeMessage.messageId);
             }
           }
-          if (message2.type === "TONCONNECT_BRIDGE_EVENT") {
-            console.log("[walletkitBridge] 📤 Sending event to WebView for session:", sessionId);
+          if (bridgeMessage.type === "TONCONNECT_BRIDGE_EVENT") {
+            debugLog("[walletkitBridge] 📤 Sending event to WebView for session:", sessionId);
             deps.postToNative({
               kind: "jsBridgeEvent",
               sessionId,
-              event: message2
+              event: bridgeMessage
             });
-            console.log("[walletkitBridge] ✅ Event sent successfully");
+            debugLog("[walletkitBridge] ✅ Event sent successfully");
           }
           return Promise.resolve();
         })
       };
     }
-    const nativeStorageBridge = (_f = (_e3 = window.WalletKitNativeStorage) != null ? _e3 : window.WalletKitNative && typeof window.WalletKitNative.storageGet === "function" ? window.WalletKitNative : void 0) != null ? _f : window.Android;
+    const androidWindow = window;
+    const nativeStorageBridge = (_f = (_e3 = androidWindow.WalletKitNativeStorage) != null ? _e3 : androidWindow.WalletKitNative && typeof androidWindow.WalletKitNative.storageGet === "function" ? androidWindow.WalletKitNative : void 0) != null ? _f : androidWindow.Android;
     const hasStorageMethods = nativeStorageBridge && (typeof nativeStorageBridge.storageGet === "function" || typeof nativeStorageBridge.getItem === "function") && (typeof nativeStorageBridge.storageSet === "function" || typeof nativeStorageBridge.setItem === "function");
     if (hasStorageMethods) {
-      console.log("[walletkitBridge] Using Android native storage adapter");
+      debugLog("[walletkitBridge] Using Android native storage adapter");
       kitOptions.storage = new deps.AndroidStorageAdapter();
     } else if (config == null ? void 0 : config.allowMemoryStorage) {
-      console.log("[walletkitBridge] Using memory storage (sessions will not persist)");
+      debugLog("[walletkitBridge] Using memory storage (sessions will not persist)");
       kitOptions.storage = {
         allowMemory: true
       };
     }
+    if (!TonWalletKit$1) {
+      throw new Error("TonWalletKit module not loaded");
+    }
     setWalletKit(new TonWalletKit$1(kitOptions));
     if (typeof walletKit.ensureInitialized === "function") {
-      deps.emitCallCheckpoint(context, "initTonWalletKit:before-walletKit.ensureInitialized");
       yield walletKit.ensureInitialized();
-      deps.emitCallCheckpoint(context, "initTonWalletKit:after-walletKit.ensureInitialized");
     }
     setInitialized(true);
-    deps.emitCallCheckpoint(context, "initTonWalletKit:initialized");
     const readyDetails = {
-      network,
+      network: networkRaw,
+      // Send the original string network value
       tonApiUrl,
       tonClientEndpoint: clientEndpoint
     };
     deps.emit("ready", readyDetails);
-    deps.postToNative(__spreadValues$2({ kind: "ready" }, readyDetails));
-    console.log("[walletkitBridge] WalletKit ready");
-    deps.emitCallCheckpoint(context, "initTonWalletKit:ready-dispatched");
+    deps.postToNative(__spreadValues$1({ kind: "ready" }, readyDetails));
+    debugLog("[walletkitBridge] WalletKit ready");
     return { ok: true };
   });
 }
@@ -53559,74 +53458,6 @@ function hexToBytes(hex) {
   }
   return bytes;
 }
-function bytesToHex(bytes) {
-  let hex = "0x";
-  for (let i = 0; i < bytes.length; i++) {
-    hex += bytes[i].toString(16).padStart(2, "0");
-  }
-  return hex;
-}
-function serializeDate(value) {
-  if (!value) return null;
-  if (value instanceof Date) return value.toISOString();
-  const timestamp = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(timestamp)) return null;
-  return new Date(timestamp).toISOString();
-}
-var __async$a = (__this, __arguments, generator2) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator2.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator2.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
-    step((generator2 = generator2.apply(__this, __arguments)).next());
-  });
-};
-function resolveGlobalScope() {
-  if (typeof globalThis !== "undefined") {
-    return globalThis;
-  }
-  if (typeof window !== "undefined") {
-    return window;
-  }
-  if (typeof self !== "undefined") {
-    return self;
-  }
-  return {};
-}
-function callOnWallet(deps, address2, method, args) {
-  return __async$a(this, null, function* () {
-    var _a3, _b2;
-    deps.requireWalletKit();
-    const trimmedAddress = address2 == null ? void 0 : address2.trim();
-    if (!trimmedAddress) {
-      throw new Error("Wallet address is required");
-    }
-    const wallet = (_b2 = (_a3 = deps.walletKit).getWallet) == null ? void 0 : _b2.call(_a3, trimmedAddress);
-    if (!wallet) {
-      throw new Error(`Wallet not found for address ${trimmedAddress}`);
-    }
-    const methodRef = wallet[method];
-    if (typeof methodRef !== "function") {
-      throw new Error(`Method '${method}' not found on wallet`);
-    }
-    if (args !== void 0) {
-      return yield methodRef.call(wallet, args);
-    }
-    return yield methodRef.call(wallet);
-  });
-}
 function resolveNativeBridge(scope) {
   const candidate = scope.WalletKitNative;
   if (candidate && typeof candidate.postMessage === "function") {
@@ -53658,17 +53489,16 @@ function postToNative(payload) {
       value: payload,
       stack: new Error("postToNative non-object payload").stack
     };
-    console.error("[walletkitBridge] postToNative received non-object payload", diagnostic);
+    logError("[walletkitBridge] postToNative received non-object payload", diagnostic);
     throw new Error("Invalid payload - must be an object");
   }
   const json = JSON.stringify(payload, bigIntReplacer);
-  const scope = resolveGlobalScope();
-  const nativePostMessage = resolveNativeBridge(scope);
+  const nativePostMessage = resolveNativeBridge(window);
   if (nativePostMessage) {
     nativePostMessage(json);
     return;
   }
-  const androidPostMessage = resolveAndroidBridge(scope);
+  const androidPostMessage = resolveAndroidBridge(window);
   if (androidPostMessage) {
     androidPostMessage(json);
     return;
@@ -53676,7 +53506,7 @@ function postToNative(payload) {
   if (payload.kind === "event") {
     throw new Error("Native bridge not available - cannot deliver event");
   }
-  console.debug("[walletkitBridge] → native (no handler)", payload);
+  debugLog("[walletkitBridge] → native (no handler)", payload);
 }
 function emitCallDiagnostic(id, method, stage, message2) {
   postToNative({
@@ -53688,11 +53518,7 @@ function emitCallDiagnostic(id, method, stage, message2) {
     message: message2
   });
 }
-function emitCallCheckpoint(context, message2) {
-  if (!context) return;
-  emitCallDiagnostic(context.id, context.method, "checkpoint", message2);
-}
-var __async$9 = (__this, __arguments, generator2) => {
+var __async$b = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -53718,39 +53544,39 @@ function emit(type, data) {
   postToNative({ kind: "event", event });
 }
 function respond(id, result, error2) {
-  console.log("[walletkitBridge] 🟢 respond() called with:");
-  console.log("[walletkitBridge] 🟢 id:", id);
-  console.log("[walletkitBridge] 🟢 result:", result);
-  console.log("[walletkitBridge] 🟢 error:", error2);
-  console.log("[walletkitBridge] 🟢 About to call postToNative...");
+  debugLog("[walletkitBridge] 🟢 respond() called with:");
+  debugLog("[walletkitBridge] 🟢 id:", id);
+  debugLog("[walletkitBridge] 🟢 result:", result);
+  debugLog("[walletkitBridge] 🟢 error:", error2);
+  debugLog("[walletkitBridge] 🟢 About to call postToNative...");
   postToNative({ kind: "response", id, result, error: error2 });
-  console.log("[walletkitBridge] 🟢 postToNative completed");
+  debugLog("[walletkitBridge] 🟢 postToNative completed");
 }
 function setBridgeApi(api2) {
   apiRef = api2;
 }
 function invokeApiMethod(api2, method, params, context) {
-  return __async$9(this, null, function* () {
-    console.log(`[walletkitBridge] handleCall ${method}, looking up api[${method}]`);
+  return __async$b(this, null, function* () {
+    debugLog(`[walletkitBridge] handleCall ${method}, looking up api[${method}]`);
     const fn2 = api2[method];
-    console.log(`[walletkitBridge] fn found:`, typeof fn2);
+    debugLog(`[walletkitBridge] fn found:`, typeof fn2);
     if (typeof fn2 !== "function") {
       throw new Error(`Unknown method ${String(method)}`);
     }
-    console.log(`[walletkitBridge] about to call fn for ${method}`);
+    debugLog(`[walletkitBridge] about to call fn for ${method}`);
     const value = yield fn2.call(
       api2,
       params,
       context
     );
-    console.log(`[walletkitBridge] fn returned for ${method}`);
-    console.log(`[walletkitBridge] 🔵 fn returned value:`, value);
-    console.log(`[walletkitBridge] 🔵 value type:`, typeof value);
+    debugLog(`[walletkitBridge] fn returned for ${method}`);
+    debugLog(`[walletkitBridge] 🔵 fn returned value:`, value);
+    debugLog(`[walletkitBridge] 🔵 value type:`, typeof value);
     return value;
   });
 }
 function handleCall(id, method, params) {
-  return __async$9(this, null, function* () {
+  return __async$b(this, null, function* () {
     if (!apiRef) {
       throw new Error("Bridge API not registered");
     }
@@ -53762,10 +53588,10 @@ function handleCall(id, method, params) {
       respond(id, value);
     } catch (err) {
       const message2 = err instanceof Error ? err.message : String(err);
-      console.error(`[walletkitBridge] handleCall error for ${method}:`, err);
-      console.error(`[walletkitBridge] error type:`, typeof err);
-      console.error(`[walletkitBridge] error message:`, message2);
-      console.error(`[walletkitBridge] error stack:`, err instanceof Error ? err.stack : "no stack");
+      logError(`[walletkitBridge] handleCall error for ${method}:`, err);
+      logError(`[walletkitBridge] error type:`, typeof err);
+      logError(`[walletkitBridge] error message:`, message2);
+      logError(`[walletkitBridge] error stack:`, err instanceof Error ? err.stack : "no stack");
       emitCallDiagnostic(id, method, "error", message2);
       respond(id, void 0, { message: message2 });
     }
@@ -53777,7 +53603,7 @@ function registerNativeCallHandler() {
     if (paramsJson && paramsJson !== "null") {
       try {
         params = JSON.parse(paramsJson);
-      } catch (err) {
+      } catch (e) {
         respond(id, void 0, { message: "Invalid params JSON" });
         return;
       }
@@ -53791,7 +53617,7 @@ const eventListeners = {
   onSignDataListener: null,
   onDisconnectListener: null
 };
-var __async$8 = (__this, __arguments, generator2) => {
+var __async$a = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -53813,51 +53639,51 @@ var __async$8 = (__this, __arguments, generator2) => {
 };
 class AndroidStorageAdapter {
   constructor() {
-    const anyWin = window;
-    if (typeof anyWin.WalletKitNativeStorage !== "undefined") {
-      this.androidBridge = anyWin.WalletKitNativeStorage;
+    const androidWindow = window;
+    if (typeof androidWindow.WalletKitNativeStorage !== "undefined") {
+      this.androidBridge = androidWindow.WalletKitNativeStorage;
     } else {
-      console.warn("[AndroidStorageAdapter] Android bridge not available, storage will not persist");
+      debugWarn("[AndroidStorageAdapter] Android bridge not available, storage will not persist");
     }
   }
   get(key2) {
-    return __async$8(this, null, function* () {
+    return __async$a(this, null, function* () {
       const getFn = this.getBridgeFunction("storageGet", "getItem");
       if (!getFn) {
-        console.warn("[AndroidStorageAdapter] get() called but bridge not available:", key2);
+        debugWarn("[AndroidStorageAdapter] get() called but bridge not available:", key2);
         return null;
       }
       try {
         const value = getFn(key2);
-        console.log("[AndroidStorageAdapter] get:", key2, "=", value ? `${value.substring(0, 100)}...` : "null");
+        debugLog("[AndroidStorageAdapter] get:", key2, "=", value ? `${value.substring(0, 100)}...` : "null");
         if (!value) {
           return null;
         }
         return JSON.parse(value);
       } catch (error2) {
-        console.error("[AndroidStorageAdapter] Failed to get key:", key2, error2);
+        logError("[AndroidStorageAdapter] Failed to get key:", key2, error2);
         return null;
       }
     });
   }
   set(key2, value) {
-    return __async$8(this, null, function* () {
+    return __async$a(this, null, function* () {
       const setFn = this.getBridgeFunction("storageSet", "setItem");
       if (!setFn) {
-        console.warn("[AndroidStorageAdapter] set() called but bridge not available:", key2);
+        debugWarn("[AndroidStorageAdapter] set() called but bridge not available:", key2);
         return;
       }
       try {
         const serialized = JSON.stringify(value);
-        console.log("[AndroidStorageAdapter] set:", key2, "=", serialized.substring(0, 100) + "...");
+        debugLog("[AndroidStorageAdapter] set:", key2, "=", serialized.substring(0, 100) + "...");
         setFn(key2, serialized);
       } catch (error2) {
-        console.error("[AndroidStorageAdapter] Failed to set key:", key2, error2);
+        logError("[AndroidStorageAdapter] Failed to set key:", key2, error2);
       }
     });
   }
   remove(key2) {
-    return __async$8(this, null, function* () {
+    return __async$a(this, null, function* () {
       const removeFn = this.getBridgeFunction("storageRemove", "removeItem");
       if (!removeFn) {
         return;
@@ -53865,12 +53691,12 @@ class AndroidStorageAdapter {
       try {
         removeFn(key2);
       } catch (error2) {
-        console.error("[AndroidStorageAdapter] Failed to remove key:", key2, error2);
+        logError("[AndroidStorageAdapter] Failed to remove key:", key2, error2);
       }
     });
   }
   clear() {
-    return __async$8(this, null, function* () {
+    return __async$a(this, null, function* () {
       const clearFn = this.getBridgeFunction("storageClear", "clear");
       if (!clearFn) {
         return;
@@ -53878,7 +53704,7 @@ class AndroidStorageAdapter {
       try {
         clearFn();
       } catch (error2) {
-        console.error("[AndroidStorageAdapter] Failed to clear storage:", error2);
+        logError("[AndroidStorageAdapter] Failed to clear storage:", error2);
       }
     });
   }
@@ -53894,6 +53720,134 @@ class AndroidStorageAdapter {
     }
     return null;
   }
+}
+var __async$9 = (__this, __arguments, generator2) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator2.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator2.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
+    step((generator2 = generator2.apply(__this, __arguments)).next());
+  });
+};
+function init(config) {
+  return __async$9(this, null, function* () {
+    yield ensureWalletKitLoaded();
+    return yield initTonWalletKit(config, {
+      emit,
+      postToNative,
+      AndroidStorageAdapter
+    });
+  });
+}
+function setEventsListeners(args) {
+  var _a3;
+  requireWalletKit();
+  const callback = (_a3 = args == null ? void 0 : args.callback) != null ? _a3 : (type, event) => {
+    emit(type, event);
+  };
+  if (eventListeners.onConnectListener) {
+    walletKit.removeConnectRequestCallback();
+  }
+  eventListeners.onConnectListener = (event) => {
+    callback("connectRequest", event);
+  };
+  walletKit.onConnectRequest(eventListeners.onConnectListener);
+  if (eventListeners.onTransactionListener) {
+    walletKit.removeTransactionRequestCallback();
+  }
+  eventListeners.onTransactionListener = (event) => {
+    callback("transactionRequest", event);
+  };
+  walletKit.onTransactionRequest(eventListeners.onTransactionListener);
+  if (eventListeners.onSignDataListener) {
+    walletKit.removeSignDataRequestCallback();
+  }
+  eventListeners.onSignDataListener = (event) => {
+    callback("signDataRequest", event);
+  };
+  walletKit.onSignDataRequest(eventListeners.onSignDataListener);
+  if (eventListeners.onDisconnectListener) {
+    walletKit.removeDisconnectCallback();
+  }
+  eventListeners.onDisconnectListener = (event) => {
+    callback("disconnect", event);
+  };
+  walletKit.onDisconnect(eventListeners.onDisconnectListener);
+  return { ok: true };
+}
+function removeEventListeners() {
+  requireWalletKit();
+  if (eventListeners.onConnectListener) {
+    walletKit.removeConnectRequestCallback();
+    eventListeners.onConnectListener = null;
+  }
+  if (eventListeners.onTransactionListener) {
+    walletKit.removeTransactionRequestCallback();
+    eventListeners.onTransactionListener = null;
+  }
+  if (eventListeners.onSignDataListener) {
+    walletKit.removeSignDataRequestCallback();
+    eventListeners.onSignDataListener = null;
+  }
+  if (eventListeners.onDisconnectListener) {
+    walletKit.removeDisconnectCallback();
+    eventListeners.onDisconnectListener = null;
+  }
+  return { ok: true };
+}
+var __async$8 = (__this, __arguments, generator2) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator2.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator2.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
+    step((generator2 = generator2.apply(__this, __arguments)).next());
+  });
+};
+function callOnWallet(deps, address2, method, args) {
+  return __async$8(this, null, function* () {
+    var _a3, _b2;
+    deps.requireWalletKit();
+    const trimmedAddress = address2 == null ? void 0 : address2.trim();
+    if (!trimmedAddress) {
+      throw new Error("Wallet address is required");
+    }
+    const wallet = (_b2 = (_a3 = deps.walletKit).getWallet) == null ? void 0 : _b2.call(_a3, trimmedAddress);
+    if (!wallet) {
+      throw new Error(`Wallet not found for address ${trimmedAddress}`);
+    }
+    const methodRef = wallet[method];
+    if (typeof methodRef !== "function") {
+      throw new Error(`Method '${method}' not found on wallet`);
+    }
+    if (args !== void 0) {
+      return yield methodRef.call(wallet, args);
+    }
+    return yield methodRef.call(wallet);
+  });
 }
 var __async$7 = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
@@ -53915,92 +53869,27 @@ var __async$7 = (__this, __arguments, generator2) => {
     step((generator2 = generator2.apply(__this, __arguments)).next());
   });
 };
-function init(config, context) {
+function callBridge(operation, fn2) {
   return __async$7(this, null, function* () {
-    emitCallCheckpoint(context, "init:before-ensureWalletKitLoaded");
     yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "init:after-ensureWalletKitLoaded");
-    emitCallCheckpoint(context, "init:before-initTonWalletKit");
-    const result = yield initTonWalletKit(config, context, {
-      emitCallCheckpoint,
-      emit,
-      postToNative,
-      AndroidStorageAdapter
-    });
-    emitCallCheckpoint(context, "init:after-initTonWalletKit");
-    return result;
+    requireWalletKit();
+    if (typeof walletKit.ensureInitialized === "function") {
+      yield walletKit.ensureInitialized();
+    }
+    try {
+      return yield fn2();
+    } catch (error2) {
+      logError(`[${operation}] failed:`, error2);
+      throw error2;
+    }
   });
 }
-function setEventsListeners(args, context) {
-  emitCallCheckpoint(context, "setEventsListeners:enter");
-  requireWalletKit();
-  console.log("[walletkitBridge] 🔔 Setting up event listeners");
-  const callback = (args == null ? void 0 : args.callback) || ((type, event) => {
-    emit(type, event);
+function callOnWalletBridge(address2, method, args) {
+  return __async$7(this, null, function* () {
+    return callBridge(`callOnWallet:${method}`, () => __async$7(this, null, function* () {
+      return yield callOnWallet({ walletKit, requireWalletKit }, address2, method, args);
+    }));
   });
-  if (eventListeners.onConnectListener) {
-    walletKit.removeConnectRequestCallback();
-  }
-  eventListeners.onConnectListener = (event) => {
-    console.log("[walletkitBridge] 📨 Connect request received");
-    callback("connectRequest", event);
-  };
-  walletKit.onConnectRequest(eventListeners.onConnectListener);
-  console.log("[walletkitBridge] ✅ Connect listener registered");
-  if (eventListeners.onTransactionListener) {
-    walletKit.removeTransactionRequestCallback();
-  }
-  eventListeners.onTransactionListener = (event) => {
-    console.log("[walletkitBridge] 📨 Transaction request received");
-    callback("transactionRequest", event);
-  };
-  console.log("[walletkitBridge] About to call walletKit.onTransactionRequest...");
-  walletKit.onTransactionRequest(eventListeners.onTransactionListener);
-  console.log("[walletkitBridge] ✅ Transaction listener registered");
-  if (eventListeners.onSignDataListener) {
-    walletKit.removeSignDataRequestCallback();
-  }
-  eventListeners.onSignDataListener = (event) => {
-    console.log("[walletkitBridge] 📨 Sign data request received");
-    callback("signDataRequest", event);
-  };
-  console.log("[walletkitBridge] About to call walletKit.onSignDataRequest...");
-  walletKit.onSignDataRequest(eventListeners.onSignDataListener);
-  console.log("[walletkitBridge] ✅ Sign data listener registered");
-  if (eventListeners.onDisconnectListener) {
-    walletKit.removeDisconnectCallback();
-  }
-  eventListeners.onDisconnectListener = (event) => {
-    console.log("[walletkitBridge] 📨 Disconnect event received");
-    callback("disconnect", event);
-  };
-  walletKit.onDisconnect(eventListeners.onDisconnectListener);
-  console.log("[walletkitBridge] ✅ Disconnect listener registered");
-  console.log("[walletkitBridge] ✅ Event listeners set up successfully");
-  return { ok: true };
-}
-function removeEventListeners(_, context) {
-  emitCallCheckpoint(context, "removeEventListeners:enter");
-  requireWalletKit();
-  console.log("[walletkitBridge] 🗑️ Removing all event listeners");
-  if (eventListeners.onConnectListener) {
-    walletKit.removeConnectRequestCallback();
-    eventListeners.onConnectListener = null;
-  }
-  if (eventListeners.onTransactionListener) {
-    walletKit.removeTransactionRequestCallback();
-    eventListeners.onTransactionListener = null;
-  }
-  if (eventListeners.onSignDataListener) {
-    walletKit.removeSignDataRequestCallback();
-    eventListeners.onSignDataListener = null;
-  }
-  if (eventListeners.onDisconnectListener) {
-    walletKit.removeDisconnectCallback();
-    eventListeners.onDisconnectListener = null;
-  }
-  console.log("[walletkitBridge] ✅ All event listeners removed");
-  return { ok: true };
 }
 var __async$6 = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
@@ -54022,85 +53911,66 @@ var __async$6 = (__this, __arguments, generator2) => {
     step((generator2 = generator2.apply(__this, __arguments)).next());
   });
 };
-function mnemonicToKeyPair(args, context) {
+function mnemonicToKeyPair(args) {
   return __async$6(this, null, function* () {
-    var _a3;
-    emitCallCheckpoint(context, "mnemonicToKeyPair:start");
-    yield ensureWalletKitLoaded();
-    const keyPair = yield MnemonicToKeyPair$1(args.mnemonic, (_a3 = args.mnemonicType) != null ? _a3 : "ton");
-    emitCallCheckpoint(context, "mnemonicToKeyPair:complete");
-    return {
-      publicKey: Array.from(keyPair.publicKey),
-      secretKey: Array.from(keyPair.secretKey)
-    };
+    return callBridge("mnemonicToKeyPair", () => __async$6(this, null, function* () {
+      var _a3;
+      const mnemonicToKeyPairFn = requireModule$1(MnemonicToKeyPair$1, "MnemonicToKeyPair");
+      const keyPair = yield mnemonicToKeyPairFn(args.mnemonic, (_a3 = args.mnemonicType) != null ? _a3 : "ton");
+      return {
+        publicKey: Array.from(keyPair.publicKey),
+        secretKey: Array.from(keyPair.secretKey)
+      };
+    }));
   });
 }
-function sign$1(args, context) {
+function sign$1(args) {
   return __async$6(this, null, function* () {
-    emitCallCheckpoint(context, "sign:start");
-    yield ensureWalletKitLoaded();
-    if (!Array.isArray(args.data)) {
-      throw new Error("Data array required for sign");
-    }
-    if (!Array.isArray(args.secretKey)) {
-      throw new Error("Secret key array required for sign");
-    }
-    const dataBytes = Uint8Array.from(args.data);
-    const secretKeyBytes = Uint8Array.from(args.secretKey);
-    const signatureHex = DefaultSignature$1(dataBytes, secretKeyBytes);
-    const signatureBytes = hexToBytes(signatureHex);
-    emitCallCheckpoint(context, "sign:complete");
-    return { signature: Array.from(signatureBytes) };
+    return callBridge("sign", () => __async$6(this, null, function* () {
+      if (!Array.isArray(args.data)) {
+        throw new Error("Data array required for sign");
+      }
+      if (!Array.isArray(args.secretKey)) {
+        throw new Error("Secret key array required for sign");
+      }
+      const dataBytes = Uint8Array.from(args.data);
+      const secretKeyBytes = Uint8Array.from(args.secretKey);
+      const signatureFn = requireModule$1(DefaultSignature$1, "DefaultSignature");
+      const signatureHex = signatureFn(dataBytes, secretKeyBytes);
+      const signatureBytes = hexToBytes(signatureHex);
+      return { signature: Array.from(signatureBytes) };
+    }));
   });
 }
 function createTonMnemonic() {
-  return __async$6(this, arguments, function* (_args = { count: 24 }, context) {
-    emitCallCheckpoint(context, "createTonMnemonic:start");
-    yield ensureWalletKitLoaded();
-    const mnemonicResult = yield CreateTonMnemonic$1();
-    const words = Array.isArray(mnemonicResult) ? mnemonicResult : `${mnemonicResult}`.split(" ").filter(Boolean);
-    emitCallCheckpoint(context, "createTonMnemonic:complete");
-    return { items: words };
+  return __async$6(this, arguments, function* (_args = { count: 24 }) {
+    return callBridge("createTonMnemonic", () => __async$6(this, null, function* () {
+      const createTonMnemonicFn = requireModule$1(CreateTonMnemonic$1, "CreateTonMnemonic");
+      const mnemonicResult = yield createTonMnemonicFn();
+      const words = Array.isArray(mnemonicResult) ? mnemonicResult : `${mnemonicResult}`.split(" ").filter(Boolean);
+      return { items: words };
+    }));
   });
 }
-function respondToSignRequest(args, _context) {
-  return __async$6(this, null, function* () {
-    var _a3;
-    const signerRequests = (_a3 = globalThis.__walletKitSignerRequests) == null ? void 0 : _a3.get(args.signerId);
-    if (!signerRequests) {
-      throw new Error("Unknown signer ID: ${args.signerId}");
-    }
-    const pending = signerRequests.get(args.requestId);
-    if (!pending) {
-      throw new Error("Unknown sign request ID: ${args.requestId}");
-    }
-    signerRequests.delete(args.requestId);
-    if (args.error) {
-      pending.reject(new Error(args.error));
-    } else if (typeof args.signature === "string") {
-      pending.resolve(normalizeHex(args.signature));
-    } else if (Array.isArray(args.signature)) {
-      const signatureHex = bytesToHex(new Uint8Array(args.signature));
-      pending.resolve(signatureHex);
-    } else {
-      pending.reject(new Error("No signature or error provided"));
-    }
-    return { ok: true };
-  });
+function requireModule$1(moduleRef, name) {
+  if (!moduleRef) {
+    throw new Error(`${name} is not available`);
+  }
+  return moduleRef;
 }
-var __defProp$1 = Object.defineProperty;
-var __getOwnPropSymbols$1 = Object.getOwnPropertySymbols;
-var __hasOwnProp$1 = Object.prototype.hasOwnProperty;
-var __propIsEnum$1 = Object.prototype.propertyIsEnumerable;
-var __defNormalProp$1 = (obj, key2, value) => key2 in obj ? __defProp$1(obj, key2, { enumerable: true, configurable: true, writable: true, value }) : obj[key2] = value;
-var __spreadValues$1 = (a2, b2) => {
+var __defProp2 = Object.defineProperty;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp2 = (obj, key2, value) => key2 in obj ? __defProp2(obj, key2, { enumerable: true, configurable: true, writable: true, value }) : obj[key2] = value;
+var __spreadValues = (a2, b2) => {
   for (var prop in b2 || (b2 = {}))
-    if (__hasOwnProp$1.call(b2, prop))
-      __defNormalProp$1(a2, prop, b2[prop]);
-  if (__getOwnPropSymbols$1)
-    for (var prop of __getOwnPropSymbols$1(b2)) {
-      if (__propIsEnum$1.call(b2, prop))
-        __defNormalProp$1(a2, prop, b2[prop]);
+    if (__hasOwnProp.call(b2, prop))
+      __defNormalProp2(a2, prop, b2[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b2)) {
+      if (__propIsEnum.call(b2, prop))
+        __defNormalProp2(a2, prop, b2[prop]);
     }
   return a2;
 };
@@ -54124,6 +53994,12 @@ var __async$5 = (__this, __arguments, generator2) => {
     step((generator2 = generator2.apply(__this, __arguments)).next());
   });
 };
+function requireModule(moduleRef, name) {
+  if (!moduleRef) {
+    throw new Error(`${name} module is not available`);
+  }
+  return moduleRef;
+}
 function resolveChain(network) {
   const chains = tonConnectChain;
   if (!chains || !CHAIN$1) {
@@ -54136,308 +54012,153 @@ function resolveChain(network) {
     isMainnet
   };
 }
-function getWallets(_, context) {
+function getWallets() {
   return __async$5(this, null, function* () {
-    var _a3, _b2;
-    emitCallCheckpoint(context, "getWallets:enter");
-    requireWalletKit();
-    emitCallCheckpoint(context, "getWallets:after-requireWalletKit");
-    if (typeof walletKit.ensureInitialized === "function") {
-      emitCallCheckpoint(context, "getWallets:before-walletKit.ensureInitialized");
-      yield walletKit.ensureInitialized();
-      emitCallCheckpoint(context, "getWallets:after-walletKit.ensureInitialized");
-    }
-    const wallets2 = ((_b2 = (_a3 = walletKit).getWallets) == null ? void 0 : _b2.call(_a3)) || [];
-    emitCallCheckpoint(context, "getWallets:after-walletKit.getWallets");
-    return wallets2.map((wallet, index2) => ({
-      address: wallet.getAddress(),
-      publicKey: Array.from(wallet.publicKey).map((b2) => b2.toString(16).padStart(2, "0")).join(""),
-      version: typeof wallet.version === "string" ? wallet.version : "unknown",
-      index: index2,
-      network: currentNetwork
+    return callBridge("getWallets", () => __async$5(this, null, function* () {
+      var _a3, _b2, _c2;
+      const wallets2 = (_c2 = (_b2 = (_a3 = walletKit).getWallets) == null ? void 0 : _b2.call(_a3)) != null ? _c2 : [];
+      return wallets2.map((wallet, index2) => ({
+        address: wallet.getAddress(),
+        publicKey: wallet.publicKey,
+        version: typeof wallet.version === "string" ? wallet.version : "unknown",
+        index: index2,
+        network: currentNetwork
+      }));
     }));
   });
 }
-function getWallet(args, context) {
+function getWallet(args) {
   return __async$5(this, null, function* () {
-    var _a3, _b2, _c2;
-    emitCallCheckpoint(context, "getWallet:enter");
-    requireWalletKit();
-    emitCallCheckpoint(context, "getWallet:after-requireWalletKit");
-    if (typeof walletKit.ensureInitialized === "function") {
-      emitCallCheckpoint(context, "getWallet:before-walletKit.ensureInitialized");
-      yield walletKit.ensureInitialized();
-      emitCallCheckpoint(context, "getWallet:after-walletKit.ensureInitialized");
-    }
-    const address2 = (_a3 = args.address) == null ? void 0 : _a3.trim();
-    if (!address2) {
-      throw new Error("Wallet address is required");
-    }
-    const wallet = (_c2 = (_b2 = walletKit).getWallet) == null ? void 0 : _c2.call(_b2, address2);
-    if (!wallet) {
-      return null;
-    }
-    emitCallCheckpoint(context, "getWallet:after-walletKit.getWallet");
-    return {
-      address: wallet.getAddress(),
-      publicKey: Array.from(wallet.publicKey).map((b2) => b2.toString(16).padStart(2, "0")).join(""),
-      version: typeof wallet.version === "string" ? wallet.version : "unknown",
-      index: 0,
-      // Single wallet doesn't have index
-      network: currentNetwork
-    };
+    return callBridge("getWallet", () => __async$5(this, null, function* () {
+      var _a3, _b2;
+      if (!args.address) {
+        throw new Error("Wallet address is required");
+      }
+      const wallet = (_b2 = (_a3 = walletKit).getWallet) == null ? void 0 : _b2.call(_a3, args.address);
+      if (!wallet) {
+        return null;
+      }
+      return {
+        address: wallet.getAddress(),
+        publicKey: wallet.publicKey,
+        version: typeof wallet.version === "string" ? wallet.version : "unknown",
+        index: 0,
+        network: currentNetwork
+      };
+    }));
   });
 }
-function removeWallet(args, context) {
+function removeWallet(args) {
   return __async$5(this, null, function* () {
-    var _a3, _b2, _c2;
-    emitCallCheckpoint(context, "removeWallet:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "removeWallet:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    const address2 = (_a3 = args.address) == null ? void 0 : _a3.trim();
-    if (!address2) {
-      throw new Error("Wallet address is required");
-    }
-    const wallet = (_c2 = (_b2 = walletKit).getWallet) == null ? void 0 : _c2.call(_b2, address2);
-    if (!wallet) {
-      return { removed: false };
-    }
-    emitCallCheckpoint(context, "removeWallet:before-walletKit.removeWallet");
-    yield walletKit.removeWallet(address2);
-    emitCallCheckpoint(context, "removeWallet:after-walletKit.removeWallet");
-    return { removed: true };
+    return callBridge("removeWallet", () => __async$5(this, null, function* () {
+      var _a3, _b2;
+      if (!args.address) {
+        throw new Error("Wallet address is required");
+      }
+      const wallet = (_b2 = (_a3 = walletKit).getWallet) == null ? void 0 : _b2.call(_a3, args.address);
+      if (!wallet) {
+        return { removed: false };
+      }
+      yield walletKit.removeWallet(args.address);
+      return { removed: true };
+    }));
   });
 }
-function getWalletState(args, context) {
+function getWalletState(args) {
   return __async$5(this, null, function* () {
-    requireWalletKit();
-    if (typeof walletKit.ensureInitialized === "function") {
-      emitCallCheckpoint(context, "getWalletState:before-walletKit.ensureInitialized");
-      yield walletKit.ensureInitialized();
-      emitCallCheckpoint(context, "getWalletState:after-walletKit.ensureInitialized");
-    }
-    const wallet = walletKit.getWallet(args.address);
-    if (!wallet) throw new Error("Wallet not found");
-    emitCallCheckpoint(context, "getWalletState:before-wallet.getBalance");
-    const balance = yield wallet.getBalance();
-    emitCallCheckpoint(context, "getWalletState:after-wallet.getBalance");
-    const balanceStr = balance != null && typeof balance.toString === "function" ? balance.toString() : String(balance);
-    const transactions = wallet.getTransactions ? yield wallet.getTransactions(10) : [];
-    emitCallCheckpoint(context, "getWalletState:after-wallet.getTransactions");
-    return { balance: balanceStr, transactions };
+    return callBridge("getWalletState", () => __async$5(this, null, function* () {
+      const wallet = walletKit.getWallet(args.address);
+      if (!wallet) {
+        throw new Error("Wallet not found");
+      }
+      const balance = yield wallet.getBalance();
+      const balanceStr = String(balance != null ? balance : "0");
+      const transactions = wallet.getTransactions ? yield wallet.getTransactions(10) : [];
+      return { balance: balanceStr, transactions };
+    }));
   });
 }
 const signerStore = /* @__PURE__ */ new Map();
 const adapterStore = /* @__PURE__ */ new Map();
-function createSigner(args, context) {
+function createSigner(args) {
   return __async$5(this, null, function* () {
-    emitCallCheckpoint(context, "createSigner:start");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "createSigner:after-ensureWalletKitLoaded");
-    let signer;
-    if (args.mnemonic && args.mnemonic.length > 0) {
-      signer = yield Signer$1.fromMnemonic(args.mnemonic, { type: args.mnemonicType || "ton" });
-    } else if (args.secretKey) {
-      signer = yield Signer$1.fromPrivateKey(args.secretKey);
-    } else {
-      throw new Error("Either mnemonic or secretKey must be provided");
-    }
-    const signerId = `signer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    signerStore.set(signerId, signer);
-    emitCallCheckpoint(context, "createSigner:complete");
-    return {
-      signerId,
-      publicKey: signer.publicKey.replace(/^0x/, "")
-    };
+    return callBridge("createSigner", () => __async$5(this, null, function* () {
+      let signer;
+      const signerFactory = requireModule(Signer$1, "Signer");
+      if (args.mnemonic && args.mnemonic.length > 0) {
+        signer = yield signerFactory.fromMnemonic(args.mnemonic, {
+          type: args.mnemonicType || "ton"
+        });
+      } else if (args.secretKey) {
+        signer = yield signerFactory.fromPrivateKey(args.secretKey);
+      } else {
+        throw new Error("Either mnemonic or secretKey must be provided");
+      }
+      const signerId = `signer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      signerStore.set(signerId, signer);
+      return {
+        signerId,
+        publicKey: signer.publicKey
+      };
+    }));
   });
 }
-function createAdapter(args, context) {
+function createAdapter(args) {
   return __async$5(this, null, function* () {
-    emitCallCheckpoint(context, "createAdapter:start");
-    yield ensureWalletKitLoaded();
-    requireWalletKit();
-    emitCallCheckpoint(context, "createAdapter:after-requireWalletKit");
-    const signer = signerStore.get(args.signerId);
-    if (!signer) {
-      throw new Error(`Signer not found: ${args.signerId}`);
-    }
-    const { chain } = resolveChain(args.network);
-    const workchain = args.workchain !== void 0 ? args.workchain : 0;
-    const walletId = args.walletId !== void 0 ? args.walletId : void 0;
-    let adapter;
-    if (args.walletVersion === "v5r1") {
-      adapter = yield WalletV5R1Adapter$1.create(signer, __spreadValues$1({
-        client: walletKit.getApiClient(),
-        network: chain,
-        workchain
-      }, walletId !== void 0 && { walletId }));
-    } else if (args.walletVersion === "v4r2") {
-      adapter = yield WalletV4R2Adapter$1.create(signer, __spreadValues$1({
-        client: walletKit.getApiClient(),
-        network: chain,
-        workchain
-      }, walletId !== void 0 && { walletId }));
-    } else {
-      throw new Error(`Unsupported wallet version: ${args.walletVersion}`);
-    }
-    const adapterId = `adapter_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    adapterStore.set(adapterId, adapter);
-    emitCallCheckpoint(context, "createAdapter:complete");
-    return {
-      adapterId,
-      address: adapter.getAddress()
-    };
+    return callBridge("createAdapter", () => __async$5(this, null, function* () {
+      const signer = signerStore.get(args.signerId);
+      if (!signer) {
+        throw new Error(`Signer not found: ${args.signerId}`);
+      }
+      const { chain } = resolveChain(args.network);
+      const workchain = args.workchain !== void 0 ? args.workchain : 0;
+      const walletId = args.walletId !== void 0 ? args.walletId : void 0;
+      let adapter;
+      if (args.walletVersion === "v5r1") {
+        const factory = requireModule(WalletV5R1Adapter$1, "WalletV5R1Adapter");
+        adapter = yield factory.create(signer, __spreadValues({
+          client: walletKit.getApiClient(),
+          network: chain,
+          workchain
+        }, walletId !== void 0 && { walletId }));
+      } else if (args.walletVersion === "v4r2") {
+        const factory = requireModule(WalletV4R2Adapter$1, "WalletV4R2Adapter");
+        adapter = yield factory.create(signer, __spreadValues({
+          client: walletKit.getApiClient(),
+          network: chain,
+          workchain
+        }, walletId !== void 0 && { walletId }));
+      } else {
+        throw new Error(`Unsupported wallet version: ${args.walletVersion}`);
+      }
+      const adapterId = `adapter_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      adapterStore.set(adapterId, adapter);
+      return {
+        adapterId,
+        address: adapter.getAddress()
+      };
+    }));
   });
 }
-function addWallet(args, context) {
+function addWallet(args) {
   return __async$5(this, null, function* () {
-    emitCallCheckpoint(context, "addWallet:start");
-    yield ensureWalletKitLoaded();
-    requireWalletKit();
-    emitCallCheckpoint(context, "addWallet:after-requireWalletKit");
-    const adapter = adapterStore.get(args.adapterId);
-    if (!adapter) {
-      throw new Error(`Adapter not found: ${args.adapterId}`);
-    }
-    emitCallCheckpoint(context, "addWallet:before-walletKit.addWallet");
-    const wallet = yield walletKit.addWallet(adapter);
-    emitCallCheckpoint(context, "addWallet:after-walletKit.addWallet");
-    if (!wallet) {
-      throw new Error("Failed to add wallet - may already exist");
-    }
-    adapterStore.delete(args.adapterId);
-    return {
-      address: wallet.getAddress(),
-      publicKey: Array.from(wallet.publicKey).map((b2) => b2.toString(16).padStart(2, "0")).join("")
-    };
+    return callBridge("addWallet", () => __async$5(this, null, function* () {
+      const adapter = adapterStore.get(args.adapterId);
+      if (!adapter) {
+        throw new Error(`Adapter not found: ${args.adapterId}`);
+      }
+      const wallet = yield walletKit.addWallet(adapter);
+      if (!wallet) {
+        throw new Error("Failed to add wallet - may already exist");
+      }
+      adapterStore.delete(args.adapterId);
+      return {
+        address: wallet.getAddress(),
+        publicKey: wallet.publicKey
+      };
+    }));
   });
 }
-function toUserFriendlyAddress(rawAddress2, options) {
-  if (!rawAddress2 || !options.addressParser) {
-    return rawAddress2;
-  }
-  try {
-    const addr = options.addressParser.parse(rawAddress2);
-    return addr.toString({ bounceable: false, testOnly: options.isTestnet });
-  } catch (error2) {
-    console.warn("[walletkitBridge] Failed to parse address:", rawAddress2, error2);
-    return rawAddress2;
-  }
-}
-function base64ToHex(base64) {
-  try {
-    const binaryString = atob(base64);
-    let hex = "";
-    for (let i = 0; i < binaryString.length; i++) {
-      const hexByte = binaryString.charCodeAt(i).toString(16).padStart(2, "0");
-      hex += hexByte;
-    }
-    return hex;
-  } catch (error2) {
-    console.warn("[walletkitBridge] Failed to convert hash to hex:", base64, error2);
-    return base64;
-  }
-}
-function resolveTonConnectUrl(input) {
-  console.log("[walletkitBridge] resolveTonConnectUrl called with input type:", typeof input);
-  if (input == null) {
-    console.log("[walletkitBridge] input is null/undefined");
-    return null;
-  }
-  if (typeof input === "string") {
-    const trimmed = input.trim();
-    console.log("[walletkitBridge] input is string, trimmed:", trimmed.substring(0, 100));
-    if (!trimmed) {
-      return null;
-    }
-    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        return resolveTonConnectUrl(parsed);
-      } catch (e) {
-        return null;
-      }
-    }
-    return trimmed;
-  }
-  if (Array.isArray(input)) {
-    console.log("[walletkitBridge] input is array, length:", input.length);
-    for (const item of input) {
-      const resolved = resolveTonConnectUrl(item);
-      if (resolved) {
-        return resolved;
-      }
-    }
-    return null;
-  }
-  if (typeof input === "object") {
-    console.log("[walletkitBridge] input is object, keys:", Object.keys(input));
-    const record = input;
-    const candidates = [
-      record.url,
-      record.href,
-      record.link,
-      record.location,
-      record.requestUrl,
-      record.tonconnectUrl,
-      record.value
-    ];
-    for (const candidate of candidates) {
-      if (typeof candidate === "string") {
-        const trimmed = candidate.trim();
-        if (trimmed) {
-          console.log("[walletkitBridge] found candidate URL:", trimmed.substring(0, 100));
-          return trimmed;
-        }
-      }
-    }
-    const nestedSources = [record.params, record.payload, record.data, record.body];
-    for (const source of nestedSources) {
-      const resolved = resolveTonConnectUrl(source);
-      if (resolved) {
-        return resolved;
-      }
-    }
-  }
-  console.log("[walletkitBridge] no URL found in input");
-  return null;
-}
-function extractTextComment(messageBody, cell) {
-  if (!messageBody || !cell) {
-    return null;
-  }
-  try {
-    const parsedCell = cell.fromBase64(messageBody);
-    const slice = parsedCell.beginParse();
-    const opcode = slice.loadUint(32);
-    if (opcode === 0) {
-      return slice.loadStringTail();
-    }
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-var __defProp2 = Object.defineProperty;
-var __defProps = Object.defineProperties;
-var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __defNormalProp2 = (obj, key2, value) => key2 in obj ? __defProp2(obj, key2, { enumerable: true, configurable: true, writable: true, value }) : obj[key2] = value;
-var __spreadValues = (a2, b2) => {
-  for (var prop in b2 || (b2 = {}))
-    if (__hasOwnProp.call(b2, prop))
-      __defNormalProp2(a2, prop, b2[prop]);
-  if (__getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(b2)) {
-      if (__propIsEnum.call(b2, prop))
-        __defNormalProp2(a2, prop, b2[prop]);
-    }
-  return a2;
-};
-var __spreadProps = (a2, b2) => __defProps(a2, __getOwnPropDescs(b2));
 var __async$4 = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -54458,346 +54179,109 @@ var __async$4 = (__this, __arguments, generator2) => {
     step((generator2 = generator2.apply(__this, __arguments)).next());
   });
 };
-function getRecentTransactions(args, context) {
+function getRecentTransactions(args) {
   return __async$4(this, null, function* () {
-    var _a3, _b2, _c2, _d2, _e3;
-    emitCallCheckpoint(context, "getRecentTransactions:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "getRecentTransactions:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    const address2 = (_a3 = args.address) == null ? void 0 : _a3.trim();
-    if (!address2) {
-      throw new Error("Wallet address is required");
-    }
-    const wallet = (_c2 = (_b2 = walletKit).getWallet) == null ? void 0 : _c2.call(_b2, address2);
-    if (!wallet) {
-      throw new Error(`Wallet not found for address ${address2}`);
-    }
-    const limit = Number.isFinite(args.limit) && args.limit > 0 ? Math.floor(args.limit) : 10;
-    console.log("[walletkitBridge] getRecentTransactions fetching transactions for address:", address2);
-    emitCallCheckpoint(context, "getRecentTransactions:before-client.getAccountTransactions");
-    const response = yield wallet.client.getAccountTransactions({
-      address: [address2],
-      limit
-    });
-    const transactions = (response == null ? void 0 : response.transactions) || [];
-    console.log("[walletkitBridge] getRecentTransactions fetched:", transactions.length, "transactions");
-    console.log("[walletkitBridge] Address helper available:", !!Address$3, "Cell helper available:", !!Cell$1);
-    if (transactions.length > 0) {
-      const firstTx = transactions[0];
-      console.log("[walletkitBridge] First tx keys:", Object.keys(firstTx).join(", "));
-      if (firstTx.in_msg) {
-        console.log("[walletkitBridge] in_msg keys:", Object.keys(firstTx.in_msg).join(", "));
-        if (firstTx.in_msg.message_content) {
-          console.log(
-            "[walletkitBridge] in_msg.message_content keys:",
-            Object.keys(firstTx.in_msg.message_content).join(", ")
-          );
-        }
+    return callBridge("getRecentTransactions", () => __async$4(this, null, function* () {
+      var _a3, _b2;
+      const wallet = (_b2 = (_a3 = walletKit).getWallet) == null ? void 0 : _b2.call(_a3, args.address);
+      if (!wallet) {
+        throw new Error(`Wallet not found for address ${args.address}`);
       }
-    }
-    const isTestnet = CHAIN$1 ? currentNetwork === CHAIN$1.TESTNET : true;
-    const addressOptions = {
-      addressParser: Address$3,
-      isTestnet
-    };
-    const processedTransactions = transactions.map((tx, idx) => {
-      var _a22, _b22, _c22, _d22;
-      if (typeof tx.hash === "string" && !tx.hash_hex) {
-        tx.hash_hex = base64ToHex(tx.hash);
-      }
-      if ((_a22 = tx.in_msg) == null ? void 0 : _a22.source) {
-        const rawAddr = tx.in_msg.source;
-        const friendlyAddr = toUserFriendlyAddress(rawAddr, addressOptions);
-        tx.in_msg.source_friendly = friendlyAddr;
-        if (idx === 0) {
-          console.log("[walletkitBridge] Converting source address:", rawAddr, "→", friendlyAddr);
-        }
-      }
-      if ((_b22 = tx.in_msg) == null ? void 0 : _b22.destination) {
-        const rawAddr = tx.in_msg.destination;
-        const friendlyAddr = toUserFriendlyAddress(rawAddr, addressOptions);
-        tx.in_msg.destination_friendly = friendlyAddr;
-        if (idx === 0) {
-          console.log("[walletkitBridge] Converting destination address:", rawAddr, "→", friendlyAddr);
-        }
-      }
-      if (tx.out_msgs && Array.isArray(tx.out_msgs)) {
-        tx.out_msgs = tx.out_msgs.map((msg) => {
-          var _a32;
-          const processed = __spreadValues({}, msg);
-          if (msg.source) {
-            processed.source_friendly = toUserFriendlyAddress(msg.source, addressOptions);
-          }
-          if (msg.destination) {
-            processed.destination_friendly = toUserFriendlyAddress(msg.destination, addressOptions);
-          }
-          if ((_a32 = msg.message_content) == null ? void 0 : _a32.body) {
-            const comment2 = extractTextComment(msg.message_content.body, Cell$1);
-            if (comment2) {
-              processed.comment = comment2;
-            }
-          }
-          return processed;
-        });
-      }
-      if ((_d22 = (_c22 = tx.in_msg) == null ? void 0 : _c22.message_content) == null ? void 0 : _d22.body) {
-        const body = tx.in_msg.message_content.body;
-        if (idx === 0) {
-          console.log(
-            "[walletkitBridge] in_msg.message_content.body exists, type:",
-            typeof body,
-            "value:",
-            body ? body.substring(0, 100) : "null"
-          );
-        }
-        const comment2 = extractTextComment(body, Cell$1);
-        if (comment2) {
-          tx.in_msg.comment = comment2;
-          if (idx === 0) {
-            console.log("[walletkitBridge] Extracted comment from in_msg:", comment2);
-          }
-        } else if (idx === 0) {
-          console.log("[walletkitBridge] No comment extracted from body");
-        }
-      } else if (idx === 0) {
-        console.log(
-          "[walletkitBridge] No in_msg.message_content.body - keys:",
-          tx.in_msg ? Object.keys(tx.in_msg) : "no in_msg"
-        );
-      }
-      return tx;
-    });
-    if (processedTransactions.length > 0) {
-      console.log(
-        "[walletkitBridge] First transaction after processing - hash_hex:",
-        processedTransactions[0].hash_hex
-      );
-      console.log(
-        "[walletkitBridge] First transaction after processing - in_msg.source_friendly:",
-        (_d2 = processedTransactions[0].in_msg) == null ? void 0 : _d2.source_friendly
-      );
-      console.log(
-        "[walletkitBridge] First transaction after processing - in_msg.comment:",
-        (_e3 = processedTransactions[0].in_msg) == null ? void 0 : _e3.comment
-      );
-      console.log(
-        "[walletkitBridge] First transaction sample:",
-        JSON.stringify(processedTransactions[0]).substring(0, 800)
-      );
-    }
-    emitCallCheckpoint(context, "getRecentTransactions:after-client.getAccountTransactions");
-    return { items: Array.isArray(processedTransactions) ? processedTransactions : [] };
+      const response = yield wallet.client.getAccountTransactions({
+        address: [args.address],
+        limit: args.limit || 10
+      });
+      return { items: (response == null ? void 0 : response.transactions) || [] };
+    }));
   });
 }
-function createTransferTonTransaction(args, context) {
+function createTransferTonTransaction(args) {
   return __async$4(this, null, function* () {
-    var _a3, _b2, _c2, _d2, _e3, _f;
-    emitCallCheckpoint(context, "createTransferTonTransaction:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "createTransferTonTransaction:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    emitCallCheckpoint(context, "createTransferTonTransaction:after-requireWalletKit");
-    const walletAddress = typeof args.walletAddress === "string" ? args.walletAddress.trim() : String((_a3 = args.walletAddress) != null ? _a3 : "").trim();
-    if (!walletAddress) {
-      throw new Error("Wallet address is required");
-    }
-    const toAddress = typeof args.toAddress === "string" ? args.toAddress.trim() : String((_b2 = args.toAddress) != null ? _b2 : "").trim();
-    if (!toAddress) {
-      throw new Error("Recipient address is required");
-    }
-    const amount = typeof args.amount === "string" ? args.amount.trim() : String((_c2 = args.amount) != null ? _c2 : "").trim();
-    if (!amount) {
-      throw new Error("Amount is required");
-    }
-    const wallet = (_e3 = (_d2 = walletKit).getWallet) == null ? void 0 : _e3.call(_d2, walletAddress);
-    if (!wallet) {
-      throw new Error(`Wallet not found for address ${walletAddress}`);
-    }
-    const transferParams = {
-      toAddress,
-      amount
-    };
-    const comment2 = typeof args.comment === "string" ? args.comment.trim() : "";
-    if (comment2) {
-      transferParams.comment = comment2;
-    }
-    const body = typeof args.body === "string" ? args.body.trim() : "";
-    if (body) {
-      transferParams.body = body;
-    }
-    const stateInit = typeof args.stateInit === "string" ? args.stateInit.trim() : "";
-    if (stateInit) {
-      transferParams.stateInit = stateInit;
-    }
-    emitCallCheckpoint(context, "createTransferTonTransaction:before-wallet.createTransferTonTransaction");
-    const transaction2 = yield wallet.createTransferTonTransaction(transferParams);
-    emitCallCheckpoint(context, "createTransferTonTransaction:after-wallet.createTransferTonTransaction");
-    if (comment2 && transaction2.messages && Array.isArray(transaction2.messages)) {
-      transaction2.messages = transaction2.messages.map((msg) => __spreadProps(__spreadValues({}, msg), {
-        comment: comment2
-      }));
-    }
-    let preview = null;
-    if (typeof wallet.getTransactionPreview === "function") {
-      try {
-        emitCallCheckpoint(context, "createTransferTonTransaction:before-wallet.getTransactionPreview");
-        const previewResult = yield wallet.getTransactionPreview(transaction2);
-        preview = (_f = previewResult == null ? void 0 : previewResult.preview) != null ? _f : previewResult;
-        emitCallCheckpoint(context, "createTransferTonTransaction:after-wallet.getTransactionPreview");
-      } catch (error2) {
-        console.warn("[walletkitBridge] getTransactionPreview failed", error2);
+    return callBridge("createTransferTonTransaction", () => __async$4(this, null, function* () {
+      var _a3, _b2, _c2;
+      const wallet = (_b2 = (_a3 = walletKit).getWallet) == null ? void 0 : _b2.call(_a3, args.walletAddress);
+      if (!wallet) {
+        throw new Error(`Wallet not found for address ${args.walletAddress}`);
       }
-    }
-    return {
-      transaction: transaction2,
-      preview
-    };
+      const transaction2 = yield wallet.createTransferTonTransaction(args);
+      let preview = null;
+      if (typeof wallet.getTransactionPreview === "function") {
+        try {
+          const previewResult = yield wallet.getTransactionPreview(transaction2);
+          preview = (_c2 = previewResult == null ? void 0 : previewResult.preview) != null ? _c2 : previewResult;
+        } catch (error2) {
+          debugWarn("[walletkitBridge] getTransactionPreview failed", error2);
+        }
+      }
+      return { transaction: transaction2, preview };
+    }));
   });
 }
-function createTransferMultiTonTransaction(args, context) {
+function createTransferMultiTonTransaction(args) {
   return __async$4(this, null, function* () {
-    var _a3, _b2, _c2, _d2;
-    emitCallCheckpoint(context, "createTransferMultiTonTransaction:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "createTransferMultiTonTransaction:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    const walletAddress = typeof args.walletAddress === "string" ? args.walletAddress.trim() : String((_a3 = args.walletAddress) != null ? _a3 : "").trim();
-    if (!walletAddress) {
-      throw new Error("Wallet address required for multi-transfer transaction");
-    }
-    const wallet = (_c2 = (_b2 = walletKit).getWallet) == null ? void 0 : _c2.call(_b2, walletAddress);
-    if (!wallet) {
-      throw new Error(`Wallet not found: ${walletAddress}`);
-    }
-    if (!args.messages || !Array.isArray(args.messages) || args.messages.length === 0) {
-      throw new Error("At least one message required for multi-transfer transaction");
-    }
-    const messages = args.messages.map((msg) => {
-      const transferParams = {
-        toAddress: msg.toAddress,
-        amount: msg.amount
-      };
-      if (msg.comment) {
-        transferParams.comment = msg.comment;
+    return callBridge("createTransferMultiTonTransaction", () => __async$4(this, null, function* () {
+      var _a3, _b2, _c2;
+      const wallet = (_b2 = (_a3 = walletKit).getWallet) == null ? void 0 : _b2.call(_a3, args.walletAddress);
+      if (!wallet) {
+        throw new Error(`Wallet not found: ${args.walletAddress}`);
       }
-      if (msg.body) {
-        transferParams.body = msg.body;
+      if (!Array.isArray(args.messages) || args.messages.length === 0) {
+        throw new Error("At least one message required");
       }
-      if (msg.stateInit) {
-        transferParams.stateInit = msg.stateInit;
+      const transaction2 = yield wallet.createTransferMultiTonTransaction(args);
+      let preview = null;
+      if (typeof wallet.getTransactionPreview === "function") {
+        try {
+          const previewResult = yield wallet.getTransactionPreview(transaction2);
+          preview = (_c2 = previewResult == null ? void 0 : previewResult.preview) != null ? _c2 : previewResult;
+        } catch (error2) {
+          debugWarn("[walletkitBridge] getTransactionPreview failed", error2);
+        }
       }
-      return transferParams;
-    });
-    emitCallCheckpoint(context, "createTransferMultiTonTransaction:before-wallet.createTransferMultiTonTransaction");
-    const transaction2 = yield wallet.createTransferMultiTonTransaction({ messages });
-    emitCallCheckpoint(context, "createTransferMultiTonTransaction:after-wallet.createTransferMultiTonTransaction");
-    let preview = null;
-    if (typeof wallet.getTransactionPreview === "function") {
-      try {
-        emitCallCheckpoint(context, "createTransferMultiTonTransaction:before-wallet.getTransactionPreview");
-        const previewResult = yield wallet.getTransactionPreview(transaction2);
-        preview = (_d2 = previewResult == null ? void 0 : previewResult.preview) != null ? _d2 : previewResult;
-        emitCallCheckpoint(context, "createTransferMultiTonTransaction:after-wallet.getTransactionPreview");
-      } catch (error2) {
-        console.warn("[walletkitBridge] getTransactionPreview failed", error2);
-      }
-    }
-    return {
-      transaction: transaction2,
-      preview
-    };
+      return { transaction: transaction2, preview };
+    }));
   });
 }
-function getTransactionPreview(args, context) {
+function getTransactionPreview(args) {
   return __async$4(this, null, function* () {
-    var _a3, _b2, _c2, _d2;
-    emitCallCheckpoint(context, "getTransactionPreview:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "getTransactionPreview:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    const walletAddress = typeof args.walletAddress === "string" ? args.walletAddress.trim() : String((_a3 = args.walletAddress) != null ? _a3 : "").trim();
-    if (!walletAddress) {
-      throw new Error("Wallet address required for transaction preview");
-    }
-    const wallet = (_c2 = (_b2 = walletKit).getWallet) == null ? void 0 : _c2.call(_b2, walletAddress);
-    if (!wallet) {
-      throw new Error(`Wallet not found: ${walletAddress}`);
-    }
-    let transaction2;
-    try {
-      transaction2 = JSON.parse(args.transactionContent);
-    } catch (error2) {
-      throw new Error("Invalid transaction content JSON");
-    }
-    emitCallCheckpoint(context, "getTransactionPreview:before-wallet.getTransactionPreview");
-    const result = yield wallet.getTransactionPreview(transaction2);
-    emitCallCheckpoint(context, "getTransactionPreview:after-wallet.getTransactionPreview");
-    return (_d2 = result == null ? void 0 : result.preview) != null ? _d2 : result;
+    return callBridge("getTransactionPreview", () => __async$4(this, null, function* () {
+      var _a3, _b2, _c2;
+      const wallet = (_b2 = (_a3 = walletKit).getWallet) == null ? void 0 : _b2.call(_a3, args.walletAddress);
+      if (!wallet) {
+        throw new Error(`Wallet not found: ${args.walletAddress}`);
+      }
+      const transaction2 = typeof args.transactionContent === "string" ? JSON.parse(args.transactionContent) : args.transactionContent;
+      const result = yield wallet.getTransactionPreview(transaction2);
+      return (_c2 = result == null ? void 0 : result.preview) != null ? _c2 : result;
+    }));
   });
 }
-function handleNewTransaction(args, context) {
+function handleNewTransaction(args) {
   return __async$4(this, null, function* () {
-    var _a3, _b2, _c2;
-    emitCallCheckpoint(context, "handleNewTransaction:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "handleNewTransaction:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    emitCallCheckpoint(context, "handleNewTransaction:after-requireWalletKit");
-    const walletAddress = typeof args.walletAddress === "string" ? args.walletAddress.trim() : String((_a3 = args.walletAddress) != null ? _a3 : "").trim();
-    if (!walletAddress) {
-      throw new Error("Wallet address is required");
-    }
-    const wallet = (_c2 = (_b2 = walletKit).getWallet) == null ? void 0 : _c2.call(_b2, walletAddress);
-    if (!wallet) {
-      throw new Error(`Wallet not found for address ${walletAddress}`);
-    }
-    let transaction2;
-    try {
-      transaction2 = typeof args.transactionContent === "string" ? JSON.parse(args.transactionContent) : args.transactionContent;
-    } catch (error2) {
-      throw new Error(`Invalid transaction content: ${error2 instanceof Error ? error2.message : String(error2)}`);
-    }
-    emitCallCheckpoint(context, "handleNewTransaction:before-walletKit.handleNewTransaction");
-    yield walletKit.handleNewTransaction(wallet, transaction2);
-    emitCallCheckpoint(context, "handleNewTransaction:after-walletKit.handleNewTransaction");
-    return {
-      success: true
-    };
+    return callBridge("handleNewTransaction", () => __async$4(this, null, function* () {
+      var _a3, _b2;
+      const wallet = (_b2 = (_a3 = walletKit).getWallet) == null ? void 0 : _b2.call(_a3, args.walletAddress);
+      if (!wallet) {
+        throw new Error(`Wallet not found for address ${args.walletAddress}`);
+      }
+      const transaction2 = typeof args.transactionContent === "string" ? JSON.parse(args.transactionContent) : args.transactionContent;
+      yield walletKit.handleNewTransaction(wallet, transaction2);
+      return { success: true };
+    }));
   });
 }
-function sendTransaction(args, context) {
+function sendTransaction(args) {
   return __async$4(this, null, function* () {
-    var _a3, _b2, _c2, _d2;
-    emitCallCheckpoint(context, "sendTransaction:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "sendTransaction:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    emitCallCheckpoint(context, "sendTransaction:after-requireWalletKit");
-    const walletAddress = typeof args.walletAddress === "string" ? args.walletAddress.trim() : String((_a3 = args.walletAddress) != null ? _a3 : "").trim();
-    if (!walletAddress) {
-      throw new Error("Wallet address is required");
-    }
-    const transactionContent = typeof args.transactionContent === "string" ? args.transactionContent.trim() : String((_b2 = args.transactionContent) != null ? _b2 : "").trim();
-    if (!transactionContent) {
-      throw new Error("Transaction content is required");
-    }
-    const wallet = (_d2 = (_c2 = walletKit).getWallet) == null ? void 0 : _d2.call(_c2, walletAddress);
-    if (!wallet) {
-      throw new Error(`Wallet not found for address ${walletAddress}`);
-    }
-    let transaction2;
-    try {
-      transaction2 = JSON.parse(transactionContent);
-    } catch (error2) {
-      throw new Error(`Invalid transaction content JSON: ${error2}`);
-    }
-    emitCallCheckpoint(context, "sendTransaction:before-wallet.sendTransaction");
-    const result = yield wallet.sendTransaction(transaction2);
-    emitCallCheckpoint(context, "sendTransaction:after-wallet.sendTransaction");
-    return {
-      signedBoc: result.signedBoc
-    };
+    return callBridge("sendTransaction", () => __async$4(this, null, function* () {
+      var _a3, _b2;
+      const wallet = (_b2 = (_a3 = walletKit).getWallet) == null ? void 0 : _b2.call(_a3, args.walletAddress);
+      if (!wallet) {
+        throw new Error(`Wallet not found for address ${args.walletAddress}`);
+      }
+      const transaction2 = typeof args.transactionContent === "string" ? JSON.parse(args.transactionContent) : args.transactionContent;
+      const result = yield wallet.sendTransaction(transaction2);
+      return { signedBoc: result.signedBoc };
+    }));
   });
 }
 var __async$3 = (__this, __arguments, generator2) => {
@@ -54820,190 +54304,164 @@ var __async$3 = (__this, __arguments, generator2) => {
     step((generator2 = generator2.apply(__this, __arguments)).next());
   });
 };
-function approveConnectRequest(args, context) {
+function approveConnectRequest(args) {
   return __async$3(this, null, function* () {
-    var _a3, _b2, _c2, _d2, _e3, _f, _g;
-    emitCallCheckpoint(context, "approveConnectRequest:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "approveConnectRequest:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    emitCallCheckpoint(context, "approveConnectRequest:after-requireWalletKit");
-    if (typeof walletKit.ensureInitialized === "function") {
-      console.log("ensureInitialized");
-      emitCallCheckpoint(context, "approveConnectRequest:before-walletKit.ensureInitialized");
-      yield walletKit.ensureInitialized();
-      console.log("await this.initializationPromise");
-      emitCallCheckpoint(context, "approveConnectRequest:after-walletKit.ensureInitialized");
-      console.log("ensureInitialized done");
-    }
-    const event = args.event;
-    if (!event) {
-      throw new Error("Connect request event is required");
-    }
-    const wallet = (_b2 = (_a3 = walletKit).getWallet) == null ? void 0 : _b2.call(_a3, args.walletAddress);
-    if (!wallet) {
-      throw new Error("Wallet not found");
-    }
-    const resolvedAddress = (typeof wallet.getAddress === "function" ? wallet.getAddress() : wallet.address) || args.walletAddress;
-    event.wallet = wallet;
-    event.walletAddress = resolvedAddress;
-    const hasSessionId = !!(((_c2 = event.request) == null ? void 0 : _c2.from) || event.from);
-    const manifestUrl = ((_e3 = (_d2 = event.preview) == null ? void 0 : _d2.manifest) == null ? void 0 : _e3.url) || ((_f = event.dAppInfo) == null ? void 0 : _f.url) || "";
-    const isInternalBrowser = !hasSessionId || !manifestUrl || manifestUrl.includes("localhost") || manifestUrl.includes("127.0.0.1") || manifestUrl.includes("appassets.androidplatform.net");
-    console.log("[walletkitBridge] 🔍 Event type detection:", {
-      hasSessionId,
-      manifestUrl,
-      from: ((_g = event.request) == null ? void 0 : _g.from) || event.from,
-      isInternalBrowser,
-      eventId: event.id
-    });
-    if (isInternalBrowser) {
-      console.log("[walletkitBridge] 🔧 Restoring missing JS bridge fields for internal browser event");
-      event.isJsBridge = true;
-      let actualDomain = event.domain || "internal-browser";
-      if (!event.domain) {
-        console.log("[walletkitBridge] ⚠️ Domain missing from event, attempting to resolve from window");
-        try {
-          if (typeof window !== "undefined") {
-            if (window.top && window.top !== window && window.top.location) {
-              actualDomain = window.top.location.hostname;
-            } else if (document.referrer) {
-              const referrerUrl = new URL(document.referrer);
-              actualDomain = referrerUrl.hostname;
-            } else if (window.location && window.location.hostname !== "appassets.androidplatform.net") {
-              actualDomain = window.location.hostname;
-            }
-          }
-        } catch (e) {
-          console.log("[walletkitBridge] Could not access parent domain, using fallback:", e);
-        }
-      } else {
-        console.log("[walletkitBridge] ✅ Using domain from event:", event.domain);
+    return callBridge("approveConnectRequest", () => __async$3(this, null, function* () {
+      var _a3, _b2;
+      if (!args.event) {
+        throw new Error("Connect request event is required");
       }
-      console.log("[walletkitBridge] Resolved domain for connect:", actualDomain);
-      event.domain = actualDomain;
-      event.tabId = event.id;
-      event.messageId = event.id;
-      console.log(
-        "[walletkitBridge] ✅ Restored fields - isJsBridge:",
-        event.isJsBridge,
-        "domain:",
-        event.domain,
-        "tabId:",
-        event.tabId,
-        "messageId:",
-        event.messageId
-      );
-    } else {
-      console.log("[walletkitBridge] ℹ️ Deep link/QR event - will use HTTP bridge for response");
-    }
-    emitCallCheckpoint(context, "approveConnectRequest:before-walletKit.approveConnectRequest");
-    const result = yield walletKit.approveConnectRequest(event);
-    if (result == null) {
-      emitCallCheckpoint(context, "approveConnectRequest:after-walletKit.approveConnectRequest");
-      return { success: true };
-    }
-    if (!(result == null ? void 0 : result.success)) {
-      const message2 = (result == null ? void 0 : result.message) || "Failed to approve connect request";
-      throw new Error(message2);
-    }
-    emitCallCheckpoint(context, "approveConnectRequest:after-walletKit.approveConnectRequest");
-    return result;
+      const wallet = (_b2 = (_a3 = walletKit).getWallet) == null ? void 0 : _b2.call(_a3, args.walletAddress);
+      if (!wallet) {
+        throw new Error("Wallet not found");
+      }
+      args.event.wallet = wallet;
+      args.event.walletAddress = (typeof wallet.getAddress === "function" ? wallet.getAddress() : wallet.address) || args.walletAddress;
+      const result = yield walletKit.approveConnectRequest(args.event);
+      if (result == null) {
+        return { success: true };
+      }
+      if (!(result == null ? void 0 : result.success)) {
+        throw new Error((result == null ? void 0 : result.message) || "Failed to approve connect request");
+      }
+      return result;
+    }));
   });
 }
-function rejectConnectRequest(args, context) {
+function rejectConnectRequest(args) {
   return __async$3(this, null, function* () {
-    emitCallCheckpoint(context, "rejectConnectRequest:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "rejectConnectRequest:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    emitCallCheckpoint(context, "rejectConnectRequest:after-requireWalletKit");
-    const event = args.event;
-    if (!event) {
-      throw new Error("Connect request event is required");
-    }
-    const result = yield walletKit.rejectConnectRequest(event, args.reason);
-    if (result == null) {
-      return { success: true };
-    }
-    if (!(result == null ? void 0 : result.success)) {
-      const message2 = (result == null ? void 0 : result.message) || "Failed to reject connect request";
-      throw new Error(message2);
-    }
-    return result;
+    return callBridge("rejectConnectRequest", () => __async$3(this, null, function* () {
+      if (!args.event) {
+        throw new Error("Connect request event is required");
+      }
+      const result = yield walletKit.rejectConnectRequest(args.event, args.reason);
+      if (result == null) {
+        return { success: true };
+      }
+      if (!(result == null ? void 0 : result.success)) {
+        throw new Error((result == null ? void 0 : result.message) || "Failed to reject connect request");
+      }
+      return result;
+    }));
   });
 }
-function approveTransactionRequest(args, context) {
+function approveTransactionRequest(args) {
   return __async$3(this, null, function* () {
-    emitCallCheckpoint(context, "approveTransactionRequest:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "approveTransactionRequest:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    const event = args.event;
-    if (!event) {
-      throw new Error("Transaction request event is required");
-    }
-    const result = yield walletKit.approveTransactionRequest(event);
-    return result;
+    return callBridge("approveTransactionRequest", () => __async$3(this, null, function* () {
+      if (!args.event) {
+        throw new Error("Transaction request event is required");
+      }
+      return yield walletKit.approveTransactionRequest(args.event);
+    }));
   });
 }
-function rejectTransactionRequest(args, context) {
+function rejectTransactionRequest(args) {
   return __async$3(this, null, function* () {
-    emitCallCheckpoint(context, "rejectTransactionRequest:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "rejectTransactionRequest:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    const event = args.event;
-    if (!event) {
-      throw new Error("Transaction request event is required");
-    }
-    const result = yield walletKit.rejectTransactionRequest(event, args.reason);
-    if (result == null) {
-      return { success: true };
-    }
-    if (!(result == null ? void 0 : result.success)) {
-      const message2 = (result == null ? void 0 : result.message) || "Failed to reject transaction request";
-      throw new Error(message2);
-    }
-    return result;
+    return callBridge("rejectTransactionRequest", () => __async$3(this, null, function* () {
+      if (!args.event) {
+        throw new Error("Transaction request event is required");
+      }
+      const result = yield walletKit.rejectTransactionRequest(args.event, args.reason);
+      if (result == null) {
+        return { success: true };
+      }
+      if (!(result == null ? void 0 : result.success)) {
+        throw new Error((result == null ? void 0 : result.message) || "Failed to reject transaction request");
+      }
+      return result;
+    }));
   });
 }
-function approveSignDataRequest(args, context) {
+function approveSignDataRequest(args) {
   return __async$3(this, null, function* () {
-    emitCallCheckpoint(context, "approveSignDataRequest:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "approveSignDataRequest:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    const event = args.event;
-    if (!event) {
-      throw new Error("Sign data request event is required");
-    }
-    console.log("[bridge] Approving sign data request with event:", JSON.stringify(event, null, 2));
-    const result = yield walletKit.signDataRequest(event);
-    console.log("[bridge] Sign data result:", JSON.stringify(result, null, 2));
-    return result;
+    return callBridge("approveSignDataRequest", () => __async$3(this, null, function* () {
+      if (!args.event) {
+        throw new Error("Sign data request event is required");
+      }
+      return yield walletKit.signDataRequest(args.event);
+    }));
   });
 }
-function rejectSignDataRequest(args, context) {
+function rejectSignDataRequest(args) {
   return __async$3(this, null, function* () {
-    emitCallCheckpoint(context, "rejectSignDataRequest:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "rejectSignDataRequest:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    const event = args.event;
-    if (!event) {
-      throw new Error("Sign data request event is required");
-    }
-    const result = yield walletKit.rejectSignDataRequest(event, args.reason);
-    if (result == null) {
-      return { success: true };
-    }
-    if (!(result == null ? void 0 : result.success)) {
-      const message2 = (result == null ? void 0 : result.message) || "Failed to reject sign data request";
-      throw new Error(message2);
-    }
-    return result;
+    return callBridge("rejectSignDataRequest", () => __async$3(this, null, function* () {
+      if (!args.event) {
+        throw new Error("Sign data request event is required");
+      }
+      const result = yield walletKit.rejectSignDataRequest(args.event, args.reason);
+      if (result == null) {
+        return { success: true };
+      }
+      if (!(result == null ? void 0 : result.success)) {
+        throw new Error((result == null ? void 0 : result.message) || "Failed to reject sign data request");
+      }
+      return result;
+    }));
   });
+}
+function resolveTonConnectUrl(input) {
+  debugLog("[walletkitBridge] resolveTonConnectUrl called with input type:", typeof input);
+  if (input == null) {
+    debugLog("[walletkitBridge] input is null/undefined");
+    return null;
+  }
+  if (typeof input === "string") {
+    const trimmed = input.trim();
+    debugLog("[walletkitBridge] input is string, trimmed:", trimmed.substring(0, 100));
+    if (!trimmed) {
+      return null;
+    }
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return resolveTonConnectUrl(parsed);
+      } catch (e) {
+        return null;
+      }
+    }
+    return trimmed;
+  }
+  if (Array.isArray(input)) {
+    debugLog("[walletkitBridge] input is array, length:", input.length);
+    for (const item of input) {
+      const resolved = resolveTonConnectUrl(item);
+      if (resolved) {
+        return resolved;
+      }
+    }
+    return null;
+  }
+  if (typeof input === "object") {
+    debugLog("[walletkitBridge] input is object, keys:", Object.keys(input));
+    const record = input;
+    const candidates = [
+      record.url,
+      record.href,
+      record.link,
+      record.location,
+      record.requestUrl,
+      record.tonconnectUrl,
+      record.value
+    ];
+    for (const candidate of candidates) {
+      if (typeof candidate === "string") {
+        const trimmed = candidate.trim();
+        if (trimmed) {
+          debugLog("[walletkitBridge] found candidate URL:", trimmed.substring(0, 100));
+          return trimmed;
+        }
+      }
+    }
+    const nestedSources = [record.params, record.payload, record.data, record.body];
+    for (const source of nestedSources) {
+      const resolved = resolveTonConnectUrl(source);
+      if (resolved) {
+        return resolved;
+      }
+    }
+  }
+  debugLog("[walletkitBridge] no URL found in input");
+  return null;
 }
 var __async$2 = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
@@ -55025,176 +54483,97 @@ var __async$2 = (__this, __arguments, generator2) => {
     step((generator2 = generator2.apply(__this, __arguments)).next());
   });
 };
-function handleTonConnectUrl(args, context) {
+function handleTonConnectUrl(args) {
   return __async$2(this, null, function* () {
-    console.log("[walletkitBridge] handleTonConnectUrl called with args:", args);
-    emitCallCheckpoint(context, "handleTonConnectUrl:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "handleTonConnectUrl:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    emitCallCheckpoint(context, "handleTonConnectUrl:after-requireWalletKit");
-    const url = resolveTonConnectUrl(args);
-    console.log("[walletkitBridge] resolved URL:", url);
-    if (!url) {
-      throw new Error("TON Connect URL is missing");
-    }
-    console.log("[walletkitBridge] calling walletKit.handleTonConnectUrl with:", url);
-    try {
-      const result = yield walletKit.handleTonConnectUrl(url);
-      console.log("[walletkitBridge] handleTonConnectUrl result:", result);
-      return result;
-    } catch (err) {
-      console.error("[walletkitBridge] handleTonConnectUrl error:", err);
-      console.error("[walletkitBridge] error type:", typeof err);
-      console.error("[walletkitBridge] error message:", err instanceof Error ? err.message : String(err));
-      console.error("[walletkitBridge] error stack:", err instanceof Error ? err.stack : "no stack");
-      throw err;
-    }
+    return callBridge("handleTonConnectUrl", () => __async$2(this, null, function* () {
+      const url = resolveTonConnectUrl(args);
+      if (!url) {
+        throw new Error("TON Connect URL is missing");
+      }
+      return yield walletKit.handleTonConnectUrl(url);
+    }));
   });
 }
-function listSessions(_, context) {
+function listSessions() {
   return __async$2(this, null, function* () {
-    var _a3;
-    emitCallCheckpoint(context, "listSessions:enter");
-    requireWalletKit();
-    let sessions = [];
-    if (typeof walletKit.listSessions === "function") {
-      emitCallCheckpoint(context, "listSessions:before-walletKit.listSessions");
-      try {
-        sessions = (_a3 = yield walletKit.listSessions()) != null ? _a3 : [];
-        console.log("[walletkitBridge] listSessions raw result:", sessions);
-        console.log("[walletkitBridge] listSessions count:", sessions.length);
-      } catch (error2) {
-        console.error("[walletkitBridge] walletKit.listSessions failed", error2);
-        throw error2;
+    return callBridge("listSessions", () => __async$2(this, null, function* () {
+      let sessions = [];
+      if (typeof walletKit.listSessions === "function") {
+        const fetchedSessions = yield walletKit.listSessions();
+        sessions = Array.isArray(fetchedSessions) ? fetchedSessions : [];
       }
-      emitCallCheckpoint(context, "listSessions:after-walletKit.listSessions");
-    } else {
-      console.warn("[walletkitBridge] walletKit.listSessions is not a function");
-    }
-    const items = sessions.map((session) => {
-      const sessionId = session.sessionId || session.id;
-      const mapped = {
-        sessionId,
-        dAppName: session.dAppName || session.name || "",
-        walletAddress: session.walletAddress,
-        dAppUrl: session.dAppUrl || session.url || null,
-        manifestUrl: session.manifestUrl || null,
-        iconUrl: session.dAppIconUrl || session.iconUrl || null,
-        createdAt: serializeDate(session.createdAt),
-        lastActivity: serializeDate(session.lastActivity)
-      };
-      console.log("[walletkitBridge] Mapped session:", JSON.stringify(mapped));
-      return mapped;
-    });
-    console.log("[walletkitBridge] Returning items count:", items.length);
-    return { items };
+      return { items: sessions };
+    }));
   });
 }
-function disconnectSession(args, context) {
+function disconnectSession(args) {
   return __async$2(this, null, function* () {
-    emitCallCheckpoint(context, "disconnectSession:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "disconnectSession:after-ensureWalletKitLoaded");
-    requireWalletKit();
-    if (typeof walletKit.disconnect !== "function") {
-      throw new Error("walletKit.disconnect is not available");
-    }
-    emitCallCheckpoint(context, "disconnectSession:before-walletKit.disconnect");
-    yield walletKit.disconnect(args == null ? void 0 : args.sessionId);
-    emitCallCheckpoint(context, "disconnectSession:after-walletKit.disconnect");
-    return { ok: true };
+    return callBridge("disconnectSession", () => __async$2(this, null, function* () {
+      if (typeof walletKit.disconnect !== "function") {
+        throw new Error("walletKit.disconnect is not available");
+      }
+      yield walletKit.disconnect(args == null ? void 0 : args.sessionId);
+      return { ok: true };
+    }));
   });
 }
-function processInternalBrowserRequest(args, context) {
+function processInternalBrowserRequest(args) {
   return __async$2(this, null, function* () {
-    emitCallCheckpoint(context, "processInternalBrowserRequest:start");
-    yield ensureWalletKitLoaded();
-    requireWalletKit();
-    console.log("[walletkitBridge] ========== FULL ARGS ==========");
-    console.log("[walletkitBridge] args keys:", Object.keys(args));
-    console.log("[walletkitBridge] args.from:", args.from);
-    console.log("[walletkitBridge] args.url:", args.url);
-    console.log("[walletkitBridge] args:", JSON.stringify(args, null, 2));
-    console.log("[walletkitBridge] ================================");
-    console.log("[walletkitBridge] Processing internal browser request:", args.method, args.messageId);
-    if (typeof walletKit.processInjectedBridgeRequest !== "function") {
-      throw new Error("walletKit.processInjectedBridgeRequest is not available");
-    }
-    let actualDomain = "internal-browser";
-    if (args.url) {
-      try {
-        const dappUrl = new URL(args.url);
-        actualDomain = dappUrl.hostname;
-        console.log("[walletkitBridge] ✅ Domain extracted from dApp URL:", actualDomain);
-      } catch (e) {
-        console.log("[walletkitBridge] ⚠️ Failed to parse dApp URL, using fallback:", e);
+    return callBridge("processInternalBrowserRequest", () => __async$2(this, null, function* () {
+      var _a3;
+      if (typeof walletKit.processInjectedBridgeRequest !== "function") {
+        throw new Error("walletKit.processInjectedBridgeRequest is not available");
       }
-    } else {
-      console.log("[walletkitBridge] ⚠️ No dApp URL provided by Kotlin, using fallback");
-    }
-    console.log("[walletkitBridge] Resolved domain for signature:", actualDomain);
-    const messageInfo = {
-      messageId: args.messageId,
-      tabId: args.messageId,
-      domain: actualDomain
-    };
-    const finalParams = args.params;
-    if (args.method === "connect" && args.manifestUrl && finalParams && typeof finalParams === "object" && !Array.isArray(finalParams)) {
-      const paramsObj = finalParams;
-      const hasManifestUrl = paramsObj.manifestUrl || paramsObj.manifest && typeof paramsObj.manifest === "object" && paramsObj.manifest.url;
-      if (!hasManifestUrl) {
-        console.log("[walletkitBridge] Injecting manifestUrl into connect params:", args.manifestUrl);
-        paramsObj.manifestUrl = args.manifestUrl;
-      }
-    }
-    const request = {
-      id: args.messageId,
-      method: args.method,
-      params: finalParams
-    };
-    console.log("[walletkitBridge] ========== INJECTED BRIDGE REQUEST ==========");
-    console.log("[walletkitBridge] method:", args.method);
-    console.log("[walletkitBridge] Omitting from field - wallet will generate session ID");
-    console.log("[walletkitBridge] Original params type:", typeof args.params, "isArray:", Array.isArray(args.params));
-    console.log("[walletkitBridge] ==============================================");
-    console.log("[walletkitBridge] ========== FORWARDING TO processInjectedBridgeRequest ==========");
-    console.log("[walletkitBridge] messageInfo:", JSON.stringify(messageInfo, null, 2));
-    console.log("[walletkitBridge] request:", JSON.stringify(request, null, 2));
-    console.log("[walletkitBridge] request.params type:", typeof request.params);
-    console.log("[walletkitBridge] request.params is Array?:", Array.isArray(request.params));
-    console.log("[walletkitBridge] ================================================================");
-    emitCallCheckpoint(context, "processInternalBrowserRequest:before-processInjectedBridgeRequest");
-    yield walletKit.processInjectedBridgeRequest(messageInfo, request);
-    emitCallCheckpoint(context, "processInternalBridgeRequest:after-processInjectedBridgeRequest");
-    console.log("[walletkitBridge] ⏳ Response will be provided by jsBridgeTransport");
-    const responsePromise = new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error(`Request timeout: ${args.messageId}`));
-      }, 6e4);
-      if (!globalThis.__internalBrowserResponseResolvers) {
-        globalThis.__internalBrowserResponseResolvers = /* @__PURE__ */ new Map();
-      }
-      globalThis.__internalBrowserResponseResolvers.set(args.messageId, {
-        resolve: (response2) => {
-          clearTimeout(timeoutId);
-          resolve(response2);
-        },
-        reject: (error2) => {
-          clearTimeout(timeoutId);
-          reject(error2);
+      let actualDomain = "internal-browser";
+      if (args.url) {
+        try {
+          const dappUrl = new URL(args.url);
+          actualDomain = dappUrl.hostname;
+        } catch (e) {
         }
+      }
+      const messageInfo = {
+        messageId: args.messageId,
+        tabId: args.messageId,
+        domain: actualDomain
+      };
+      const finalParams = args.params;
+      if (args.method === "connect" && args.manifestUrl && finalParams && typeof finalParams === "object" && !Array.isArray(finalParams)) {
+        const paramsObj = finalParams;
+        const hasManifestUrl = paramsObj.manifestUrl || paramsObj.manifest && typeof paramsObj.manifest === "object" && paramsObj.manifest.url;
+        if (!hasManifestUrl) {
+          paramsObj.manifestUrl = args.manifestUrl;
+        }
+      }
+      const request = {
+        id: args.messageId,
+        method: args.method,
+        params: finalParams
+      };
+      yield walletKit.processInjectedBridgeRequest(messageInfo, request);
+      const responsePromise = new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error(`Request timeout: ${args.messageId}`));
+        }, 6e4);
+        const resolverMap = ensureInternalBrowserResolverMap();
+        resolverMap.set(args.messageId, {
+          resolve: (response2) => {
+            clearTimeout(timeoutId);
+            resolve(response2);
+          },
+          reject: (error2) => {
+            clearTimeout(timeoutId);
+            reject(error2);
+          }
+        });
       });
-    });
-    console.log("[walletkitBridge] ⏳ Awaiting response from jsBridgeTransport...");
-    const response = yield responsePromise;
-    console.log("[walletkitBridge] ✅ Received response from jsBridgeTransport:", response);
-    console.log("[walletkitBridge] ✅ Response type:", typeof response);
-    console.log("[walletkitBridge] ✅ Response keys:", Object.keys(response || {}));
-    console.log("[walletkitBridge] ✅ Response.payload:", response == null ? void 0 : response.payload);
-    const result = response.payload || response;
-    console.log("[walletkitBridge] ✅ Returning to Kotlin:", result);
-    return result;
+      const response = yield responsePromise;
+      if (response && typeof response === "object" && "payload" in response) {
+        const typed = response;
+        return (_a3 = typed.payload) != null ? _a3 : response;
+      }
+      return response;
+    }));
   });
 }
 var __async$1 = (__this, __arguments, generator2) => {
@@ -55217,86 +54596,45 @@ var __async$1 = (__this, __arguments, generator2) => {
     step((generator2 = generator2.apply(__this, __arguments)).next());
   });
 };
-function getNfts(args, context) {
+function getNfts(args) {
   return __async$1(this, null, function* () {
-    emitCallCheckpoint(context, "getNfts:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "getNfts:after-ensureWalletKitLoaded");
-    const limit = Number.isFinite(args.limit) && args.limit > 0 ? Math.floor(args.limit) : 100;
-    const offset = Number.isFinite(args.offset) && args.offset >= 0 ? Math.floor(args.offset) : 0;
-    console.log(
-      "[walletkitBridge] getNfts fetching NFTs for address:",
-      args.address,
-      "limit:",
-      limit,
-      "offset:",
-      offset
-    );
-    emitCallCheckpoint(context, "getNfts:before-wallet.getNfts");
-    const result = yield callOnWallet({ walletKit, requireWalletKit }, args.address, "getNfts", { limit, offset });
-    emitCallCheckpoint(context, "getNfts:after-wallet.getNfts");
-    console.log("[walletkitBridge] getNfts result:", result);
-    return result;
+    return callBridge("getNfts", () => __async$1(this, null, function* () {
+      const limit = args.limit && args.limit > 0 ? args.limit : 100;
+      const offset = args.offset && args.offset >= 0 ? args.offset : 0;
+      return yield callOnWalletBridge(args.address, "getNfts", { limit, offset });
+    }));
   });
 }
-function getNft(args, context) {
+function getNft(args) {
   return __async$1(this, null, function* () {
-    emitCallCheckpoint(context, "getNft:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "getNft:after-ensureWalletKitLoaded");
-    console.log("[walletkitBridge] getNft fetching NFT for address:", args.address);
-    emitCallCheckpoint(context, "getNft:before-wallet.getNft");
-    const result = yield callOnWallet({ walletKit, requireWalletKit }, args.address, "getNft");
-    emitCallCheckpoint(context, "getNft:after-wallet.getNft");
-    console.log("[walletkitBridge] getNft result:", result);
-    return result;
+    return callBridge("getNft", () => __async$1(this, null, function* () {
+      return yield callOnWalletBridge(args.address, "getNft");
+    }));
   });
 }
-function createTransferNftTransaction(args, context) {
+function createTransferNftTransaction(args) {
   return __async$1(this, null, function* () {
-    emitCallCheckpoint(context, "createTransferNftTransaction:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "createTransferNftTransaction:after-ensureWalletKitLoaded");
-    console.log("[walletkitBridge] createTransferNftTransaction for NFT:", args.nftAddress, "to:", args.toAddress);
-    emitCallCheckpoint(context, "createTransferNftTransaction:before-wallet.createTransferNftTransaction");
-    const params = {
-      nftAddress: args.nftAddress,
-      transferAmount: args.transferAmount,
-      toAddress: args.toAddress,
-      comment: args.comment
-    };
-    const result = yield callOnWallet(
-      { walletKit, requireWalletKit },
-      args.address,
-      "createTransferNftTransaction",
-      params
-    );
-    emitCallCheckpoint(context, "createTransferNftTransaction:after-wallet.createTransferNftTransaction");
-    console.log("[walletkitBridge] createTransferNftTransaction result:", result);
-    return result;
+    return callBridge("createTransferNftTransaction", () => __async$1(this, null, function* () {
+      const params = {
+        nftAddress: args.nftAddress,
+        toAddress: args.toAddress,
+        transferAmount: args.transferAmount,
+        comment: args.comment
+      };
+      return yield callOnWalletBridge(args.address, "createTransferNftTransaction", params);
+    }));
   });
 }
-function createTransferNftRawTransaction(args, context) {
+function createTransferNftRawTransaction(args) {
   return __async$1(this, null, function* () {
-    emitCallCheckpoint(context, "createTransferNftRawTransaction:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "createTransferNftRawTransaction:after-ensureWalletKitLoaded");
-    console.log("[walletkitBridge] createTransferNftRawTransaction for NFT:", args.nftAddress);
-    emitCallCheckpoint(context, "createTransferNftRawTransaction:before-wallet.createTransferNftRawTransaction");
-    const params = {
-      nftAddress: args.nftAddress,
-      transferAmount: args.transferAmount,
-      transferMessage: args.transferMessage
-    };
-    const result = yield callOnWallet(
-      { walletKit, requireWalletKit },
-      args.address,
-      "createTransferNftRawTransaction",
-      params
-    );
-    emitCallCheckpoint(context, "createTransferNftRawTransaction:after-wallet.createTransferNftRawTransaction");
-    console.log("[walletkitBridge] createTransferNftRawTransaction result:", result);
-    return result;
+    return callBridge("createTransferNftRawTransaction", () => __async$1(this, null, function* () {
+      const params = {
+        nftAddress: args.nftAddress,
+        transferAmount: args.transferAmount,
+        transferMessage: args.transferMessage
+      };
+      return yield callOnWalletBridge(args.address, "createTransferNftRawTransaction", params);
+    }));
   });
 }
 var __async = (__this, __arguments, generator2) => {
@@ -55319,98 +54657,46 @@ var __async = (__this, __arguments, generator2) => {
     step((generator2 = generator2.apply(__this, __arguments)).next());
   });
 };
-function getJettons(args, context) {
+function getJettons(args) {
   return __async(this, null, function* () {
-    emitCallCheckpoint(context, "getJettons:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "getJettons:after-ensureWalletKitLoaded");
-    const limit = Number.isFinite(args.limit) && args.limit > 0 ? Math.floor(args.limit) : 100;
-    const offset = Number.isFinite(args.offset) && args.offset >= 0 ? Math.floor(args.offset) : 0;
-    console.log(
-      "[walletkitBridge] getJettons fetching jettons for address:",
-      args.address,
-      "limit:",
-      limit,
-      "offset:",
-      offset
-    );
-    emitCallCheckpoint(context, "getJettons:before-wallet.getJettons");
-    const result = yield callOnWallet({ walletKit, requireWalletKit }, args.address, "getJettons", { limit, offset });
-    emitCallCheckpoint(context, "getJettons:after-wallet.getJettons");
-    console.log("[walletkitBridge] getJettons result:", result);
-    return result;
+    return callBridge("getJettons", () => __async(this, null, function* () {
+      const limit = Number.isFinite(args.limit) && args.limit > 0 ? Math.floor(args.limit) : 100;
+      const offset = Number.isFinite(args.offset) && args.offset >= 0 ? Math.floor(args.offset) : 0;
+      return yield callOnWalletBridge(args.address, "getJettons", { limit, offset });
+    }));
   });
 }
-function createTransferJettonTransaction(args, context) {
+function createTransferJettonTransaction(args) {
   return __async(this, null, function* () {
-    emitCallCheckpoint(context, "createTransferJettonTransaction:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "createTransferJettonTransaction:after-ensureWalletKitLoaded");
-    console.log(
-      "[walletkitBridge] createTransferJettonTransaction for jetton:",
-      args.jettonAddress,
-      "to:",
-      args.toAddress,
-      "amount:",
-      args.amount
-    );
-    emitCallCheckpoint(context, "createTransferJettonTransaction:before-wallet.createTransferJettonTransaction");
-    const params = {
-      jettonAddress: args.jettonAddress,
-      amount: args.amount,
-      toAddress: args.toAddress,
-      comment: args.comment
-    };
-    const result = yield callOnWallet(
-      { walletKit, requireWalletKit },
-      args.address,
-      "createTransferJettonTransaction",
-      params
-    );
-    emitCallCheckpoint(context, "createTransferJettonTransaction:after-wallet.createTransferJettonTransaction");
-    console.log("[walletkitBridge] createTransferJettonTransaction result:", result);
-    return result;
+    return callBridge("createTransferJettonTransaction", () => __async(this, null, function* () {
+      const params = {
+        jettonAddress: args.jettonAddress,
+        amount: args.amount,
+        toAddress: args.toAddress,
+        comment: args.comment
+      };
+      return yield callOnWalletBridge(args.address, "createTransferJettonTransaction", params);
+    }));
   });
 }
-function getJettonBalance(args, context) {
+function getJettonBalance(args) {
   return __async(this, null, function* () {
-    var _a3;
-    emitCallCheckpoint(context, "getJettonBalance:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "getJettonBalance:after-ensureWalletKitLoaded");
-    const jettonAddress = (_a3 = args.jettonAddress) == null ? void 0 : _a3.trim();
-    if (!jettonAddress) {
-      throw new Error("Jetton address is required");
-    }
-    console.log("[walletkitBridge] getJettonBalance for jetton:", jettonAddress);
-    emitCallCheckpoint(context, "getJettonBalance:before-wallet.getJettonBalance");
-    const result = yield callOnWallet({ walletKit, requireWalletKit }, args.address, "getJettonBalance", jettonAddress);
-    emitCallCheckpoint(context, "getJettonBalance:after-wallet.getJettonBalance");
-    console.log("[walletkitBridge] getJettonBalance result:", result);
-    return result;
+    return callBridge("getJettonBalance", () => __async(this, null, function* () {
+      if (!args.jettonAddress) {
+        throw new Error("Jetton address is required");
+      }
+      return yield callOnWalletBridge(args.address, "getJettonBalance", args.jettonAddress);
+    }));
   });
 }
-function getJettonWalletAddress(args, context) {
+function getJettonWalletAddress(args) {
   return __async(this, null, function* () {
-    var _a3;
-    emitCallCheckpoint(context, "getJettonWalletAddress:before-ensureWalletKitLoaded");
-    yield ensureWalletKitLoaded();
-    emitCallCheckpoint(context, "getJettonWalletAddress:after-ensureWalletKitLoaded");
-    const jettonAddress = (_a3 = args.jettonAddress) == null ? void 0 : _a3.trim();
-    if (!jettonAddress) {
-      throw new Error("Jetton address is required");
-    }
-    console.log("[walletkitBridge] getJettonWalletAddress for jetton:", jettonAddress);
-    emitCallCheckpoint(context, "getJettonWalletAddress:before-wallet.getJettonWalletAddress");
-    const result = yield callOnWallet(
-      { walletKit, requireWalletKit },
-      args.address,
-      "getJettonWalletAddress",
-      jettonAddress
-    );
-    emitCallCheckpoint(context, "getJettonWalletAddress:after-wallet.getJettonWalletAddress");
-    console.log("[walletkitBridge] getJettonWalletAddress result:", result);
-    return result;
+    return callBridge("getJettonWalletAddress", () => __async(this, null, function* () {
+      if (!args.jettonAddress) {
+        throw new Error("Jetton address is required");
+      }
+      return yield callOnWalletBridge(args.address, "getJettonWalletAddress", args.jettonAddress);
+    }));
   });
 }
 function emitBrowserPageStarted(args) {
@@ -55442,7 +54728,6 @@ const apiImpl = {
   mnemonicToKeyPair,
   sign: sign$1,
   createTonMnemonic,
-  respondToSignRequest,
   // Wallets
   createSigner,
   createAdapter,
@@ -55495,7 +54780,7 @@ postToNative({
   network: currentNetwork,
   tonApiUrl: currentApiBase
 });
-console.log("[walletkitBridge] bootstrap complete");
+debugLog("[walletkitBridge] bootstrap complete");
 setupPolyfills();
 var naclUtil = { exports: {} };
 (function(module) {
@@ -117636,7 +116921,7 @@ crypto$1.crypto = typeof globalThis === "object" && "crypto" in globalThis ? glo
   exports.rotl = rotl;
   exports.byteSwap = byteSwap;
   exports.byteSwap32 = byteSwap32;
-  exports.bytesToHex = bytesToHex2;
+  exports.bytesToHex = bytesToHex;
   exports.hexToBytes = hexToBytes2;
   exports.asyncLoop = asyncLoop;
   exports.utf8ToBytes = utf8ToBytes;
@@ -117720,7 +117005,7 @@ crypto$1.crypto = typeof globalThis === "object" && "crypto" in globalThis ? glo
     typeof Uint8Array.from([]).toHex === "function" && typeof Uint8Array.fromHex === "function"
   ))();
   const hexes = /* @__PURE__ */ Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, "0"));
-  function bytesToHex2(bytes) {
+  function bytesToHex(bytes) {
     abytes(bytes);
     if (hasHexBuiltin)
       return bytes.toHex();

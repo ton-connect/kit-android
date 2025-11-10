@@ -175,6 +175,14 @@ internal class WebViewManager(
                     override fun onPageFinished(view: WebView?, url: String?) {
                         super.onPageFinished(view, url)
                         Logger.d(TAG, "WebView page finished loading: $url")
+                        
+                        // Set debug logging flag for JavaScript bridge
+                        // This controls conditional logging in the bridge JavaScript bundle
+                        val debugEnabled = BuildConfig.ENABLE_LOGGING
+                        view?.evaluateJavascript("window.__WALLETKIT_DEBUG__ = $debugEnabled;") { result ->
+                            Logger.d(TAG, "Debug flag set: __WALLETKIT_DEBUG__ = $debugEnabled")
+                        }
+                        
                         if (!bridgeLoaded.isCompleted) {
                             bridgeLoaded.complete(Unit)
                         }

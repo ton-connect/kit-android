@@ -343,15 +343,6 @@ internal class QuickJsWalletKitEngine(
         throw UnsupportedOperationException("QuickJS engine does not support addWallet. Use WebView engine.")
     }
 
-    override suspend fun respondToSignRequest(
-        signerId: String,
-        requestId: String,
-        signature: ByteArray?,
-        error: String?,
-    ) {
-        throw UnsupportedOperationException("QuickJS engine does not support external signers. Use WebViewWalletKitEngine instead.")
-    }
-
     override suspend fun getWallets(): List<WalletAccount> {
         ensureWalletKitInitialized()
         Log.d(logTag, "getWallets() called")

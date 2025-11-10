@@ -180,24 +180,6 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun addWallet(adapterId: String): WalletAccount
 
     /**
-     * Respond to a sign request from an external signer wallet.
-     *
-     * When signing is required, the JS side will emit a signerSignRequest event.
-     * The app should call this method to provide the signature or error.
-     *
-     * @param signerId The signer ID from the sign request event
-     * @param requestId The request ID from the sign request event
-     * @param signature The signature bytes, or null if error
-     * @param error Error message if signing failed, or null if successful
-     */
-    suspend fun respondToSignRequest(
-        signerId: String,
-        requestId: String,
-        signature: ByteArray? = null,
-        error: String? = null,
-    )
-
-    /**
      * Get all wallets managed by this engine.
      *
      * @return List of wallet accounts

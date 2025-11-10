@@ -86,11 +86,6 @@ internal object EventTypeConstants {
     const val EVENT_BROWSER_BRIDGE_REQUEST = "browserBridgeRequest"
 
     /**
-     * Event type for external signer wallet sign requests.
-     */
-    const val EVENT_SIGNER_SIGN_REQUEST = "signerSignRequest"
-
-    /**
      * Default value for unknown event types.
      */
     const val EVENT_TYPE_UNKNOWN = "unknown"

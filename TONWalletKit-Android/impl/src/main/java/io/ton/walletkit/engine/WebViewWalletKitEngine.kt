@@ -110,9 +110,12 @@ internal class WebViewWalletKitEngine private constructor(
     @Volatile private var tonApiKey: String? = null
 
     private val signerManager = SignerManager()
-    private val transactionParser = TransactionParser()
     private val eventRouter = EventRouter()
     private val storageManager = StorageManager(storageAdapter) { persistentStorageEnabled }
+    
+    // Transaction parser - initialized lazily to access current network
+    private val transactionParser: TransactionParser
+        get() = TransactionParser(isTestnet = currentNetwork == NetworkConstants.NETWORK_TESTNET)
 
     private val webViewManager: WebViewManager
     private val rpcClient: BridgeRpcClient
@@ -285,13 +288,6 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun addWallet(adapterId: String): WalletAccount =
         walletOperations.addWallet(adapterId)
-
-    override suspend fun respondToSignRequest(
-        signerId: String,
-        requestId: String,
-        signature: ByteArray?,
-        error: String?,
-    ) = walletOperations.respondToSignRequest(signerId, requestId, signature, error)
 
     override suspend fun getWallets(): List<WalletAccount> = walletOperations.getWallets()
 

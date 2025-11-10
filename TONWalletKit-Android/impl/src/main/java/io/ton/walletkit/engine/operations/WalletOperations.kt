@@ -37,8 +37,12 @@ import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.model.WalletState
+import io.ton.walletkit.utils.EncodingUtils
+import io.ton.walletkit.utils.IDGenerator
 import org.json.JSONArray
 import org.json.JSONObject
+import java.math.BigDecimal
+import java.math.BigInteger
 
 /**
  * Encapsulates wallet lifecycle and account state operations.
@@ -73,28 +77,6 @@ internal class WalletOperations(
      */
 
     /**
-     * Deliver a signature or error for a signer request originating from the bridge.
-     */
-    suspend fun respondToSignRequest(
-        signerId: String,
-        requestId: String,
-        signature: ByteArray?,
-        error: String?,
-    ) {
-        ensureInitialized()
-
-        val params =
-            JSONObject().apply {
-                put(ResponseConstants.KEY_SIGNER_ID, signerId)
-                put(ResponseConstants.KEY_REQUEST_ID, requestId)
-                signature?.let { put(ResponseConstants.KEY_SIGNATURE, WalletKitUtils.byteArrayToHex(it)) }
-                error?.let { put(ResponseConstants.KEY_ERROR, it) }
-            }
-
-        rpcClient.call(BridgeMethodConstants.METHOD_RESPOND_TO_SIGN_REQUEST, params)
-    }
-
-    /**
      * Create a signer from mnemonic phrase.
      * Step 1 of the wallet creation pattern from JS docs.
      *
@@ -119,9 +101,15 @@ internal class WalletOperations(
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, params)
 
+        // Handle ID generation and publicKey formatting in Kotlin
+        val signerId = result.optString(ResponseConstants.KEY_SIGNER_ID).takeIf { it.isNotEmpty() }
+            ?: IDGenerator.generateSignerId()
+        val rawPublicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY)
+        val publicKey = EncodingUtils.stripHexPrefix(rawPublicKey)
+
         return WalletSignerInfo(
-            signerId = result.optString(ResponseConstants.KEY_SIGNER_ID),
-            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
+            signerId = signerId,
+            publicKey = publicKey,
         )
     }
 
@@ -146,9 +134,15 @@ internal class WalletOperations(
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, params)
 
+        // Handle ID generation and publicKey formatting in Kotlin
+        val signerId = result.optString(ResponseConstants.KEY_SIGNER_ID).takeIf { it.isNotEmpty() }
+            ?: IDGenerator.generateSignerId()
+        val rawPublicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY)
+        val publicKey = EncodingUtils.stripHexPrefix(rawPublicKey)
+
         return WalletSignerInfo(
-            signerId = result.optString(ResponseConstants.KEY_SIGNER_ID),
-            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
+            signerId = signerId,
+            publicKey = publicKey,
         )
     }
 
@@ -208,8 +202,12 @@ internal class WalletOperations(
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
 
+        // Handle adapter ID generation in Kotlin
+        val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }
+            ?: IDGenerator.generateAdapterId()
+
         return WalletAdapterInfo(
-            adapterId = result.optString("adapterId"),
+            adapterId = adapterId,
             address = result.optString(ResponseConstants.KEY_ADDRESS),
         )
     }
@@ -242,14 +240,18 @@ internal class WalletOperations(
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
 
+        // Handle adapter ID generation in Kotlin
+        val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }
+            ?: IDGenerator.generateAdapterId()
+
         return WalletAdapterInfo(
-            adapterId = result.optString("adapterId"),
+            adapterId = adapterId,
             address = result.optString(ResponseConstants.KEY_ADDRESS),
         )
     }
 
     /**
-     * Add a wallet to the kit using an adapter.
+     * Add a wallet using the adapter.
      * Step 3 of the wallet creation pattern from JS docs.
      *
      * Example:
@@ -267,9 +269,13 @@ internal class WalletOperations(
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, params)
 
+        // Handle publicKey formatting in Kotlin
+        val rawPublicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY)
+        val publicKey = EncodingUtils.stripHexPrefix(rawPublicKey)
+
         return WalletAccount(
             address = result.optString(ResponseConstants.KEY_ADDRESS),
-            publicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY),
+            publicKey = publicKey,
             name = null,
             // Version is determined by the adapter
             version = "unknown",
@@ -290,10 +296,12 @@ internal class WalletOperations(
         return buildList(items.length()) {
             for (index in 0 until items.length()) {
                 val entry = items.optJSONObject(index) ?: continue
+                val rawPublicKey = entry.optNullableString(ResponseConstants.KEY_PUBLIC_KEY)
+                val publicKey = rawPublicKey?.let { EncodingUtils.stripHexPrefix(it) }
                 add(
                     WalletAccount(
                         address = entry.optString(ResponseConstants.KEY_ADDRESS),
-                        publicKey = entry.optNullableString(ResponseConstants.KEY_PUBLIC_KEY),
+                        publicKey = publicKey,
                         name = entry.optNullableString(JsonConstants.KEY_NAME),
                         version = entry.optString(JsonConstants.KEY_VERSION, ResponseConstants.VALUE_UNKNOWN),
                         network = entry.optString(JsonConstants.KEY_NETWORK, currentNetworkProvider()),
@@ -318,9 +326,12 @@ internal class WalletOperations(
             return null
         }
 
+        val rawPublicKey = result.optNullableString(ResponseConstants.KEY_PUBLIC_KEY)
+        val publicKey = rawPublicKey?.let { EncodingUtils.stripHexPrefix(it) }
+
         return WalletAccount(
             address = result.optString(ResponseConstants.KEY_ADDRESS),
-            publicKey = result.optNullableString(ResponseConstants.KEY_PUBLIC_KEY),
+            publicKey = publicKey,
             name = result.optNullableString(JsonConstants.KEY_NAME),
             version = result.optString(JsonConstants.KEY_VERSION, ResponseConstants.VALUE_UNKNOWN),
             network = result.optString(JsonConstants.KEY_NETWORK, currentNetworkProvider()),
