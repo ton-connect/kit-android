@@ -330,7 +330,7 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun createTransferTonTransaction(
         walletAddress: String,
         params: TONTransferParams,
-    ): String = transactionOperations.createTransferTonTransaction(walletAddress, params)
+    ): io.ton.walletkit.model.TONTransactionWithPreview = transactionOperations.createTransferTonTransaction(walletAddress, params)
 
     override suspend fun handleNewTransaction(
         walletAddress: String,
@@ -406,7 +406,7 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun createTransferMultiTonTransaction(
         walletAddress: String,
         messages: List<TONTransferParams>,
-    ): String = transactionOperations.createTransferMultiTonTransaction(walletAddress, messages)
+    ): io.ton.walletkit.model.TONTransactionWithPreview = transactionOperations.createTransferMultiTonTransaction(walletAddress, messages)
 
     override suspend fun getTransactionPreview(
         walletAddress: String,

@@ -47,7 +47,7 @@ internal class TransactionOperations(
     suspend fun createTransferTonTransaction(
         walletAddress: String,
         params: io.ton.walletkit.model.TONTransferParams,
-    ): String {
+    ): io.ton.walletkit.model.TONTransactionWithPreview {
         ensureInitialized()
 
         val paramsJson =
@@ -67,13 +67,27 @@ internal class TransactionOperations(
             }
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_TON_TRANSACTION, paramsJson)
-        return result.toString()
+
+        // JS returns { transaction, preview } or { transaction }
+        return if (result.has("transaction")) {
+            val transactionContent = result.get("transaction").toString()
+            val preview = if (result.has("preview") && !result.isNull("preview")) {
+                val previewJson = result.getJSONObject("preview")
+                json.decodeFromString<io.ton.walletkit.model.TONTransactionPreview>(previewJson.toString())
+            } else {
+                null
+            }
+            io.ton.walletkit.model.TONTransactionWithPreview(transactionContent, preview)
+        } else {
+            // Fallback for legacy response format
+            io.ton.walletkit.model.TONTransactionWithPreview(result.toString(), null)
+        }
     }
 
     suspend fun createTransferMultiTonTransaction(
         walletAddress: String,
         messages: List<io.ton.walletkit.model.TONTransferParams>,
-    ): String {
+    ): io.ton.walletkit.model.TONTransactionWithPreview {
         ensureInitialized()
 
         val messagesArray = JSONArray()
@@ -96,7 +110,21 @@ internal class TransactionOperations(
             }
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_MULTI_TON_TRANSACTION, paramsJson)
-        return result.toString()
+
+        // JS returns { transaction, preview } or { transaction }
+        return if (result.has("transaction")) {
+            val transactionContent = result.get("transaction").toString()
+            val preview = if (result.has("preview") && !result.isNull("preview")) {
+                val previewJson = result.getJSONObject("preview")
+                json.decodeFromString<io.ton.walletkit.model.TONTransactionPreview>(previewJson.toString())
+            } else {
+                null
+            }
+            io.ton.walletkit.model.TONTransactionWithPreview(transactionContent, preview)
+        } else {
+            // Fallback for legacy response format
+            io.ton.walletkit.model.TONTransactionWithPreview(result.toString(), null)
+        }
     }
 
     suspend fun handleNewTransaction(walletAddress: String, transactionContent: String) {

@@ -86593,11 +86593,7 @@ function mnemonicToKeyPair(args) {
   return __async$6(this, null, function* () {
     return callBridge("mnemonicToKeyPair", () => __async$6(this, null, function* () {
       var _a3;
-      const keyPair = yield MnemonicToKeyPair$1(args.mnemonic, (_a3 = args.mnemonicType) != null ? _a3 : "ton");
-      return {
-        publicKey: Array.from(keyPair.publicKey),
-        secretKey: Array.from(keyPair.secretKey)
-      };
+      return yield MnemonicToKeyPair$1(args.mnemonic, (_a3 = args.mnemonicType) != null ? _a3 : "ton");
     }));
   });
 }
@@ -86612,8 +86608,7 @@ function sign(args) {
       }
       const dataBytes = Uint8Array.from(args.data);
       const secretKeyBytes = Uint8Array.from(args.secretKey);
-      const signatureHex = DefaultSignature$1(dataBytes, secretKeyBytes);
-      return { signature: signatureHex };
+      return DefaultSignature$1(dataBytes, secretKeyBytes);
     }));
   });
 }
@@ -86621,8 +86616,7 @@ function createTonMnemonic() {
   return __async$6(this, arguments, function* (_args = { count: 24 }) {
     return callBridge("createTonMnemonic", () => __async$6(this, null, function* () {
       const mnemonicResult = yield CreateTonMnemonic$1();
-      const words = Array.isArray(mnemonicResult) ? mnemonicResult : `${mnemonicResult}`.split(" ").filter(Boolean);
-      return { items: words };
+      return Array.isArray(mnemonicResult) ? mnemonicResult : `${mnemonicResult}`.split(" ").filter(Boolean);
     }));
   });
 }
@@ -86665,38 +86659,20 @@ var __async$5 = (__this, __arguments, generator2) => {
 function getWallets() {
   return __async$5(this, null, function* () {
     return callBridge("getWallets", () => __async$5(this, null, function* () {
-      var _a3, _b2, _c2, _d2, _e3, _f;
-      const wallets2 = (_c2 = (_b2 = (_a3 = walletKit).getWallets) == null ? void 0 : _b2.call(_a3)) != null ? _c2 : [];
-      const network = (_f = (_e3 = (_d2 = walletKit).getNetwork) == null ? void 0 : _e3.call(_d2)) != null ? _f : "testnet";
-      return wallets2.map((wallet, index2) => ({
-        address: wallet.getAddress(),
-        publicKey: wallet.publicKey,
-        version: typeof wallet.version === "string" ? wallet.version : "unknown",
-        index: index2,
-        network
-      }));
+      var _a3, _b2, _c2;
+      return (_c2 = (_b2 = (_a3 = walletKit).getWallets) == null ? void 0 : _b2.call(_a3)) != null ? _c2 : [];
     }));
   });
 }
 function getWallet(args) {
   return __async$5(this, null, function* () {
     return callBridge("getWallet", () => __async$5(this, null, function* () {
-      var _a3, _b2, _c2, _d2, _e3;
+      var _a3, _b2;
       if (!args.address) {
         throw new Error("Wallet address is required");
       }
       const wallet = (_b2 = (_a3 = walletKit).getWallet) == null ? void 0 : _b2.call(_a3, args.address);
-      if (!wallet) {
-        return null;
-      }
-      const network = (_e3 = (_d2 = (_c2 = walletKit).getNetwork) == null ? void 0 : _d2.call(_c2)) != null ? _e3 : "testnet";
-      return {
-        address: wallet.getAddress(),
-        publicKey: wallet.publicKey,
-        version: typeof wallet.version === "string" ? wallet.version : "unknown",
-        index: 0,
-        network
-      };
+      return wallet != null ? wallet : null;
     }));
   });
 }
@@ -86723,14 +86699,29 @@ function getBalance(args) {
       if (!wallet) {
         throw new Error("Wallet not found");
       }
-      const balance = yield wallet.getBalance();
-      const balanceStr = String(balance != null ? balance : "0");
-      return { balance: balanceStr };
+      return yield wallet.getBalance();
     }));
   });
 }
 const signerStore = /* @__PURE__ */ new Map();
 const adapterStore = /* @__PURE__ */ new Map();
+function getSigner(args) {
+  return __async$5(this, null, function* () {
+    if (args.isCustom && args.publicKey) {
+      return {
+        sign: (bytes) => __async$5(this, null, function* () {
+          return yield signWithCustomSigner(args.signerId, Uint8Array.from(bytes));
+        }),
+        publicKey: args.publicKey
+      };
+    }
+    const storedSigner = signerStore.get(args.signerId);
+    if (!storedSigner) {
+      throw new Error(`Signer not found: ${args.signerId}`);
+    }
+    return storedSigner;
+  });
+}
 function createSigner(args) {
   return __async$5(this, null, function* () {
     return callBridge("createSigner", () => __async$5(this, null, function* () {
@@ -86744,33 +86735,16 @@ function createSigner(args) {
       } else {
         throw new Error("Either mnemonic or secretKey must be provided");
       }
-      const signerId = `signer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      signerStore.set(signerId, signer);
-      return {
-        signerId,
-        publicKey: signer.publicKey
-      };
+      const tempId = `signer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      signerStore.set(tempId, signer);
+      return { _tempId: tempId, signer };
     }));
   });
 }
 function createAdapter(args) {
   return __async$5(this, null, function* () {
     return callBridge("createAdapter", () => __async$5(this, null, function* () {
-      let signer;
-      if (args.isCustom && args.publicKey) {
-        signer = {
-          sign: (bytes) => __async$5(this, null, function* () {
-            return yield signWithCustomSigner(args.signerId, Uint8Array.from(bytes));
-          }),
-          publicKey: args.publicKey
-        };
-      } else {
-        const storedSigner = signerStore.get(args.signerId);
-        if (!storedSigner) {
-          throw new Error(`Signer not found: ${args.signerId}`);
-        }
-        signer = storedSigner;
-      }
+      const signer = yield getSigner(args);
       const network = args.network === "mainnet" ? CHAIN.MAINNET : CHAIN.TESTNET;
       const workchain = args.workchain !== void 0 ? args.workchain : 0;
       const walletId = args.walletId !== void 0 ? args.walletId : void 0;
@@ -86790,12 +86764,9 @@ function createAdapter(args) {
       } else {
         throw new Error(`Unsupported wallet version: ${args.walletVersion}`);
       }
-      const adapterId = `adapter_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      adapterStore.set(adapterId, adapter);
-      return {
-        adapterId,
-        address: adapter.getAddress()
-      };
+      const tempId = `adapter_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      adapterStore.set(tempId, adapter);
+      return { _tempId: tempId, adapter };
     }));
   });
 }
@@ -86811,10 +86782,7 @@ function addWallet(args) {
         throw new Error("Failed to add wallet - may already exist");
       }
       adapterStore.delete(args.adapterId);
-      return {
-        address: wallet.getAddress(),
-        publicKey: wallet.publicKey
-      };
+      return wallet;
     }));
   });
 }
@@ -86850,7 +86818,7 @@ function getRecentTransactions(args) {
         address: [args.address],
         limit: args.limit || 10
       });
-      return { items: (response == null ? void 0 : response.transactions) || [] };
+      return (response == null ? void 0 : response.transactions) || [];
     }));
   });
 }
@@ -86863,16 +86831,16 @@ function createTransferTonTransaction(args) {
         throw new Error(`Wallet not found for address ${args.walletAddress}`);
       }
       const transaction2 = yield wallet.createTransferTonTransaction(args);
-      let preview = null;
       if (wallet.getTransactionPreview) {
         try {
           const previewResult = yield wallet.getTransactionPreview(transaction2);
-          preview = (_c2 = previewResult == null ? void 0 : previewResult.preview) != null ? _c2 : previewResult;
+          const preview = (_c2 = previewResult == null ? void 0 : previewResult.preview) != null ? _c2 : previewResult;
+          return { transaction: transaction2, preview };
         } catch (error2) {
           debugWarn("[walletkitBridge] getTransactionPreview failed", error2);
         }
       }
-      return { transaction: transaction2, preview };
+      return { transaction: transaction2 };
     }));
   });
 }
@@ -86888,16 +86856,16 @@ function createTransferMultiTonTransaction(args) {
         throw new Error("At least one message required");
       }
       const transaction2 = yield wallet.createTransferMultiTonTransaction(args);
-      let preview = null;
       if (wallet.getTransactionPreview) {
         try {
           const previewResult = yield wallet.getTransactionPreview(transaction2);
-          preview = (_c2 = previewResult == null ? void 0 : previewResult.preview) != null ? _c2 : previewResult;
+          const preview = (_c2 = previewResult == null ? void 0 : previewResult.preview) != null ? _c2 : previewResult;
+          return { transaction: transaction2, preview };
         } catch (error2) {
           debugWarn("[walletkitBridge] getTransactionPreview failed", error2);
         }
       }
-      return { transaction: transaction2, preview };
+      return { transaction: transaction2 };
     }));
   });
 }
@@ -86938,8 +86906,7 @@ function sendTransaction(args) {
         throw new Error(`Wallet not found for address ${args.walletAddress}`);
       }
       const transaction2 = typeof args.transactionContent === "string" ? JSON.parse(args.transactionContent) : args.transactionContent;
-      const result = yield wallet.sendTransaction(transaction2);
-      return { signedBoc: result.signedBoc };
+      return yield wallet.sendTransaction(transaction2);
     }));
   });
 }

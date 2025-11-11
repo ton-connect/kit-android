@@ -320,6 +320,28 @@ internal class QuickJsWalletKitEngine(
         throw UnsupportedOperationException("QuickJS engine does not support custom signer creation. Use WebView engine.")
     }
 
+    override fun isCustomSigner(signerId: String): Boolean {
+        throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
+    }
+
+    override suspend fun createV5R1AdapterFromCustom(
+        signerInfo: io.ton.walletkit.model.WalletSignerInfo,
+        network: String?,
+        workchain: Int,
+        walletId: Long,
+    ): io.ton.walletkit.model.WalletAdapterInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
+    }
+
+    override suspend fun createV4R2AdapterFromCustom(
+        signerInfo: io.ton.walletkit.model.WalletSignerInfo,
+        network: String?,
+        workchain: Int,
+        walletId: Long,
+    ): io.ton.walletkit.model.WalletAdapterInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
+    }
+
     override suspend fun createV5R1Adapter(
         signerId: String,
         network: String?,
@@ -542,7 +564,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun createTransferTonTransaction(
         walletAddress: String,
         params: io.ton.walletkit.model.TONTransferParams,
-    ): String {
+    ): io.ton.walletkit.model.TONTransactionWithPreview {
         ensureWalletKitInitialized()
         val paramsJson =
             JSONObject().apply {
@@ -560,8 +582,21 @@ internal class QuickJsWalletKitEngine(
                 }
             }
         val result = call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_TON_TRANSACTION, paramsJson)
-        // Return the transaction content as JSON string
-        return result.toString()
+
+        // JS returns { transaction, preview } or { transaction }
+        return if (result.has("transaction")) {
+            val transactionContent = result.get("transaction").toString()
+            val preview = if (result.has("preview") && !result.isNull("preview")) {
+                val previewJson = result.getJSONObject("preview")
+                json.decodeFromString<io.ton.walletkit.model.TONTransactionPreview>(previewJson.toString())
+            } else {
+                null
+            }
+            io.ton.walletkit.model.TONTransactionWithPreview(transactionContent, preview)
+        } else {
+            // Fallback for legacy response format
+            io.ton.walletkit.model.TONTransactionWithPreview(result.toString(), null)
+        }
     }
 
     override suspend fun handleNewTransaction(
@@ -772,7 +807,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun createTransferMultiTonTransaction(
         walletAddress: String,
         messages: List<io.ton.walletkit.model.TONTransferParams>,
-    ): String {
+    ): io.ton.walletkit.model.TONTransactionWithPreview {
         ensureWalletKitInitialized()
         val messagesArray = JSONArray()
         messages.forEach { message ->
@@ -790,7 +825,21 @@ internal class QuickJsWalletKitEngine(
             put("messages", messagesArray)
         }
         val result = call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_MULTI_TON_TRANSACTION, paramsJson)
-        return result.toString()
+
+        // JS returns { transaction, preview } or { transaction }
+        return if (result.has("transaction")) {
+            val transactionContent = result.get("transaction").toString()
+            val preview = if (result.has("preview") && !result.isNull("preview")) {
+                val previewJson = result.getJSONObject("preview")
+                json.decodeFromString<io.ton.walletkit.model.TONTransactionPreview>(previewJson.toString())
+            } else {
+                null
+            }
+            io.ton.walletkit.model.TONTransactionWithPreview(transactionContent, preview)
+        } else {
+            // Fallback for legacy response format
+            io.ton.walletkit.model.TONTransactionWithPreview(result.toString(), null)
+        }
     }
 
     override suspend fun getTransactionPreview(

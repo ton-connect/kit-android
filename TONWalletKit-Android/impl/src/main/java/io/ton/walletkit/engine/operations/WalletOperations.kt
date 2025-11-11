@@ -98,10 +98,15 @@ internal class WalletOperations(
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, params)
 
-        // Handle ID generation and publicKey formatting in Kotlin
-        val signerId = result.optString(ResponseConstants.KEY_SIGNER_ID).takeIf { it.isNotEmpty() }
-            ?: IDGenerator.generateSignerId()
-        val rawPublicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY)
+        // JS now returns { _tempId, signer } - extract signer object
+        val tempId = result.optString("_tempId")
+        val signerObj = result.optJSONObject("signer") ?: result
+
+        // Generate signerId in Kotlin
+        val signerId = tempId.takeIf { it.isNotEmpty() } ?: IDGenerator.generateSignerId()
+
+        // Extract publicKey from signer object
+        val rawPublicKey = signerObj.optString("publicKey")
         val publicKey = EncodingUtils.stripHexPrefix(rawPublicKey)
 
         return WalletSignerInfo(
@@ -131,10 +136,15 @@ internal class WalletOperations(
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, params)
 
-        // Handle ID generation and publicKey formatting in Kotlin
-        val signerId = result.optString(ResponseConstants.KEY_SIGNER_ID).takeIf { it.isNotEmpty() }
-            ?: IDGenerator.generateSignerId()
-        val rawPublicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY)
+        // JS now returns { _tempId, signer } - extract signer object
+        val tempId = result.optString("_tempId")
+        val signerObj = result.optJSONObject("signer") ?: result
+
+        // Generate signerId in Kotlin
+        val signerId = tempId.takeIf { it.isNotEmpty() } ?: IDGenerator.generateSignerId()
+
+        // Extract publicKey from signer object
+        val rawPublicKey = signerObj.optString("publicKey")
         val publicKey = EncodingUtils.stripHexPrefix(rawPublicKey)
 
         return WalletSignerInfo(
@@ -267,13 +277,20 @@ internal class WalletOperations(
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
 
-        // Handle adapter ID generation in Kotlin
-        val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }
-            ?: IDGenerator.generateAdapterId()
+        // JS now returns { _tempId, adapter } - extract adapter object
+        val tempId = result.optString("_tempId")
+        val adapterObj = result.optJSONObject("adapter") ?: result
+
+        // Generate adapterId in Kotlin
+        val adapterId = tempId.takeIf { it.isNotEmpty() } ?: IDGenerator.generateAdapterId()
+
+        // Extract address from adapter object (may be stored as property or need getAddress() call)
+        val address = adapterObj.optString("address").takeIf { it.isNotEmpty() }
+            ?: adapterObj.optString(ResponseConstants.KEY_ADDRESS)
 
         return WalletAdapterInfo(
             adapterId = adapterId,
-            address = result.optString(ResponseConstants.KEY_ADDRESS),
+            address = address,
         )
     }
 
@@ -305,13 +322,20 @@ internal class WalletOperations(
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
 
-        // Handle adapter ID generation in Kotlin
-        val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }
-            ?: IDGenerator.generateAdapterId()
+        // JS now returns { _tempId, adapter } - extract adapter object
+        val tempId = result.optString("_tempId")
+        val adapterObj = result.optJSONObject("adapter") ?: result
+
+        // Generate adapterId in Kotlin
+        val adapterId = tempId.takeIf { it.isNotEmpty() } ?: IDGenerator.generateAdapterId()
+
+        // Extract address from adapter object (may be stored as property or need getAddress() call)
+        val address = adapterObj.optString("address").takeIf { it.isNotEmpty() }
+            ?: adapterObj.optString(ResponseConstants.KEY_ADDRESS)
 
         return WalletAdapterInfo(
             adapterId = adapterId,
-            address = result.optString(ResponseConstants.KEY_ADDRESS),
+            address = address,
         )
     }
 
@@ -334,16 +358,22 @@ internal class WalletOperations(
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, params)
 
-        // Handle publicKey formatting in Kotlin
-        val rawPublicKey = result.optString(ResponseConstants.KEY_PUBLIC_KEY)
+        // JS now returns raw wallet object - extract properties
+        val rawPublicKey = result.optString("publicKey")
         val publicKey = EncodingUtils.stripHexPrefix(rawPublicKey)
 
+        // Extract address (may need getAddress() call or stored as property)
+        val address = result.optString("address").takeIf { it.isNotEmpty() }
+            ?: result.optString(ResponseConstants.KEY_ADDRESS)
+
+        // Extract version if available
+        val version = result.optString("version").takeIf { it.isNotEmpty() } ?: "unknown"
+
         return WalletAccount(
-            address = result.optString(ResponseConstants.KEY_ADDRESS),
+            address = address,
             publicKey = publicKey,
             name = null,
-            // Version is determined by the adapter
-            version = "unknown",
+            version = version,
             network = currentNetworkProvider(),
             index = 0,
         )
@@ -356,19 +386,32 @@ internal class WalletOperations(
         ensureInitialized()
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_WALLETS)
-        val items = result.optJSONArray(ResponseConstants.KEY_ITEMS) ?: JSONArray()
+
+        // JS now returns array directly (not wrapped in { items: [...] })
+        val items = if (result is JSONArray) {
+            result
+        } else {
+            result.optJSONArray(ResponseConstants.KEY_ITEMS) ?: JSONArray()
+        }
 
         return buildList(items.length()) {
             for (index in 0 until items.length()) {
                 val entry = items.optJSONObject(index) ?: continue
-                val rawPublicKey = entry.optNullableString(ResponseConstants.KEY_PUBLIC_KEY)
+                val rawPublicKey = entry.optNullableString("publicKey")
+                    ?: entry.optNullableString(ResponseConstants.KEY_PUBLIC_KEY)
                 val publicKey = rawPublicKey?.let { EncodingUtils.stripHexPrefix(it) }
+
+                // Extract address (may be stored or need getAddress() call)
+                val address = entry.optString("address").takeIf { it.isNotEmpty() }
+                    ?: entry.optString(ResponseConstants.KEY_ADDRESS)
+
                 add(
                     WalletAccount(
-                        address = entry.optString(ResponseConstants.KEY_ADDRESS),
+                        address = address,
                         publicKey = publicKey,
                         name = entry.optNullableString(JsonConstants.KEY_NAME),
-                        version = entry.optString(JsonConstants.KEY_VERSION, ResponseConstants.VALUE_UNKNOWN),
+                        version = entry.optString("version").takeIf { it.isNotEmpty() }
+                            ?: entry.optString(JsonConstants.KEY_VERSION, ResponseConstants.VALUE_UNKNOWN),
                         network = entry.optString(JsonConstants.KEY_NETWORK, currentNetworkProvider()),
                         index = entry.optInt(ResponseConstants.KEY_INDEX, index),
                     ),
@@ -386,19 +429,29 @@ internal class WalletOperations(
         val params = JSONObject().apply { put(ResponseConstants.KEY_ADDRESS, address) }
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_WALLET, params)
 
-        // If result is null or doesn't have required fields, wallet doesn't exist
-        if (result.length() == 0 || !result.has(ResponseConstants.KEY_ADDRESS)) {
+        // JS now returns raw wallet object or null
+        if (result.length() == 0) {
             return null
         }
 
-        val rawPublicKey = result.optNullableString(ResponseConstants.KEY_PUBLIC_KEY)
+        val rawPublicKey = result.optNullableString("publicKey")
+            ?: result.optNullableString(ResponseConstants.KEY_PUBLIC_KEY)
         val publicKey = rawPublicKey?.let { EncodingUtils.stripHexPrefix(it) }
 
+        // Extract address from wallet object
+        val walletAddress = result.optString("address").takeIf { it.isNotEmpty() }
+            ?: result.optString(ResponseConstants.KEY_ADDRESS)
+
+        if (walletAddress.isEmpty()) {
+            return null
+        }
+
         return WalletAccount(
-            address = result.optString(ResponseConstants.KEY_ADDRESS),
+            address = walletAddress,
             publicKey = publicKey,
             name = result.optNullableString(JsonConstants.KEY_NAME),
-            version = result.optString(JsonConstants.KEY_VERSION, ResponseConstants.VALUE_UNKNOWN),
+            version = result.optString("version").takeIf { it.isNotEmpty() }
+                ?: result.optString(JsonConstants.KEY_VERSION, ResponseConstants.VALUE_UNKNOWN),
             network = result.optString(JsonConstants.KEY_NETWORK, currentNetworkProvider()),
             index = result.optInt(ResponseConstants.KEY_INDEX, 0),
         )
@@ -436,10 +489,15 @@ internal class WalletOperations(
         val params = JSONObject().apply { put(ResponseConstants.KEY_ADDRESS, address) }
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_BALANCE, params)
 
+        // JS now returns raw balance value (bigint/number) directly
         return when {
+            // Try to get as string first
+            result is String -> result
+            // If it's a JSONObject, check for balance key (legacy)
             result.has(ResponseConstants.KEY_BALANCE) -> result.optString(ResponseConstants.KEY_BALANCE)
             result.has(ResponseConstants.KEY_VALUE) -> result.optString(ResponseConstants.KEY_VALUE)
-            else -> null
+            // Try to convert the result itself to string
+            else -> result.toString().takeIf { it != "null" && it.isNotEmpty() }
         } ?: "0"
     }
 
@@ -456,7 +514,15 @@ internal class WalletOperations(
             }
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_RECENT_TRANSACTIONS, params)
-        return transactionParser.parseTransactions(result.optJSONArray(ResponseConstants.KEY_ITEMS))
+
+        // JS now returns array directly (not wrapped in { items: [...] })
+        val transactions = if (result is JSONArray) {
+            result
+        } else {
+            result.optJSONArray(ResponseConstants.KEY_ITEMS)
+        }
+
+        return transactionParser.parseTransactions(transactions)
     }
 
     private fun JSONObject.optNullableString(key: String): String? {

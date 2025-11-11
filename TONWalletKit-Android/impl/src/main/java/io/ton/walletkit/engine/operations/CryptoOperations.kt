@@ -65,7 +65,14 @@ internal class CryptoOperations(
             }
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TON_MNEMONIC, params)
-        val items = result.optJSONArray(ResponseConstants.KEY_ITEMS)
+
+        // JS now returns array directly (not wrapped in { items: [...] })
+        val items = if (result is JSONArray) {
+            result
+        } else {
+            result.optJSONArray(ResponseConstants.KEY_ITEMS)
+        }
+
         if (items == null) {
             Logger.w(TAG, "Mnemonic generation returned no items (wordCount=$wordCount)")
             return emptyList()
@@ -96,12 +103,11 @@ internal class CryptoOperations(
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_MNEMONIC_TO_KEY_PAIR, params)
 
-        val publicKeyArray =
-            result.optJSONArray(ResponseConstants.KEY_PUBLIC_KEY)
-                ?: throw WalletKitBridgeException("Missing publicKey in mnemonicToKeyPair response")
-        val secretKeyArray =
-            result.optJSONArray(ResponseConstants.KEY_SECRET_KEY)
-                ?: throw WalletKitBridgeException("Missing secretKey in mnemonicToKeyPair response")
+        // JS now returns raw keyPair object with Uint8Array properties (serialized as JSONArray)
+        val publicKeyArray = result.optJSONArray(ResponseConstants.KEY_PUBLIC_KEY)
+            ?: throw WalletKitBridgeException("Missing publicKey in mnemonicToKeyPair response")
+        val secretKeyArray = result.optJSONArray(ResponseConstants.KEY_SECRET_KEY)
+            ?: throw WalletKitBridgeException("Missing secretKey in mnemonicToKeyPair response")
 
         val publicKey = ByteArray(publicKeyArray.length()) { i -> publicKeyArray.optInt(i).toByte() }
         val secretKey = ByteArray(secretKeyArray.length()) { i -> secretKeyArray.optInt(i).toByte() }
@@ -130,9 +136,14 @@ internal class CryptoOperations(
             }
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_SIGN, params)
-        val signatureHex =
-            result.optString(ResponseConstants.KEY_SIGNATURE)
-                ?: throw WalletKitBridgeException(ERROR_SIGNATURE_MISSING_SIGN_RESULT)
+
+        // JS now returns hex string directly (not wrapped in { signature: ... })
+        val signatureHex = when {
+            result is String -> result
+            result.has(ResponseConstants.KEY_SIGNATURE) -> result.optString(ResponseConstants.KEY_SIGNATURE)
+            else -> result.toString()
+        }.takeIf { it.isNotEmpty() && it != "null" }
+            ?: throw WalletKitBridgeException(ERROR_SIGNATURE_MISSING_SIGN_RESULT)
 
         // Convert hex string to ByteArray
         return hexToByteArray(signatureHex)

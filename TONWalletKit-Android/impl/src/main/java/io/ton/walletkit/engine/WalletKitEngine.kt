@@ -282,13 +282,13 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @param walletAddress Source wallet address
      * @param params Transfer parameters (recipient, amount, optional comment/body/stateInit)
-     * @return Transaction content as JSON string
+     * @return Transaction with optional preview
      * @throws WalletKitBridgeException if transaction creation fails
      */
     suspend fun createTransferTonTransaction(
         walletAddress: String,
         params: io.ton.walletkit.model.TONTransferParams,
-    ): String
+    ): io.ton.walletkit.model.TONTransactionWithPreview
 
     /**
      * Handle a new transaction initiated from the wallet app.
@@ -471,13 +471,13 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @param walletAddress Wallet address to transfer from
      * @param messages List of transfer parameters for each recipient
-     * @return Transaction content as JSON string
+     * @return Transaction with optional preview
      * @throws WalletKitBridgeException if transaction creation fails
      */
     suspend fun createTransferMultiTonTransaction(
         walletAddress: String,
         messages: List<io.ton.walletkit.model.TONTransferParams>,
-    ): String
+    ): io.ton.walletkit.model.TONTransactionWithPreview
 
     /**
      * Get a preview of a transaction including estimated fees.

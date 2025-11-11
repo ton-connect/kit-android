@@ -218,10 +218,10 @@ internal class TONWallet internal constructor(
      * ```
      *
      * @param params Transfer parameters (recipient address, amount, optional comment/body/stateInit)
-     * @return Transaction content as JSON string
+     * @return Transaction with optional preview
      * @throws io.ton.walletkit.WalletKitBridgeException if transaction creation fails
      */
-    override suspend fun createTransferTonTransaction(params: TONTransferParams): String {
+    override suspend fun createTransferTonTransaction(params: TONTransferParams): io.ton.walletkit.model.TONTransactionWithPreview {
         val addr = address ?: throw WalletKitBridgeException("Wallet address is null")
         return engine.createTransferTonTransaction(addr, params)
     }
@@ -233,10 +233,10 @@ internal class TONWallet internal constructor(
      * Allows sending TON to multiple recipients in a single transaction.
      *
      * @param messages List of transfer messages (each with recipient address, amount, optional comment)
-     * @return Transaction content as JSON string
+     * @return Transaction with optional preview
      * @throws WalletKitBridgeException if transaction creation fails
      */
-    override suspend fun createTransferMultiTonTransaction(messages: List<TONTransferParams>): String {
+    override suspend fun createTransferMultiTonTransaction(messages: List<TONTransferParams>): io.ton.walletkit.model.TONTransactionWithPreview {
         val addr = address ?: throw WalletKitBridgeException("Wallet address is null")
         return engine.createTransferMultiTonTransaction(addr, messages)
     }
