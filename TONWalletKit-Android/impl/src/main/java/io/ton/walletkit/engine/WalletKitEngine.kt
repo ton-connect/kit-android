@@ -33,7 +33,6 @@ import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSession
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
-import io.ton.walletkit.model.WalletState
 import io.ton.walletkit.request.RequestHandler
 
 /**
@@ -206,10 +205,10 @@ internal interface WalletKitEngine : RequestHandler {
      * Get the current state of a wallet.
      *
      * @param address Wallet address
-     * @return Current wallet state including balance and transactions
-     * @throws WalletKitBridgeException if state retrieval fails
+     * @return Current wallet balance in nanoTON as a string
+     * @throws WalletKitBridgeException if balance retrieval fails
      */
-    suspend fun getWalletState(address: String): WalletState
+    suspend fun getBalance(address: String): String
 
     /**
      * Get recent transactions for a wallet.

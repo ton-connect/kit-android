@@ -36,7 +36,6 @@ import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
-import io.ton.walletkit.model.WalletState
 import io.ton.walletkit.utils.EncodingUtils
 import io.ton.walletkit.utils.IDGenerator
 import org.json.JSONArray
@@ -363,23 +362,19 @@ internal class WalletOperations(
     }
 
     /**
-     * Retrieve wallet state including balance and parsed transactions.
+     * Retrieve wallet balance in nanoTON.
      */
-    suspend fun getWalletState(address: String): WalletState {
+    suspend fun getBalance(address: String): String {
         ensureInitialized()
 
         val params = JSONObject().apply { put(ResponseConstants.KEY_ADDRESS, address) }
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_WALLET_STATE, params)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_BALANCE, params)
 
-        return WalletState(
-            balance =
-            when {
-                result.has(ResponseConstants.KEY_BALANCE) -> result.optString(ResponseConstants.KEY_BALANCE)
-                result.has(ResponseConstants.KEY_VALUE) -> result.optString(ResponseConstants.KEY_VALUE)
-                else -> null
-            },
-            transactions = transactionParser.parseTransactions(result.optJSONArray(ResponseConstants.KEY_TRANSACTIONS)),
-        )
+        return when {
+            result.has(ResponseConstants.KEY_BALANCE) -> result.optString(ResponseConstants.KEY_BALANCE)
+            result.has(ResponseConstants.KEY_VALUE) -> result.optString(ResponseConstants.KEY_VALUE)
+            else -> null
+        } ?: "0"
     }
 
     /**

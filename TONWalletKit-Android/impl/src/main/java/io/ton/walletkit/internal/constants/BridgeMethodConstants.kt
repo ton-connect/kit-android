@@ -80,9 +80,9 @@ internal object BridgeMethodConstants {
     const val METHOD_REMOVE_WALLET = "removeWallet"
 
     /**
-     * Method name for getting wallet state (balance, transactions).
+     * Method name for getting wallet balance.
      */
-    const val METHOD_GET_WALLET_STATE = "getWalletState"
+    const val METHOD_GET_BALANCE = "getBalance"
 
     /**
      * Method name for getting recent transactions.

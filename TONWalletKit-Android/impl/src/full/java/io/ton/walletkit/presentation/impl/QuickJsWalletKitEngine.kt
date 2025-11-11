@@ -44,7 +44,6 @@ import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.TransactionType
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletSession
-import io.ton.walletkit.model.WalletState
 import io.ton.walletkit.presentation.impl.quickjs.QuickJs
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
@@ -407,23 +406,20 @@ internal class QuickJsWalletKitEngine(
         }
     }
 
-    override suspend fun getWalletState(address: String): WalletState {
+    override suspend fun getBalance(address: String): String {
         ensureWalletKitInitialized()
-        Log.d(logTag, "getWalletState called for address: $address")
+        Log.d(logTag, "getBalance called for address: $address")
         val params = JSONObject().apply { put("address", address) }
-        Log.d(logTag, "getWalletState calling JavaScript...")
-        val result = call("getWalletState", params)
-        Log.d(logTag, "getWalletState result: $result")
+        Log.d(logTag, "getBalance calling JavaScript...")
+        val result = call("getBalance", params)
+        Log.d(logTag, "getBalance result: $result")
         val balance = when {
             result.has("balance") -> result.optString("balance")
             result.has("value") -> result.optString("value")
             else -> null
         }
-        Log.d(logTag, "getWalletState balance: $balance")
-        return WalletState(
-            balance = balance,
-            transactions = parseTransactions(result.optJSONArray("transactions")),
-        )
+        Log.d(logTag, "getBalance balance: $balance")
+        return balance ?: "0"
     }
 
     override suspend fun getRecentTransactions(address: String, limit: Int): List<Transaction> {

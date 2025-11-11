@@ -131,7 +131,7 @@ internal class TONWallet internal constructor(
      */
     suspend fun balance(): String? {
         val addr = address ?: return null
-        return engine.getWalletState(addr).balance
+        return engine.getBalance(addr)
     }
 
     /**

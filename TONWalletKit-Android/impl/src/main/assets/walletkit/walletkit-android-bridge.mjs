@@ -54064,17 +54064,16 @@ function removeWallet(args) {
     }));
   });
 }
-function getWalletState(args) {
+function getBalance(args) {
   return __async$5(this, null, function* () {
-    return callBridge("getWalletState", () => __async$5(this, null, function* () {
+    return callBridge("getBalance", () => __async$5(this, null, function* () {
       const wallet = walletKit.getWallet(args.address);
       if (!wallet) {
         throw new Error("Wallet not found");
       }
       const balance = yield wallet.getBalance();
       const balanceStr = String(balance != null ? balance : "0");
-      const transactions = wallet.getTransactions ? yield wallet.getTransactions(10) : [];
-      return { balance: balanceStr, transactions };
+      return { balance: balanceStr };
     }));
   });
 }
@@ -54735,7 +54734,7 @@ const apiImpl = {
   getWallets,
   getWallet,
   removeWallet,
-  getWalletState,
+  getBalance,
   // Transactions
   getRecentTransactions,
   createTransferTonTransaction,

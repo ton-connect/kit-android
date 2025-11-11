@@ -64,7 +64,6 @@ import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSession
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
-import io.ton.walletkit.model.WalletState
 import io.ton.walletkit.storage.BridgeStorageAdapter
 import io.ton.walletkit.storage.SecureBridgeStorageAdapter
 import kotlinx.coroutines.Dispatchers
@@ -295,7 +294,7 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun removeWallet(address: String) = walletOperations.removeWallet(address)
 
-    override suspend fun getWalletState(address: String): WalletState = walletOperations.getWalletState(address)
+    override suspend fun getBalance(address: String): String = walletOperations.getBalance(address)
 
     override suspend fun getRecentTransactions(address: String, limit: Int): List<Transaction> =
         walletOperations.getRecentTransactions(address, limit)
