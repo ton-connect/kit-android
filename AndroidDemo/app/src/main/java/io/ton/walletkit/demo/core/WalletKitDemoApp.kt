@@ -1,3 +1,24 @@
+/*
+ * Copyright (c) 2025 TonTech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package io.ton.walletkit.demo.core
 
 import android.app.Application
@@ -11,15 +32,15 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import coil3.util.DebugLogger
 import dagger.hilt.android.HiltAndroidApp
+import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.config.SignDataType
+import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.SecureDemoAppStorage
-import io.ton.walletkit.domain.model.TONNetwork
-import io.ton.walletkit.domain.model.TONWalletData
-import io.ton.walletkit.presentation.TONWalletKit
-import io.ton.walletkit.presentation.config.SignDataType
-import io.ton.walletkit.presentation.config.TONWalletKitConfiguration
-import io.ton.walletkit.presentation.event.TONWalletKitEvent
-import io.ton.walletkit.presentation.listener.TONBridgeEventsHandler
+import io.ton.walletkit.event.TONWalletKitEvent
+import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.model.TONWalletData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -87,7 +108,7 @@ class WalletKitDemoApp :
         Log.w(TAG, "🔴 Process ID: ${android.os.Process.myPid()}")
         Log.w(TAG, "🔴 Application instance: ${System.identityHashCode(this)}")
 
-        // Initialize TONWalletKit SDK and add event handler
+        // Initialize ITONWalletKit SDK and add event handler
         applicationScope.launch {
             try {
                 Log.w(TAG, "🔴 Launching SDK initialization coroutine...")
@@ -123,7 +144,7 @@ class WalletKitDemoApp :
      * This must be done BEFORE adding event handlers to ensure wallets are available
      * when replayed events are processed.
      */
-    private suspend fun loadAndAddStoredWallets(kit: TONWalletKit) {
+    private suspend fun loadAndAddStoredWallets(kit: ITONWalletKit) {
         try {
             // Get all stored wallet records
             val storage = getSharedPreferences("wallet_storage", MODE_PRIVATE)
@@ -152,13 +173,21 @@ class WalletKitDemoApp :
                         else -> TONNetwork.MAINNET
                     }
 
-                    val walletData = TONWalletData(
-                        mnemonic = mnemonicWords,
-                        name = "", // Name is stored separately in demo app storage
-                        network = network,
-                        version = walletRecord.version,
-                    )
-                    kit.addWallet(walletData)
+                    // Use version-specific creation methods
+                    when (walletRecord.version) {
+                        "v4r2" -> kit.createV4R2WalletFromMnemonic(
+                            mnemonic = mnemonicWords,
+                            network = network,
+                        )
+                        "v5r1" -> kit.createV5R1WalletFromMnemonic(
+                            mnemonic = mnemonicWords,
+                            network = network,
+                        )
+                        else -> {
+                            Log.w(TAG, "Unsupported wallet version: ${walletRecord.version}, skipping")
+                            continue
+                        }
+                    }
                     Log.d(TAG, "Added wallet to SDK: ${walletRecord.address}")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to add wallet ${walletRecord.address} to SDK", e)
@@ -185,13 +214,13 @@ class WalletKitDemoApp :
 }
 
 /**
- * Helper to get cached TONWalletKit instance.
+ * Helper to get cached ITONWalletKit instance.
  */
 object TONWalletKitHelper {
-    private var mainnetInstance: TONWalletKit? = null
+    private var mainnetInstance: ITONWalletKit? = null
     private val mutex = kotlinx.coroutines.sync.Mutex()
 
-    suspend fun mainnet(application: Application): TONWalletKit {
+    suspend fun mainnet(application: Application): ITONWalletKit {
         // Fast path: already initialized
         mainnetInstance?.let { return it }
 
@@ -203,7 +232,7 @@ object TONWalletKitHelper {
                 return@withLock it
             }
 
-            Log.w("TONWalletKitHelper", "🔶🔶🔶 Creating NEW TONWalletKit instance...")
+            Log.w("TONWalletKitHelper", "🔶🔶🔶 Creating NEW ITONWalletKit instance...")
 
             val config = TONWalletKitConfiguration(
                 network = TONNetwork.MAINNET,
@@ -228,7 +257,7 @@ object TONWalletKitHelper {
                 storage = TONWalletKitConfiguration.Storage(persistent = true),
             )
 
-            val kit = TONWalletKit.initialize(application, config)
+            val kit = ITONWalletKit.initialize(application, config)
             mainnetInstance = kit
             Log.w("TONWalletKitHelper", "✅ Created and cached mainnet instance: ${System.identityHashCode(kit)}")
             kit

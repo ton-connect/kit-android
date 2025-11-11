@@ -1,0 +1,147 @@
+/*
+ * Copyright (c) 2025 TonTech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package io.ton.walletkit.engine.state
+
+import io.ton.walletkit.event.TONWalletKitEvent
+import io.ton.walletkit.internal.constants.LogConstants
+import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.listener.TONBridgeEventsHandler
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/**
+ * Coordinates registration and invocation of [TONBridgeEventsHandler] instances.
+ *
+ * The router encapsulates the concurrency guarantees required by the bridge: handler collections
+ * are mutated under a mutex, and dispatching obtains a snapshot to avoid concurrent modifications.
+ * Logging mirrors the behaviour that previously lived in [WebViewWalletKitEngine].
+ *
+ * @suppress Internal component. Use through [WebViewWalletKitEngine].
+ */
+internal class EventRouter {
+    private val eventHandlers = mutableListOf<TONBridgeEventsHandler>()
+    private val mutex = Mutex()
+
+    @Volatile private var handlerCount: Int = 0
+
+    /**
+     * Register a handler. Returns metadata describing whether the handler was added and if it was
+     * the first one in the collection.
+     */
+    suspend fun addHandler(handler: TONBridgeEventsHandler, logAcquired: Boolean = false): AddHandlerOutcome =
+        mutex.withLock {
+            if (logAcquired) {
+                Logger.d(TAG, "🔵 eventHandlersMutex acquired in addEventsHandler")
+            }
+            val existingHandlers = eventHandlers.toList()
+            if (eventHandlers.contains(handler)) {
+                AddHandlerOutcome(
+                    alreadyRegistered = true,
+                    isFirstHandler = false,
+                    handlersBeforeAdd = existingHandlers,
+                    handlersAfterAdd = existingHandlers,
+                )
+            } else {
+                val wasEmpty = eventHandlers.isEmpty()
+                eventHandlers.add(handler)
+                handlerCount = eventHandlers.size
+                AddHandlerOutcome(
+                    alreadyRegistered = false,
+                    isFirstHandler = wasEmpty,
+                    handlersBeforeAdd = existingHandlers,
+                    handlersAfterAdd = eventHandlers.toList(),
+                )
+            }
+        }
+
+    /**
+     * Unregister a handler. Returns whether the handler was removed and if the collection is empty.
+     */
+    suspend fun removeHandler(handler: TONBridgeEventsHandler): RemoveHandlerOutcome =
+        mutex.withLock {
+            val removed = eventHandlers.remove(handler)
+            if (removed) {
+                handlerCount = eventHandlers.size
+            }
+            RemoveHandlerOutcome(
+                removed = removed,
+                isEmpty = eventHandlers.isEmpty(),
+            )
+        }
+
+    suspend fun containsHandler(handler: TONBridgeEventsHandler): Boolean =
+        mutex.withLock { eventHandlers.contains(handler) }
+
+    /**
+     * Dispatch an event to all registered handlers, preserving legacy logging semantics.
+     */
+    suspend fun dispatchEvent(
+        eventId: String,
+        type: String,
+        event: TONWalletKitEvent,
+    ) {
+        try {
+            Logger.d(TAG, "🟢 Acquiring eventHandlersMutex to get handlers list...")
+            val handlers =
+                mutex.withLock {
+                    Logger.d(TAG, "🟢 eventHandlersMutex acquired, eventHandlers.size=${eventHandlers.size}")
+                    eventHandlers.toList()
+                }
+
+            Logger.d(TAG, "🟢 Got ${handlers.size} handlers, notifying each...")
+            for (handler in handlers) {
+                try {
+                    Logger.d(TAG, "🟢 Calling handler.handle() for ${handler.javaClass.simpleName}")
+                    handler.handle(event)
+                    Logger.d(TAG, "✅ Handler ${handler.javaClass.simpleName} processed event successfully")
+                } catch (e: Exception) {
+                    Logger.e(TAG, "❌ " + MSG_HANDLER_EXCEPTION_PREFIX + eventId + " for handler ${handler.javaClass.simpleName}", e)
+                }
+            }
+            Logger.d(TAG, "✅ All handlers notified for event $type")
+        } catch (e: Exception) {
+            Logger.e(TAG, "❌ " + MSG_HANDLER_EXCEPTION_PREFIX + eventId, e)
+        }
+    }
+
+    /**
+     * Current number of registered handlers.
+     */
+    fun getHandlerCount(): Int = handlerCount
+
+    data class AddHandlerOutcome(
+        val alreadyRegistered: Boolean,
+        val isFirstHandler: Boolean,
+        val handlersBeforeAdd: List<TONBridgeEventsHandler>,
+        val handlersAfterAdd: List<TONBridgeEventsHandler>,
+    )
+
+    data class RemoveHandlerOutcome(
+        val removed: Boolean,
+        val isEmpty: Boolean,
+    )
+
+    private companion object {
+        private const val TAG = LogConstants.TAG_WEBVIEW_ENGINE
+        private const val MSG_HANDLER_EXCEPTION_PREFIX = "Handler threw exception for event "
+    }
+}

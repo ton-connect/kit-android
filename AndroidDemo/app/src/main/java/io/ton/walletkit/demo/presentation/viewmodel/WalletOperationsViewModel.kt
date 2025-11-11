@@ -1,10 +1,33 @@
+/*
+ * Copyright (c) 2025 TonTech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package io.ton.walletkit.demo.presentation.viewmodel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.ton.walletkit.ITONWallet
+import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.demo.presentation.util.TonFormatter
-import io.ton.walletkit.presentation.TONWallet
+import io.ton.walletkit.model.TONTransferParams
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,7 +38,8 @@ import kotlinx.coroutines.launch
  * Handles operations that require an active wallet context.
  */
 class WalletOperationsViewModel(
-    private val getWalletByAddress: (String) -> TONWallet?,
+    private val walletKit: () -> ITONWalletKit,
+    private val getWalletByAddress: (String) -> ITONWallet?,
     private val onWalletSwitched: (String) -> Unit = {},
     private val onTransactionInitiated: (String) -> Unit = {},
 ) : ViewModel() {
@@ -54,6 +78,10 @@ class WalletOperationsViewModel(
      * Send a local transaction (TON transfer).
      * This creates a transaction request that will trigger the approval flow.
      *
+     * This uses the standard JS WalletKit API:
+     * 1. wallet.createTransferTonTransaction(params) - creates transaction content
+     * 2. kit.handleNewTransaction(wallet, transaction) - triggers approval flow
+     *
      * @param walletAddress The sender wallet address
      * @param recipient The recipient address
      * @param amount The amount in TON (will be converted to nanoTON)
@@ -89,7 +117,16 @@ class WalletOperationsViewModel(
             }
 
             runCatching {
-                wallet.sendLocalTransaction(recipient, amountInNano, comment)
+                // Step 1: Create transaction content
+                val params = TONTransferParams(
+                    toAddress = recipient,
+                    amount = amountInNano,
+                    comment = comment.takeIf { it.isNotBlank() },
+                )
+                val transactionContent = wallet.createTransferTonTransaction(params)
+
+                // Step 2: Trigger approval flow
+                walletKit().handleNewTransaction(wallet, transactionContent)
             }.onSuccess {
                 _state.value = _state.value.copy(
                     isSendingTransaction = false,

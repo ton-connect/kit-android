@@ -1,12 +1,33 @@
+/*
+ * Copyright (c) 2025 TonTech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package io.ton.walletkit.demo.presentation.viewmodel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.ton.walletkit.domain.model.TONJettonTransferParams
-import io.ton.walletkit.domain.model.TONJettonWallet
-import io.ton.walletkit.domain.model.TONPagination
-import io.ton.walletkit.presentation.TONWallet
+import io.ton.walletkit.ITONWallet
+import io.ton.walletkit.model.TONJettonTransferParams
+import io.ton.walletkit.model.TONJettonWallet
+import io.ton.walletkit.model.TONPagination
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +40,7 @@ import kotlinx.coroutines.launch
  * Handles jetton loading, pagination, and transfer operations.
  */
 class JettonsListViewModel(
-    private val wallet: TONWallet,
+    private val wallet: ITONWallet,
 ) : ViewModel() {
     private val _state = MutableStateFlow<JettonState>(JettonState.Initial)
     val state: StateFlow<JettonState> = _state.asStateFlow()
@@ -74,7 +95,7 @@ class JettonsListViewModel(
             try {
                 _state.value = JettonState.Loading
 
-                val result = wallet.jettonsWallets(limit = limit, offset = 0)
+                val result = wallet.jettons(limit = limit, offset = 0)
 
                 Log.d(TAG, "Loaded ${result.items.size} jettons, pagination: ${result.pagination}")
                 result.items.forEachIndexed { index, jettonWallet ->
@@ -119,7 +140,7 @@ class JettonsListViewModel(
             try {
                 _isLoadingMore.value = true
 
-                val result = wallet.jettonsWallets(
+                val result = wallet.jettons(
                     limit = limit,
                     offset = currentOffset,
                 )
@@ -184,12 +205,12 @@ class JettonsListViewModel(
 
                 Log.i(TAG, "Creating jetton transfer transaction: jetton=$jettonAddress, to=$recipient, amount=$amount")
 
-                // Create the jetton transfer transaction
-                val transactionBoc = wallet.transferJettonTransaction(transferParams)
+                // Create the jetton transfer transaction (step 1)
+                val transactionBoc = wallet.createTransferJettonTransaction(transferParams)
 
                 Log.i(TAG, "Jetton transfer transaction created, sending...")
 
-                // Send the transaction
+                // Send the transaction (step 2)
                 wallet.sendTransaction(transactionBoc)
 
                 Log.i(TAG, "Jetton transfer transaction sent successfully")

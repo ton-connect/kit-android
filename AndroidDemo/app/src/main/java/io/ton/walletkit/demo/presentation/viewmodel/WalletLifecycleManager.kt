@@ -1,21 +1,43 @@
+/*
+ * Copyright (c) 2025 TonTech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package io.ton.walletkit.demo.presentation.viewmodel
 
 import android.util.Log
+import io.ton.walletkit.ITONWallet
+import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.demo.data.cache.TransactionCache
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.UserPreferences
 import io.ton.walletkit.demo.data.storage.WalletRecord
 import io.ton.walletkit.demo.domain.model.PendingWalletRecord
+import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.domain.model.WalletMetadata
 import io.ton.walletkit.demo.domain.model.toBridgeValue
 import io.ton.walletkit.demo.domain.model.toTonNetwork
 import io.ton.walletkit.demo.presentation.model.SessionSummary
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.util.TonFormatter
-import io.ton.walletkit.domain.model.TONNetwork
-import io.ton.walletkit.domain.model.TONWalletData
-import io.ton.walletkit.presentation.TONWallet
-import io.ton.walletkit.presentation.TONWalletKit
+import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.model.TONWalletData
 
 /**
  * Handles wallet lifecycle: bootstrapping from storage, metadata management,
@@ -25,7 +47,7 @@ class WalletLifecycleManager(
     private val storage: DemoAppStorage,
     private val defaultWalletVersion: String,
     private val defaultWalletNameProvider: (Int) -> String,
-    private val kitProvider: suspend () -> TONWalletKit,
+    private val kitProvider: suspend () -> ITONWalletKit,
     initialNetwork: TONNetwork,
 ) {
 
@@ -33,7 +55,7 @@ class WalletLifecycleManager(
         val savedActiveWallet: String?,
     )
 
-    val tonWallets: MutableMap<String, TONWallet> = mutableMapOf()
+    val tonWallets: MutableMap<String, ITONWallet> = mutableMapOf()
     val walletMetadata: MutableMap<String, WalletMetadata> = mutableMapOf()
     val pendingWallets: ArrayDeque<PendingWalletRecord> = ArrayDeque()
     val transactionCache: TransactionCache = TransactionCache()
@@ -110,7 +132,7 @@ class WalletLifecycleManager(
             val publicKey = wallet.publicKey
             val metadata = ensureMetadataForAddress(address)
 
-            val balance = runCatching { wallet.balance() }
+            val balance = runCatching { wallet.getBalance() }
                 .onFailure { Log.e(LOG_TAG, "loadWalletSummaries: balance failed for $address", it) }
                 .getOrNull()
             val formattedBalance = balance?.let { TonFormatter.formatTon(it) }
@@ -176,7 +198,7 @@ class WalletLifecycleManager(
         var restoredCount = 0
         for ((storedAddress, record) in stored) {
             val interfaceType = record.interfaceType
-            if (interfaceType != io.ton.walletkit.demo.domain.model.WalletInterfaceType.MNEMONIC.value) {
+            if (interfaceType != WalletInterfaceType.MNEMONIC.value) {
                 Log.w(
                     LOG_TAG,
                     "rehydrate: skipping $storedAddress (interfaceType=$interfaceType not supported for auto-restore)",
@@ -188,15 +210,27 @@ class WalletLifecycleManager(
             val version = record.version.ifBlank { defaultWalletVersion }
             val name = record.name.ifBlank { defaultWalletNameProvider(restoredCount) }
 
-            val walletData = TONWalletData(
-                mnemonic = record.mnemonic,
-                name = name,
-                version = version,
-                network = networkEnum,
-            )
-
-            val result = runCatching { kit.addWallet(walletData) }
-            result.onSuccess { wallet ->
+            val result = runCatching {
+                when (version) {
+                    "v4r2" -> kit.createV4R2WalletFromMnemonic(
+                        mnemonic = record.mnemonic,
+                        network = networkEnum,
+                    )
+                    "v5r1" -> kit.createV5R1WalletFromMnemonic(
+                        mnemonic = record.mnemonic,
+                        network = networkEnum,
+                    )
+                    else -> {
+                        Log.w(LOG_TAG, "rehydrate: unsupported version $version for $storedAddress")
+                        null
+                    }
+                }
+            }
+            if (result.getOrNull() == null) {
+                continue
+            }
+            result.onSuccess { walletNullable ->
+                val wallet = walletNullable ?: return@onSuccess
                 val restoredAddress = wallet.address
                 if (restoredAddress.isNullOrBlank()) {
                     Log.w(LOG_TAG, "rehydrate: wallet added but address null for stored $storedAddress")
