@@ -195,12 +195,11 @@ internal class TONWalletKit private constructor(
         walletId: Long,
     ): WalletAdapterInfo {
         checkNotDestroyed()
-        return engine.createV5R1Adapter(
-            signerId = signer.signerId,
-            network = network.value,
-            workchain = workchain,
-            walletId = walletId,
-        )
+        return if (engine.isCustomSigner(signer.signerId)) {
+            engine.createV5R1AdapterFromCustom(signer, network.value, workchain, walletId)
+        } else {
+            engine.createV5R1Adapter(signer.signerId, network.value, workchain, walletId)
+        }
     }
 
     /**
@@ -214,12 +213,11 @@ internal class TONWalletKit private constructor(
         walletId: Long,
     ): WalletAdapterInfo {
         checkNotDestroyed()
-        return engine.createV4R2Adapter(
-            signerId = signer.signerId,
-            network = network.value,
-            workchain = workchain,
-            walletId = walletId,
-        )
+        return if (engine.isCustomSigner(signer.signerId)) {
+            engine.createV4R2AdapterFromCustom(signer, network.value, workchain, walletId)
+        } else {
+            engine.createV4R2Adapter(signer.signerId, network.value, workchain, walletId)
+        }
     }
 
     /**

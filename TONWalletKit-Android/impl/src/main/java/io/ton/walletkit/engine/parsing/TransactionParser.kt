@@ -28,10 +28,8 @@ import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.TransactionType
-import io.ton.walletkit.utils.JsonUtils
 import io.ton.walletkit.utils.TransactionResponseParser
 import org.json.JSONArray
-import org.json.JSONObject
 
 /**
  * Converts raw transaction JSON arrays received from the bridge into strongly typed
@@ -50,7 +48,7 @@ internal class TransactionParser(private val isTestnet: Boolean = false) {
             for (i in 0 until jsonArray.length()) {
                 val txJson = jsonArray.optJSONObject(i)
                 if (txJson == null) continue
-                
+
                 // Enrich the transaction with formatted addresses and extracted comments
                 // This replaces the 267 lines removed from TypeScript transactions.ts
                 val enrichedTx = TransactionResponseParser.enrichTransaction(txJson, isTestnet)

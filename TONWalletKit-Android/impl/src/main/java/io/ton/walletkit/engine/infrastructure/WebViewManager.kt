@@ -60,6 +60,7 @@ internal class WebViewManager(
     context: Context,
     private val assetPath: String,
     private val storageManager: StorageManager,
+    private val signerManager: io.ton.walletkit.engine.state.SignerManager,
     private val onMessage: (JSONObject) -> Unit,
     private val onBridgeError: (WalletKitBridgeException) -> Unit,
 ) {
@@ -175,14 +176,14 @@ internal class WebViewManager(
                     override fun onPageFinished(view: WebView?, url: String?) {
                         super.onPageFinished(view, url)
                         Logger.d(TAG, "WebView page finished loading: $url")
-                        
+
                         // Set debug logging flag for JavaScript bridge
                         // This controls conditional logging in the bridge JavaScript bundle
                         val debugEnabled = BuildConfig.ENABLE_LOGGING
                         view?.evaluateJavascript("window.__WALLETKIT_DEBUG__ = $debugEnabled;") { result ->
                             Logger.d(TAG, "Debug flag set: __WALLETKIT_DEBUG__ = $debugEnabled")
                         }
-                        
+
                         if (!bridgeLoaded.isCompleted) {
                             bridgeLoaded.complete(Unit)
                         }
@@ -296,6 +297,30 @@ internal class WebViewManager(
         fun storageClear() {
             kotlinx.coroutines.runBlocking {
                 storageManager.clear()
+            }
+        }
+
+        @JavascriptInterface
+        fun signWithCustomSigner(
+            signerId: String,
+            bytesJson: String,
+        ): String {
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    val signer =
+                        signerManager.getSigner(signerId)
+                            ?: throw IllegalArgumentException("Custom signer not found: $signerId")
+
+                    val bytesArray = org.json.JSONArray(bytesJson)
+                    val bytes = ByteArray(bytesArray.length()) { i -> bytesArray.getInt(i).toByte() }
+
+                    val signatureBytes = signer.sign(bytes)
+                    // Convert to hex string with 0x prefix as expected by JavaScript
+                    io.ton.walletkit.WalletKitUtils.byteArrayToHex(signatureBytes)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to sign with custom signer: $signerId", e)
+                    throw e
+                }
             }
         }
     }

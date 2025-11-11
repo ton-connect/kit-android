@@ -35,13 +35,9 @@ import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.DAppInfo
 import io.ton.walletkit.model.SignDataRequest
 import io.ton.walletkit.model.TransactionRequest
-import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
 

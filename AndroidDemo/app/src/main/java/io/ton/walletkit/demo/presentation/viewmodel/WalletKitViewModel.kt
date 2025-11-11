@@ -590,7 +590,7 @@ class WalletKitViewModel @Inject constructor(
                     WalletInterfaceType.SIGNER -> {
                         // Create wallet with custom signer (educational demo)
                         // This demonstrates the WalletSigner interface for external signing scenarios.
-                        // 
+                        //
                         // In production, you would NOT use mnemonic here. Instead:
                         // - For watch-only: User provides PUBLIC KEY only
                         // - For hardware wallet: Connect to device and get public key
@@ -599,10 +599,10 @@ class WalletKitViewModel @Inject constructor(
                         // For this demo, we simulate it by deriving public key from mnemonic,
                         // then implementing a custom signer that shows confirmation dialogs.
                         Log.d(LOG_TAG, "Creating wallet with SIGNER interface type (custom signer demo)")
-                        
+
                         val customSigner = createDemoSigner(cleaned, pending.metadata.name)
                         val signerInfo = kit.createSignerFromCustom(customSigner)
-                        
+
                         val adapter = when (version) {
                             // Note: You can optionally specify workchain and walletId parameters:
                             // - workchain: 0 (basechain, default) or -1 (masterchain)
@@ -702,7 +702,7 @@ class WalletKitViewModel @Inject constructor(
                 lifecycleManager.pendingWallets.removeLastOrNull()
                 return@launch
             }
-            
+
             // Check if trying to generate secret key wallet (not supported)
             if (interfaceType == WalletInterfaceType.SECRET_KEY) {
                 _state.update {
@@ -1073,7 +1073,7 @@ class WalletKitViewModel @Inject constructor(
             // Use the new SDK method instead of manual removal
             val kit = getKit()
             val removeResult = runCatching { kit.removeWallet(address) }
-            
+
             if (removeResult.isFailure) {
                 val fallback = uiString(R.string.wallet_error_remove_wallet)
                 val reason = removeResult.exceptionOrNull()?.message ?: fallback

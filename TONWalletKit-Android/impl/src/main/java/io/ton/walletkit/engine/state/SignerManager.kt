@@ -62,6 +62,11 @@ internal class SignerManager {
     fun getSigner(signerId: String): WalletSigner? = signerCallbacks[signerId]
 
     /**
+     * Check if a signer exists (for determining if it's a custom signer).
+     */
+    fun hasCustomSigner(signerId: String): Boolean = signerCallbacks.containsKey(signerId)
+
+    /**
      * Remove a signer from the registry.
      */
     suspend fun removeSigner(signerId: String) {

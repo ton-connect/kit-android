@@ -59,8 +59,8 @@ fun SignerConfirmationDialog(
                 stringResource(
                     R.string.signer_confirm_message,
                     dataSize,
-                    request.walletAddress.take(10) + "..."
-                )
+                    request.walletAddress.take(10) + "...",
+                ),
             )
         },
     )

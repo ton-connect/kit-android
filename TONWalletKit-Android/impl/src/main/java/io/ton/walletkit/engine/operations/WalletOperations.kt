@@ -40,8 +40,6 @@ import io.ton.walletkit.utils.EncodingUtils
 import io.ton.walletkit.utils.IDGenerator
 import org.json.JSONArray
 import org.json.JSONObject
-import java.math.BigDecimal
-import java.math.BigInteger
 
 /**
  * Encapsulates wallet lifecycle and account state operations.
@@ -160,16 +158,84 @@ internal class WalletOperations(
      * val signer = walletOperations.createSignerFromCustom(customSigner)
      * ```
      */
-    suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): WalletSignerInfo {
+    suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo {
         ensureInitialized()
 
-        // Register the custom signer in the SignerManager to handle sign requests
+        // Register the custom signer in the SignerManager to handle sign requests from JavaScript
         val signerId = signerManager.registerSigner(signer)
 
         // Return signer info with the registered ID and public key from the custom signer
         return WalletSignerInfo(
             signerId = signerId,
             publicKey = signer.publicKey,
+        )
+    }
+
+    /**
+     * Create a V5R1 wallet adapter from a custom signer.
+     * This is used specifically for custom signers (hardware wallets) where signing happens in Kotlin.
+     */
+    suspend fun createV5R1AdapterFromCustom(
+        signerInfo: WalletSignerInfo,
+        network: String?,
+        workchain: Int = 0,
+        walletId: Long = 2147483409L,
+    ): WalletAdapterInfo {
+        ensureInitialized()
+
+        val params =
+            JSONObject().apply {
+                put(ResponseConstants.KEY_SIGNER_ID, signerInfo.signerId)
+                put("publicKey", signerInfo.publicKey)
+                put("isCustom", true)
+                put("walletVersion", "v5r1")
+                network?.let { put(JsonConstants.KEY_NETWORK, it) }
+                put("workchain", workchain)
+                put("walletId", walletId)
+            }
+
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
+
+        val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }
+            ?: IDGenerator.generateAdapterId()
+
+        return WalletAdapterInfo(
+            adapterId = adapterId,
+            address = result.optString(ResponseConstants.KEY_ADDRESS),
+        )
+    }
+
+    /**
+     * Create a V4R2 wallet adapter from a custom signer.
+     * This is used specifically for custom signers (hardware wallets) where signing happens in Kotlin.
+     */
+    suspend fun createV4R2AdapterFromCustom(
+        signerInfo: WalletSignerInfo,
+        network: String?,
+        workchain: Int = 0,
+        walletId: Long = 698983191L,
+    ): WalletAdapterInfo {
+        ensureInitialized()
+
+        val params =
+            JSONObject().apply {
+                put(ResponseConstants.KEY_SIGNER_ID, signerInfo.signerId)
+                put("publicKey", signerInfo.publicKey)
+                put("isCustom", true)
+                put("walletVersion", "v4r2")
+                network?.let { put(JsonConstants.KEY_NETWORK, it) }
+                put("workchain", workchain)
+                put("walletId", walletId)
+            }
+
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
+
+        val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }
+            ?: IDGenerator.generateAdapterId()
+
+        return WalletAdapterInfo(
+            adapterId = adapterId,
+            address = result.optString(ResponseConstants.KEY_ADDRESS),
         )
     }
 

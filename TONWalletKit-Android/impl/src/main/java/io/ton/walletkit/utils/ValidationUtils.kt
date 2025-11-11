@@ -1,10 +1,24 @@
-/**
- * Copyright (c) TonTech.
+/*
+ * Copyright (c) 2025 TonTech
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
-
 package io.ton.walletkit.utils
 
 /**
@@ -21,17 +35,17 @@ object ValidationUtils {
      */
     fun requireValidAddress(address: String?): String {
         val trimmed = address?.trim()
-        
+
         if (trimmed.isNullOrBlank()) {
             throw IllegalArgumentException("Address is required")
         }
-        
+
         // Basic validation - TON addresses are typically 48 characters (base64)
         // or start with EQ/UQ for user-friendly format
         if (trimmed.length < 48) {
             throw IllegalArgumentException("Invalid address format: too short")
         }
-        
+
         return trimmed
     }
 
@@ -41,19 +55,19 @@ object ValidationUtils {
      */
     fun requireValidAmount(amount: String?): String {
         val trimmed = amount?.trim()
-        
+
         if (trimmed.isNullOrBlank()) {
             throw IllegalArgumentException("Amount is required")
         }
-        
+
         // Check if it's a valid number
         val numericValue = trimmed.toBigDecimalOrNull()
             ?: throw IllegalArgumentException("Amount must be a valid number")
-        
+
         if (numericValue <= java.math.BigDecimal.ZERO) {
             throw IllegalArgumentException("Amount must be greater than zero")
         }
-        
+
         return trimmed
     }
 
@@ -65,19 +79,19 @@ object ValidationUtils {
         if (mnemonic.isNullOrEmpty()) {
             throw IllegalArgumentException("Mnemonic is required")
         }
-        
+
         val validSizes = setOf(12, 15, 18, 21, 24)
         if (mnemonic.size !in validSizes) {
             throw IllegalArgumentException(
-                "Invalid mnemonic length: ${mnemonic.size}. Must be one of $validSizes"
+                "Invalid mnemonic length: ${mnemonic.size}. Must be one of $validSizes",
             )
         }
-        
+
         // Check that all words are non-empty
         if (mnemonic.any { it.isBlank() }) {
             throw IllegalArgumentException("Mnemonic contains empty words")
         }
-        
+
         return mnemonic
     }
 
@@ -87,11 +101,11 @@ object ValidationUtils {
      */
     fun requireNonEmpty(value: String?, fieldName: String = "Value"): String {
         val trimmed = value?.trim()
-        
+
         if (trimmed.isNullOrBlank()) {
             throw IllegalArgumentException("$fieldName is required")
         }
-        
+
         return trimmed
     }
 
@@ -147,11 +161,11 @@ object ValidationUtils {
         } else {
             trimmed
         }
-        
+
         if (!cleaned.matches(Regex("^[0-9a-fA-F]+$"))) {
             throw IllegalArgumentException("$fieldName must be a valid hex string")
         }
-        
+
         return cleaned
     }
 
@@ -161,11 +175,11 @@ object ValidationUtils {
      */
     fun requireValidUrl(url: String?, fieldName: String = "URL"): String {
         val trimmed = requireNonEmpty(url, fieldName)
-        
+
         if (!trimmed.matches(Regex("^https?://.*"))) {
             throw IllegalArgumentException("$fieldName must be a valid HTTP(S) URL")
         }
-        
+
         return trimmed
     }
 }

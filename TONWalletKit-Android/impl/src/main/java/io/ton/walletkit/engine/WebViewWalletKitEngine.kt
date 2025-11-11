@@ -111,7 +111,7 @@ internal class WebViewWalletKitEngine private constructor(
     private val signerManager = SignerManager()
     private val eventRouter = EventRouter()
     private val storageManager = StorageManager(storageAdapter) { persistentStorageEnabled }
-    
+
     // Transaction parser - initialized lazily to access current network
     private val transactionParser: TransactionParser
         get() = TransactionParser(isTestnet = currentNetwork == NetworkConstants.NETWORK_TESTNET)
@@ -133,6 +133,7 @@ internal class WebViewWalletKitEngine private constructor(
                 context = appContext,
                 assetPath = assetPath,
                 storageManager = storageManager,
+                signerManager = signerManager,
                 onMessage = ::handleBridgeMessage,
                 onBridgeError = ::handleBridgeError,
             )
@@ -271,6 +272,9 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo =
         walletOperations.createSignerFromCustom(signer)
 
+    override fun isCustomSigner(signerId: String): Boolean =
+        signerManager.hasCustomSigner(signerId)
+
     override suspend fun createV5R1Adapter(
         signerId: String,
         network: String?,
@@ -278,12 +282,26 @@ internal class WebViewWalletKitEngine private constructor(
         walletId: Long,
     ): WalletAdapterInfo = walletOperations.createV5R1Adapter(signerId, network, workchain, walletId)
 
+    override suspend fun createV5R1AdapterFromCustom(
+        signerInfo: WalletSignerInfo,
+        network: String?,
+        workchain: Int,
+        walletId: Long,
+    ): WalletAdapterInfo = walletOperations.createV5R1AdapterFromCustom(signerInfo, network, workchain, walletId)
+
     override suspend fun createV4R2Adapter(
         signerId: String,
         network: String?,
         workchain: Int,
         walletId: Long,
     ): WalletAdapterInfo = walletOperations.createV4R2Adapter(signerId, network, workchain, walletId)
+
+    override suspend fun createV4R2AdapterFromCustom(
+        signerInfo: WalletSignerInfo,
+        network: String?,
+        workchain: Int,
+        walletId: Long,
+    ): WalletAdapterInfo = walletOperations.createV4R2AdapterFromCustom(signerInfo, network, workchain, walletId)
 
     override suspend fun addWallet(adapterId: String): WalletAccount =
         walletOperations.addWallet(adapterId)

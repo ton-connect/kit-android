@@ -330,7 +330,7 @@ fun AddWalletSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    
+
                     // Show info message if Custom Signer or Secret Key is selected
                     when (interfaceType) {
                         WalletInterfaceType.SIGNER -> {
@@ -353,7 +353,7 @@ fun AddWalletSheet(
                             // No warning for mnemonic
                         }
                     }
-                    
+
                     Button(
                         onClick = { onGenerateWallet(walletName, network, walletVersion, interfaceType) },
                         modifier = Modifier.fillMaxWidth(),

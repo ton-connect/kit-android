@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2025 TonTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -47,11 +47,11 @@ object ByteArrayUtils {
      */
     fun fromHexString(hex: String): ByteArray {
         val cleanHex = hex.removePrefix("0x").removePrefix("0X")
-        
+
         if (cleanHex.length % 2 != 0) {
             throw IllegalArgumentException("Hex string must have even length")
         }
-        
+
         return try {
             cleanHex.chunked(2)
                 .map { it.toInt(16).toByte() }

@@ -126,11 +126,16 @@ internal interface WalletKitEngine : RequestHandler {
      * Create a signer from a custom WalletSigner implementation.
      * Step 1 of the wallet creation pattern, enabling hardware wallet integration.
      *
-     * @param signer Custom WalletSigner implementation (e.g., hardware wallet)
+     * @param signer Custom wallet signer (e.g., hardware wallet)
      * @return Signer info with ID and public key
      * @throws WalletKitBridgeException if signer creation fails
      */
     suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo
+
+    /**
+     * Check if a signer is a custom signer (registered in SignerManager).
+     */
+    fun isCustomSigner(signerId: String): Boolean
 
     /**
      * Create a V5R1 wallet adapter from a signer.
@@ -151,6 +156,17 @@ internal interface WalletKitEngine : RequestHandler {
     ): WalletAdapterInfo
 
     /**
+     * Create a V5R1 wallet adapter from a custom signer (hardware wallet).
+     * Use this for custom signers created with createSignerFromCustom.
+     */
+    suspend fun createV5R1AdapterFromCustom(
+        signerInfo: WalletSignerInfo,
+        network: String? = null,
+        workchain: Int = 0,
+        walletId: Long = 2147483409L,
+    ): WalletAdapterInfo
+
+    /**
      * Create a V4R2 wallet adapter from a signer.
      * Step 2 of the wallet creation pattern matching JS WalletKit.
      *
@@ -163,6 +179,17 @@ internal interface WalletKitEngine : RequestHandler {
      */
     suspend fun createV4R2Adapter(
         signerId: String,
+        network: String? = null,
+        workchain: Int = 0,
+        walletId: Long = 698983191L,
+    ): WalletAdapterInfo
+
+    /**
+     * Create a V4R2 wallet adapter from a custom signer (hardware wallet).
+     * Use this for custom signers created with createSignerFromCustom.
+     */
+    suspend fun createV4R2AdapterFromCustom(
+        signerInfo: WalletSignerInfo,
         network: String? = null,
         workchain: Int = 0,
         walletId: Long = 698983191L,
