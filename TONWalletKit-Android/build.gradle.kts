@@ -32,29 +32,31 @@ subprojects {
     }
 }
 
-// Task to build WebView variant only (lightweight, recommended)
+// Task to build WebView variant
 tasks.register("buildWebview") {
     group = "build"
-    description = "Build WebView-only SDK variant (lightweight, no QuickJS)"
+    description = "Build WebView SDK variant (no QuickJS) - DEBUG with logs"
     
-    dependsOn(":impl:bundleWebviewReleaseAar")
+    dependsOn(":impl:bundleWebviewDebugAar")
     
     doLast {
-        println("✅ WebView variant built: impl-webview-release.aar (2.7M)")
+        println("✅ WebView variant built: impl-webview-debug.aar (2.7M)")
         println("   Includes API + implementation, no QuickJS native libs")
+        println("   🐛 DEBUG build with full logging enabled")
     }
 }
 
 // Task to build Full variant with QuickJS
 tasks.register("buildFull") {
     group = "build"
-    description = "Build Full SDK variant (includes QuickJS)"
+    description = "Build Full SDK variant (includes QuickJS) - DEBUG with logs"
     
-    dependsOn(":impl:bundleFullReleaseAar")
+    dependsOn(":impl:bundleFullDebugAar")
     
     doLast {
-        println("✅ Full variant built: impl-full-release.aar (4.3M)")
+        println("✅ Full variant built: impl-full-debug.aar (4.3M)")
         println("   Includes API + implementation + QuickJS native libs")
+        println("   🐛 DEBUG build with full logging enabled")
     }
 }
 
@@ -69,20 +71,21 @@ tasks.register("buildAllVariants") {
 // Task to build and copy WebView variant to demo (default, recommended)
 tasks.register<Copy>("buildAndCopyWebviewToDemo") {
     group = "build"
-    description = "Build WebView SDK variant and copy to AndroidDemo/app/libs (default)"
+    description = "Build WebView SDK variant and copy to AndroidDemo/app/libs - DEBUG with logs"
     
-    dependsOn(":api:build", ":impl:bundleWebviewReleaseAar", ":api:sourcesJar")
+    dependsOn(":api:build", ":impl:bundleWebviewDebugAar", ":api:sourcesJar")
     
-    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-webview-release.aar"))
+    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-webview-debug.aar"))
     from(layout.projectDirectory.file("api/build/libs/api-sources.jar"))
     into(layout.projectDirectory.dir("../AndroidDemo/app/libs"))
-    rename("impl-webview-release.aar", "tonwalletkit-release.aar")
+    rename("impl-webview-debug.aar", "tonwalletkit-release.aar")
     rename("api-sources.jar", "tonwalletkit-release-sources.jar")
     
     doLast {
-        println("✅ WebView variant copied to AndroidDemo/app/libs/tonwalletkit-release.aar")
+        println("✅ WebView DEBUG variant copied to AndroidDemo/app/libs/tonwalletkit-release.aar")
         println("✅ Sources JAR copied to AndroidDemo/app/libs/tonwalletkit-release-sources.jar")
         println("   Size: ~2.7M (fat AAR with API + impl, no QuickJS)")
+        println("   🐛 DEBUG build - full logging enabled!")
         println("   Demo app uses: WebView engine only")
         println("   💡 Sources JAR enables KDoc viewing in Android Studio")
     }
@@ -91,20 +94,21 @@ tasks.register<Copy>("buildAndCopyWebviewToDemo") {
 // Task to build and copy Full variant to demo
 tasks.register<Copy>("buildAndCopyFullToDemo") {
     group = "build"
-    description = "Build Full SDK variant (with QuickJS) and copy to AndroidDemo/app/libs"
+    description = "Build Full SDK variant (with QuickJS) and copy to AndroidDemo/app/libs - DEBUG with logs"
     
-    dependsOn(":api:build", ":impl:bundleFullReleaseAar", ":api:sourcesJar")
+    dependsOn(":api:build", ":impl:bundleFullDebugAar", ":api:sourcesJar")
     
-    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-full-release.aar"))
+    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-full-debug.aar"))
     from(layout.projectDirectory.file("api/build/libs/api-sources.jar"))
     into(layout.projectDirectory.dir("../AndroidDemo/app/libs"))
-    rename("impl-full-release.aar", "tonwalletkit-release.aar")
+    rename("impl-full-debug.aar", "tonwalletkit-release.aar")
     rename("api-sources.jar", "tonwalletkit-release-sources.jar")
     
     doLast {
-        println("✅ Full variant copied to AndroidDemo/app/libs/tonwalletkit-release.aar")
+        println("✅ Full DEBUG variant copied to AndroidDemo/app/libs/tonwalletkit-release.aar")
         println("✅ Sources JAR copied to AndroidDemo/app/libs/tonwalletkit-release-sources.jar")
         println("   Size: ~4.3M (fat AAR with API + impl + QuickJS)")
+        println("   🐛 DEBUG build - full logging enabled!")
         println("   Demo app uses: WebView + QuickJS engines")
         println("   💡 Sources JAR enables KDoc viewing in Android Studio")
     }
@@ -121,27 +125,27 @@ tasks.register("buildAndCopyToDemo") {
 // Task to just copy existing WebView AAR without rebuilding
 tasks.register<Copy>("copyWebviewToDemo") {
     group = "build"
-    description = "Copy existing WebView AAR to demo (no rebuild)"
+    description = "Copy existing WebView DEBUG AAR to demo (no rebuild)"
     
-    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-webview-release.aar"))
+    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-webview-debug.aar"))
     into(layout.projectDirectory.dir("../AndroidDemo/app/libs"))
-    rename("impl-webview-release.aar", "tonwalletkit-release.aar")
+    rename("impl-webview-debug.aar", "tonwalletkit-release.aar")
     
     doLast {
-        println("✅ Copied existing AAR to AndroidDemo/app/libs/tonwalletkit-release.aar")
+        println("✅ Copied existing DEBUG AAR to AndroidDemo/app/libs/tonwalletkit-release.aar")
     }
 }
 
 // Task to just copy existing Full AAR without rebuilding
 tasks.register<Copy>("copyFullToDemo") {
     group = "build"
-    description = "Copy existing Full AAR to demo (no rebuild)"
+    description = "Copy existing Full DEBUG AAR to demo (no rebuild)"
     
-    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-full-release.aar"))
+    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-full-debug.aar"))
     into(layout.projectDirectory.dir("../AndroidDemo/app/libs"))
-    rename("impl-full-release.aar", "tonwalletkit-release.aar")
+    rename("impl-full-debug.aar", "tonwalletkit-release.aar")
     
     doLast {
-        println("✅ Copied existing AAR to AndroidDemo/app/libs/tonwalletkit-release.aar")
+        println("✅ Copied existing DEBUG AAR to AndroidDemo/app/libs/tonwalletkit-release.aar")
     }
 }
