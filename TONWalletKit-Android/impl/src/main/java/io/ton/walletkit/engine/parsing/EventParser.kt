@@ -22,7 +22,6 @@
 package io.ton.walletkit.engine.parsing
 
 import io.ton.walletkit.engine.WalletKitEngine
-import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.event.ConnectRequestEvent
 import io.ton.walletkit.event.SignDataRequestEvent
 import io.ton.walletkit.event.TONWalletKitEvent
@@ -33,8 +32,6 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.DAppInfo
-import io.ton.walletkit.model.SignDataRequest
-import io.ton.walletkit.model.TransactionRequest
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
@@ -52,7 +49,6 @@ import org.json.JSONObject
 internal class EventParser(
     private val json: Json,
     private val engine: WalletKitEngine,
-    private val signerManager: SignerManager,
 ) {
     fun parseEvent(type: String, data: JSONObject, raw: JSONObject): TONWalletKitEvent? =
         when (type) {
@@ -187,83 +183,6 @@ internal class EventParser(
         )
     }
 
-    private fun parsePermissions(data: JSONObject): List<String> {
-        val permissions = data.optJSONArray(ResponseConstants.KEY_PERMISSIONS) ?: return emptyList()
-        return List(permissions.length()) { i ->
-            permissions.optString(i)
-        }
-    }
-
-    fun parseTransactionRequest(data: JSONObject): TransactionRequest {
-        // Check if data is nested under request field
-        val requestData = data.optJSONObject(ResponseConstants.KEY_REQUEST) ?: data
-
-        // Try to parse from messages array first (TON Connect format)
-        val messages = requestData.optJSONArray(ResponseConstants.KEY_MESSAGES)
-        if (messages != null && messages.length() > 0) {
-            val firstMessage = messages.optJSONObject(0)
-            if (firstMessage != null) {
-                return TransactionRequest(
-                    recipient = firstMessage.optNullableString(ResponseConstants.KEY_ADDRESS)
-                        ?: firstMessage.optNullableString(ResponseConstants.KEY_TO)
-                        ?: "",
-                    amount = firstMessage.optNullableString(ResponseConstants.KEY_AMOUNT)
-                        ?: firstMessage.optNullableString(ResponseConstants.KEY_VALUE)
-                        ?: "0",
-                    comment = firstMessage.optNullableString(ResponseConstants.KEY_COMMENT)
-                        ?: firstMessage.optNullableString(ResponseConstants.KEY_TEXT),
-                    payload = firstMessage.optNullableString(ResponseConstants.KEY_PAYLOAD),
-                )
-            }
-        }
-
-        // Fallback to direct fields (legacy format or direct send)
-        return TransactionRequest(
-            recipient = requestData.optNullableString(ResponseConstants.KEY_TO)
-                ?: requestData.optNullableString(ResponseConstants.KEY_RECIPIENT) ?: "",
-            amount = requestData.optNullableString(ResponseConstants.KEY_AMOUNT)
-                ?: requestData.optNullableString(ResponseConstants.KEY_VALUE) ?: "0",
-            comment = requestData.optNullableString(ResponseConstants.KEY_COMMENT)
-                ?: requestData.optNullableString(ResponseConstants.KEY_TEXT),
-            payload = requestData.optNullableString(ResponseConstants.KEY_PAYLOAD),
-        )
-    }
-
-    fun parseSignDataRequest(data: JSONObject): SignDataRequest {
-        // Parse params array - params[0] contains stringified JSON with schema_crc and payload
-        var payload = data.optNullableString(ResponseConstants.KEY_PAYLOAD)
-            ?: data.optNullableString(ResponseConstants.KEY_DATA) ?: ""
-        var schema: String? = data.optNullableString(ResponseConstants.KEY_SCHEMA)
-
-        // Check if params array exists (newer format from bridge)
-        val paramsArray = data.optJSONArray(ResponseConstants.KEY_PARAMS)
-        if (paramsArray != null && paramsArray.length() > 0) {
-            val paramsString = paramsArray.optString(0)
-            if (paramsString.isNotEmpty()) {
-                try {
-                    val paramsObj = JSONObject(paramsString)
-                    payload = paramsObj.optNullableString(ResponseConstants.KEY_PAYLOAD) ?: payload
-
-                    // Convert schema_crc to human-readable schema type
-                    val schemaCrc = paramsObj.optInt(ResponseConstants.KEY_SCHEMA_CRC, -1)
-                    schema = when (schemaCrc) {
-                        0 -> "text"
-                        1 -> "binary"
-                        2 -> "cell"
-                        else -> schema
-                    }
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to parse sign data params", e)
-                }
-            }
-        }
-
-        return SignDataRequest(
-            payload = payload,
-            schema = schema,
-        )
-    }
-
     private fun JSONObject.optNullableString(key: String): String? {
         val value = opt(key)
         return when (value) {
@@ -277,6 +196,5 @@ internal class EventParser(
         private const val ERROR_FAILED_PARSE_CONNECT_REQUEST = "Failed to parse ConnectRequestEvent"
         private const val ERROR_FAILED_PARSE_TRANSACTION_REQUEST = "Failed to parse TransactionRequestEvent"
         private const val ERROR_FAILED_PARSE_SIGN_DATA_REQUEST = "Failed to parse SignDataRequestEvent"
-        private const val ERROR_FAILED_PARSE_SIGN_DATA_PARAMS = "Failed to parse params for sign data"
     }
 }

@@ -68,6 +68,27 @@ class TONWalletTransactionRequest(
         get() = event.request?.network
 
     /**
+     * Transaction preview information from the dApp (optional).
+     *
+     * This provides a human-readable description of the transaction,
+     * including the kind of operation, formatted content, and dApp manifest.
+     */
+    val preview: TransactionPreview?
+        get() = event.preview?.let { previewData ->
+            TransactionPreview(
+                kind = previewData.kind,
+                content = previewData.content,
+                manifest = previewData.manifest?.let { manifestData ->
+                    TransactionPreviewManifest(
+                        name = manifestData.name,
+                        url = manifestData.url,
+                        iconUrl = manifestData.iconUrl,
+                    )
+                },
+            )
+        }
+
+    /**
      * Approve this transaction request.
      *
      * @throws io.ton.walletkit.WalletKitBridgeException if approval fails
@@ -100,4 +121,32 @@ data class TransactionMessage(
     val amount: String,
     val payload: String? = null,
     val stateInit: String? = null,
+)
+
+/**
+ * Transaction preview information provided by the dApp.
+ *
+ * Contains human-readable transaction description and metadata.
+ *
+ * @property kind Type of transaction (e.g., "ton-transfer", "jetton-transfer", "nft-transfer")
+ * @property content Human-readable formatted description of the transaction
+ * @property manifest Metadata about the dApp providing the preview
+ */
+data class TransactionPreview(
+    val kind: String? = null,
+    val content: String? = null,
+    val manifest: TransactionPreviewManifest? = null,
+)
+
+/**
+ * Metadata about the dApp in transaction preview.
+ *
+ * @property name Display name of the dApp
+ * @property url URL of the dApp
+ * @property iconUrl URL to the dApp's icon
+ */
+data class TransactionPreviewManifest(
+    val name: String? = null,
+    val url: String? = null,
+    val iconUrl: String? = null,
 )

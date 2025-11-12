@@ -22,15 +22,18 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.engine.infrastructure.toJSONObject
+import io.ton.walletkit.engine.operations.requests.CreateMnemonicRequest
+import io.ton.walletkit.engine.operations.requests.MnemonicToKeyPairRequest
+import io.ton.walletkit.engine.operations.requests.SignRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
-import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.KeyPair
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
-import org.json.JSONObject
 
 /**
  * Handles cryptographic bridge operations such as mnemonic generation, key derivation,
@@ -47,6 +50,7 @@ import org.json.JSONObject
 internal class CryptoOperations(
     private val ensureInitialized: suspend () -> Unit,
     private val rpcClient: BridgeRpcClient,
+    private val json: Json,
 ) {
 
     /**
@@ -59,12 +63,8 @@ internal class CryptoOperations(
     suspend fun createTonMnemonic(wordCount: Int): List<String> {
         ensureInitialized()
 
-        val params =
-            JSONObject().apply {
-                put(JsonConstants.KEY_COUNT, wordCount)
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TON_MNEMONIC, params)
+        val request = CreateMnemonicRequest(count = wordCount)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TON_MNEMONIC, json.toJSONObject(request))
 
         // JS now returns array directly (not wrapped in { items: [...] })
         val items = if (result is JSONArray) {
@@ -95,13 +95,8 @@ internal class CryptoOperations(
     ): KeyPair {
         ensureInitialized()
 
-        val params =
-            JSONObject().apply {
-                put(JsonConstants.KEY_MNEMONIC, JSONArray(words))
-                put(JsonConstants.KEY_MNEMONIC_TYPE, mnemonicType)
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_MNEMONIC_TO_KEY_PAIR, params)
+        val request = MnemonicToKeyPairRequest(mnemonic = words, mnemonicType = mnemonicType)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_MNEMONIC_TO_KEY_PAIR, json.toJSONObject(request))
 
         // JS now returns raw keyPair object with Uint8Array properties (serialized as JSONArray)
         val publicKeyArray = result.optJSONArray(ResponseConstants.KEY_PUBLIC_KEY)
@@ -129,13 +124,11 @@ internal class CryptoOperations(
     ): ByteArray {
         ensureInitialized()
 
-        val params =
-            JSONObject().apply {
-                put(JsonConstants.KEY_DATA, JSONArray(data.map { it.toInt() and 0xFF }))
-                put(JsonConstants.KEY_SECRET_KEY, JSONArray(secretKey.map { it.toInt() and 0xFF }))
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_SIGN, params)
+        val request = SignRequest(
+            data = data.map { it.toInt() and 0xFF },
+            secretKey = secretKey.map { it.toInt() and 0xFF }
+        )
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_SIGN, json.toJSONObject(request))
 
         // JS now returns hex string directly (not wrapped in { signature: ... })
         val signatureHex = when {

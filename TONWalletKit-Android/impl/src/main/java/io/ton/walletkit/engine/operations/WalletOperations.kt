@@ -23,6 +23,12 @@ package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.WalletKitUtils
+import io.ton.walletkit.engine.infrastructure.toJSONObject
+import io.ton.walletkit.engine.operations.requests.AddWalletRequest
+import io.ton.walletkit.engine.operations.requests.AddressRequest
+import io.ton.walletkit.engine.operations.requests.CreateAdapterRequest
+import io.ton.walletkit.engine.operations.requests.CreateSignerRequest
+import io.ton.walletkit.engine.operations.requests.GetRecentTransactionsRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.parsing.TransactionParser
 import io.ton.walletkit.engine.state.SignerManager
@@ -38,6 +44,7 @@ import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.utils.EncodingUtils
 import io.ton.walletkit.utils.IDGenerator
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -61,6 +68,7 @@ internal class WalletOperations(
     private val signerManager: SignerManager,
     private val transactionParser: TransactionParser,
     private val currentNetworkProvider: () -> String,
+    private val json: Json,
 ) {
 
     /**
@@ -90,13 +98,8 @@ internal class WalletOperations(
     ): WalletSignerInfo {
         ensureInitialized()
 
-        val params =
-            JSONObject().apply {
-                put(JsonConstants.KEY_MNEMONIC, JSONArray(mnemonic))
-                put("mnemonicType", mnemonicType)
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, params)
+        val request = CreateSignerRequest(mnemonic = mnemonic, mnemonicType = mnemonicType)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, json.toJSONObject(request))
 
         // JS now returns { _tempId, signer } - extract signer object
         val tempId = result.optString("_tempId")
@@ -129,12 +132,8 @@ internal class WalletOperations(
     suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo {
         ensureInitialized()
 
-        val params =
-            JSONObject().apply {
-                put(JsonConstants.KEY_SECRET_KEY, WalletKitUtils.byteArrayToHexNoPrefix(secretKey))
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, params)
+        val request = CreateSignerRequest(secretKey = WalletKitUtils.byteArrayToHexNoPrefix(secretKey))
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, json.toJSONObject(request))
 
         // JS now returns { _tempId, signer } - extract signer object
         val tempId = result.optString("_tempId")
@@ -193,18 +192,16 @@ internal class WalletOperations(
     ): WalletAdapterInfo {
         ensureInitialized()
 
-        val params =
-            JSONObject().apply {
-                put(ResponseConstants.KEY_SIGNER_ID, signerInfo.signerId)
-                put("publicKey", signerInfo.publicKey)
-                put("isCustom", true)
-                put("walletVersion", "v5r1")
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-                put("workchain", workchain)
-                put("walletId", walletId)
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
+        val request = CreateAdapterRequest(
+            signerId = signerInfo.signerId,
+            publicKey = signerInfo.publicKey,
+            isCustom = true,
+            walletVersion = "v5r1",
+            network = network,
+            workchain = workchain,
+            walletId = walletId
+        )
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
 
         val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }
             ?: IDGenerator.generateAdapterId()
@@ -227,18 +224,16 @@ internal class WalletOperations(
     ): WalletAdapterInfo {
         ensureInitialized()
 
-        val params =
-            JSONObject().apply {
-                put(ResponseConstants.KEY_SIGNER_ID, signerInfo.signerId)
-                put("publicKey", signerInfo.publicKey)
-                put("isCustom", true)
-                put("walletVersion", "v4r2")
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-                put("workchain", workchain)
-                put("walletId", walletId)
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
+        val request = CreateAdapterRequest(
+            signerId = signerInfo.signerId,
+            publicKey = signerInfo.publicKey,
+            isCustom = true,
+            walletVersion = "v4r2",
+            network = network,
+            workchain = workchain,
+            walletId = walletId
+        )
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
 
         val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }
             ?: IDGenerator.generateAdapterId()
@@ -266,16 +261,14 @@ internal class WalletOperations(
     ): WalletAdapterInfo {
         ensureInitialized()
 
-        val params =
-            JSONObject().apply {
-                put(ResponseConstants.KEY_SIGNER_ID, signerId)
-                put("walletVersion", "v5r1")
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-                put("workchain", workchain)
-                put("walletId", walletId)
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
+        val request = CreateAdapterRequest(
+            signerId = signerId,
+            walletVersion = "v5r1",
+            network = network,
+            workchain = workchain,
+            walletId = walletId
+        )
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
 
         // JS now returns { _tempId, adapter } - extract adapter object
         val tempId = result.optString("_tempId")
@@ -311,16 +304,14 @@ internal class WalletOperations(
     ): WalletAdapterInfo {
         ensureInitialized()
 
-        val params =
-            JSONObject().apply {
-                put(ResponseConstants.KEY_SIGNER_ID, signerId)
-                put("walletVersion", "v4r2")
-                network?.let { put(JsonConstants.KEY_NETWORK, it) }
-                put("workchain", workchain)
-                put("walletId", walletId)
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, params)
+        val request = CreateAdapterRequest(
+            signerId = signerId,
+            walletVersion = "v4r2",
+            network = network,
+            workchain = workchain,
+            walletId = walletId
+        )
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
 
         // JS now returns { _tempId, adapter } - extract adapter object
         val tempId = result.optString("_tempId")
@@ -351,12 +342,8 @@ internal class WalletOperations(
     suspend fun addWallet(adapterId: String): WalletAccount {
         ensureInitialized()
 
-        val params =
-            JSONObject().apply {
-                put("adapterId", adapterId)
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, params)
+        val request = AddWalletRequest(adapterId = adapterId)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, json.toJSONObject(request))
 
         // JS now returns raw wallet object - extract properties
         val rawPublicKey = result.optString("publicKey")
@@ -401,7 +388,7 @@ internal class WalletOperations(
                     ?: entry.optNullableString(ResponseConstants.KEY_PUBLIC_KEY)
                 val publicKey = rawPublicKey?.let { EncodingUtils.stripHexPrefix(it) }
 
-                // Extract address (may be stored or need getAddress() call)
+                // Extract address
                 val address = entry.optString("address").takeIf { it.isNotEmpty() }
                     ?: entry.optString(ResponseConstants.KEY_ADDRESS)
 
@@ -426,8 +413,8 @@ internal class WalletOperations(
     suspend fun getWallet(address: String): WalletAccount? {
         ensureInitialized()
 
-        val params = JSONObject().apply { put(ResponseConstants.KEY_ADDRESS, address) }
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_WALLET, params)
+        val request = AddressRequest(address = address)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_WALLET, json.toJSONObject(request))
 
         // JS now returns raw wallet object or null
         if (result.length() == 0) {
@@ -463,8 +450,8 @@ internal class WalletOperations(
     suspend fun removeWallet(address: String) {
         ensureInitialized()
 
-        val params = JSONObject().apply { put(ResponseConstants.KEY_ADDRESS, address) }
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_REMOVE_WALLET, params)
+        val request = AddressRequest(address = address)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_REMOVE_WALLET, json.toJSONObject(request))
         Logger.d(TAG, "removeWallet result: $result")
 
         val removed =
@@ -486,8 +473,8 @@ internal class WalletOperations(
     suspend fun getBalance(address: String): String {
         ensureInitialized()
 
-        val params = JSONObject().apply { put(ResponseConstants.KEY_ADDRESS, address) }
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_BALANCE, params)
+        val request = AddressRequest(address = address)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_BALANCE, json.toJSONObject(request))
 
         // JS now returns raw balance value (bigint/number) directly
         return when {
@@ -507,13 +494,8 @@ internal class WalletOperations(
     suspend fun getRecentTransactions(address: String, limit: Int): List<Transaction> {
         ensureInitialized()
 
-        val params =
-            JSONObject().apply {
-                put(ResponseConstants.KEY_ADDRESS, address)
-                put(ResponseConstants.KEY_LIMIT, limit)
-            }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_RECENT_TRANSACTIONS, params)
+        val request = GetRecentTransactionsRequest(address = address, limit = limit)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_RECENT_TRANSACTIONS, json.toJSONObject(request))
 
         // JS now returns array directly (not wrapped in { items: [...] })
         val transactions = if (result is JSONArray) {

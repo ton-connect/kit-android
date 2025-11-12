@@ -85,7 +85,6 @@ import org.json.JSONObject
  */
 internal class WebViewWalletKitEngine private constructor(
     context: Context,
-    configuration: TONWalletKitConfiguration,
     eventsHandler: TONBridgeEventsHandler?,
     private val assetPath: String = WebViewConstants.DEFAULT_ASSET_PATH,
 ) : WalletKitEngine {
@@ -139,7 +138,7 @@ internal class WebViewWalletKitEngine private constructor(
             )
         rpcClient = BridgeRpcClient(webViewManager)
         initManager = InitializationManager(appContext, rpcClient)
-        eventParser = EventParser(json, this, signerManager)
+        eventParser = EventParser(json, this)
         messageDispatcher =
             MessageDispatcher(
                 rpcClient = rpcClient,
@@ -161,11 +160,13 @@ internal class WebViewWalletKitEngine private constructor(
                 signerManager = signerManager,
                 transactionParser = transactionParser,
                 currentNetworkProvider = { currentNetwork },
+                json = json,
             )
         cryptoOperations =
             CryptoOperations(
                 ensureInitialized = ensureInitialized,
                 rpcClient = rpcClient,
+                json = json,
             )
         transactionOperations =
             TransactionOperations(
@@ -525,7 +526,7 @@ internal class WebViewWalletKitEngine private constructor(
                     }
 
                     Logger.w(TAG, "🔶🔶🔶 Creating NEW WebView engine for network: $network")
-                    WebViewWalletKitEngine(context, configuration, eventsHandler, assetPath).also {
+                    WebViewWalletKitEngine(context, eventsHandler, assetPath).also {
                         instances[network] = it
                     }
                 }
