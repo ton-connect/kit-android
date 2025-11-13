@@ -40,8 +40,6 @@ import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.DAppInfo
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONNetwork
-import io.ton.walletkit.model.Transaction
-import io.ton.walletkit.model.TransactionType
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletSession
 import io.ton.walletkit.presentation.impl.quickjs.QuickJs

@@ -26,8 +26,6 @@ import io.ton.walletkit.event.SignDataRequestEvent
 import io.ton.walletkit.event.TransactionRequestEvent
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import org.json.JSONArray
-import org.json.JSONObject
 
 /**
  * Internal bridge request models for TonConnect operations.
@@ -45,7 +43,8 @@ internal data class HandleTonConnectUrlRequest(
 internal data class ProcessInternalBrowserRequest(
     val messageId: String,
     val method: String,
-    val params: JsonElement? = null, // Raw JSON (can be array or object)
+    // Raw JSON (can be array or object)
+    val params: JsonElement? = null,
     val url: String? = null,
 )
 

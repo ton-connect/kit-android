@@ -22,11 +22,11 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.operations.requests.CreateMnemonicRequest
 import io.ton.walletkit.engine.operations.requests.MnemonicToKeyPairRequest
 import io.ton.walletkit.engine.operations.requests.SignRequest
-import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
@@ -126,7 +126,7 @@ internal class CryptoOperations(
 
         val request = SignRequest(
             data = data.map { it.toInt() and 0xFF },
-            secretKey = secretKey.map { it.toInt() and 0xFF }
+            secretKey = secretKey.map { it.toInt() and 0xFF },
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_SIGN, json.toJSONObject(request))
 

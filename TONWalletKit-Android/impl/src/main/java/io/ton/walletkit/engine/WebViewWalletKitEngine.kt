@@ -57,7 +57,6 @@ import io.ton.walletkit.model.TONNFTTransferParamsRaw
 import io.ton.walletkit.model.TONNetwork
 import io.ton.walletkit.model.TONTransactionPreview
 import io.ton.walletkit.model.TONTransferParams
-import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSession

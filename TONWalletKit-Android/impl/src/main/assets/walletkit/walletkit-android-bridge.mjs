@@ -87042,10 +87042,7 @@ var __async$2 = (__this, __arguments, generator2) => {
 function handleTonConnectUrl(args) {
   return __async$2(this, null, function* () {
     return callBridge("handleTonConnectUrl", () => __async$2(this, null, function* () {
-      if (!args || typeof args !== "string") {
-        throw new Error("TON Connect URL string is required");
-      }
-      return yield walletKit.handleTonConnectUrl(args);
+      return yield walletKit.handleTonConnectUrl(args.url);
     }));
   });
 }

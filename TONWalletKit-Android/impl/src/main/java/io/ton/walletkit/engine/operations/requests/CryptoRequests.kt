@@ -43,6 +43,7 @@ internal data class MnemonicToKeyPairRequest(
 
 @Serializable
 internal data class SignRequest(
-    val data: List<Int>, // ByteArray as List<Int> for JSON serialization
+    // ByteArray as List<Int> for JSON serialization
+    val data: List<Int>,
     val secretKey: List<Int>,
 )

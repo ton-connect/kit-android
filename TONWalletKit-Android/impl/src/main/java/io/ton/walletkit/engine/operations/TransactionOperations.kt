@@ -21,13 +21,13 @@
  */
 package io.ton.walletkit.engine.operations
 
+import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
-import io.ton.walletkit.engine.operations.requests.CreateTransferTonRequest
 import io.ton.walletkit.engine.operations.requests.CreateTransferMultiTonRequest
+import io.ton.walletkit.engine.operations.requests.CreateTransferTonRequest
+import io.ton.walletkit.engine.operations.requests.GetTransactionPreviewRequest
 import io.ton.walletkit.engine.operations.requests.HandleNewTransactionRequest
 import io.ton.walletkit.engine.operations.requests.SendTransactionRequest
-import io.ton.walletkit.engine.operations.requests.GetTransactionPreviewRequest
-import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import kotlinx.serialization.json.Json
@@ -60,7 +60,7 @@ internal class TransactionOperations(
             amount = params.amount,
             comment = params.comment,
             body = params.body,
-            stateInit = params.stateInit
+            stateInit = params.stateInit,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_TON_TRANSACTION, json.toJSONObject(request))
 

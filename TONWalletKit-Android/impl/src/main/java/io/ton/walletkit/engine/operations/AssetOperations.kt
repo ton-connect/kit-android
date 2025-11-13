@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.engine.operations
 
+import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.operations.requests.CreateTransferJettonRequest
 import io.ton.walletkit.engine.operations.requests.CreateTransferNftRawRequest
@@ -30,7 +31,6 @@ import io.ton.walletkit.engine.operations.requests.GetJettonWalletAddressRequest
 import io.ton.walletkit.engine.operations.requests.GetJettonsRequest
 import io.ton.walletkit.engine.operations.requests.GetNftRequest
 import io.ton.walletkit.engine.operations.requests.GetNftsRequest
-import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.model.TONJettonTransferParams
 import io.ton.walletkit.model.TONJettonWallets
@@ -87,7 +87,7 @@ internal class AssetOperations(
             nftAddress = params.nftAddress,
             transferAmount = params.transferAmount,
             toAddress = params.toAddress,
-            comment = params.comment
+            comment = params.comment,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_TRANSACTION, json.toJSONObject(request))
         return result.toString()
@@ -103,7 +103,7 @@ internal class AssetOperations(
             address = walletAddress,
             nftAddress = params.nftAddress,
             transferAmount = params.transferAmount,
-            transferMessage = params.transferMessage
+            transferMessage = params.transferMessage,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_RAW_TRANSACTION, json.toJSONObject(request))
         return result.toString()
@@ -128,7 +128,7 @@ internal class AssetOperations(
             toAddress = params.toAddress,
             jettonAddress = params.jettonAddress,
             amount = params.amount,
-            comment = params.comment
+            comment = params.comment,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_JETTON_TRANSACTION, json.toJSONObject(request))
         return result.toString()

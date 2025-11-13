@@ -23,12 +23,12 @@ package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.WalletKitUtils
+import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.operations.requests.AddWalletRequest
 import io.ton.walletkit.engine.operations.requests.AddressRequest
 import io.ton.walletkit.engine.operations.requests.CreateAdapterRequest
 import io.ton.walletkit.engine.operations.requests.CreateSignerRequest
-import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.JsonConstants
@@ -194,7 +194,7 @@ internal class WalletOperations(
             walletVersion = "v5r1",
             network = network,
             workchain = workchain,
-            walletId = walletId
+            walletId = walletId,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
 
@@ -226,7 +226,7 @@ internal class WalletOperations(
             walletVersion = "v4r2",
             network = network,
             workchain = workchain,
-            walletId = walletId
+            walletId = walletId,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
 
@@ -261,7 +261,7 @@ internal class WalletOperations(
             walletVersion = "v5r1",
             network = network,
             workchain = workchain,
-            walletId = walletId
+            walletId = walletId,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
 
@@ -304,7 +304,7 @@ internal class WalletOperations(
             walletVersion = "v4r2",
             network = network,
             workchain = workchain,
-            walletId = walletId
+            walletId = walletId,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
 
