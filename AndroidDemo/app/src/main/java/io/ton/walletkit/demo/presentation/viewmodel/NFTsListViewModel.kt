@@ -86,7 +86,7 @@ class NFTsListViewModel(
             try {
                 _state.value = NFTState.Loading
 
-                val result = wallet.nfts(limit = limit, offset = 0)
+                val result = wallet.getNFTItems(limit = limit, offset = 0)
 
                 Log.d("NFTsListViewModel", "Loaded ${result.items.size} NFTs, pagination: ${result.pagination}")
                 result.items.forEachIndexed { index, nft ->
@@ -125,7 +125,7 @@ class NFTsListViewModel(
             try {
                 _isLoadingMore.value = true
 
-                val result = wallet.nfts(
+                val result = wallet.getNFTItems(
                     limit = limit,
                     offset = currentPagination.offset,
                 )

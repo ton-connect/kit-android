@@ -124,13 +124,13 @@ internal class TONWallet internal constructor(
     }
 
     /**
-     * Get the current balance of this wallet.
+     * Get wallet balance in nanoTON.
      *
-     * @return Balance in nanoTON as a string, or null if not available
+     * @return Balance in nanoTON as a string, or "0" if not available
      * @throws io.ton.walletkit.WalletKitBridgeException if balance retrieval fails
      */
-    suspend fun balance(): String? {
-        val addr = address ?: return null
+    override suspend fun getBalance(): String {
+        val addr = address ?: return "0"
         return engine.getBalance(addr)
     }
 
@@ -249,9 +249,14 @@ internal class TONWallet internal constructor(
      * @return NFT items with pagination information
      * @throws WalletKitBridgeException if NFT retrieval fails
      */
-    override suspend fun nfts(limit: Int, offset: Int): TONNFTItems {
+    override suspend fun getNFTItems(
+        limit: Int?,
+        offset: Int?,
+        collectionAddress: String?,
+        indirectOwnership: Boolean?,
+    ): TONNFTItems {
         val addr = address ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.getNfts(addr, limit, offset)
+        return engine.getNfts(addr, limit ?: 100, offset ?: 0)
     }
 
     /**
@@ -327,9 +332,12 @@ internal class TONWallet internal constructor(
      * @return Jetton wallets with pagination information
      * @throws WalletKitBridgeException if jetton retrieval fails
      */
-    override suspend fun jettons(limit: Int, offset: Int): TONJettonWallets {
+    override suspend fun getJettons(
+        limit: Int?,
+        offset: Int?,
+    ): TONJettonWallets {
         val addr = address ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.getJettons(addr, limit, offset)
+        return engine.getJettons(addr, limit ?: 100, offset ?: 0)
     }
 
     /**
@@ -374,30 +382,6 @@ internal class TONWallet internal constructor(
     override suspend fun getJettonWalletAddress(jettonAddress: String): String {
         val addr = address ?: throw WalletKitBridgeException("Wallet address is null")
         return engine.getJettonWalletAddress(addr, jettonAddress)
-    }
-
-    // ========== Interface Implementations ==========
-
-    override suspend fun getBalance(): String {
-        return balance() ?: "0"
-    }
-
-    override suspend fun getNFTItems(
-        limit: Int?,
-        offset: Int?,
-        collectionAddress: String?,
-        indirectOwnership: Boolean?,
-    ): TONNFTItems {
-        val addr = address ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.getNfts(addr, limit ?: 100, offset ?: 0)
-    }
-
-    override suspend fun getJettons(
-        limit: Int?,
-        offset: Int?,
-    ): TONJettonWallets {
-        val addr = address ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.getJettons(addr, limit ?: 100, offset ?: 0)
     }
 
     override suspend fun signData(

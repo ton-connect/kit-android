@@ -195,21 +195,4 @@ interface ITONWallet {
      * Permanently deletes the wallet. Ensure backup before calling.
      */
     suspend fun remove()
-
-    // Convenience aliases for compatibility
-    suspend fun jettons(limit: Int = 100, offset: Int = 0): TONJettonWallets =
-        getJettons(limit, offset)
-
-    suspend fun nfts(limit: Int = 100, offset: Int = 0): TONNFTItems =
-        getNFTItems(limit, offset, null, null)
-
-    suspend fun nft(nftAddress: String): TONNFTItem? = getNFT(nftAddress)
-
-    suspend fun createTransferNftTransaction(params: TONNFTTransferParamsHuman): String =
-        createTransferNFTTransaction(params)
-
-    suspend fun jettonBalance(jettonAddress: String): String = getJettonBalance(jettonAddress)
-
-    suspend fun jettonWalletAddress(jettonAddress: String): String =
-        getJettonWalletAddress(jettonAddress)
 }

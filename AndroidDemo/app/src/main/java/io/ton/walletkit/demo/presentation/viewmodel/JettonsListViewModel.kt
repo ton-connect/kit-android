@@ -95,7 +95,7 @@ class JettonsListViewModel(
             try {
                 _state.value = JettonState.Loading
 
-                val result = wallet.jettons(limit = limit, offset = 0)
+                val result = wallet.getJettons(limit = limit, offset = 0)
 
                 Log.d(TAG, "Loaded ${result.items.size} jettons, pagination: ${result.pagination}")
                 result.items.forEachIndexed { index, jettonWallet ->
@@ -140,7 +140,7 @@ class JettonsListViewModel(
             try {
                 _isLoadingMore.value = true
 
-                val result = wallet.jettons(
+                val result = wallet.getJettons(
                     limit = limit,
                     offset = currentOffset,
                 )
