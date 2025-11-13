@@ -16,8 +16,8 @@ android {
         consumerProguardFiles("consumer-rules.pro")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Enable logging in debug builds only
-        buildConfigField("boolean", "ENABLE_LOGGING", "true")
+        // Default log level (can be overridden per build type)
+        buildConfigField("String", "LOG_LEVEL", "\"DEBUG\"")
     }
 
     flavorDimensions += "engine"
@@ -57,14 +57,14 @@ android {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
 
-            // Disable logging in release builds
-            buildConfigField("boolean", "ENABLE_LOGGING", "false")
+            // Release: errors and warnings only (WARN level)
+            buildConfigField("String", "LOG_LEVEL", "\"WARN\"")
         }
         debug {
             isMinifyEnabled = false
 
-            // Enable logging in debug builds
-            buildConfigField("boolean", "ENABLE_LOGGING", "true")
+            // Debug: all logs including detailed debugging (DEBUG level)
+            buildConfigField("String", "LOG_LEVEL", "\"DEBUG\"")
         }
     }
 

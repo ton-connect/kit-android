@@ -1810,24 +1810,38 @@ ieee754.write = function(buffer2, value, offset, isLE, mLen, nBytes) {
     throw new Error("BigInt not supported");
   }
 })(buffer);
-const debugWindow = window;
-const DEBUG_ENABLED = Boolean(debugWindow.__WALLETKIT_DEBUG__);
+var LogLevel$1 = /* @__PURE__ */ ((LogLevel2) => {
+  LogLevel2[LogLevel2["OFF"] = 0] = "OFF";
+  LogLevel2[LogLevel2["ERROR"] = 1] = "ERROR";
+  LogLevel2[LogLevel2["WARN"] = 2] = "WARN";
+  LogLevel2[LogLevel2["INFO"] = 3] = "INFO";
+  LogLevel2[LogLevel2["DEBUG"] = 4] = "DEBUG";
+  return LogLevel2;
+})(LogLevel$1 || {});
+const logWindow = window;
 const consoleRef = globalThis.console;
-const debugLog = (...args) => {
+function getCurrentLogLevel() {
   var _a3;
-  if (DEBUG_ENABLED) {
-    (_a3 = consoleRef == null ? void 0 : consoleRef.log) == null ? void 0 : _a3.call(consoleRef, ...args);
+  const levelStr = logWindow.__WALLETKIT_LOG_LEVEL__ || "OFF";
+  return (_a3 = LogLevel$1[levelStr]) != null ? _a3 : 0;
+}
+const log$l = (...args) => {
+  var _a3;
+  if (getCurrentLogLevel() >= 4) {
+    (_a3 = consoleRef == null ? void 0 : consoleRef.log) == null ? void 0 : _a3.call(consoleRef, "[WalletKit]", ...args);
   }
 };
-const debugWarn = (...args) => {
+const warn = (...args) => {
   var _a3;
-  if (DEBUG_ENABLED) {
-    (_a3 = consoleRef == null ? void 0 : consoleRef.warn) == null ? void 0 : _a3.call(consoleRef, ...args);
+  if (getCurrentLogLevel() >= 2) {
+    (_a3 = consoleRef == null ? void 0 : consoleRef.warn) == null ? void 0 : _a3.call(consoleRef, "[WalletKit]", ...args);
   }
 };
-const logError = (...args) => {
+const error$2 = (...args) => {
   var _a3;
-  (_a3 = consoleRef == null ? void 0 : consoleRef.error) == null ? void 0 : _a3.call(consoleRef, ...args);
+  if (getCurrentLogLevel() >= 1) {
+    (_a3 = consoleRef == null ? void 0 : consoleRef.error) == null ? void 0 : _a3.call(consoleRef, "[WalletKit]", ...args);
+  }
 };
 function ensureBuffer(scope) {
   if (typeof scope.Buffer === "undefined") {
@@ -1836,7 +1850,7 @@ function ensureBuffer(scope) {
       writable: true,
       configurable: true
     });
-    debugLog("[walletkitBridge] ✅ Buffer polyfill injected");
+    log$l("[walletkitBridge] ✅ Buffer polyfill injected");
   }
 }
 function setupNativeBridge() {
@@ -1844,11 +1858,11 @@ function setupNativeBridge() {
   ensureBuffer(scope);
   const bridge = scope.WalletKitNative;
   if (!bridge) {
-    debugWarn("[walletkitBridge] WalletKitNative bridge not found, storage will not be available");
+    warn("[walletkitBridge] WalletKitNative bridge not found, storage will not be available");
     return;
   }
   if (typeof bridge.storageGet !== "function" || typeof bridge.storageSet !== "function" || typeof bridge.storageRemove !== "function" || typeof bridge.storageClear !== "function") {
-    debugWarn("[walletkitBridge] Bridge is missing storage methods, WalletKitNativeStorage will not be available");
+    warn("[walletkitBridge] Bridge is missing storage methods, WalletKitNativeStorage will not be available");
     return;
   }
   try {
@@ -1858,7 +1872,7 @@ function setupNativeBridge() {
           const value = bridge.storageGet(key2);
           return value === void 0 || value === null ? null : String(value);
         } catch (err) {
-          logError("[walletkitBridge] Error in WalletKitNativeStorage.getItem:", err);
+          error$2("[walletkitBridge] Error in WalletKitNativeStorage.getItem:", err);
           return null;
         }
       },
@@ -1866,21 +1880,21 @@ function setupNativeBridge() {
         try {
           bridge.storageSet(key2, String(value));
         } catch (err) {
-          logError("[walletkitBridge] Error in WalletKitNativeStorage.setItem:", err);
+          error$2("[walletkitBridge] Error in WalletKitNativeStorage.setItem:", err);
         }
       },
       removeItem(key2) {
         try {
           bridge.storageRemove(key2);
         } catch (err) {
-          logError("[walletkitBridge] Error in WalletKitNativeStorage.removeItem:", err);
+          error$2("[walletkitBridge] Error in WalletKitNativeStorage.removeItem:", err);
         }
       },
       clear() {
         try {
           bridge.storageClear();
         } catch (err) {
-          logError("[walletkitBridge] Error in WalletKitNativeStorage.clear:", err);
+          error$2("[walletkitBridge] Error in WalletKitNativeStorage.clear:", err);
         }
       },
       get length() {
@@ -1896,12 +1910,12 @@ function setupNativeBridge() {
         writable: false,
         configurable: true
       });
-      debugLog("[walletkitBridge] ✅ WalletKitNativeStorage exposed for secure native storage");
+      log$l("[walletkitBridge] ✅ WalletKitNativeStorage exposed for secure native storage");
     } else {
-      debugWarn("[walletkitBridge] WalletKitNativeStorage already present, not overriding");
+      warn("[walletkitBridge] WalletKitNativeStorage already present, not overriding");
     }
   } catch (err) {
-    logError("[walletkitBridge] Failed to expose WalletKitNativeStorage:", err);
+    error$2("[walletkitBridge] Failed to expose WalletKitNativeStorage:", err);
   }
 }
 setupNativeBridge();
@@ -85968,6 +85982,9 @@ class Signer {
     };
   }
 }
+const TONCONNECT_BRIDGE_EVENT = "TONCONNECT_BRIDGE_EVENT";
+const DEFAULT_REQUEST_TIMEOUT = 3e5;
+const RESTORE_CONNECTION_TIMEOUT = 1e4;
 const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   ApiClientToncenter,
@@ -85986,6 +86003,7 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   ConnectHandler,
   CreateTonMnemonic,
   DEFAULT_DURABLE_EVENTS_CONFIG,
+  DEFAULT_REQUEST_TIMEOUT,
   DefaultSignature,
   DisconnectHandler,
   ERROR_CODES,
@@ -86009,6 +86027,7 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   Opcodes,
   ParseBase64,
   ParseStack,
+  RESTORE_CONNECTION_TIMEOUT,
   RequestProcessor,
   get SEND_TRANSACTION_ERROR_CODES() {
     return SEND_TRANSACTION_ERROR_CODES;
@@ -86022,6 +86041,7 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   StorageError,
   StorageEventProcessor,
   StorageEventStore,
+  TONCONNECT_BRIDGE_EVENT,
   TonWalletKit,
   TransactionHandler,
   Uint8ArrayToBase64,
@@ -86093,7 +86113,7 @@ function initTonWalletKit(config, deps) {
     const network = networkRaw === "mainnet" ? CHAIN.MAINNET : CHAIN.TESTNET;
     const tonApiUrl = (config == null ? void 0 : config.tonApiUrl) || (config == null ? void 0 : config.apiBaseUrl);
     const clientEndpoint = (config == null ? void 0 : config.tonClientEndpoint) || (config == null ? void 0 : config.apiUrl);
-    debugLog("[walletkitBridge] initTonWalletKit config:", JSON.stringify(config, null, 2));
+    log$l("[walletkitBridge] initTonWalletKit config:", JSON.stringify(config, null, 2));
     const kitOptions = {
       network,
       apiClient: { url: clientEndpoint }
@@ -86109,58 +86129,58 @@ function initTonWalletKit(config, deps) {
         bridgeUrl: config.bridgeUrl,
         jsBridgeTransport: (sessionId, message2) => __async$b(this, null, function* () {
           var _a22, _b2;
-          debugLog("[walletkitBridge] 📤 jsBridgeTransport called:", {
+          log$l("[walletkitBridge] 📤 jsBridgeTransport called:", {
             sessionId,
             messageType: message2.type,
             messageId: message2.messageId,
             hasPayload: !!message2.payload,
             payloadEvent: (_a22 = message2.payload) == null ? void 0 : _a22.event
           });
-          debugLog("[walletkitBridge] 📤 Full message:", JSON.stringify(message2, null, 2));
+          log$l("[walletkitBridge] 📤 Full message:", JSON.stringify(message2, null, 2));
           let bridgeMessage = message2;
           if (bridgeMessage.type === "TONCONNECT_BRIDGE_RESPONSE" && ((_b2 = bridgeMessage.payload) == null ? void 0 : _b2.event) === "disconnect" && !bridgeMessage.messageId) {
-            debugLog("[walletkitBridge] 🔄 Transforming disconnect response to event");
+            log$l("[walletkitBridge] 🔄 Transforming disconnect response to event");
             bridgeMessage = {
               type: "TONCONNECT_BRIDGE_EVENT",
               source: bridgeMessage.source,
               event: bridgeMessage.payload,
               traceId: bridgeMessage.traceId
             };
-            debugLog("[walletkitBridge] 🔄 Transformed message:", JSON.stringify(bridgeMessage, null, 2));
+            log$l("[walletkitBridge] 🔄 Transformed message:", JSON.stringify(bridgeMessage, null, 2));
           }
           if (bridgeMessage.messageId) {
-            debugLog("[walletkitBridge] 🔵 Message has messageId, checking for pending promise");
+            log$l("[walletkitBridge] 🔵 Message has messageId, checking for pending promise");
             const resolvers2 = getInternalBrowserResolverMap();
             const resolver = resolvers2 == null ? void 0 : resolvers2.get(bridgeMessage.messageId);
             if (resolver) {
-              debugLog(
+              log$l(
                 "[walletkitBridge] ✅ Resolving response promise for messageId:",
                 bridgeMessage.messageId
               );
               resolvers2 == null ? void 0 : resolvers2.delete(bridgeMessage.messageId);
               resolver.resolve(bridgeMessage);
             } else {
-              debugWarn("[walletkitBridge] ⚠️ No pending promise for messageId:", bridgeMessage.messageId);
+              warn("[walletkitBridge] ⚠️ No pending promise for messageId:", bridgeMessage.messageId);
             }
           }
           if (bridgeMessage.type === "TONCONNECT_BRIDGE_EVENT") {
-            debugLog("[walletkitBridge] 📤 Sending event to WebView for session:", sessionId);
+            log$l("[walletkitBridge] 📤 Sending event to WebView for session:", sessionId);
             deps.postToNative({
               kind: "jsBridgeEvent",
               sessionId,
               event: bridgeMessage
             });
-            debugLog("[walletkitBridge] ✅ Event sent successfully");
+            log$l("[walletkitBridge] ✅ Event sent successfully");
           }
           return Promise.resolve();
         })
       };
     }
     if (window.WalletKitNative) {
-      debugLog("[walletkitBridge] Using Android native storage adapter");
+      log$l("[walletkitBridge] Using Android native storage adapter");
       kitOptions.storage = new deps.AndroidStorageAdapter();
     } else if (config == null ? void 0 : config.allowMemoryStorage) {
-      debugLog("[walletkitBridge] Using memory storage (sessions will not persist)");
+      log$l("[walletkitBridge] Using memory storage (sessions will not persist)");
       kitOptions.storage = {
         allowMemory: true
       };
@@ -86174,7 +86194,7 @@ function initTonWalletKit(config, deps) {
     }
     deps.emit("ready", { network: networkRaw, tonApiUrl, tonClientEndpoint: clientEndpoint });
     deps.postToNative({ kind: "ready", network: networkRaw, tonApiUrl, tonClientEndpoint: clientEndpoint });
-    debugLog("[walletkitBridge] WalletKit ready");
+    log$l("[walletkitBridge] WalletKit ready");
     return { ok: true };
   });
 }
@@ -86220,7 +86240,7 @@ function postToNative(payload) {
       value: payload,
       stack: new Error("postToNative non-object payload").stack
     };
-    logError("[walletkitBridge] postToNative received non-object payload", diagnostic);
+    error$2("[walletkitBridge] postToNative received non-object payload", diagnostic);
     throw new Error("Invalid payload - must be an object");
   }
   const json = JSON.stringify(payload, bigIntReplacer);
@@ -86237,7 +86257,7 @@ function postToNative(payload) {
   if (payload.kind === "event") {
     throw new Error("Native bridge not available - cannot deliver event");
   }
-  debugLog("[walletkitBridge] → native (no handler)", payload);
+  log$l("[walletkitBridge] → native (no handler)", payload);
 }
 function emitCallDiagnostic(id, method, stage, message2) {
   postToNative({
@@ -86275,34 +86295,34 @@ function emit(type, data) {
   postToNative({ kind: "event", event });
 }
 function respond(id, result, error2) {
-  debugLog("[walletkitBridge] 🟢 respond() called with:");
-  debugLog("[walletkitBridge] 🟢 id:", id);
-  debugLog("[walletkitBridge] 🟢 result:", result);
-  debugLog("[walletkitBridge] 🟢 error:", error2);
-  debugLog("[walletkitBridge] 🟢 About to call postToNative...");
+  log$l("[walletkitBridge] 🟢 respond() called with:");
+  log$l("[walletkitBridge] 🟢 id:", id);
+  log$l("[walletkitBridge] 🟢 result:", result);
+  log$l("[walletkitBridge] 🟢 error:", error2);
+  log$l("[walletkitBridge] 🟢 About to call postToNative...");
   postToNative({ kind: "response", id, result, error: error2 });
-  debugLog("[walletkitBridge] 🟢 postToNative completed");
+  log$l("[walletkitBridge] 🟢 postToNative completed");
 }
 function setBridgeApi(api2) {
   apiRef = api2;
 }
 function invokeApiMethod(api2, method, params, context) {
   return __async$a(this, null, function* () {
-    debugLog(`[walletkitBridge] handleCall ${method}, looking up api[${method}]`);
+    log$l(`[walletkitBridge] handleCall ${method}, looking up api[${method}]`);
     const fn2 = api2[method];
-    debugLog(`[walletkitBridge] fn found:`, typeof fn2);
+    log$l(`[walletkitBridge] fn found:`, typeof fn2);
     if (typeof fn2 !== "function") {
       throw new Error(`Unknown method ${String(method)}`);
     }
-    debugLog(`[walletkitBridge] about to call fn for ${method}`);
+    log$l(`[walletkitBridge] about to call fn for ${method}`);
     const value = yield fn2.call(
       api2,
       params,
       context
     );
-    debugLog(`[walletkitBridge] fn returned for ${method}`);
-    debugLog(`[walletkitBridge] 🔵 fn returned value:`, value);
-    debugLog(`[walletkitBridge] 🔵 value type:`, typeof value);
+    log$l(`[walletkitBridge] fn returned for ${method}`);
+    log$l(`[walletkitBridge] 🔵 fn returned value:`, value);
+    log$l(`[walletkitBridge] 🔵 value type:`, typeof value);
     return value;
   });
 }
@@ -86319,10 +86339,10 @@ function handleCall(id, method, params) {
       respond(id, value);
     } catch (err) {
       const message2 = err instanceof Error ? err.message : String(err);
-      logError(`[walletkitBridge] handleCall error for ${method}:`, err);
-      logError(`[walletkitBridge] error type:`, typeof err);
-      logError(`[walletkitBridge] error message:`, message2);
-      logError(`[walletkitBridge] error stack:`, err instanceof Error ? err.stack : "no stack");
+      error$2(`[walletkitBridge] handleCall error for ${method}:`, err);
+      error$2(`[walletkitBridge] error type:`, typeof err);
+      error$2(`[walletkitBridge] error message:`, message2);
+      error$2(`[walletkitBridge] error stack:`, err instanceof Error ? err.stack : "no stack");
       emitCallDiagnostic(id, method, "error", message2);
       respond(id, void 0, { message: message2 });
     }
@@ -86380,13 +86400,13 @@ class AndroidStorageAdapter {
     return __async$9(this, null, function* () {
       try {
         const value = this.androidBridge.storageGet(key2);
-        debugLog("[AndroidStorageAdapter] get:", key2, "=", value ? `${value.substring(0, 100)}...` : "null");
+        log$l("[AndroidStorageAdapter] get:", key2, "=", value ? `${value.substring(0, 100)}...` : "null");
         if (!value) {
           return null;
         }
         return JSON.parse(value);
-      } catch (error2) {
-        logError("[AndroidStorageAdapter] Failed to get key:", key2, error2);
+      } catch (err) {
+        error$2("[AndroidStorageAdapter] Failed to get key:", key2, err);
         return null;
       }
     });
@@ -86395,30 +86415,30 @@ class AndroidStorageAdapter {
     return __async$9(this, null, function* () {
       try {
         const serialized = JSON.stringify(value);
-        debugLog("[AndroidStorageAdapter] set:", key2, "=", serialized.substring(0, 100) + "...");
+        log$l("[AndroidStorageAdapter] set:", key2, "=", serialized.substring(0, 100) + "...");
         this.androidBridge.storageSet(key2, serialized);
-      } catch (error2) {
-        logError("[AndroidStorageAdapter] Failed to set key:", key2, error2);
+      } catch (err) {
+        error$2("[AndroidStorageAdapter] Failed to set key:", key2, err);
       }
     });
   }
   remove(key2) {
     return __async$9(this, null, function* () {
       try {
-        debugLog("[AndroidStorageAdapter] remove:", key2);
+        log$l("[AndroidStorageAdapter] remove:", key2);
         this.androidBridge.storageRemove(key2);
-      } catch (error2) {
-        logError("[AndroidStorageAdapter] Failed to remove key:", key2, error2);
+      } catch (err) {
+        error$2("[AndroidStorageAdapter] Failed to remove key:", key2, err);
       }
     });
   }
   clear() {
     return __async$9(this, null, function* () {
       try {
-        debugLog("[AndroidStorageAdapter] clear: clearing all storage");
+        log$l("[AndroidStorageAdapter] clear: clearing all storage");
         this.androidBridge.storageClear();
-      } catch (error2) {
-        logError("[AndroidStorageAdapter] Failed to clear storage:", error2);
+      } catch (err) {
+        error$2("[AndroidStorageAdapter] Failed to clear storage:", err);
       }
     });
   }
@@ -86836,8 +86856,8 @@ function createTransferTonTransaction(args) {
           const previewResult = yield wallet.getTransactionPreview(transaction2);
           const preview = (_c2 = previewResult == null ? void 0 : previewResult.preview) != null ? _c2 : previewResult;
           return { transaction: transaction2, preview };
-        } catch (error2) {
-          debugWarn("[walletkitBridge] getTransactionPreview failed", error2);
+        } catch (err) {
+          warn("[walletkitBridge] getTransactionPreview failed", err);
         }
       }
       return { transaction: transaction2 };
@@ -86861,8 +86881,8 @@ function createTransferMultiTonTransaction(args) {
           const previewResult = yield wallet.getTransactionPreview(transaction2);
           const preview = (_c2 = previewResult == null ? void 0 : previewResult.preview) != null ? _c2 : previewResult;
           return { transaction: transaction2, preview };
-        } catch (error2) {
-          debugWarn("[walletkitBridge] getTransactionPreview failed", error2);
+        } catch (err) {
+          warn("[walletkitBridge] getTransactionPreview failed", err);
         }
       }
       return { transaction: transaction2 };
@@ -87310,5 +87330,5 @@ const api = apiImpl;
 setBridgeApi(api);
 registerNativeCallHandler();
 window.walletkitBridge = api;
-debugLog("[walletkitBridge] bootstrap complete");
+log$l("[walletkitBridge] bootstrap complete");
 //# sourceMappingURL=walletkit-android-bridge.mjs.map

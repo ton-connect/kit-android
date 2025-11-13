@@ -293,7 +293,7 @@ internal class TonConnectInjector(
         // Set custom WebChromeClient for console logging
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                if (BuildConfig.ENABLE_LOGGING) {
+                if (BuildConfig.LOG_LEVEL != "OFF") {
                     Logger.d(TAG, "[JS Console] ${consoleMessage.message()} (${consoleMessage.sourceId()}:${consoleMessage.lineNumber()})")
                 }
                 return true

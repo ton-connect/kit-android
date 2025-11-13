@@ -30,7 +30,7 @@ import io.ton.walletkit.bridge.BuildConfig
  */
 internal object Logger {
 
-    private val ENABLE_LOGGING = BuildConfig.ENABLE_LOGGING
+    private val ENABLE_LOGGING = BuildConfig.LOG_LEVEL != "OFF"
 
     fun v(tag: String, message: String) {
         if (ENABLE_LOGGING) {

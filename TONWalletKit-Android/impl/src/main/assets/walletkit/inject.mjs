@@ -1894,8 +1894,8 @@ class TonConnectBridge {
     this.eventListeners.forEach((callback) => {
       try {
         callback(event);
-      } catch (error) {
-        console.error("TonConnect event listener error:", error);
+      } catch (error2) {
+        console.error("TonConnect event listener error:", error2);
       }
     });
   }
@@ -1917,7 +1917,7 @@ const TONCONNECT_BRIDGE_REQUEST = "TONCONNECT_BRIDGE_REQUEST";
 const TONCONNECT_BRIDGE_RESPONSE = "TONCONNECT_BRIDGE_RESPONSE";
 const TONCONNECT_BRIDGE_EVENT = "TONCONNECT_BRIDGE_EVENT";
 const INJECT_CONTENT_SCRIPT = "INJECT_CONTENT_SCRIPT";
-const DEFAULT_REQUEST_TIMEOUT = 3e4;
+const DEFAULT_REQUEST_TIMEOUT = 3e5;
 const RESTORE_CONNECTION_TIMEOUT = 1e4;
 const SUPPORTED_PROTOCOL_VERSION = 2;
 class ExtensionTransport {
@@ -1980,8 +1980,8 @@ class ExtensionTransport {
     if (this.eventCallback) {
       try {
         this.eventCallback(event);
-      } catch (error) {
-        console.error("TonConnect event callback error:", error);
+      } catch (error2) {
+        console.error("TonConnect event callback error:", error2);
       }
     }
   }
@@ -2009,10 +2009,10 @@ class ExtensionTransport {
           payload: request,
           messageId
         });
-      } catch (error) {
+      } catch (error2) {
         this.pendingRequests.delete(messageId);
         clearTimeout(timeoutId);
-        reject(error);
+        reject(error2);
       }
     });
   }
@@ -2038,8 +2038,8 @@ class ExtensionTransport {
       chrome.runtime.sendMessage(this.extensionId, {
         type: INJECT_CONTENT_SCRIPT
       });
-    } catch (error) {
-      console.error("Failed to request content script injection:", error);
+    } catch (error2) {
+      console.error("Failed to request content script injection:", error2);
     }
   }
   /**
@@ -2258,24 +2258,26 @@ function injectBridge(window2, options, argsTransport) {
 function injectBridgeCode(window2, options, transport2) {
   injectBridge(window2, options, transport2);
 }
-const debugWindow = window;
-const DEBUG_ENABLED = Boolean(debugWindow.__WALLETKIT_DEBUG__);
+var LogLevel = /* @__PURE__ */ ((LogLevel2) => {
+  LogLevel2[LogLevel2["OFF"] = 0] = "OFF";
+  LogLevel2[LogLevel2["ERROR"] = 1] = "ERROR";
+  LogLevel2[LogLevel2["WARN"] = 2] = "WARN";
+  LogLevel2[LogLevel2["INFO"] = 3] = "INFO";
+  LogLevel2[LogLevel2["DEBUG"] = 4] = "DEBUG";
+  return LogLevel2;
+})(LogLevel || {});
+const logWindow = window;
 const consoleRef = globalThis.console;
-const debugLog = (...args) => {
-  var _a2;
-  if (DEBUG_ENABLED) {
-    (_a2 = consoleRef == null ? void 0 : consoleRef.log) == null ? void 0 : _a2.call(consoleRef, ...args);
+function getCurrentLogLevel() {
+  var _a;
+  const levelStr = logWindow.__WALLETKIT_LOG_LEVEL__ || "OFF";
+  return (_a = LogLevel[levelStr]) != null ? _a : 0;
+}
+const error = (...args) => {
+  var _a;
+  if (getCurrentLogLevel() >= 1) {
+    (_a = consoleRef == null ? void 0 : consoleRef.error) == null ? void 0 : _a.call(consoleRef, "[WalletKit]", ...args);
   }
-};
-const debugWarn = (...args) => {
-  var _a2;
-  if (DEBUG_ENABLED) {
-    (_a2 = consoleRef == null ? void 0 : consoleRef.warn) == null ? void 0 : _a2.call(consoleRef, ...args);
-  }
-};
-const logError = (...args) => {
-  var _a2;
-  (_a2 = consoleRef == null ? void 0 : consoleRef.error) == null ? void 0 : _a2.call(consoleRef, ...args);
 };
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
@@ -2297,25 +2299,11 @@ var __async = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
-var _a;
 const tonWindow = window;
 tonWindow.Buffer = buffer.Buffer;
-const bufferGlobal = globalThis;
-if (!bufferGlobal.Buffer) {
-  bufferGlobal.Buffer = buffer.Buffer;
-}
-const frameId = (_a = tonWindow.__tonconnect_frameId) != null ? _a : window === window.top ? "main" : `frame-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-if (!tonWindow.__tonconnect_frameId) {
-  tonWindow.__tonconnect_frameId = frameId;
-}
+globalThis.Buffer = buffer.Buffer;
+const frameId = tonWindow.__tonconnect_frameId || (tonWindow.__tonconnect_frameId = window === window.top ? "main" : `frame-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 const isAndroidWebView = typeof tonWindow.AndroidTonConnect !== "undefined";
-debugLog(`[TonConnect] ===== INJECTION STARTING =====`);
-debugLog(`[TonConnect] Frame ID: ${frameId}`);
-debugLog(`[TonConnect] Is top window: ${window === window.top}`);
-debugLog(`[TonConnect] Is iframe: ${window !== window.parent}`);
-debugLog(`[TonConnect] Android WebView: ${isAndroidWebView}`);
-debugLog(`[TonConnect] Current URL: ${window.location.href}`);
-debugLog(`[TonConnect] ===== STARTING BRIDGE SETUP =====`);
 const deviceInfo = {
   platform: "android",
   appName: "Tonkeeper",
@@ -2375,146 +2363,70 @@ class AndroidWebViewTransport {
   }
   setupNotificationHandlers() {
     const bridge = tonWindow.AndroidTonConnect;
-    if (!bridge) {
-      debugWarn("[AndroidTransport] ⚠️ AndroidTonConnect bridge not available");
-      return;
-    }
-    debugLog("[AndroidTransport] 🔧 Setting up notification handlers in frame:", frameId);
-    debugLog("[AndroidTransport] 🔧 Is top window:", window === window.top);
-    debugLog("[AndroidTransport] 🔧 Window location:", window.location.href);
+    if (!bridge) return;
     if (window === window.top) {
       bridge.__notifyResponse = (messageId) => {
-        debugLog(`[AndroidTransport] 📬 Main frame notified of response: ${messageId}`);
         this.handleResponseNotification(messageId);
       };
       bridge.__notifyEvent = () => {
-        debugLog("[AndroidTransport] � Main frame notified of event");
         this.handleEventNotification();
       };
     }
-    debugLog("[AndroidTransport] ✅ Notification handlers registered");
   }
   setupPostMessageRelay() {
     window.addEventListener("message", (event) => {
-      var _a2, _b, _c;
-      if (event.source === window) {
-        debugLog(`[AndroidTransport] 🔄 Frame ${frameId} ignoring self-message`);
-        return;
-      }
-      debugLog(
-        `[AndroidTransport] 📬 Frame ${frameId} received postMessage:`,
-        (_a2 = event.data) == null ? void 0 : _a2.type,
-        "from origin:",
-        event.origin
-      );
-      if (((_b = event.data) == null ? void 0 : _b.type) === "ANDROID_BRIDGE_RESPONSE") {
-        const messageId = event.data.messageId;
-        debugLog(`[AndroidTransport] 📨 Frame ${frameId} received response notification: ${messageId}`);
-        this.pullAndDeliverResponse(messageId);
-        const childIframes = document.querySelectorAll("iframe");
-        if (childIframes.length > 0) {
-          debugLog(
-            `[AndroidTransport] 🔁 Frame ${frameId} relaying response to ${childIframes.length} child iframe(s)`
-          );
-          childIframes.forEach((iframe, index) => {
-            var _a3;
-            try {
-              (_a3 = iframe.contentWindow) == null ? void 0 : _a3.postMessage(event.data, "*");
-              debugLog(`[AndroidTransport] ✅ Frame ${frameId} relayed to child iframe #${index}`);
-            } catch (e) {
-              debugWarn(
-                `[AndroidTransport] ❌ Frame ${frameId} failed to relay to child iframe #${index}:`,
-                e
-              );
-            }
-          });
-        } else {
-          debugLog(`[AndroidTransport] 📭 Frame ${frameId} has no child iframes to relay to`);
-        }
-      } else if (((_c = event.data) == null ? void 0 : _c.type) === "ANDROID_BRIDGE_EVENT") {
-        debugLog(`[AndroidTransport] 📨 Frame ${frameId} received event notification`);
+      var _a, _b;
+      if (event.source === window) return;
+      if (((_a = event.data) == null ? void 0 : _a.type) === "ANDROID_BRIDGE_RESPONSE") {
+        this.pullAndDeliverResponse(event.data.messageId);
+        document.querySelectorAll("iframe").forEach((iframe) => {
+          var _a2;
+          try {
+            (_a2 = iframe.contentWindow) == null ? void 0 : _a2.postMessage(event.data, "*");
+          } catch (_e) {
+          }
+        });
+      } else if (((_b = event.data) == null ? void 0 : _b.type) === "ANDROID_BRIDGE_EVENT") {
         this.pullAndDeliverEvent();
-        const childIframes = document.querySelectorAll("iframe");
-        if (childIframes.length > 0) {
-          debugLog(
-            `[AndroidTransport] 🔁 Frame ${frameId} relaying event to ${childIframes.length} child iframe(s)`
-          );
-          childIframes.forEach((iframe, index) => {
-            var _a3;
-            try {
-              (_a3 = iframe.contentWindow) == null ? void 0 : _a3.postMessage(event.data, "*");
-              debugLog(`[AndroidTransport] ✅ Frame ${frameId} relayed event to child iframe #${index}`);
-            } catch (e) {
-              debugWarn(
-                `[AndroidTransport] ❌ Frame ${frameId} failed to relay event to child iframe #${index}:`,
-                e
-              );
-            }
-          });
-        } else {
-          debugLog(`[AndroidTransport] 📭 Frame ${frameId} has no child iframes to relay to`);
-        }
+        document.querySelectorAll("iframe").forEach((iframe) => {
+          var _a2;
+          try {
+            (_a2 = iframe.contentWindow) == null ? void 0 : _a2.postMessage(event.data, "*");
+          } catch (_e) {
+          }
+        });
       }
     });
-    debugLog(`[AndroidTransport] ✅ postMessage listener with recursive relay registered in frame: ${frameId}`);
   }
   handleResponseNotification(messageId) {
-    debugLog(`[AndroidTransport] 📡 Main frame initiating response notification cascade for: ${messageId}`);
     this.pullAndDeliverResponse(messageId);
-    const iframes = document.querySelectorAll("iframe");
-    debugLog(`[AndroidTransport] 📡 Main frame broadcasting to ${iframes.length} direct child iframe(s)`);
-    iframes.forEach((iframe, index) => {
-      var _a2;
+    document.querySelectorAll("iframe").forEach((iframe) => {
+      var _a;
       try {
-        (_a2 = iframe.contentWindow) == null ? void 0 : _a2.postMessage(
-          {
-            type: "ANDROID_BRIDGE_RESPONSE",
-            messageId
-          },
-          "*"
-        );
-        debugLog(`[AndroidTransport] ✅ Main frame sent to direct child iframe #${index}`);
-      } catch (e) {
-        debugWarn(`[AndroidTransport] ❌ Main frame failed to notify iframe #${index}:`, e);
+        (_a = iframe.contentWindow) == null ? void 0 : _a.postMessage({ type: "ANDROID_BRIDGE_RESPONSE", messageId }, "*");
+      } catch (_e) {
       }
     });
   }
   handleEventNotification() {
-    debugLog("[AndroidTransport] 📡 Main frame initiating event notification cascade");
     this.pullAndDeliverEvent();
-    const iframes = document.querySelectorAll("iframe");
-    debugLog(`[AndroidTransport] 📡 Main frame broadcasting to ${iframes.length} direct child iframe(s)`);
-    iframes.forEach((iframe, index) => {
-      var _a2;
+    document.querySelectorAll("iframe").forEach((iframe) => {
+      var _a;
       try {
-        (_a2 = iframe.contentWindow) == null ? void 0 : _a2.postMessage(
-          {
-            type: "ANDROID_BRIDGE_EVENT"
-          },
-          "*"
-        );
-        debugLog(`[AndroidTransport] ✅ Main frame sent event to direct child iframe #${index}`);
-      } catch (e) {
-        debugWarn(`[AndroidTransport] ❌ Main frame failed to notify iframe #${index}:`, e);
+        (_a = iframe.contentWindow) == null ? void 0 : _a.postMessage({ type: "ANDROID_BRIDGE_EVENT" }, "*");
+      } catch (_e) {
       }
     });
   }
   pullAndDeliverResponse(messageId) {
     const pending = this.pendingRequests.get(messageId);
-    if (!pending) {
-      debugLog(`[AndroidTransport] No pending request for: ${messageId} in frame: ${frameId}`);
-      return;
-    }
+    if (!pending) return;
     try {
       const bridge = tonWindow.AndroidTonConnect;
-      if (!(bridge == null ? void 0 : bridge.pullResponse)) {
-        logError(`[AndroidTransport] Bridge not available in frame: ${frameId}`);
-        return;
-      }
+      if (!(bridge == null ? void 0 : bridge.pullResponse)) return;
       const responseStr = bridge.pullResponse(messageId);
       if (responseStr) {
         const response = JSON.parse(responseStr);
-        debugLog(`[AndroidTransport] ✅ Pulled and processing response for: ${messageId} in frame: ${frameId}`);
         clearTimeout(pending.timeout);
         this.pendingRequests.delete(messageId);
         if (response.error) {
@@ -2522,14 +2434,10 @@ class AndroidWebViewTransport {
         } else {
           pending.resolve(response.payload);
         }
-      } else {
-        debugWarn(
-          `[AndroidTransport] Response ${messageId} already pulled or not available in frame: ${frameId}`
-        );
       }
-    } catch (error) {
-      logError("[AndroidTransport] Failed to pull/process response:", error);
-      pending.reject(error);
+    } catch (err) {
+      error("[AndroidTransport] Failed to pull/process response:", err);
+      pending.reject(err);
     }
   }
   pullAndDeliverEvent() {
@@ -2540,116 +2448,72 @@ class AndroidWebViewTransport {
         const eventStr = bridge.pullEvent(frameId);
         if (eventStr) {
           const data = JSON.parse(eventStr);
-          debugLog("[AndroidTransport] 🔔 Pulled event in frame:", frameId);
-          debugLog("[AndroidTransport] 🔔 Event data:", JSON.stringify(data).substring(0, 200));
           if (data.type === "TONCONNECT_BRIDGE_EVENT" && data.event) {
-            debugLog("[AndroidTransport] 🔔 Event callbacks count:", this.eventCallbacks.length);
-            this.eventCallbacks.forEach((callback, index) => {
+            this.eventCallbacks.forEach((callback) => {
               try {
-                debugLog(`[AndroidTransport] 🔔 Calling event callback #${index}`);
                 callback(data.event);
-                debugLog(`[AndroidTransport] ✅ Event callback #${index} completed`);
-              } catch (error) {
-                logError(`[AndroidTransport] ❌ Event callback #${index} error:`, error);
+              } catch (err) {
+                error("[AndroidTransport] Event callback error:", err);
               }
             });
           }
         }
       }
-    } catch (error) {
-      logError("[AndroidTransport] Failed to pull/process event:", error);
+    } catch (err) {
+      error("[AndroidTransport] Failed to pull/process event:", err);
     }
   }
   send(request) {
     return __async(this, null, function* () {
-      debugLog("[AndroidTransport] 📤 Sending request:", request.method);
-      debugLog("[AndroidTransport] 📤 Frame ID:", frameId);
-      debugLog("[AndroidTransport] 📤 Is top window:", window === window.top);
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      const method = request.method || "unknown";
-      const params = request.params || {};
-      const payload = {
-        type: "TONCONNECT_BRIDGE_REQUEST",
-        messageId,
-        method,
-        params,
-        frameId
-      };
-      debugLog("[AndroidTransport] 📤 Sending to Kotlin with messageId:", messageId);
       const bridge = tonWindow.AndroidTonConnect;
       if (!(bridge == null ? void 0 : bridge.postMessage)) {
         throw new Error("AndroidTonConnect postMessage is not available");
       }
-      bridge.postMessage(JSON.stringify(payload));
+      bridge.postMessage(
+        JSON.stringify({
+          type: "TONCONNECT_BRIDGE_REQUEST",
+          messageId,
+          method: request.method || "unknown",
+          params: request.params || {},
+          frameId
+        })
+      );
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          logError(`[AndroidTransport] ⏱️ Timeout waiting for response to ${messageId}`);
           this.pendingRequests.delete(messageId);
           reject(new Error("Request timeout"));
         }, 3e4);
-        debugLog("[AndroidTransport] ⏳ Waiting for response to messageId:", messageId);
         this.pendingRequests.set(messageId, { resolve, reject, timeout });
       });
     });
   }
   onEvent(callback) {
-    debugLog("[AndroidTransport] 📝 Registering event callback");
-    debugLog("[AndroidTransport] 📝 Frame ID:", frameId);
-    debugLog("[AndroidTransport] 📝 Window location:", window.location.href);
-    debugLog("[AndroidTransport] 📝 Is top window:", window === window.top);
-    debugLog("[AndroidTransport] 📝 Callbacks before:", this.eventCallbacks.length);
     this.eventCallbacks.push(callback);
-    debugLog("[AndroidTransport] 📝 Callbacks after:", this.eventCallbacks.length);
   }
   isAvailable() {
     return isAndroidWebView;
   }
   requestContentScriptInjection() {
-    debugLog("[TonConnect] ⚠️ requestContentScriptInjection CALLED - IframeWatcher detected iframe!");
-    if (typeof document !== "undefined") {
-      const iframes = document.querySelectorAll("iframe");
-      debugLog(`[TonConnect] Found ${iframes.length} iframes in DOM`);
-      iframes.forEach((iframe, index) => {
-        var _a2;
-        debugLog(
-          `[TonConnect] Processing iframe ${index}:`,
-          iframe.src || iframe.getAttribute("src") || "(no src)"
-        );
-        try {
-          const iframeWindowRaw = iframe.contentWindow;
-          if (!iframeWindowRaw) {
-            debugLog(`[TonConnect] iframe ${index}: contentWindow is null`);
-            return;
-          }
-          if (iframeWindowRaw === window) {
-            debugLog(`[TonConnect] iframe ${index}: contentWindow === window (skipping self)`);
-            return;
-          }
-          const iframeWindow = iframeWindowRaw;
-          const hasExtension = !!((_a2 = iframeWindow.tonkeeper) == null ? void 0 : _a2.tonconnect);
-          debugLog(`[TonConnect] iframe ${index}: Bridge exists? ${hasExtension}`);
-          if (!hasExtension) {
-            debugLog(`[TonConnect] ✅ Injecting bridge into same-origin iframe ${index}`);
-            injectBridgeCode(
-              iframeWindow,
-              {
-                deviceInfo,
-                walletInfo,
-                isWalletBrowser: true
-              },
-              new AndroidWebViewTransport()
-            );
-            debugLog(`[TonConnect] ✅ Bridge injection complete for iframe ${index}`);
-          }
-        } catch (e) {
-          debugLog(
-            `[TonConnect] iframe ${index}: Cross-origin - will use postMessage bridge (${e.message})`
+    const iframes = document.querySelectorAll("iframe");
+    iframes.forEach((iframe) => {
+      var _a;
+      try {
+        const iframeWindow = iframe.contentWindow;
+        if (iframeWindow && !((_a = iframeWindow.tonkeeper) == null ? void 0 : _a.tonconnect)) {
+          injectBridgeCode(
+            iframeWindow,
+            {
+              deviceInfo,
+              walletInfo,
+              isWalletBrowser: true
+            },
+            new AndroidWebViewTransport()
           );
         }
-      });
-    } else {
-      debugLog("[TonConnect] document is undefined, cannot query iframes");
-    }
+      } catch (_e) {
+      }
+    });
   }
   destroy() {
     this.pendingRequests.forEach(({ timeout, reject }) => {
@@ -2659,67 +2523,12 @@ class AndroidWebViewTransport {
     this.pendingRequests.clear();
     this.eventCallbacks = [];
     const bridge = tonWindow.AndroidTonConnect;
-    if (bridge && window === window.top) {
+    if (bridge) {
       delete bridge.__notifyResponse;
       delete bridge.__notifyEvent;
     }
   }
 }
-debugLog("[TonConnect] Android WebView injects bridge into all frames automatically");
 const transport = isAndroidWebView ? new AndroidWebViewTransport() : void 0;
-const performInjection = () => {
-  var _a2, _b;
-  debugLog("[TonConnect] Injecting bridge code...");
-  debugLog("[TonConnect] document.body exists?", !!document.body);
-  debugLog("[TonConnect] Current iframes in DOM:", document.querySelectorAll("iframe").length);
-  injectBridgeCode(
-    window,
-    {
-      deviceInfo,
-      walletInfo,
-      isWalletBrowser: true
-      // CRITICAL: tells SDK this is wallet's internal browser
-    },
-    transport
-  );
-  debugLog(`[TonConnect] Bridge ready for frame: ${frameId} (transport: ${transport ? "Android" : "default"})`);
-  debugLog("[TonConnect] Wallet Info:", JSON.stringify(walletInfo, null, 2));
-  debugLog("[TonConnect] isWalletBrowser check:", (_b = (_a2 = tonWindow.tonkeeper) == null ? void 0 : _a2.tonconnect) == null ? void 0 : _b.isWalletBrowser);
-  setTimeout(() => {
-    var _a3;
-    const iframes = document.querySelectorAll("iframe");
-    debugLog(`[TonConnect] Post-injection check: ${iframes.length} iframes found`);
-    if (iframes.length > 0) {
-      debugLog("[TonConnect] ⚠️ Iframes exist but IframeWatcher may not have triggered yet");
-      debugLog("[TonConnect] Manually triggering iframe injection...");
-      (_a3 = transport == null ? void 0 : transport.requestContentScriptInjection) == null ? void 0 : _a3.call(transport);
-    }
-  }, 100);
-};
-if (!document.body) {
-  debugLog("[TonConnect] Waiting for document.body before injecting bridge...");
-  if (document.readyState === "loading") {
-    document.addEventListener(
-      "DOMContentLoaded",
-      () => {
-        debugLog("[TonConnect] DOMContentLoaded fired, injecting bridge");
-        performInjection();
-      },
-      { once: true }
-    );
-  } else {
-    const checkBody = () => {
-      if (document.body) {
-        debugLog("[TonConnect] document.body now available, injecting bridge");
-        performInjection();
-      } else {
-        setTimeout(checkBody, 10);
-      }
-    };
-    checkBody();
-  }
-} else {
-  debugLog("[TonConnect] document.body exists, injecting bridge immediately");
-  performInjection();
-}
+injectBridgeCode(window, { deviceInfo, walletInfo, isWalletBrowser: true }, transport);
 //# sourceMappingURL=inject.mjs.map

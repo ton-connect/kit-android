@@ -129,7 +129,7 @@ internal class WebViewManager(
         try {
             Logger.d(TAG, "Initializing WebView on thread: ${Thread.currentThread().name}")
             webView = WebView(appContext)
-            WebView.setWebContentsDebuggingEnabled(BuildConfig.ENABLE_LOGGING)
+            WebView.setWebContentsDebuggingEnabled(BuildConfig.LOG_LEVEL != "OFF")
             webView.settings.javaScriptEnabled = true
             webView.settings.domStorageEnabled = true
             webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
@@ -139,8 +139,8 @@ internal class WebViewManager(
             // Set WebChromeClient to suppress console logs in release builds
             webView.webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                    // Only show console logs in debug builds
-                    if (BuildConfig.ENABLE_LOGGING) {
+                    // Only show console logs when logging is enabled
+                    if (BuildConfig.LOG_LEVEL != "OFF") {
                         Logger.d(TAG, "[JS Console] ${consoleMessage.message()} (${consoleMessage.sourceId()}:${consoleMessage.lineNumber()})")
                     }
                     return true // Suppress default logging
@@ -177,11 +177,13 @@ internal class WebViewManager(
                         super.onPageFinished(view, url)
                         Logger.d(TAG, "WebView page finished loading: $url")
 
-                        // Set debug logging flag for JavaScript bridge
-                        // This controls conditional logging in the bridge JavaScript bundle
-                        val debugEnabled = BuildConfig.ENABLE_LOGGING
-                        view?.evaluateJavascript("window.__WALLETKIT_DEBUG__ = $debugEnabled;") { result ->
-                            Logger.d(TAG, "Debug flag set: __WALLETKIT_DEBUG__ = $debugEnabled")
+                        // Set log level for JavaScript bridge
+                        // Controls granular logging in the bridge JavaScript bundle
+                        // Levels: OFF, ERROR, WARN, INFO, DEBUG
+                        // Release: WARN (errors + warnings), Debug: DEBUG (everything)
+                        val logLevel = BuildConfig.LOG_LEVEL
+                        view?.evaluateJavascript("window.__WALLETKIT_LOG_LEVEL__ = '$logLevel';") { result ->
+                            Logger.d(TAG, "Log level set: __WALLETKIT_LOG_LEVEL__ = $logLevel")
                         }
 
                         if (!bridgeLoaded.isCompleted) {
