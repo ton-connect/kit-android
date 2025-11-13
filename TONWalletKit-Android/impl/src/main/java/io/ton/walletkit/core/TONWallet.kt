@@ -175,21 +175,6 @@ internal class TONWallet internal constructor(
     }
 
     /**
-     * Get recent transactions for this wallet.
-     *
-     * This is an Android-specific convenience method; other platforms typically manage
-     * transaction data separately using their own storage.
-     *
-     * @param limit Maximum number of transactions to return (default 10)
-     * @return List of recent transactions
-     * @throws io.ton.walletkit.WalletKitBridgeException if transaction retrieval fails
-     */
-    override suspend fun transactions(limit: Int): List<Transaction> {
-        val addr = address ?: return emptyList()
-        return engine.getRecentTransactions(addr, limit)
-    }
-
-    /**
      * Get active TON Connect sessions for this wallet.
      *
      * This is an Android-specific convenience method for viewing which dApps
@@ -395,11 +380,6 @@ internal class TONWallet internal constructor(
 
     override suspend fun getBalance(): String {
         return balance() ?: "0"
-    }
-
-    override suspend fun getRecentTransactions(limit: Int): List<Transaction> {
-        val addr = address ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.getRecentTransactions(addr, limit)
     }
 
     override suspend fun getNFTItems(

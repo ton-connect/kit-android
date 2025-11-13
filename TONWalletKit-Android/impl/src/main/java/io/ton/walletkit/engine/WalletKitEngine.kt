@@ -238,16 +238,6 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun getBalance(address: String): String
 
     /**
-     * Get recent transactions for a wallet.
-     *
-     * @param address Wallet address
-     * @param limit Maximum number of transactions to return (default 10)
-     * @return List of recent transactions
-     * @throws WalletKitBridgeException if transaction retrieval fails
-     */
-    suspend fun getRecentTransactions(address: String, limit: Int = 10): List<Transaction>
-
-    /**
      * Handle a TON Connect URL (e.g., from QR code scan or deep link).
      * This will trigger appropriate events (connect request, transaction request, etc.)
      *

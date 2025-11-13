@@ -28,16 +28,13 @@ import io.ton.walletkit.engine.operations.requests.AddWalletRequest
 import io.ton.walletkit.engine.operations.requests.AddressRequest
 import io.ton.walletkit.engine.operations.requests.CreateAdapterRequest
 import io.ton.walletkit.engine.operations.requests.CreateSignerRequest
-import io.ton.walletkit.engine.operations.requests.GetRecentTransactionsRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
-import io.ton.walletkit.engine.parsing.TransactionParser
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
-import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
@@ -57,7 +54,6 @@ import org.json.JSONObject
  * @property ensureInitialized Suspended lambda that ensures bridge initialisation.
  * @property rpcClient Bridge RPC client wrapper.
  * @property signerManager Tracks wallet signers to maintain bridge affinity.
- * @property transactionParser Parser for transaction payloads returned by the bridge.
  * @property currentNetworkProvider Provides the latest network identifier for defaulting fields.
  *
  * @suppress Internal component used by [WebViewWalletKitEngine].
@@ -66,7 +62,6 @@ internal class WalletOperations(
     private val ensureInitialized: suspend () -> Unit,
     private val rpcClient: BridgeRpcClient,
     private val signerManager: SignerManager,
-    private val transactionParser: TransactionParser,
     private val currentNetworkProvider: () -> String,
     private val json: Json,
 ) {
@@ -486,25 +481,6 @@ internal class WalletOperations(
             // Try to convert the result itself to string
             else -> result.toString().takeIf { it != "null" && it.isNotEmpty() }
         } ?: "0"
-    }
-
-    /**
-     * Retrieve recent transactions for the requested wallet.
-     */
-    suspend fun getRecentTransactions(address: String, limit: Int): List<Transaction> {
-        ensureInitialized()
-
-        val request = GetRecentTransactionsRequest(address = address, limit = limit)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_RECENT_TRANSACTIONS, json.toJSONObject(request))
-
-        // JS now returns array directly (not wrapped in { items: [...] })
-        val transactions = if (result is JSONArray) {
-            result
-        } else {
-            result.optJSONArray(ResponseConstants.KEY_ITEMS)
-        }
-
-        return transactionParser.parseTransactions(transactions)
     }
 
     private fun JSONObject.optNullableString(key: String): String? {

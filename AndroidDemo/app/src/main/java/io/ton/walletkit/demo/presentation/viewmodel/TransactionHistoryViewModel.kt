@@ -78,6 +78,7 @@ class TransactionHistoryViewModel(
 
                 _state.value = TransactionState.Loading
 
+                // TODO: Transaction history is temporarily disabled - Coming Soon
                 // Try to get cached transactions first for immediate display
                 val cachedTransactions = transactionCache.get(walletAddress)
                 if (cachedTransactions != null && cachedTransactions.isNotEmpty()) {
@@ -87,8 +88,9 @@ class TransactionHistoryViewModel(
                 }
 
                 // Fetch fresh transactions from network
-                Log.d(TAG, "Fetching fresh transactions (limit=$limit)")
-                val freshTransactions = wallet.transactions()
+                // Temporarily disabled - getRecentTransactions has been removed
+                Log.d(TAG, "Transaction fetching temporarily disabled - Coming Soon")
+                val freshTransactions = emptyList<Transaction>()
 
                 // Merge with cache
                 val mergedTransactions = transactionCache.update(walletAddress, freshTransactions)

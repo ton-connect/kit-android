@@ -46,13 +46,6 @@ interface ITONWallet {
     suspend fun getBalance(): String
 
     /**
-     * Get recent transactions.
-     *
-     * @param limit Maximum number of transactions (default: 20)
-     */
-    suspend fun getRecentTransactions(limit: Int = 20): List<Transaction>
-
-    /**
      * Create a TON transfer transaction.
      *
      * @param params Recipient address, amount, optional comment/body/stateInit
@@ -209,9 +202,6 @@ interface ITONWallet {
 
     suspend fun nfts(limit: Int = 100, offset: Int = 0): TONNFTItems =
         getNFTItems(limit, offset, null, null)
-
-    suspend fun transactions(limit: Int = 10): List<Transaction> =
-        getRecentTransactions(limit)
 
     suspend fun nft(nftAddress: String): TONNFTItem? = getNFT(nftAddress)
 

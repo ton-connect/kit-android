@@ -57,9 +57,3 @@ internal data class AddWalletRequest(
 internal data class AddressRequest(
     val address: String,
 )
-
-@Serializable
-internal data class GetRecentTransactionsRequest(
-    val address: String,
-    val limit: Int,
-)

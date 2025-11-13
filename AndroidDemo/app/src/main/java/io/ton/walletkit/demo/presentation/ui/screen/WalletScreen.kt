@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +56,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -83,7 +85,6 @@ import io.ton.walletkit.demo.presentation.ui.sections.EventLogSection
 import io.ton.walletkit.demo.presentation.ui.sections.JettonsSection
 import io.ton.walletkit.demo.presentation.ui.sections.NFTsSection
 import io.ton.walletkit.demo.presentation.ui.sections.SessionsSection
-import io.ton.walletkit.demo.presentation.ui.sections.TransactionHistorySection
 import io.ton.walletkit.demo.presentation.ui.sections.WalletsSection
 import io.ton.walletkit.demo.presentation.ui.sheet.AddWalletSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSheet
@@ -338,15 +339,28 @@ fun WalletScreen(
                 onRefresh = actions::onRefreshJettons,
             )
 
-            // Show transaction history for the active wallet
-            activeWallet?.let { wallet ->
-                TransactionHistorySection(
-                    transactions = wallet.transactions,
-                    walletAddress = wallet.address,
-                    isRefreshing = state.isLoadingTransactions,
-                    onRefreshTransactions = { actions.onRefreshTransactions(wallet.address) },
-                    onTransactionClick = { hash -> actions.onTransactionClick(hash, wallet.address) },
-                )
+            // Transaction history - Coming Soon
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Transaction History",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Coming Soon",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             SessionsSection(

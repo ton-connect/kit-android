@@ -85,11 +85,6 @@ internal object BridgeMethodConstants {
     const val METHOD_GET_BALANCE = "getBalance"
 
     /**
-     * Method name for getting recent transactions.
-     */
-    const val METHOD_GET_RECENT_TRANSACTIONS = "getRecentTransactions"
-
-    /**
      * Method name for handling TON Connect URL.
      */
     const val METHOD_HANDLE_TON_CONNECT_URL = "handleTonConnectUrl"
