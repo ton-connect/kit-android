@@ -178,6 +178,7 @@ internal class QuickJsWalletKitEngine(
     @Volatile private var isWalletKitInitialized = false
     private val walletKitInitMutex = Mutex()
     private var pendingInitConfig: TONWalletKitConfiguration? = null
+    private var currentConfig: TONWalletKitConfiguration? = null
 
     init {
         jsScope.launch {
@@ -273,6 +274,9 @@ internal class QuickJsWalletKitEngine(
                 tonApiKey?.let { put("apiKey", it) }
             }
 
+        // Store the configuration after successful initialization
+        currentConfig = configuration
+
         call("init", payload)
     }
 
@@ -281,12 +285,15 @@ internal class QuickJsWalletKitEngine(
         walletKitInitMutex.withLock {
             if (!isWalletKitInitialized) {
                 pendingInitConfig = configuration
+                currentConfig = configuration
             }
         }
 
         // Ensure initialization happens with this config
         ensureWalletKitInitialized(configuration)
     }
+
+    override fun getConfiguration(): TONWalletKitConfiguration? = currentConfig
 
     override suspend fun mnemonicToKeyPair(
         words: List<String>,

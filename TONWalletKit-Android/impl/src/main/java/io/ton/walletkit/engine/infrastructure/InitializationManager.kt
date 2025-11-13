@@ -66,6 +66,7 @@ internal class InitializationManager(
     @Volatile private var tonApiKey: String? = null
 
     private var pendingInitConfig: TONWalletKitConfiguration? = null
+    private var currentConfig: TONWalletKitConfiguration? = null
 
     suspend fun initialize(configuration: TONWalletKitConfiguration) {
         walletKitInitMutex.withLock {
@@ -75,6 +76,8 @@ internal class InitializationManager(
         }
         ensureInitialized(configuration)
     }
+
+    fun getConfiguration(): TONWalletKitConfiguration? = currentConfig
 
     suspend fun ensureInitialized(configuration: TONWalletKitConfiguration? = null) {
         if (isWalletKitInitialized) {
@@ -229,6 +232,9 @@ internal class InitializationManager(
             },
         )
         rpcClient.call(BridgeMethodConstants.METHOD_INIT, payload)
+
+        // Store the configuration for later use (e.g., WebView injection)
+        currentConfig = configuration
 
         Logger.d(TAG, "WalletKit initialized. Event listeners will be set up on-demand.")
     }
