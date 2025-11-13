@@ -64,6 +64,14 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun init(configuration: TONWalletKitConfiguration)
 
     /**
+     * Get the current WalletKit configuration.
+     * Used by WebView injector to pass config to JavaScript.
+     *
+     * @return Current configuration, or null if not initialized
+     */
+    fun getConfiguration(): TONWalletKitConfiguration?
+
+    /**
      * Convert a mnemonic phrase to an Ed25519 key pair.
      *
      * This matches the JS WalletKit's `MnemonicToKeyPair` utility function.
