@@ -22,6 +22,7 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.operations.requests.CreateMnemonicRequest
@@ -139,24 +140,7 @@ internal class CryptoOperations(
             ?: throw WalletKitBridgeException(ERROR_SIGNATURE_MISSING_SIGN_RESULT)
 
         // Convert hex string to ByteArray
-        return hexToByteArray(signatureHex)
-    }
-
-    /**
-     * Converts a hex string (with or without "0x" prefix) to a ByteArray.
-     */
-    private fun hexToByteArray(hex: String): ByteArray {
-        val cleanHex = if (hex.startsWith("0x", ignoreCase = true)) {
-            hex.substring(2)
-        } else {
-            hex
-        }
-
-        require(cleanHex.length % 2 == 0) { "Hex string must have even length: $hex" }
-
-        return ByteArray(cleanHex.length / 2) { i ->
-            cleanHex.substring(i * 2, i * 2 + 2).toInt(16).toByte()
-        }
+        return WalletKitUtils.hexToByteArray(signatureHex)
     }
 
     companion object {

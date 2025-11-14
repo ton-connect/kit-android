@@ -47,14 +47,4 @@ object IDGenerator {
     fun generateAdapterId(): String {
         return "adapter_${UUID.randomUUID()}"
     }
-
-    /**
-     * Generates a unique ID with a custom prefix.
-     *
-     * @param prefix The prefix for the ID
-     * @return ID in format "prefix_UUID"
-     */
-    fun generateId(prefix: String): String {
-        return "${prefix}_${UUID.randomUUID()}"
-    }
 }

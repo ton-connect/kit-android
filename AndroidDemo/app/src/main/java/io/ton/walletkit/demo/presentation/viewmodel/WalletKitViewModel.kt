@@ -563,7 +563,7 @@ class WalletKitViewModel @Inject constructor(
             }
             WalletInterfaceType.SECRET_KEY -> {
                 // Validate hex string format and length (64 hex chars = 32 bytes)
-                val trimmed = secretKeyHex.trim().removePrefix("0x")
+                val trimmed = WalletKitUtils.stripHexPrefix(secretKeyHex.trim())
                 if (!trimmed.matches(Regex("^[0-9a-fA-F]{64}$"))) {
                     _state.update { it.copy(error = uiString(R.string.wallet_error_invalid_secret_key)) }
                     return
@@ -616,9 +616,12 @@ class WalletKitViewModel @Inject constructor(
                     }
                     WalletInterfaceType.SECRET_KEY -> {
                         // Create wallet from secret key
-                        val secretKeyBytes = secretKeyHex.trim().removePrefix("0x").chunked(2)
-                            .map { it.toInt(16).toByte() }
-                            .toByteArray()
+                        val secretKeyBytes = try {
+                            WalletKitUtils.hexToByteArray(secretKeyHex.trim())
+                        } catch (e: Exception) {
+                            _state.update { it.copy(error = uiString(R.string.wallet_error_invalid_secret_key)) }
+                            return@launch
+                        }
                         val signer = kit.createSignerFromSecretKey(secretKeyBytes)
                         val adapter = when (version) {
                             "v4r2" -> kit.createV4R2Adapter(signer, network)

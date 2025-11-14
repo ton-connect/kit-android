@@ -1896,6 +1896,12 @@ function setupNativeBridge() {
         } catch (err) {
           error$2("[walletkitBridge] Error in WalletKitNativeStorage.clear:", err);
         }
+      },
+      get length() {
+        return 0;
+      },
+      key(_index) {
+        return null;
       }
     };
     if (typeof scope.WalletKitNativeStorage === "undefined") {
@@ -25549,9 +25555,6 @@ class BridgeManager {
           this.eventEmitter.emit("bridge-storage-updated");
         }
         log$g.info("Event stored durably", { eventId: rawEvent.id, method: rawEvent.method });
-        if (rawEvent.method == "connect") {
-          await this.eventRouter.routeEvent(rawEvent);
-        }
       } catch (error2) {
         log$g.error("Failed to store event durably", {
           eventId: rawEvent.id,
@@ -86540,7 +86543,7 @@ var __async$7 = (__this, __arguments, generator2) => {
     step((generator2 = generator2.apply(__this, __arguments)).next());
   });
 };
-function callBridge(method, operation) {
+function callBridge(_method, operation) {
   return __async$7(this, null, function* () {
     if (!walletKit) {
       throw new Error("WalletKit not initialized");
@@ -86631,6 +86634,22 @@ function createTonMnemonic() {
     }));
   });
 }
+var __defProp2 = Object.defineProperty;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp2 = (obj, key2, value) => key2 in obj ? __defProp2(obj, key2, { enumerable: true, configurable: true, writable: true, value }) : obj[key2] = value;
+var __spreadValues = (a2, b2) => {
+  for (var prop in b2 || (b2 = {}))
+    if (__hasOwnProp.call(b2, prop))
+      __defNormalProp2(a2, prop, b2[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b2)) {
+      if (__propIsEnum.call(b2, prop))
+        __defNormalProp2(a2, prop, b2[prop]);
+    }
+  return a2;
+};
 var __async$5 = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -86655,7 +86674,13 @@ function getWallets() {
   return __async$5(this, null, function* () {
     return callBridge("getWallets", () => __async$5(this, null, function* () {
       var _a3, _b2, _c2;
-      return (_c2 = (_b2 = (_a3 = walletKit).getWallets) == null ? void 0 : _b2.call(_a3)) != null ? _c2 : [];
+      const wallets2 = (_c2 = (_b2 = (_a3 = walletKit).getWallets) == null ? void 0 : _b2.call(_a3)) != null ? _c2 : [];
+      return wallets2.map((wallet) => {
+        if (!wallet.address && wallet.getAddress) {
+          wallet.address = wallet.getAddress();
+        }
+        return wallet;
+      });
     }));
   });
 }
@@ -86740,21 +86765,22 @@ function createAdapter(args) {
   return __async$5(this, null, function* () {
     return callBridge("createAdapter", () => __async$5(this, null, function* () {
       const signer = yield getSigner(args);
+      const network = args.network === "mainnet" ? CHAIN.MAINNET : CHAIN.TESTNET;
+      const workchain = args.workchain !== void 0 ? args.workchain : 0;
+      const walletId = args.walletId !== void 0 ? args.walletId : void 0;
       let adapter;
       if (args.walletVersion === "v5r1") {
-        adapter = yield WalletV5R1Adapter$1.create(signer, {
+        adapter = yield WalletV5R1Adapter$1.create(signer, __spreadValues({
           client: walletKit.getApiClient(),
-          network: args.network,
-          workchain: args.workchain,
-          walletId: args.walletId
-        });
+          network,
+          workchain
+        }, walletId !== void 0 && { walletId }));
       } else if (args.walletVersion === "v4r2") {
-        adapter = yield WalletV4R2Adapter$1.create(signer, {
+        adapter = yield WalletV4R2Adapter$1.create(signer, __spreadValues({
           client: walletKit.getApiClient(),
-          network: args.network,
-          workchain: args.workchain,
-          walletId: args.walletId
-        });
+          network,
+          workchain
+        }, walletId !== void 0 && { walletId }));
       } else {
         throw new Error(`Unsupported wallet version: ${args.walletVersion}`);
       }
@@ -86774,6 +86800,9 @@ function addWallet(args) {
       const wallet = yield walletKit.addWallet(adapter);
       if (!wallet) {
         throw new Error("Failed to add wallet - may already exist");
+      }
+      if (!wallet.address && wallet.getAddress) {
+        wallet.address = wallet.getAddress();
       }
       adapterStore.delete(args.adapterId);
       return wallet;
@@ -87042,7 +87071,10 @@ var __async$2 = (__this, __arguments, generator2) => {
 function handleTonConnectUrl(args) {
   return __async$2(this, null, function* () {
     return callBridge("handleTonConnectUrl", () => __async$2(this, null, function* () {
-      return yield walletKit.handleTonConnectUrl(args.url);
+      if (!args || typeof args !== "string") {
+        throw new Error("TON Connect URL string is required");
+      }
+      return yield walletKit.handleTonConnectUrl(args);
     }));
   });
 }
@@ -87125,42 +87157,41 @@ var __async$1 = (__this, __arguments, generator2) => {
 function getNfts(args) {
   return __async$1(this, null, function* () {
     return callBridge("getNfts", () => __async$1(this, null, function* () {
-      return yield callOnWalletBridge(args.address, "getNfts", {
-        limit: args.limit,
-        offset: args.offset,
-        collectionAddress: args.collectionAddress,
-        indirectOwnership: args.indirectOwnership
-      });
+      const limit = args.limit && args.limit > 0 ? args.limit : 100;
+      const offset = args.offset && args.offset >= 0 ? args.offset : 0;
+      return yield callOnWalletBridge(args.address, "getNfts", { limit, offset });
     }));
   });
 }
 function getNft(args) {
   return __async$1(this, null, function* () {
     return callBridge("getNft", () => __async$1(this, null, function* () {
-      return yield callOnWalletBridge(args.address, "getNft", args.nftAddress);
+      return yield callOnWalletBridge(args.address, "getNft");
     }));
   });
 }
 function createTransferNftTransaction(args) {
   return __async$1(this, null, function* () {
     return callBridge("createTransferNftTransaction", () => __async$1(this, null, function* () {
-      return yield callOnWalletBridge(args.address, "createTransferNftTransaction", {
+      const params = {
         nftAddress: args.nftAddress,
         toAddress: args.toAddress,
         transferAmount: args.transferAmount,
         comment: args.comment
-      });
+      };
+      return yield callOnWalletBridge(args.address, "createTransferNftTransaction", params);
     }));
   });
 }
 function createTransferNftRawTransaction(args) {
   return __async$1(this, null, function* () {
     return callBridge("createTransferNftRawTransaction", () => __async$1(this, null, function* () {
-      return yield callOnWalletBridge(args.address, "createTransferNftRawTransaction", {
+      const params = {
         nftAddress: args.nftAddress,
         transferAmount: args.transferAmount,
         transferMessage: args.transferMessage
-      });
+      };
+      return yield callOnWalletBridge(args.address, "createTransferNftRawTransaction", params);
     }));
   });
 }
@@ -87187,28 +87218,31 @@ var __async = (__this, __arguments, generator2) => {
 function getJettons(args) {
   return __async(this, null, function* () {
     return callBridge("getJettons", () => __async(this, null, function* () {
-      return yield callOnWalletBridge(args.address, "getJettons", {
-        limit: args.limit,
-        offset: args.offset
-      });
+      const limit = Number.isFinite(args.limit) && args.limit > 0 ? Math.floor(args.limit) : 100;
+      const offset = Number.isFinite(args.offset) && args.offset >= 0 ? Math.floor(args.offset) : 0;
+      return yield callOnWalletBridge(args.address, "getJettons", { limit, offset });
     }));
   });
 }
 function createTransferJettonTransaction(args) {
   return __async(this, null, function* () {
     return callBridge("createTransferJettonTransaction", () => __async(this, null, function* () {
-      return yield callOnWalletBridge(args.address, "createTransferJettonTransaction", {
+      const params = {
         jettonAddress: args.jettonAddress,
         amount: args.amount,
         toAddress: args.toAddress,
         comment: args.comment
-      });
+      };
+      return yield callOnWalletBridge(args.address, "createTransferJettonTransaction", params);
     }));
   });
 }
 function getJettonBalance(args) {
   return __async(this, null, function* () {
     return callBridge("getJettonBalance", () => __async(this, null, function* () {
+      if (!args.jettonAddress) {
+        throw new Error("Jetton address is required");
+      }
       return yield callOnWalletBridge(args.address, "getJettonBalance", args.jettonAddress);
     }));
   });
@@ -87216,6 +87250,9 @@ function getJettonBalance(args) {
 function getJettonWalletAddress(args) {
   return __async(this, null, function* () {
     return callBridge("getJettonWalletAddress", () => __async(this, null, function* () {
+      if (!args.jettonAddress) {
+        throw new Error("Jetton address is required");
+      }
       return yield callOnWalletBridge(args.address, "getJettonWalletAddress", args.jettonAddress);
     }));
   });

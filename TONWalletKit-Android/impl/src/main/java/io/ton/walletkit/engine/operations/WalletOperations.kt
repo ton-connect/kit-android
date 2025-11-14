@@ -39,7 +39,6 @@ import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
-import io.ton.walletkit.utils.EncodingUtils
 import io.ton.walletkit.utils.IDGenerator
 import kotlinx.serialization.json.Json
 import org.json.JSONArray
@@ -105,7 +104,7 @@ internal class WalletOperations(
 
         // Extract publicKey from signer object
         val rawPublicKey = signerObj.optString("publicKey")
-        val publicKey = EncodingUtils.stripHexPrefix(rawPublicKey)
+        val publicKey = WalletKitUtils.stripHexPrefix(rawPublicKey)
 
         return WalletSignerInfo(
             signerId = signerId,
@@ -139,7 +138,7 @@ internal class WalletOperations(
 
         // Extract publicKey from signer object
         val rawPublicKey = signerObj.optString("publicKey")
-        val publicKey = EncodingUtils.stripHexPrefix(rawPublicKey)
+        val publicKey = WalletKitUtils.stripHexPrefix(rawPublicKey)
 
         return WalletSignerInfo(
             signerId = signerId,
@@ -342,7 +341,7 @@ internal class WalletOperations(
 
         // JS now returns raw wallet object - extract properties
         val rawPublicKey = result.optString("publicKey")
-        val publicKey = EncodingUtils.stripHexPrefix(rawPublicKey)
+        val publicKey = WalletKitUtils.stripHexPrefix(rawPublicKey)
 
         // Extract address (may need getAddress() call or stored as property)
         val address = result.optString("address").takeIf { it.isNotEmpty() }
@@ -381,7 +380,7 @@ internal class WalletOperations(
                 val entry = items.optJSONObject(index) ?: continue
                 val rawPublicKey = entry.optNullableString("publicKey")
                     ?: entry.optNullableString(ResponseConstants.KEY_PUBLIC_KEY)
-                val publicKey = rawPublicKey?.let { EncodingUtils.stripHexPrefix(it) }
+                val publicKey = rawPublicKey?.let { WalletKitUtils.stripHexPrefix(it) }
 
                 // Extract address
                 val address = entry.optString("address").takeIf { it.isNotEmpty() }
@@ -418,7 +417,7 @@ internal class WalletOperations(
 
         val rawPublicKey = result.optNullableString("publicKey")
             ?: result.optNullableString(ResponseConstants.KEY_PUBLIC_KEY)
-        val publicKey = rawPublicKey?.let { EncodingUtils.stripHexPrefix(it) }
+        val publicKey = rawPublicKey?.let { WalletKitUtils.stripHexPrefix(it) }
 
         // Extract address from wallet object
         val walletAddress = result.optString("address").takeIf { it.isNotEmpty() }
