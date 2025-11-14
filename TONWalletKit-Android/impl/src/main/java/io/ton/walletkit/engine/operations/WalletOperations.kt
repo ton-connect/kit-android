@@ -211,16 +211,20 @@ internal class WalletOperations(
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
 
-        // JavaScript always returns { _tempId, adapter } for both custom and regular signers
+        // JavaScript returns { _tempId, adapter } where adapter is the raw object
+        // Since adapter properties are now methods (getAddress(), getPublicKey(), etc.),
+        // we need to call getAddress() on the stored adapter to get the address
         val tempId = result.optString("_tempId")
-        val adapterObj = result.optJSONObject("adapter") ?: result
 
         // Use the tempId from JavaScript as the adapterId
         val adapterId = tempId.takeIf { it.isNotEmpty() } ?: IDGenerator.generateAdapterId()
 
-        // Extract address from adapter object
-        val address = adapterObj.optString("address").takeIf { it.isNotEmpty() }
-            ?: adapterObj.optString(ResponseConstants.KEY_ADDRESS)
+        // Call getAddress() on the adapter through the bridge
+        val getAddressRequest = JSONObject().apply {
+            put("adapterId", adapterId)
+        }
+        val addressResult = rpcClient.call("getAdapterAddress", getAddressRequest)
+        val address = addressResult.optString("address")
 
         return WalletAdapterInfo(
             adapterId = adapterId,
@@ -265,37 +269,20 @@ internal class WalletOperations(
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
 
-        // For custom signers, JavaScript still creates and returns the adapter
-        // Extract the adapter ID from the response (either directly or from nested adapter object)
-        if (isCustom) {
-            // Try to get adapterId from response
-            val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }
-                // Or try to get _tempId (same pattern as regular signers)
-                ?: result.optString("_tempId").takeIf { it.isNotEmpty() }
-                // Fallback: generate one (should not happen if JS bridge works correctly)
-                ?: IDGenerator.generateAdapterId()
-
-            // Get address - might be nested in adapter object or at root level
-            val address = result.optString("address").takeIf { it.isNotEmpty() }
-                ?: result.optJSONObject("adapter")?.optString("address")
-                ?: result.optString(ResponseConstants.KEY_ADDRESS)
-
-            return WalletAdapterInfo(
-                adapterId = adapterId,
-                address = address,
-            )
-        }
-
-        // For regular signers, JS returns { _tempId, adapter } - extract adapter object
+        // JavaScript returns { _tempId, adapter } where adapter is the raw object
+        // Since adapter properties are now methods (getAddress(), getPublicKey(), etc.),
+        // we need to call getAddress() on the stored adapter to get the address
         val tempId = result.optString("_tempId")
-        val adapterObj = result.optJSONObject("adapter") ?: result
 
-        // Generate adapterId in Kotlin
+        // Use the tempId from JavaScript as the adapterId
         val adapterId = tempId.takeIf { it.isNotEmpty() } ?: IDGenerator.generateAdapterId()
 
-        // Extract address from adapter object (may be stored as property or need getAddress() call)
-        val address = adapterObj.optString("address").takeIf { it.isNotEmpty() }
-            ?: adapterObj.optString(ResponseConstants.KEY_ADDRESS)
+        // Call getAddress() on the adapter through the bridge
+        val getAddressRequest = JSONObject().apply {
+            put("adapterId", adapterId)
+        }
+        val addressResult = rpcClient.call("getAdapterAddress", getAddressRequest)
+        val address = addressResult.optString("address")
 
         return WalletAdapterInfo(
             adapterId = adapterId,
