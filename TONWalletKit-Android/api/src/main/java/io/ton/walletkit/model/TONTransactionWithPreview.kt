@@ -22,12 +22,14 @@
 package io.ton.walletkit.model
 
 /**
- * Current state of a wallet.
+ * Transaction content with optional preview.
  *
- * @property balance Wallet balance in nanoTON, null if not yet fetched
- * @property transactions Recent transactions for this wallet
+ * Returned by transaction creation methods that support preview emulation.
+ *
+ * @property transaction Transaction content as JSON string (to be signed and sent)
+ * @property preview Optional preview of transaction effects (if emulation succeeded)
  */
-data class WalletState(
-    val balance: String?,
-    val transactions: List<Transaction> = emptyList(),
+data class TONTransactionWithPreview(
+    val transaction: String,
+    val preview: TONTransactionPreview? = null,
 )

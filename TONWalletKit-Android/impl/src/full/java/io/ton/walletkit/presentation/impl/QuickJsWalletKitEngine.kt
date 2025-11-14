@@ -38,12 +38,12 @@ import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.DAppInfo
+import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONNetwork
 import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.TransactionType
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletSession
-import io.ton.walletkit.model.WalletState
 import io.ton.walletkit.presentation.impl.quickjs.QuickJs
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
@@ -290,106 +290,78 @@ internal class QuickJsWalletKitEngine(
         ensureWalletKitInitialized(configuration)
     }
 
-    override suspend fun createV5R1WalletAdapter(
+    override suspend fun mnemonicToKeyPair(
         words: List<String>,
-        network: String?,
-    ): Any {
-        ensureWalletKitInitialized()
-
-        val params = JSONObject().apply {
-            put("mnemonic", JSONArray(words))
-            network?.let { put("network", it) }
-        }
-
-        return call("createV5R1WalletUsingMnemonic", params)
-    }
-
-    override suspend fun createV4R2WalletAdapter(
-        words: List<String>,
-        network: String?,
-    ): Any {
-        ensureWalletKitInitialized()
-
-        val params = JSONObject().apply {
-            put("mnemonic", JSONArray(words))
-            network?.let { put("network", it) }
-        }
-
-        return call("createV4R2WalletUsingMnemonic", params)
-    }
-
-    override suspend fun derivePublicKeyFromMnemonic(words: List<String>): String {
-        ensureWalletKitInitialized()
-
-        val params = JSONObject().apply {
-            put("mnemonic", JSONArray(words))
-        }
-
-        val result = call("derivePublicKeyFromMnemonic", params)
-        return result.getString("publicKey")
-    }
-
-    override suspend fun signDataWithMnemonic(
-        words: List<String>,
-        data: ByteArray,
         mnemonicType: String,
-    ): ByteArray {
-        throw UnsupportedOperationException("QuickJS engine does not support mnemonic-based signing. Use WebView engine.")
+    ): KeyPair {
+        throw UnsupportedOperationException("QuickJS engine does not support mnemonicToKeyPair. Use WebView engine.")
+    }
+
+    override suspend fun sign(data: ByteArray, secretKey: ByteArray): ByteArray {
+        throw UnsupportedOperationException("QuickJS engine does not support signing. Use WebView engine.")
     }
 
     override suspend fun createTonMnemonic(wordCount: Int): List<String> {
         TODO("Not yet implemented")
     }
 
-    override suspend fun createV4R2WalletFromMnemonic(
-        mnemonic: List<String>?,
-        network: String?,
-    ): WalletAccount {
-        throw UnsupportedOperationException("QuickJS engine does not support mnemonic-based wallet creation. Use WebView engine.")
+    override suspend fun createSignerFromMnemonic(
+        mnemonic: List<String>,
+        mnemonicType: String,
+    ): io.ton.walletkit.model.WalletSignerInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support signer creation. Use WebView engine.")
     }
 
-    override suspend fun createV5R1WalletFromMnemonic(
-        mnemonic: List<String>?,
-        network: String?,
-    ): WalletAccount {
-        throw UnsupportedOperationException("QuickJS engine does not support mnemonic-based wallet creation. Use WebView engine.")
+    override suspend fun createSignerFromSecretKey(secretKey: ByteArray): io.ton.walletkit.model.WalletSignerInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support signer creation. Use WebView engine.")
     }
 
-    override suspend fun createV4R2WalletFromSecretKey(
-        secretKey: ByteArray,
-        network: String?,
-    ): WalletAccount {
-        throw UnsupportedOperationException("QuickJS engine does not support secret key-based wallet creation. Use WebView engine.")
+    override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support custom signer creation. Use WebView engine.")
     }
 
-    override suspend fun createV5R1WalletFromSecretKey(
-        secretKey: ByteArray,
-        network: String?,
-    ): WalletAccount {
-        throw UnsupportedOperationException("QuickJS engine does not support secret key-based wallet creation. Use WebView engine.")
+    override fun isCustomSigner(signerId: String): Boolean {
+        throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
     }
 
-    override suspend fun createV4R2WalletWithSigner(
-        signer: io.ton.walletkit.model.WalletSigner,
+    override suspend fun createV5R1AdapterFromCustom(
+        signerInfo: io.ton.walletkit.model.WalletSignerInfo,
         network: String?,
-    ): WalletAccount {
-        throw UnsupportedOperationException("QuickJS engine does not support external signers. Use WebViewWalletKitEngine instead.")
+        workchain: Int,
+        walletId: Long,
+    ): io.ton.walletkit.model.WalletAdapterInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
     }
 
-    override suspend fun createV5R1WalletWithSigner(
-        signer: io.ton.walletkit.model.WalletSigner,
+    override suspend fun createV4R2AdapterFromCustom(
+        signerInfo: io.ton.walletkit.model.WalletSignerInfo,
         network: String?,
-    ): WalletAccount {
-        throw UnsupportedOperationException("QuickJS engine does not support external signers. Use WebViewWalletKitEngine instead.")
+        workchain: Int,
+        walletId: Long,
+    ): io.ton.walletkit.model.WalletAdapterInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
     }
 
-    override suspend fun respondToSignRequest(
+    override suspend fun createV5R1Adapter(
         signerId: String,
-        requestId: String,
-        signature: ByteArray?,
-        error: String?,
-    ) {
-        throw UnsupportedOperationException("QuickJS engine does not support external signers. Use WebViewWalletKitEngine instead.")
+        network: String?,
+        workchain: Int,
+        walletId: Long,
+    ): io.ton.walletkit.model.WalletAdapterInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support adapter creation. Use WebView engine.")
+    }
+
+    override suspend fun createV4R2Adapter(
+        signerId: String,
+        network: String?,
+        workchain: Int,
+        walletId: Long,
+    ): io.ton.walletkit.model.WalletAdapterInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support adapter creation. Use WebView engine.")
+    }
+
+    override suspend fun addWallet(adapterId: String): WalletAccount {
+        throw UnsupportedOperationException("QuickJS engine does not support addWallet. Use WebView engine.")
     }
 
     override suspend fun getWallets(): List<WalletAccount> {
@@ -415,6 +387,27 @@ internal class QuickJsWalletKitEngine(
         }
     }
 
+    override suspend fun getWallet(address: String): WalletAccount? {
+        ensureWalletKitInitialized()
+        Log.d(logTag, "getWallet called for address: $address")
+        val params = JSONObject().apply { put("address", address) }
+        val result = call("getWallet", params)
+        Log.d(logTag, "getWallet result: $result")
+
+        // If result is null or doesn't have required fields, wallet doesn't exist
+        if (result.length() == 0 || !result.has("address")) {
+            return null
+        }
+
+        return WalletAccount(
+            address = result.optString("address"),
+            publicKey = result.optNullableString("publicKey"),
+            version = result.optString("version", "unknown"),
+            network = result.optString("network", currentNetwork),
+            index = result.optInt("index", 0),
+        )
+    }
+
     override suspend fun removeWallet(address: String) {
         ensureWalletKitInitialized()
         Log.d(logTag, "removeWallet called for address: $address")
@@ -435,23 +428,20 @@ internal class QuickJsWalletKitEngine(
         }
     }
 
-    override suspend fun getWalletState(address: String): WalletState {
+    override suspend fun getBalance(address: String): String {
         ensureWalletKitInitialized()
-        Log.d(logTag, "getWalletState called for address: $address")
+        Log.d(logTag, "getBalance called for address: $address")
         val params = JSONObject().apply { put("address", address) }
-        Log.d(logTag, "getWalletState calling JavaScript...")
-        val result = call("getWalletState", params)
-        Log.d(logTag, "getWalletState result: $result")
+        Log.d(logTag, "getBalance calling JavaScript...")
+        val result = call("getBalance", params)
+        Log.d(logTag, "getBalance result: $result")
         val balance = when {
             result.has("balance") -> result.optString("balance")
             result.has("value") -> result.optString("value")
             else -> null
         }
-        Log.d(logTag, "getWalletState balance: $balance")
-        return WalletState(
-            balance = balance,
-            transactions = parseTransactions(result.optJSONArray("transactions")),
-        )
+        Log.d(logTag, "getBalance balance: $balance")
+        return balance ?: "0"
     }
 
     override suspend fun getRecentTransactions(address: String, limit: Int): List<Transaction> {
@@ -574,7 +564,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun createTransferTonTransaction(
         walletAddress: String,
         params: io.ton.walletkit.model.TONTransferParams,
-    ): String {
+    ): io.ton.walletkit.model.TONTransactionWithPreview {
         ensureWalletKitInitialized()
         val paramsJson =
             JSONObject().apply {
@@ -592,8 +582,21 @@ internal class QuickJsWalletKitEngine(
                 }
             }
         val result = call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_TON_TRANSACTION, paramsJson)
-        // Return the transaction content as JSON string
-        return result.toString()
+
+        // JS returns { transaction, preview } or { transaction }
+        return if (result.has("transaction")) {
+            val transactionContent = result.get("transaction").toString()
+            val preview = if (result.has("preview") && !result.isNull("preview")) {
+                val previewJson = result.getJSONObject("preview")
+                json.decodeFromString<io.ton.walletkit.model.TONTransactionPreview>(previewJson.toString())
+            } else {
+                null
+            }
+            io.ton.walletkit.model.TONTransactionWithPreview(transactionContent, preview)
+        } else {
+            // Fallback for legacy response format
+            io.ton.walletkit.model.TONTransactionWithPreview(result.toString(), null)
+        }
     }
 
     override suspend fun handleNewTransaction(
@@ -804,7 +807,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun createTransferMultiTonTransaction(
         walletAddress: String,
         messages: List<io.ton.walletkit.model.TONTransferParams>,
-    ): String {
+    ): io.ton.walletkit.model.TONTransactionWithPreview {
         ensureWalletKitInitialized()
         val messagesArray = JSONArray()
         messages.forEach { message ->
@@ -822,7 +825,21 @@ internal class QuickJsWalletKitEngine(
             put("messages", messagesArray)
         }
         val result = call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_MULTI_TON_TRANSACTION, paramsJson)
-        return result.toString()
+
+        // JS returns { transaction, preview } or { transaction }
+        return if (result.has("transaction")) {
+            val transactionContent = result.get("transaction").toString()
+            val preview = if (result.has("preview") && !result.isNull("preview")) {
+                val previewJson = result.getJSONObject("preview")
+                json.decodeFromString<io.ton.walletkit.model.TONTransactionPreview>(previewJson.toString())
+            } else {
+                null
+            }
+            io.ton.walletkit.model.TONTransactionWithPreview(transactionContent, preview)
+        } else {
+            // Fallback for legacy response format
+            io.ton.walletkit.model.TONTransactionWithPreview(result.toString(), null)
+        }
     }
 
     override suspend fun getTransactionPreview(

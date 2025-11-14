@@ -55,12 +55,12 @@
     <string name="interface_type_mnemonic_desc">Standard wallet</string>
     <string name="interface_type_secret_key">Secret Key</string>
     <string name="interface_type_secret_key_desc">Private key import</string>
-    <string name="interface_type_signer">Signer</string>
-    <string name="interface_type_signer_desc">Custom signing</string>
+    <string name="interface_type_signer">Custom Signer (Demo)</string>
+    <string name="interface_type_signer_desc">External signing demo (watch-only, hardware wallet simulation)</string>
 
     <!-- Signer Confirmation Dialog -->
     <string name="signer_confirm_title">Confirm Signing</string>
-    <string name="signer_confirm_message">Are you sure you want to sign this request? This wallet requires manual confirmation before signing.</string>
+    <string name="signer_confirm_message">Custom signer requesting signature:\n\nData: %1$d bytes\nWallet: %2$s\n\nThis simulates a hardware wallet or external signing service.</string>
     <string name="signer_confirm_button">Sign</string>
 
     <!-- Wallet card -->
@@ -211,6 +211,7 @@
     <string name="wallet_event_wallet_imported">Imported wallet &quot;%1$s&quot; (version: %2$s, type: %3$s)</string>
     <string name="wallet_error_import_failed">Failed to import wallet</string>
     <string name="wallet_error_signer_cannot_generate">Signer wallets cannot be generated randomly. Please import with recovery phrase instead.</string>
+    <string name="wallet_error_secret_key_cannot_generate">Secret key wallets cannot be generated. Please import with an existing 32-byte secret key instead.</string>
     <string name="wallet_event_wallet_generated">Generated wallet &quot;%1$s&quot; (version: %2$s, type: %3$s)</string>
     <string name="wallet_error_generate_failed">Failed to generate wallet</string>
     <string name="wallet_error_no_wallet_selected">No wallet selected</string>

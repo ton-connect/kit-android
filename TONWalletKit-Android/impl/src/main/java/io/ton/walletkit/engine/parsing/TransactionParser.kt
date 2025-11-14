@@ -28,28 +28,34 @@ import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.TransactionType
+import io.ton.walletkit.utils.TransactionResponseParser
 import org.json.JSONArray
 
 /**
  * Converts raw transaction JSON arrays received from the bridge into strongly typed
  * [Transaction] instances that the SDK exposes to clients.
  *
- * This implementation mirrors the legacy inline parser and therefore preserves the same filtering
- * logic, heuristics, and logging output.
+ * Now uses TransactionResponseParser utility to enrich raw transactions with
+ * formatted addresses and extracted comments before parsing.
  *
  * @suppress Internal component. Use through [WebViewWalletKitEngine].
  */
-internal class TransactionParser {
+internal class TransactionParser(private val isTestnet: Boolean = false) {
     fun parseTransactions(jsonArray: JSONArray?): List<Transaction> {
         if (jsonArray == null) return emptyList()
 
         return buildList(jsonArray.length()) {
             for (i in 0 until jsonArray.length()) {
-                val txJson = jsonArray.optJSONObject(i) ?: continue
+                val txJson = jsonArray.optJSONObject(i)
+                if (txJson == null) continue
+
+                // Enrich the transaction with formatted addresses and extracted comments
+                // This replaces the 267 lines removed from TypeScript transactions.ts
+                val enrichedTx = TransactionResponseParser.enrichTransaction(txJson, isTestnet)
 
                 // Get messages
-                val inMsg = txJson.optJSONObject(ResponseConstants.KEY_IN_MSG)
-                val outMsgs = txJson.optJSONArray(ResponseConstants.KEY_OUT_MSGS)
+                val inMsg = enrichedTx.optJSONObject(ResponseConstants.KEY_IN_MSG)
+                val outMsgs = enrichedTx.optJSONArray(ResponseConstants.KEY_OUT_MSGS)
 
                 // Filter out jetton/token transactions
                 // Jetton transactions have op_code in their messages (like 0xf8a7ea5 for transfer)
@@ -87,7 +93,7 @@ internal class TransactionParser {
 
                 // Skip non-TON transactions
                 if (isJettonOrTokenTx) {
-                    Logger.d(TAG, "Skipping jetton/token transaction: ${txJson.optString(ResponseConstants.KEY_HASH_HEX, ResponseConstants.VALUE_UNKNOWN)}")
+                    Logger.d(TAG, "Skipping jetton/token transaction: ${enrichedTx.optString(ResponseConstants.KEY_HASH_HEX, ResponseConstants.VALUE_UNKNOWN)}")
                     continue
                 }
 
@@ -125,15 +131,10 @@ internal class TransactionParser {
                     }
 
                 // Get fee from total_fees field
-                val fee = txJson.optString(ResponseConstants.KEY_TOTAL_FEES)?.takeIf { it.isNotEmpty() }
+                val fee = enrichedTx.optString(ResponseConstants.KEY_TOTAL_FEES)?.takeIf { it.isNotEmpty() }
 
-                // Get comment from messages
-                val comment =
-                    when (type) {
-                        TransactionType.INCOMING -> inMsg?.optString(ResponseConstants.KEY_COMMENT)?.takeIf { it.isNotEmpty() }
-                        TransactionType.OUTGOING -> outMsgs?.optJSONObject(0)?.optString(ResponseConstants.KEY_COMMENT)?.takeIf { it.isNotEmpty() }
-                        else -> null
-                    }
+                // Get comment from enriched transaction (already extracted from message body)
+                val comment = enrichedTx.optString(ResponseConstants.KEY_COMMENT)?.takeIf { it.isNotEmpty() }
 
                 // Get sender - prefer friendly address
                 val sender =
@@ -155,16 +156,16 @@ internal class TransactionParser {
                         null
                     }
 
-                // Get hash - prefer hex format
-                val hash = txJson.optString(ResponseConstants.KEY_HASH_HEX)?.takeIf { it.isNotEmpty() }
-                    ?: txJson.optString(JsonConstants.KEY_HASH, MiscConstants.EMPTY_STRING)
+                // Get hash - prefer hex format (added by enrichment)
+                val hash = enrichedTx.optString(ResponseConstants.KEY_HASH_HEX)?.takeIf { it.isNotEmpty() }
+                    ?: enrichedTx.optString(JsonConstants.KEY_HASH, MiscConstants.EMPTY_STRING)
 
                 // Get timestamp - use 'now' field and convert to milliseconds
-                val timestamp = txJson.optLong(ResponseConstants.KEY_NOW, 0L) * 1000
+                val timestamp = enrichedTx.optLong(ResponseConstants.KEY_NOW, 0L) * 1000
 
                 // Get logical time and block sequence number
-                val lt = txJson.optString(JsonConstants.KEY_LT)?.takeIf { it.isNotEmpty() }
-                val blockSeqno = txJson.optInt(ResponseConstants.KEY_MC_BLOCK_SEQNO, -1).takeIf { it >= 0 }
+                val lt = enrichedTx.optString(JsonConstants.KEY_LT)?.takeIf { it.isNotEmpty() }
+                val blockSeqno = enrichedTx.optInt(ResponseConstants.KEY_MC_BLOCK_SEQNO, -1).takeIf { it >= 0 }
 
                 add(
                     Transaction(

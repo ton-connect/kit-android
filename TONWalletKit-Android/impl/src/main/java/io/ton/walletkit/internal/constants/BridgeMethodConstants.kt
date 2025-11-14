@@ -47,28 +47,16 @@ internal object BridgeMethodConstants {
     const val METHOD_REMOVE_EVENT_LISTENERS = "removeEventListeners"
 
     /**
-     * Method name for creating a V5R1 wallet adapter from mnemonic.
-     * Matches JS API: createV5R1WalletUsingMnemonic()
+     * Method name for creating a signer from mnemonic or secret key.
+     * Matches JS API: createSigner()
      */
-    const val METHOD_CREATE_V5R1_WALLET_USING_MNEMONIC = "createV5R1WalletUsingMnemonic"
+    const val METHOD_CREATE_SIGNER = "createSigner"
 
     /**
-     * Method name for creating a V4R2 wallet adapter from mnemonic.
-     * Matches JS API: createV4R2WalletUsingMnemonic()
+     * Method name for creating a wallet adapter from a signer.
+     * Matches JS API: createAdapter()
      */
-    const val METHOD_CREATE_V4R2_WALLET_USING_MNEMONIC = "createV4R2WalletUsingMnemonic"
-
-    /**
-     * Method name for creating a V4R2 wallet adapter from secret key.
-     * Matches JS API: createV4R2WalletUsingSecretKey()
-     */
-    const val METHOD_CREATE_V4R2_WALLET_USING_SECRET_KEY = "createV4R2WalletUsingSecretKey"
-
-    /**
-     * Method name for creating a V5R1 wallet adapter from secret key.
-     * Matches JS API: createV5R1WalletUsingSecretKey()
-     */
-    const val METHOD_CREATE_V5R1_WALLET_USING_SECRET_KEY = "createV5R1WalletUsingSecretKey"
+    const val METHOD_CREATE_ADAPTER = "createAdapter"
 
     /**
      * Method name for adding a wallet adapter to the kit.
@@ -82,14 +70,19 @@ internal object BridgeMethodConstants {
     const val METHOD_GET_WALLETS = "getWallets"
 
     /**
+     * Method name for getting a single wallet by address.
+     */
+    const val METHOD_GET_WALLET = "getWallet"
+
+    /**
      * Method name for removing a wallet.
      */
     const val METHOD_REMOVE_WALLET = "removeWallet"
 
     /**
-     * Method name for getting wallet state (balance, transactions).
+     * Method name for getting wallet balance.
      */
-    const val METHOD_GET_WALLET_STATE = "getWalletState"
+    const val METHOD_GET_BALANCE = "getBalance"
 
     /**
      * Method name for getting recent transactions.
@@ -160,29 +153,14 @@ internal object BridgeMethodConstants {
     const val METHOD_DISCONNECT_SESSION = "disconnectSession"
 
     /**
-     * Method name for deriving public key from mnemonic.
+     * Method name for converting mnemonic to key pair.
      */
-    const val METHOD_DERIVE_PUBLIC_KEY_FROM_MNEMONIC = "derivePublicKeyFromMnemonic"
+    const val METHOD_MNEMONIC_TO_KEY_PAIR = "mnemonicToKeyPair"
 
     /**
-     * Method name for signing arbitrary data with a mnemonic using the JS bundle.
+     * Method name for signing arbitrary data with a secret key.
      */
-    const val METHOD_SIGN_DATA_WITH_MNEMONIC = "signDataWithMnemonic"
-
-    /**
-     * Method name for creating a V4R2 wallet backed by an external signer.
-     */
-    const val METHOD_CREATE_V4R2_WALLET_WITH_SIGNER = "createV4R2WalletWithSigner"
-
-    /**
-     * Method name for creating a V5R1 wallet backed by an external signer.
-     */
-    const val METHOD_CREATE_V5R1_WALLET_WITH_SIGNER = "createV5R1WalletWithSigner"
-
-    /**
-     * Method name for responding to a sign request.
-     */
-    const val METHOD_RESPOND_TO_SIGN_REQUEST = "respondToSignRequest"
+    const val METHOD_SIGN = "sign"
 
     /**
      * Method name for generating a new TON mnemonic via the JS bundle.

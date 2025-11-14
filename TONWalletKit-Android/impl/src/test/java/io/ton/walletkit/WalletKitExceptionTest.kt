@@ -19,35 +19,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.bridge
+package io.ton.walletkit
 
-import io.ton.walletkit.WalletKitBridgeException
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * Tests for WalletKit exception handling to ensure errors
- * are properly typed and informative.
- */
 class WalletKitExceptionTest {
 
     @Test
-    fun `WalletKitBridgeException extends Exception`() {
+    fun testWalletKitBridgeExceptionExtendsException() {
         val exception = WalletKitBridgeException("Test error")
         assertTrue(exception is Exception)
     }
 
     @Test
-    fun `exception preserves message`() {
+    fun testExceptionPreservesMessage() {
         val message = "Wallet initialization failed"
         val exception = WalletKitBridgeException(message)
         assertEquals(message, exception.message)
     }
 
     @Test
-    fun `exception can be caught as Exception`() {
+    fun testExceptionCanBeCaughtAsException() {
         try {
             throw WalletKitBridgeException("Test")
         } catch (e: Exception) {
@@ -57,7 +52,7 @@ class WalletKitExceptionTest {
     }
 
     @Test
-    fun `exception can be caught as WalletKitBridgeException`() {
+    fun testExceptionCanBeCaughtAsWalletKitBridgeException() {
         try {
             throw WalletKitBridgeException("Specific error")
         } catch (e: WalletKitBridgeException) {
@@ -66,7 +61,7 @@ class WalletKitExceptionTest {
     }
 
     @Test
-    fun `exception supports stack traces`() {
+    fun testExceptionSupportsStackTraces() {
         val exception = WalletKitBridgeException("Test error")
         assertNotNull(exception.stackTrace)
         assertTrue(exception.stackTrace.isNotEmpty())

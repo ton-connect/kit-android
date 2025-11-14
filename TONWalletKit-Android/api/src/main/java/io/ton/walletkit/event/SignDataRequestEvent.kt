@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.event
 
-import io.ton.walletkit.internal.constants.JsonConstants
+import io.ton.walletkit.internal.constants.JsonConsts
 import io.ton.walletkit.model.DAppInfo
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -73,12 +73,12 @@ data class SignDataRequestEvent(
 
 @Serializable
 enum class SignDataType {
-    @SerialName(JsonConstants.VALUE_SIGN_DATA_TEXT)
+    @SerialName(JsonConsts.VALUE_SIGN_DATA_TEXT)
     TEXT,
 
-    @SerialName(JsonConstants.VALUE_SIGN_DATA_BINARY)
+    @SerialName(JsonConsts.VALUE_SIGN_DATA_BINARY)
     BINARY,
 
-    @SerialName(JsonConstants.VALUE_SIGN_DATA_CELL)
+    @SerialName(JsonConsts.VALUE_SIGN_DATA_CELL)
     CELL,
 }

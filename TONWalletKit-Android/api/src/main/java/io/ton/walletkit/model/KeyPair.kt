@@ -21,22 +21,31 @@
  */
 package io.ton.walletkit.model
 
-import io.ton.walletkit.internal.constants.JsonConsts
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-
 /**
- * Type of TON asset.
+ * Represents an Ed25519 key pair consisting of a public and secret key.
  *
- * Mirrors the shared TON Wallet Kit model for cross-platform consistency.
+ * @property publicKey The public key as a byte array (32 bytes)
+ * @property secretKey The secret (private) key as a byte array (64 bytes for Ed25519)
  */
-@Serializable
-enum class TONAssetType {
-    /** Native TON currency */
-    @SerialName(JsonConsts.VALUE_ASSET_TON)
-    TON,
+data class KeyPair(
+    val publicKey: ByteArray,
+    val secretKey: ByteArray,
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
 
-    /** Jetton token */
-    @SerialName(JsonConsts.VALUE_ASSET_JETTON)
-    JETTON,
+        other as KeyPair
+
+        if (!publicKey.contentEquals(other.publicKey)) return false
+        if (!secretKey.contentEquals(other.secretKey)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = publicKey.contentHashCode()
+        result = 31 * result + secretKey.contentHashCode()
+        return result
+    }
 }

@@ -19,19 +19,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.internal.constants
+package io.ton.walletkit.utils
+
+import java.util.UUID
 
 /**
- * JSON constants used for @SerialName annotations in the API module.
- * These must match the values in impl module's JsonConstants.
+ * IDGenerator - Unique identifier generation utilities
+ *
+ * Provides cryptographically secure ID generation using UUID.
+ * Replaces Date.now() + Math.random() pattern from JavaScript bridge.
  */
-internal object JsonConstants {
-    const val KEY_VALID_UNTIL = "valid_until"
-    const val VALUE_SIGN_DATA_TEXT = "text"
-    const val VALUE_SIGN_DATA_BINARY = "binary"
-    const val VALUE_SIGN_DATA_CELL = "cell"
-    const val VALUE_ASSET_TON = "ton"
-    const val VALUE_ASSET_JETTON = "jetton"
-    const val VALUE_PREVIEW_ERROR = "error"
-    const val VALUE_PREVIEW_SUCCESS = "success"
+object IDGenerator {
+    /**
+     * Generates a unique signer ID.
+     *
+     * @return Signer ID in format "signer_UUID"
+     */
+    fun generateSignerId(): String {
+        return "signer_${UUID.randomUUID()}"
+    }
+
+    /**
+     * Generates a unique adapter ID.
+     *
+     * @return Adapter ID in format "adapter_UUID"
+     */
+    fun generateAdapterId(): String {
+        return "adapter_${UUID.randomUUID()}"
+    }
+
+    /**
+     * Generates a unique ID with a custom prefix.
+     *
+     * @param prefix The prefix for the ID
+     * @return ID in format "prefix_UUID"
+     */
+    fun generateId(prefix: String): String {
+        return "${prefix}_${UUID.randomUUID()}"
+    }
 }

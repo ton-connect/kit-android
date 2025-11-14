@@ -133,8 +133,9 @@ internal class InitializationManager(
         apiBaseUrl = resolveTonApiBase(configuration)
         tonApiKey = configuration.apiClient?.key?.takeIf { it.isNotBlank() }
 
-        val appVersion =
-            try {
+        // Use deviceInfo if provided, otherwise auto-detect
+        val appVersion = configuration.deviceInfo?.appVersion
+            ?: try {
                 val packageInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
                 packageInfo.versionName ?: NetworkConstants.DEFAULT_APP_VERSION
             } catch (e: Exception) {
@@ -142,8 +143,8 @@ internal class InitializationManager(
                 NetworkConstants.DEFAULT_APP_VERSION
             }
 
-        val appName =
-            try {
+        val appName = configuration.deviceInfo?.appName
+            ?: try {
                 val manifestName = configuration.walletManifest.appName
                 manifestName.ifBlank {
                     val applicationInfo = appContext.applicationInfo
@@ -188,23 +189,26 @@ internal class InitializationManager(
                 put(
                     JsonConstants.KEY_DEVICE_INFO,
                     JSONObject().apply {
-                        put(JsonConstants.KEY_PLATFORM, WebViewConstants.PLATFORM_ANDROID)
+                        put(JsonConstants.KEY_PLATFORM, configuration.deviceInfo?.platform ?: WebViewConstants.PLATFORM_ANDROID)
                         put(JsonConstants.KEY_APP_NAME, appName)
                         put(JsonConstants.KEY_APP_VERSION, appVersion)
-                        put(JsonConstants.KEY_MAX_PROTOCOL_VERSION, NetworkConstants.MAX_PROTOCOL_VERSION)
+                        put(JsonConstants.KEY_MAX_PROTOCOL_VERSION, configuration.deviceInfo?.maxProtocolVersion ?: NetworkConstants.MAX_PROTOCOL_VERSION)
                         put(
                             JsonConstants.KEY_FEATURES,
                             JSONArray().apply {
+                                // Use deviceInfo.features if provided, otherwise use configuration.features
+                                val featuresToUse = configuration.deviceInfo?.features ?: configuration.features
+
                                 put(
                                     JSONObject().apply {
                                         put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SEND_TRANSACTION)
-                                        put(JsonConstants.KEY_MAX_MESSAGES, resolveMaxMessages(configuration))
+                                        put(JsonConstants.KEY_MAX_MESSAGES, resolveMaxMessages(configuration, featuresToUse))
                                     },
                                 )
                                 put(
                                     JSONObject().apply {
                                         put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SIGN_DATA)
-                                        put(JsonConstants.KEY_TYPES, JSONArray(resolveSignDataTypes(configuration)))
+                                        put(JsonConstants.KEY_TYPES, JSONArray(resolveSignDataTypes(configuration, featuresToUse)))
                                     },
                                 )
                             },
@@ -246,16 +250,22 @@ internal class InitializationManager(
         }
     }
 
-    private fun resolveMaxMessages(configuration: TONWalletKitConfiguration): Int {
-        return configuration.features
+    private fun resolveMaxMessages(
+        configuration: TONWalletKitConfiguration,
+        features: List<TONWalletKitConfiguration.Feature>,
+    ): Int {
+        return features
             .filterIsInstance<TONWalletKitConfiguration.SendTransactionFeature>()
             .firstNotNullOfOrNull { it.maxMessages }
             ?: DEFAULT_MAX_MESSAGES
     }
 
-    private fun resolveSignDataTypes(configuration: TONWalletKitConfiguration): List<String> {
+    private fun resolveSignDataTypes(
+        configuration: TONWalletKitConfiguration,
+        features: List<TONWalletKitConfiguration.Feature>,
+    ): List<String> {
         val types =
-            configuration.features
+            features
                 .filterIsInstance<TONWalletKitConfiguration.SignDataFeature>()
                 .firstOrNull()
                 ?.types

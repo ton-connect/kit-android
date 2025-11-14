@@ -115,6 +115,11 @@ internal object ResponseConstants {
     const val KEY_PUBLIC_KEY = "publicKey"
 
     /**
+     * JSON key for secret key (private key).
+     */
+    const val KEY_SECRET_KEY = "secretKey"
+
+    /**
      * JSON key for wallet balance.
      */
     const val KEY_BALANCE = "balance"

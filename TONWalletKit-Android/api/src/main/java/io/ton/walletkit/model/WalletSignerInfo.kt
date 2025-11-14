@@ -21,22 +21,18 @@
  */
 package io.ton.walletkit.model
 
-import io.ton.walletkit.internal.constants.JsonConsts
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-
 /**
- * Type of TON asset.
+ * Represents a wallet signer created from mnemonic or private key.
  *
- * Mirrors the shared TON Wallet Kit model for cross-platform consistency.
+ * This is the result of step 1 in the wallet creation pattern:
+ * ```kotlin
+ * val signer = walletKit.createSignerFromMnemonic(mnemonic)
+ * ```
+ *
+ * @property signerId Internal ID used to reference this signer
+ * @property publicKey Hex-encoded public key derived from the mnemonic/private key
  */
-@Serializable
-enum class TONAssetType {
-    /** Native TON currency */
-    @SerialName(JsonConsts.VALUE_ASSET_TON)
-    TON,
-
-    /** Jetton token */
-    @SerialName(JsonConsts.VALUE_ASSET_JETTON)
-    JETTON,
-}
+data class WalletSignerInfo(
+    val signerId: String,
+    val publicKey: String,
+)

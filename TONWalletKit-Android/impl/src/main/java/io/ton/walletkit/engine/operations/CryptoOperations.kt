@@ -28,6 +28,7 @@ import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.model.KeyPair
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -64,7 +65,14 @@ internal class CryptoOperations(
             }
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TON_MNEMONIC, params)
-        val items = result.optJSONArray(ResponseConstants.KEY_ITEMS)
+
+        // JS now returns array directly (not wrapped in { items: [...] })
+        val items = if (result is JSONArray) {
+            result
+        } else {
+            result.optJSONArray(ResponseConstants.KEY_ITEMS)
+        }
+
         if (items == null) {
             Logger.w(TAG, "Mnemonic generation returned no items (wordCount=$wordCount)")
             return emptyList()
@@ -74,60 +82,93 @@ internal class CryptoOperations(
     }
 
     /**
-     * Derive a hex-encoded public key from the provided mnemonic words.
+     * Convert a mnemonic phrase to an Ed25519 key pair.
      *
-     * @param words Mnemonic seed words.
-     * @return Hex-encoded public key.
+     * @param words Mnemonic seed words (12 or 24 words).
+     * @param mnemonicType Derivation type: "ton" (default) or "bip39".
+     * @return KeyPair containing public key (32 bytes) and secret key (64 bytes).
      * @throws WalletKitBridgeException If the bridge call fails.
      */
-    suspend fun derivePublicKeyFromMnemonic(words: List<String>): String {
+    suspend fun mnemonicToKeyPair(
+        words: List<String>,
+        mnemonicType: String = "ton",
+    ): KeyPair {
         ensureInitialized()
 
         val params =
             JSONObject().apply {
                 put(JsonConstants.KEY_MNEMONIC, JSONArray(words))
+                put(JsonConstants.KEY_MNEMONIC_TYPE, mnemonicType)
             }
 
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_DERIVE_PUBLIC_KEY_FROM_MNEMONIC, params)
-        return result.getString(ResponseConstants.KEY_PUBLIC_KEY)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_MNEMONIC_TO_KEY_PAIR, params)
+
+        // JS now returns raw keyPair object with Uint8Array properties (serialized as JSONArray)
+        val publicKeyArray = result.optJSONArray(ResponseConstants.KEY_PUBLIC_KEY)
+            ?: throw WalletKitBridgeException("Missing publicKey in mnemonicToKeyPair response")
+        val secretKeyArray = result.optJSONArray(ResponseConstants.KEY_SECRET_KEY)
+            ?: throw WalletKitBridgeException("Missing secretKey in mnemonicToKeyPair response")
+
+        val publicKey = ByteArray(publicKeyArray.length()) { i -> publicKeyArray.optInt(i).toByte() }
+        val secretKey = ByteArray(secretKeyArray.length()) { i -> secretKeyArray.optInt(i).toByte() }
+
+        return KeyPair(publicKey, secretKey)
     }
 
     /**
-     * Sign arbitrary data with the provided mnemonic.
+     * Sign arbitrary data using a secret key via the bridge.
      *
-     * @param words Mnemonic seed words.
-     * @param data Payload that should be signed.
-     * @param mnemonicType Mnemonic type required by the bridge (e.g. "ton" or "bip39").
+     * @param data Data bytes to sign.
+     * @param secretKey Secret key bytes for signing.
      * @return Signature bytes returned by the bridge.
      * @throws WalletKitBridgeException If the bridge call fails or omits the signature.
      */
-    suspend fun signDataWithMnemonic(
-        words: List<String>,
+    suspend fun sign(
         data: ByteArray,
-        mnemonicType: String,
+        secretKey: ByteArray,
     ): ByteArray {
         ensureInitialized()
 
         val params =
             JSONObject().apply {
-                put(JsonConstants.KEY_WORDS, JSONArray(words))
                 put(JsonConstants.KEY_DATA, JSONArray(data.map { it.toInt() and 0xFF }))
-                put(JsonConstants.KEY_MNEMONIC_TYPE, mnemonicType)
+                put(JsonConstants.KEY_SECRET_KEY, JSONArray(secretKey.map { it.toInt() and 0xFF }))
             }
 
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_SIGN_DATA_WITH_MNEMONIC, params)
-        val signatureArray =
-            result.optJSONArray(ResponseConstants.KEY_SIGNATURE)
-                ?: throw WalletKitBridgeException(ERROR_SIGNATURE_MISSING_SIGN_DATA_RESULT)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_SIGN, params)
 
-        return ByteArray(signatureArray.length()) { index ->
-            signatureArray.optInt(index).toByte()
+        // JS now returns hex string directly (not wrapped in { signature: ... })
+        val signatureHex = when {
+            result is String -> result
+            result.has(ResponseConstants.KEY_SIGNATURE) -> result.optString(ResponseConstants.KEY_SIGNATURE)
+            else -> result.toString()
+        }.takeIf { it.isNotEmpty() && it != "null" }
+            ?: throw WalletKitBridgeException(ERROR_SIGNATURE_MISSING_SIGN_RESULT)
+
+        // Convert hex string to ByteArray
+        return hexToByteArray(signatureHex)
+    }
+
+    /**
+     * Converts a hex string (with or without "0x" prefix) to a ByteArray.
+     */
+    private fun hexToByteArray(hex: String): ByteArray {
+        val cleanHex = if (hex.startsWith("0x", ignoreCase = true)) {
+            hex.substring(2)
+        } else {
+            hex
+        }
+
+        require(cleanHex.length % 2 == 0) { "Hex string must have even length: $hex" }
+
+        return ByteArray(cleanHex.length / 2) { i ->
+            cleanHex.substring(i * 2, i * 2 + 2).toInt(16).toByte()
         }
     }
 
     companion object {
         private const val TAG = "${LogConstants.TAG_WEBVIEW_ENGINE}:CryptoOps"
-        private const val ERROR_SIGNATURE_MISSING_SIGN_DATA_RESULT =
-            "Signature missing from signDataWithMnemonic result"
+        private const val ERROR_SIGNATURE_MISSING_SIGN_RESULT =
+            "Signature missing from sign result"
     }
 }

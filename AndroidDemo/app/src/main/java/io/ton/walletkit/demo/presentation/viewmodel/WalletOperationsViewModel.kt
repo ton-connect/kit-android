@@ -123,10 +123,10 @@ class WalletOperationsViewModel(
                     amount = amountInNano,
                     comment = comment.takeIf { it.isNotBlank() },
                 )
-                val transactionContent = wallet.createTransferTonTransaction(params)
+                val result = wallet.createTransferTonTransaction(params)
 
                 // Step 2: Trigger approval flow
-                walletKit().handleNewTransaction(wallet, transactionContent)
+                walletKit().handleNewTransaction(wallet, result.transaction)
             }.onSuccess {
                 _state.value = _state.value.copy(
                     isSendingTransaction = false,

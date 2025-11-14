@@ -21,22 +21,18 @@
  */
 package io.ton.walletkit.model
 
-import io.ton.walletkit.internal.constants.JsonConsts
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-
 /**
- * Type of TON asset.
+ * Represents a wallet adapter created from a signer.
  *
- * Mirrors the shared TON Wallet Kit model for cross-platform consistency.
+ * This is the result of step 2 in the wallet creation pattern:
+ * ```kotlin
+ * val adapter = walletKit.createV5R1Adapter(signer)
+ * ```
+ *
+ * @property adapterId Internal ID used to reference this adapter
+ * @property address The wallet address that will be created when this adapter is added
  */
-@Serializable
-enum class TONAssetType {
-    /** Native TON currency */
-    @SerialName(JsonConsts.VALUE_ASSET_TON)
-    TON,
-
-    /** Jetton token */
-    @SerialName(JsonConsts.VALUE_ASSET_JETTON)
-    JETTON,
-}
+data class WalletAdapterInfo(
+    val adapterId: String,
+    val address: String,
+)

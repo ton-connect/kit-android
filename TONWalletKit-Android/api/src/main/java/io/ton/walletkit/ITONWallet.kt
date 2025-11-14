@@ -56,17 +56,17 @@ interface ITONWallet {
      * Create a TON transfer transaction.
      *
      * @param params Recipient address, amount, optional comment/body/stateInit
-     * @return Transaction content as JSON string for [sendTransaction]
+     * @return Transaction with optional preview
      */
-    suspend fun createTransferTonTransaction(params: TONTransferParams): String
+    suspend fun createTransferTonTransaction(params: TONTransferParams): TONTransactionWithPreview
 
     /**
      * Create a multi-recipient TON transfer transaction.
      *
      * @param messages List of transfer messages
-     * @return Transaction content as JSON string for [sendTransaction]
+     * @return Transaction with optional preview
      */
-    suspend fun createTransferMultiTonTransaction(messages: List<TONTransferParams>): String
+    suspend fun createTransferMultiTonTransaction(messages: List<TONTransferParams>): TONTransactionWithPreview
 
     /**
      * Get NFT items owned by this wallet.

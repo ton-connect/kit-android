@@ -19,24 +19,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.model
-
-import io.ton.walletkit.internal.constants.JsonConsts
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+package io.ton.walletkit.internal.constants
 
 /**
- * Type of TON asset.
- *
- * Mirrors the shared TON Wallet Kit model for cross-platform consistency.
+ * JSON constants used for @SerialName annotations in the API module.
+ * These must match the values in impl module's JsonConstants.
  */
-@Serializable
-enum class TONAssetType {
-    /** Native TON currency */
-    @SerialName(JsonConsts.VALUE_ASSET_TON)
-    TON,
-
-    /** Jetton token */
-    @SerialName(JsonConsts.VALUE_ASSET_JETTON)
-    JETTON,
+internal object JsonConsts {
+    const val KEY_VALID_UNTIL = "valid_until"
+    const val VALUE_SIGN_DATA_TEXT = "text"
+    const val VALUE_SIGN_DATA_BINARY = "binary"
+    const val VALUE_SIGN_DATA_CELL = "cell"
+    const val VALUE_ASSET_TON = "ton"
+    const val VALUE_ASSET_JETTON = "jetton"
+    const val VALUE_PREVIEW_ERROR = "error"
+    const val VALUE_PREVIEW_SUCCESS = "success"
 }

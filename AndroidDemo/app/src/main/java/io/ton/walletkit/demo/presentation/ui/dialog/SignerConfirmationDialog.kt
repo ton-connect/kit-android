@@ -53,7 +53,15 @@ fun SignerConfirmationDialog(
             Text(stringResource(R.string.signer_confirm_title))
         },
         text = {
-            Text(stringResource(R.string.signer_confirm_message))
+            // Calculate approximate data size from payload
+            val dataSize = request.payloadContent.length
+            Text(
+                stringResource(
+                    R.string.signer_confirm_message,
+                    dataSize,
+                    request.walletAddress.take(10) + "...",
+                ),
+            )
         },
     )
 }

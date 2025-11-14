@@ -19,85 +19,44 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.bridge
+package io.ton.walletkit
 
-import io.ton.walletkit.model.Transaction
-import io.ton.walletkit.model.TransactionType
-import io.ton.walletkit.model.WalletAccount
-import io.ton.walletkit.model.WalletState
+import io.ton.walletkit.model.*
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-/**
- * Tests for wallet data models.
- */
 class ModelTest {
 
     @Test
-    fun `WalletAccount has required fields`() {
+    fun testWalletAccountHasRequiredFields() {
         val wallet = WalletAccount(
-            address = "EQDexample...",
+            address = "EQDexample",
             publicKey = "pubkey",
             name = "My Wallet",
             version = "v5r1",
             network = "mainnet",
             index = 0,
         )
-
-        assertEquals("EQDexample...", wallet.address)
+        assertEquals("EQDexample", wallet.address)
         assertEquals("v5r1", wallet.version)
     }
 
     @Test
-    fun `WalletState contains balance and transactions`() {
+    fun testTransactionHasRequiredFields() {
         val tx = Transaction(
             hash = "hash123",
             timestamp = 1000L,
-            amount = "100",
+            amount = "100000000",
             type = TransactionType.INCOMING,
         )
-
-        val state = WalletState(
-            balance = "5000000000",
-            transactions = listOf(tx),
-        )
-
-        assertEquals("5000000000", state.balance)
-        assertEquals(1, state.transactions.size)
-    }
-
-    @Test
-    fun `Transaction supports different types`() {
-        val incoming = Transaction(
-            hash = "1",
-            timestamp = 100L,
-            amount = "50",
-            type = TransactionType.INCOMING,
-        )
-
-        val outgoing = Transaction(
-            hash = "2",
-            timestamp = 200L,
-            amount = "30",
-            type = TransactionType.OUTGOING,
-        )
-
-        assertEquals(TransactionType.INCOMING, incoming.type)
-        assertEquals(TransactionType.OUTGOING, outgoing.type)
-    }
-
-    @Test
-    fun `Transaction optional fields can be null`() {
-        val tx = Transaction(
-            hash = "hash",
-            timestamp = 1000L,
-            amount = "100",
-        )
-
-        assertNotNull(tx.hash)
+        assertEquals("hash123", tx.hash)
         assertNull(tx.fee)
-        assertNull(tx.comment)
+    }
+
+    @Test
+    fun testTONNetworkValues() {
+        assertEquals("-239", TONNetwork.MAINNET.value)
+        assertEquals("-3", TONNetwork.TESTNET.value)
     }
 }

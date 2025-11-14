@@ -30,6 +30,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ton.walletkit.ITONWallet
+import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.WalletRecord
@@ -587,50 +588,54 @@ class WalletKitViewModel @Inject constructor(
                 val kit = getKit()
                 when (interfaceType) {
                     WalletInterfaceType.SIGNER -> {
-                        // Create wallet with external signer that requires user confirmation
-                        val signer = createDemoSigner(cleaned, name)
-                        when (version) {
-                            "v4r2" -> kit.createV4R2WalletWithSigner(
-                                signer = signer,
-                                network = network,
-                            )
-                            "v5r1" -> kit.createV5R1WalletWithSigner(
-                                signer = signer,
-                                network = network,
-                            )
+                        // Create wallet with custom signer (educational demo)
+                        // This demonstrates the WalletSigner interface for external signing scenarios.
+                        //
+                        // In production, you would NOT use mnemonic here. Instead:
+                        // - For watch-only: User provides PUBLIC KEY only
+                        // - For hardware wallet: Connect to device and get public key
+                        // - For remote service: Call API to get public key
+                        //
+                        // For this demo, we simulate it by deriving public key from mnemonic,
+                        // then implementing a custom signer that shows confirmation dialogs.
+                        Log.d(LOG_TAG, "Creating wallet with SIGNER interface type (custom signer demo)")
+
+                        val customSigner = createDemoSigner(cleaned, pending.metadata.name)
+                        val signerInfo = kit.createSignerFromCustom(customSigner)
+
+                        val adapter = when (version) {
+                            // Note: You can optionally specify workchain and walletId parameters:
+                            // - workchain: 0 (basechain, default) or -1 (masterchain)
+                            // - walletId: unique ID for multiple wallets from same signer
+                            // Example: kit.createV5R1Adapter(signerInfo, network, workchain = 0, walletId = WalletKitConstants.DEFAULT_WALLET_ID_V5R1)
+                            "v4r2" -> kit.createV4R2Adapter(signerInfo, network)
+                            "v5r1" -> kit.createV5R1Adapter(signerInfo, network)
                             else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                         }
+                        kit.addWallet(adapter.adapterId)
                     }
                     WalletInterfaceType.SECRET_KEY -> {
                         // Create wallet from secret key
                         val secretKeyBytes = secretKeyHex.trim().removePrefix("0x").chunked(2)
                             .map { it.toInt(16).toByte() }
                             .toByteArray()
-                        when (version) {
-                            "v4r2" -> kit.createV4R2WalletFromSecretKey(
-                                secretKey = secretKeyBytes,
-                                network = network,
-                            )
-                            "v5r1" -> kit.createV5R1WalletFromSecretKey(
-                                secretKey = secretKeyBytes,
-                                network = network,
-                            )
+                        val signer = kit.createSignerFromSecretKey(secretKeyBytes)
+                        val adapter = when (version) {
+                            "v4r2" -> kit.createV4R2Adapter(signer, network)
+                            "v5r1" -> kit.createV5R1Adapter(signer, network)
                             else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                         }
+                        kit.addWallet(adapter.adapterId)
                     }
                     WalletInterfaceType.MNEMONIC -> {
                         // Create regular mnemonic wallet
-                        when (version) {
-                            "v4r2" -> kit.createV4R2WalletFromMnemonic(
-                                mnemonic = cleaned,
-                                network = network,
-                            )
-                            "v5r1" -> kit.createV5R1WalletFromMnemonic(
-                                mnemonic = cleaned,
-                                network = network,
-                            )
+                        val signer = kit.createSignerFromMnemonic(cleaned)
+                        val adapter = when (version) {
+                            "v4r2" -> kit.createV4R2Adapter(signer, network)
+                            "v5r1" -> kit.createV5R1Adapter(signer, network)
                             else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                         }
+                        kit.addWallet(adapter.adapterId)
                     }
                 }
             }
@@ -698,6 +703,15 @@ class WalletKitViewModel @Inject constructor(
                 return@launch
             }
 
+            // Check if trying to generate secret key wallet (not supported)
+            if (interfaceType == WalletInterfaceType.SECRET_KEY) {
+                _state.update {
+                    it.copy(error = uiString(R.string.wallet_error_secret_key_cannot_generate))
+                }
+                lifecycleManager.pendingWallets.removeLastOrNull()
+                return@launch
+            }
+
             val pending = PendingWalletRecord(
                 metadata = WalletMetadata(name.ifBlank { defaultWalletName(state.value.wallets.size) }, network, version),
                 mnemonic = emptyList(), // Will be generated by the SDK
@@ -710,18 +724,15 @@ class WalletKitViewModel @Inject constructor(
 
             val result = runCatching {
                 val kit = getKit()
-                // Create regular mnemonic wallet with random mnemonic (pass null)
-                when (version) {
-                    "v4r2" -> kit.createV4R2WalletFromMnemonic(
-                        mnemonic = null, // Generate random mnemonic
-                        network = network,
-                    )
-                    "v5r1" -> kit.createV5R1WalletFromMnemonic(
-                        mnemonic = null, // Generate random mnemonic
-                        network = network,
-                    )
+                // Generate a new TON mnemonic explicitly (matches JS docs pattern)
+                val mnemonic = kit.createTonMnemonic()
+                val signer = kit.createSignerFromMnemonic(mnemonic)
+                val adapter = when (version) {
+                    "v4r2" -> kit.createV4R2Adapter(signer, network)
+                    "v5r1" -> kit.createV5R1Adapter(signer, network)
                     else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                 }
+                kit.addWallet(adapter.adapterId)
             }
 
             if (result.isSuccess) {
@@ -1059,13 +1070,10 @@ class WalletKitViewModel @Inject constructor(
 
     fun removeWallet(address: String) {
         viewModelScope.launch {
-            val wallet = lifecycleManager.tonWallets[address]
-            if (wallet == null) {
-                _state.update { it.copy(error = uiString(R.string.wallet_error_wallet_not_found)) }
-                return@launch
-            }
+            // Use the new SDK method instead of manual removal
+            val kit = getKit()
+            val removeResult = runCatching { kit.removeWallet(address) }
 
-            val removeResult = runCatching { wallet.remove() }
             if (removeResult.isFailure) {
                 val fallback = uiString(R.string.wallet_error_remove_wallet)
                 val reason = removeResult.exceptionOrNull()?.message ?: fallback
@@ -1073,9 +1081,16 @@ class WalletKitViewModel @Inject constructor(
                 return@launch
             }
 
-            // Remove from cache
+            val removed = removeResult.getOrNull() ?: false
+            if (!removed) {
+                _state.update { it.copy(error = uiString(R.string.wallet_error_wallet_not_found)) }
+                return@launch
+            }
+
+            // Remove from local cache
             lifecycleManager.tonWallets.remove(address)
 
+            // Clear local storage entry
             runCatching { storage.clear(address) }
                 .onSuccess { Log.d(LOG_TAG, "removeWallet: cleared storage entry for $address") }
                 .onFailure { Log.w(LOG_TAG, "removeWallet: failed to clear storage for $address", it) }
@@ -1299,9 +1314,10 @@ class WalletKitViewModel @Inject constructor(
         // For demo purposes, we derive the public key from mnemonic using SDK's utility method.
         // This avoids creating and immediately deleting a temporary wallet.
 
-        // Use SDK's new derivePublicKey method to get public key without creating a wallet
+        // Use SDK's mnemonicToKeyPair to get public key without creating a wallet
         val kit = getKit()
-        val publicKey = kit.derivePublicKey(mnemonic)
+        val keyPair = kit.mnemonicToKeyPair(mnemonic)
+        val publicKey = WalletKitUtils.byteArrayToHexNoPrefix(keyPair.publicKey)
 
         Log.d(LOG_TAG, "Derived public key for signer wallet: ${publicKey.take(16)}...")
 
@@ -1318,13 +1334,10 @@ class WalletKitViewModel @Inject constructor(
                     "Demo signer signing ${data.size} bytes for wallet=$walletName (used for TonProof/transactions)",
                 )
                 val kit = getKit()
-                val result = kit.signDataWithMnemonic(
-                    mnemonic = signerMnemonic,
-                    data = data,
-                    mnemonicType = "ton",
-                )
-                // Decode Base64 signature back to ByteArray
-                return android.util.Base64.decode(result.signature, android.util.Base64.NO_WRAP)
+                // Get the secret key from mnemonic
+                val keyPair = kit.mnemonicToKeyPair(signerMnemonic, "ton")
+                // Sign the data with the secret key
+                return kit.sign(data, keyPair.secretKey)
             }
         }
     }
@@ -1465,7 +1478,7 @@ class WalletKitViewModel @Inject constructor(
         private const val BALANCE_REFRESH_MS = 20_000L
         private const val HIDE_MESSAGE_MS = 10_000L
         private const val MAX_EVENT_LOG = 12
-        private const val DEFAULT_WALLET_VERSION = "v4r2"
+        private const val DEFAULT_WALLET_VERSION = "v5r1"
         private const val TRANSACTION_FETCH_LIMIT = 20
         private val DEFAULT_NETWORK = TONNetwork.MAINNET
         private const val LOG_TAG = "WalletKitVM"

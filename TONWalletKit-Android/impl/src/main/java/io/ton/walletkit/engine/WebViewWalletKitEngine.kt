@@ -48,6 +48,7 @@ import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONJettonTransferParams
 import io.ton.walletkit.model.TONJettonWallets
 import io.ton.walletkit.model.TONNFTItem
@@ -59,9 +60,10 @@ import io.ton.walletkit.model.TONTransactionPreview
 import io.ton.walletkit.model.TONTransferParams
 import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.WalletAccount
+import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSession
 import io.ton.walletkit.model.WalletSigner
-import io.ton.walletkit.model.WalletState
+import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.storage.BridgeStorageAdapter
 import io.ton.walletkit.storage.SecureBridgeStorageAdapter
 import kotlinx.coroutines.Dispatchers
@@ -107,9 +109,12 @@ internal class WebViewWalletKitEngine private constructor(
     @Volatile private var tonApiKey: String? = null
 
     private val signerManager = SignerManager()
-    private val transactionParser = TransactionParser()
     private val eventRouter = EventRouter()
     private val storageManager = StorageManager(storageAdapter) { persistentStorageEnabled }
+
+    // Transaction parser - initialized lazily to access current network
+    private val transactionParser: TransactionParser
+        get() = TransactionParser(isTestnet = currentNetwork == NetworkConstants.NETWORK_TESTNET)
 
     private val webViewManager: WebViewManager
     private val rpcClient: BridgeRpcClient
@@ -128,6 +133,7 @@ internal class WebViewWalletKitEngine private constructor(
                 context = appContext,
                 assetPath = assetPath,
                 storageManager = storageManager,
+                signerManager = signerManager,
                 onMessage = ::handleBridgeMessage,
                 onBridgeError = ::handleBridgeError,
             )
@@ -246,70 +252,67 @@ internal class WebViewWalletKitEngine private constructor(
         refreshDerivedState()
     }
 
-    override suspend fun createV5R1WalletAdapter(
-        words: List<String>,
-        network: String?,
-    ): Any = walletOperations.createV5R1Wallet(words, network)
+    override suspend fun mnemonicToKeyPair(words: List<String>, mnemonicType: String): KeyPair =
+        cryptoOperations.mnemonicToKeyPair(words, mnemonicType)
 
-    override suspend fun createV4R2WalletAdapter(
-        words: List<String>,
-        network: String?,
-    ): Any = walletOperations.createV4R2Wallet(words, network)
-
-    override suspend fun derivePublicKeyFromMnemonic(words: List<String>): String =
-        cryptoOperations.derivePublicKeyFromMnemonic(words)
-
-    override suspend fun signDataWithMnemonic(
-        words: List<String>,
-        data: ByteArray,
-        mnemonicType: String,
-    ): ByteArray = cryptoOperations.signDataWithMnemonic(words, data, mnemonicType)
+    override suspend fun sign(data: ByteArray, secretKey: ByteArray): ByteArray =
+        cryptoOperations.sign(data, secretKey)
 
     override suspend fun createTonMnemonic(wordCount: Int): List<String> =
         cryptoOperations.createTonMnemonic(wordCount)
 
-    override suspend fun createV4R2WalletFromMnemonic(
-        mnemonic: List<String>?,
-        network: String?,
-    ): WalletAccount = walletOperations.createV4R2WalletUsingMnemonic(mnemonic, network)
+    override suspend fun createSignerFromMnemonic(
+        mnemonic: List<String>,
+        mnemonicType: String,
+    ): WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType)
 
-    override suspend fun createV5R1WalletFromMnemonic(
-        mnemonic: List<String>?,
-        network: String?,
-    ): WalletAccount = walletOperations.createV5R1WalletUsingMnemonic(mnemonic, network)
+    override suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo =
+        walletOperations.createSignerFromSecretKey(secretKey)
 
-    override suspend fun createV4R2WalletFromSecretKey(
-        secretKey: ByteArray,
-        network: String?,
-    ): WalletAccount = walletOperations.createV4R2WalletUsingSecretKey(secretKey, network)
+    override suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo =
+        walletOperations.createSignerFromCustom(signer)
 
-    override suspend fun createV5R1WalletFromSecretKey(
-        secretKey: ByteArray,
-        network: String?,
-    ): WalletAccount = walletOperations.createV5R1WalletUsingSecretKey(secretKey, network)
+    override fun isCustomSigner(signerId: String): Boolean =
+        signerManager.hasCustomSigner(signerId)
 
-    override suspend fun createV4R2WalletWithSigner(
-        signer: WalletSigner,
-        network: String?,
-    ): WalletAccount = walletOperations.createV4R2WalletWithSigner(signer, network)
-
-    override suspend fun createV5R1WalletWithSigner(
-        signer: WalletSigner,
-        network: String?,
-    ): WalletAccount = walletOperations.createV5R1WalletWithSigner(signer, network)
-
-    override suspend fun respondToSignRequest(
+    override suspend fun createV5R1Adapter(
         signerId: String,
-        requestId: String,
-        signature: ByteArray?,
-        error: String?,
-    ) = walletOperations.respondToSignRequest(signerId, requestId, signature, error)
+        network: String?,
+        workchain: Int,
+        walletId: Long,
+    ): WalletAdapterInfo = walletOperations.createV5R1Adapter(signerId, network, workchain, walletId)
+
+    override suspend fun createV5R1AdapterFromCustom(
+        signerInfo: WalletSignerInfo,
+        network: String?,
+        workchain: Int,
+        walletId: Long,
+    ): WalletAdapterInfo = walletOperations.createV5R1AdapterFromCustom(signerInfo, network, workchain, walletId)
+
+    override suspend fun createV4R2Adapter(
+        signerId: String,
+        network: String?,
+        workchain: Int,
+        walletId: Long,
+    ): WalletAdapterInfo = walletOperations.createV4R2Adapter(signerId, network, workchain, walletId)
+
+    override suspend fun createV4R2AdapterFromCustom(
+        signerInfo: WalletSignerInfo,
+        network: String?,
+        workchain: Int,
+        walletId: Long,
+    ): WalletAdapterInfo = walletOperations.createV4R2AdapterFromCustom(signerInfo, network, workchain, walletId)
+
+    override suspend fun addWallet(adapterId: String): WalletAccount =
+        walletOperations.addWallet(adapterId)
 
     override suspend fun getWallets(): List<WalletAccount> = walletOperations.getWallets()
 
+    override suspend fun getWallet(address: String): WalletAccount? = walletOperations.getWallet(address)
+
     override suspend fun removeWallet(address: String) = walletOperations.removeWallet(address)
 
-    override suspend fun getWalletState(address: String): WalletState = walletOperations.getWalletState(address)
+    override suspend fun getBalance(address: String): String = walletOperations.getBalance(address)
 
     override suspend fun getRecentTransactions(address: String, limit: Int): List<Transaction> =
         walletOperations.getRecentTransactions(address, limit)
@@ -327,7 +330,7 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun createTransferTonTransaction(
         walletAddress: String,
         params: TONTransferParams,
-    ): String = transactionOperations.createTransferTonTransaction(walletAddress, params)
+    ): io.ton.walletkit.model.TONTransactionWithPreview = transactionOperations.createTransferTonTransaction(walletAddress, params)
 
     override suspend fun handleNewTransaction(
         walletAddress: String,
@@ -403,7 +406,7 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun createTransferMultiTonTransaction(
         walletAddress: String,
         messages: List<TONTransferParams>,
-    ): String = transactionOperations.createTransferMultiTonTransaction(walletAddress, messages)
+    ): io.ton.walletkit.model.TONTransactionWithPreview = transactionOperations.createTransferMultiTonTransaction(walletAddress, messages)
 
     override suspend fun getTransactionPreview(
         walletAddress: String,

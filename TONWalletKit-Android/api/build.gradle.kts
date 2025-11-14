@@ -59,4 +59,8 @@ dependencies {
     // Minimal dependencies - only what public API needs
     api(libs.kotlinxSerializationJson)
     api(libs.kotlinxCoroutinesAndroid)
+
+    // Test dependencies
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinxCoroutinesTest)
 }

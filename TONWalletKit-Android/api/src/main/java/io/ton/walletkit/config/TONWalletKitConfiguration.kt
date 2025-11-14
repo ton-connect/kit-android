@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.config
 
-import io.ton.walletkit.internal.constants.JsonConstants
+import io.ton.walletkit.internal.constants.JsonConsts
 import io.ton.walletkit.model.TONNetwork
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -32,10 +32,11 @@ import kotlinx.serialization.Serializable
  * Mirrors the shared TON Wallet Kit configuration contract for cross-platform consistency.
  *
  * @property network Blockchain network
+ * @property deviceInfo Device and app information (optional, auto-detected if not provided)
  * @property walletManifest Wallet app manifest for TON Connect
  * @property bridge Bridge configuration
  * @property apiClient API client configuration (optional)
- * @property features Supported wallet features
+ * @property features Supported wallet features (used if deviceInfo not provided)
  * @property storage Storage configuration
  */
 @Serializable
@@ -46,6 +47,8 @@ data class TONWalletKitConfiguration(
     val apiClient: APIClient? = null,
     val features: List<Feature>,
     val storage: Storage = Storage(),
+    @kotlinx.serialization.Transient
+    val deviceInfo: DeviceInfo? = null,
 ) {
     /**
      * Wallet manifest for TON Connect.
@@ -146,14 +149,14 @@ data class TONWalletKitConfiguration(
 @Serializable
 enum class SignDataType {
     /** Plain text data */
-    @SerialName(JsonConstants.VALUE_SIGN_DATA_TEXT)
+    @SerialName(JsonConsts.VALUE_SIGN_DATA_TEXT)
     TEXT,
 
     /** Binary data */
-    @SerialName(JsonConstants.VALUE_SIGN_DATA_BINARY)
+    @SerialName(JsonConsts.VALUE_SIGN_DATA_BINARY)
     BINARY,
 
     /** TON Cell data */
-    @SerialName(JsonConstants.VALUE_SIGN_DATA_CELL)
+    @SerialName(JsonConsts.VALUE_SIGN_DATA_CELL)
     CELL,
 }

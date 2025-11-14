@@ -173,21 +173,17 @@ class WalletKitDemoApp :
                         else -> TONNetwork.MAINNET
                     }
 
-                    // Use version-specific creation methods
-                    when (walletRecord.version) {
-                        "v4r2" -> kit.createV4R2WalletFromMnemonic(
-                            mnemonic = mnemonicWords,
-                            network = network,
-                        )
-                        "v5r1" -> kit.createV5R1WalletFromMnemonic(
-                            mnemonic = mnemonicWords,
-                            network = network,
-                        )
+                    // Use 3-step wallet creation pattern
+                    val signer = kit.createSignerFromMnemonic(mnemonicWords)
+                    val adapter = when (walletRecord.version) {
+                        "v4r2" -> kit.createV4R2Adapter(signer, network)
+                        "v5r1" -> kit.createV5R1Adapter(signer, network)
                         else -> {
                             Log.w(TAG, "Unsupported wallet version: ${walletRecord.version}, skipping")
                             continue
                         }
                     }
+                    kit.addWallet(adapter.adapterId)
                     Log.d(TAG, "Added wallet to SDK: ${walletRecord.address}")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to add wallet ${walletRecord.address} to SDK", e)
