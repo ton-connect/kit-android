@@ -60,61 +60,6 @@ internal class BridgeInterface(
         val timestamp: Long = System.currentTimeMillis(),
     )
 
-    init {
-        // Start a background cleanup task to remove stale responses
-        startCleanupTask()
-    }
-
-    private fun startCleanupTask() {
-        // Clean up stale responses every 30 seconds
-        Thread {
-            while (true) {
-                try {
-                    Thread.sleep(CLEANUP_INTERVAL_MS)
-                    cleanupStaleResponses()
-                } catch (e: InterruptedException) {
-                    break
-                }
-            }
-        }.apply {
-            isDaemon = true
-            name = "BridgeInterface-Cleanup"
-            start()
-        }
-    }
-
-    private fun cleanupStaleResponses() {
-        val now = System.currentTimeMillis()
-
-        // Clean up stale responses
-        val staleResponses = availableResponses.entries.filter { (_, entry) ->
-            now - entry.timestamp > RESPONSE_TTL_MS
-        }
-
-        staleResponses.forEach { (messageId, _) ->
-            availableResponses.remove(messageId)
-            Logger.d(TAG, "🧹 Removed stale response for messageId: $messageId")
-        }
-
-        if (staleResponses.isNotEmpty()) {
-            Logger.d(TAG, "🧹 Cleaned up ${staleResponses.size} stale response(s)")
-        }
-
-        // Clean up stale broadcast events (older than 5 minutes)
-        val staleEvents = broadcastEvents.entries.filter { (_, broadcast) ->
-            now - broadcast.timestamp > RESPONSE_TTL_MS
-        }
-
-        staleEvents.forEach { (eventId, _) ->
-            broadcastEvents.remove(eventId)
-            Logger.d(TAG, "🧹 Removed stale broadcast event: $eventId")
-        }
-
-        if (staleEvents.isNotEmpty()) {
-            Logger.d(TAG, "🧹 Cleaned up ${staleEvents.size} stale broadcast event(s)")
-        }
-    }
-
     @JavascriptInterface
     fun postMessage(message: String) {
         Logger.d(TAG, "🔵 BridgeInterface.postMessage called with: $message")
@@ -265,10 +210,8 @@ internal class BridgeInterface(
 
     companion object {
         private const val TAG = "BridgeInterface"
-        private const val MAX_BROADCAST_EVENTS = 50 // Maximum broadcast events stored
-        private const val MAX_FRAMES_PER_EVENT = 10 // Maximum frames that can consume one event
-        private const val MAX_STORED_RESPONSES = 100 // Maximum responses in map
-        private const val CLEANUP_INTERVAL_MS = 60_000L // Clean up every 60 seconds
-        private const val RESPONSE_TTL_MS = 300_000L // Responses/events expire after 5 minutes
+        private const val MAX_BROADCAST_EVENTS = 50
+        private const val MAX_FRAMES_PER_EVENT = 10
+        private const val MAX_STORED_RESPONSES = 100
     }
 }

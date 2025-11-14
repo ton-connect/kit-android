@@ -62,6 +62,9 @@ android {
         }
         debug {
             isMinifyEnabled = false
+
+            // Enable logging in debug builds
+            buildConfigField("boolean", "ENABLE_LOGGING", "true")
         }
     }
 
