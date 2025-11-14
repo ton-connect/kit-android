@@ -19,17 +19,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.utils
+package io.ton.walletkit.internal.util
 
 import java.util.UUID
 
 /**
- * IDGenerator - Unique identifier generation utilities
+ * Unique identifier generation utilities for internal bridge operations.
  *
  * Provides cryptographically secure ID generation using UUID.
  * Replaces Date.now() + Math.random() pattern from JavaScript bridge.
+ *
+ * @suppress Internal utility for bridge operations.
  */
-object IDGenerator {
+internal object IDGenerator {
     /**
      * Generates a unique signer ID.
      *
@@ -46,5 +48,15 @@ object IDGenerator {
      */
     fun generateAdapterId(): String {
         return "adapter_${UUID.randomUUID()}"
+    }
+
+    /**
+     * Generates a unique ID with a custom prefix.
+     *
+     * @param prefix The prefix for the ID
+     * @return ID in format "prefix_UUID"
+     */
+    fun generateId(prefix: String): String {
+        return "${prefix}_${UUID.randomUUID()}"
     }
 }

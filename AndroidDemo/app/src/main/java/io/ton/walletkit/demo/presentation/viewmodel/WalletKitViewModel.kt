@@ -1320,9 +1320,10 @@ class WalletKitViewModel @Inject constructor(
         // Use SDK's mnemonicToKeyPair to get public key without creating a wallet
         val kit = getKit()
         val keyPair = kit.mnemonicToKeyPair(mnemonic)
-        val publicKey = WalletKitUtils.byteArrayToHexNoPrefix(keyPair.publicKey)
+        // Use byteArrayToHex to get hex with 0x prefix (required by JavaScript bridge)
+        val publicKey = WalletKitUtils.byteArrayToHex(keyPair.publicKey)
 
-        Log.d(LOG_TAG, "Derived public key for signer wallet: ${publicKey.take(16)}...")
+        Log.d(LOG_TAG, "Derived public key for signer wallet: ${publicKey.take(18)}...")
 
         val signerMnemonic = mnemonic.toList()
 

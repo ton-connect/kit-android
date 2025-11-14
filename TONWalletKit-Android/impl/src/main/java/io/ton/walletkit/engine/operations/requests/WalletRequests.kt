@@ -44,6 +44,7 @@ internal data class CreateAdapterRequest(
     val network: String? = null,
     val workchain: Int = 0,
     val walletId: Long,
+    // Public key as hex string (for custom signers)
     val publicKey: String? = null,
     val isCustom: Boolean = false,
 )

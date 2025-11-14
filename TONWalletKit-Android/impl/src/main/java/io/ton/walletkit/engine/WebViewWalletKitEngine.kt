@@ -274,28 +274,18 @@ internal class WebViewWalletKitEngine private constructor(
         network: String?,
         workchain: Int,
         walletId: Long,
-    ): WalletAdapterInfo = walletOperations.createV5R1Adapter(signerId, network, workchain, walletId)
-
-    override suspend fun createV5R1AdapterFromCustom(
-        signerInfo: WalletSignerInfo,
-        network: String?,
-        workchain: Int,
-        walletId: Long,
-    ): WalletAdapterInfo = walletOperations.createV5R1AdapterFromCustom(signerInfo, network, workchain, walletId)
+        publicKey: String?,
+        isCustom: Boolean,
+    ): WalletAdapterInfo = walletOperations.createV5R1Adapter(signerId, network, workchain, walletId, publicKey, isCustom)
 
     override suspend fun createV4R2Adapter(
         signerId: String,
         network: String?,
         workchain: Int,
         walletId: Long,
-    ): WalletAdapterInfo = walletOperations.createV4R2Adapter(signerId, network, workchain, walletId)
-
-    override suspend fun createV4R2AdapterFromCustom(
-        signerInfo: WalletSignerInfo,
-        network: String?,
-        workchain: Int,
-        walletId: Long,
-    ): WalletAdapterInfo = walletOperations.createV4R2AdapterFromCustom(signerInfo, network, workchain, walletId)
+        publicKey: String?,
+        isCustom: Boolean,
+    ): WalletAdapterInfo = walletOperations.createV4R2Adapter(signerId, network, workchain, walletId, publicKey, isCustom)
 
     override suspend fun addWallet(adapterId: String): WalletAccount =
         walletOperations.addWallet(adapterId)
