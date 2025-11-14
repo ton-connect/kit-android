@@ -586,7 +586,9 @@ class WalletKitViewModel @Inject constructor(
 
             val result = runCatching {
                 val kit = getKit()
-                when (interfaceType) {
+
+                // Create signer based on interface type
+                val signerInfo = when (interfaceType) {
                     WalletInterfaceType.SIGNER -> {
                         // Create wallet with custom signer (educational demo)
                         // This demonstrates the WalletSigner interface for external signing scenarios.
@@ -599,20 +601,8 @@ class WalletKitViewModel @Inject constructor(
                         // For this demo, we simulate it by deriving public key from mnemonic,
                         // then implementing a custom signer that shows confirmation dialogs.
                         Log.d(LOG_TAG, "Creating wallet with SIGNER interface type (custom signer demo)")
-
                         val customSigner = createDemoSigner(cleaned, pending.metadata.name)
-                        val signerInfo = kit.createSignerFromCustom(customSigner)
-
-                        val adapter = when (version) {
-                            // Note: You can optionally specify workchain and walletId parameters:
-                            // - workchain: 0 (basechain, default) or -1 (masterchain)
-                            // - walletId: unique ID for multiple wallets from same signer
-                            // Example: kit.createV5R1Adapter(signerInfo, network, workchain = 0, walletId = WalletKitConstants.DEFAULT_WALLET_ID_V5R1)
-                            "v4r2" -> kit.createV4R2Adapter(signerInfo, network)
-                            "v5r1" -> kit.createV5R1Adapter(signerInfo, network)
-                            else -> throw IllegalArgumentException("Unsupported wallet version: $version")
-                        }
-                        kit.addWallet(adapter.adapterId)
+                        kit.createSignerFromCustom(customSigner)
                     }
                     WalletInterfaceType.SECRET_KEY -> {
                         // Create wallet from secret key
@@ -622,25 +612,27 @@ class WalletKitViewModel @Inject constructor(
                             _state.update { it.copy(error = uiString(R.string.wallet_error_invalid_secret_key)) }
                             return@launch
                         }
-                        val signer = kit.createSignerFromSecretKey(secretKeyBytes)
-                        val adapter = when (version) {
-                            "v4r2" -> kit.createV4R2Adapter(signer, network)
-                            "v5r1" -> kit.createV5R1Adapter(signer, network)
-                            else -> throw IllegalArgumentException("Unsupported wallet version: $version")
-                        }
-                        kit.addWallet(adapter.adapterId)
+                        kit.createSignerFromSecretKey(secretKeyBytes)
                     }
                     WalletInterfaceType.MNEMONIC -> {
                         // Create regular mnemonic wallet
-                        val signer = kit.createSignerFromMnemonic(cleaned)
-                        val adapter = when (version) {
-                            "v4r2" -> kit.createV4R2Adapter(signer, network)
-                            "v5r1" -> kit.createV5R1Adapter(signer, network)
-                            else -> throw IllegalArgumentException("Unsupported wallet version: $version")
-                        }
-                        kit.addWallet(adapter.adapterId)
+                        kit.createSignerFromMnemonic(cleaned)
                     }
                 }
+
+                // Create adapter based on wallet version
+                // Note: You can optionally specify workchain and walletId parameters:
+                // - workchain: 0 (basechain, default) or -1 (masterchain)
+                // - walletId: unique ID for multiple wallets from same signer
+                // Example: kit.createV5R1Adapter(signerInfo, network, workchain = 0, walletId = WalletKitConstants.DEFAULT_WALLET_ID_V5R1)
+                val adapter = when (version) {
+                    "v4r2" -> kit.createV4R2Adapter(signerInfo, network)
+                    "v5r1" -> kit.createV5R1Adapter(signerInfo, network)
+                    else -> throw IllegalArgumentException("Unsupported wallet version: $version")
+                }
+
+                // Add wallet to WalletKit
+                kit.addWallet(adapter.adapterId)
             }
 
             if (result.isSuccess) {
