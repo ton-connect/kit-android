@@ -22,6 +22,7 @@
 package io.ton.walletkit.storage
 
 import android.content.Context
+import io.ton.walletkit.exceptions.SecureStorageException
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.StorageConstants
 import io.ton.walletkit.internal.util.Logger
@@ -56,7 +57,7 @@ internal class SecureBridgeStorageAdapter(
             secureStorage.getRawValue(bridgeKey(key))
         } catch (e: Exception) {
             Logger.e(TAG, ERROR_FAILED_GET_RAW_VALUE + key, e)
-            null
+            throw SecureStorageException.GetFailed(cause = e)
         }
     }
 
@@ -69,7 +70,7 @@ internal class SecureBridgeStorageAdapter(
                 secureStorage.setRawValue(bridgeKey(key), value)
             } catch (e: Exception) {
                 Logger.e(TAG, ERROR_FAILED_SET_RAW_VALUE + key, e)
-                throw e
+                throw SecureStorageException.SaveFailed(cause = e)
             }
         }
     }
@@ -80,6 +81,7 @@ internal class SecureBridgeStorageAdapter(
                 secureStorage.removeRawValue(bridgeKey(key))
             } catch (e: Exception) {
                 Logger.e(TAG, ERROR_FAILED_REMOVE_RAW_VALUE + key, e)
+                throw SecureStorageException.DeleteFailed(cause = e)
             }
         }
     }
@@ -90,6 +92,7 @@ internal class SecureBridgeStorageAdapter(
                 secureStorage.clearBridgeData()
             } catch (e: Exception) {
                 Logger.e(TAG, ERROR_FAILED_CLEAR_BRIDGE_DATA, e)
+                throw SecureStorageException.ClearFailed(cause = e)
             }
         }
     }

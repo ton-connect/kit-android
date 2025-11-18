@@ -26,6 +26,7 @@ import io.ton.walletkit.event.ConnectRequestEvent
 import io.ton.walletkit.event.SignDataRequestEvent
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.event.TransactionRequestEvent
+import io.ton.walletkit.exceptions.JSValueConversionException
 import io.ton.walletkit.internal.constants.EventTypeConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
@@ -35,6 +36,7 @@ import io.ton.walletkit.model.DAppInfo
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
 
@@ -65,9 +67,18 @@ internal class EventParser(
                             handler = engine,
                         )
                     TONWalletKitEvent.ConnectRequest(request)
+                } catch (e: SerializationException) {
+                    Logger.e(TAG, ERROR_FAILED_PARSE_CONNECT_REQUEST, e)
+                    throw JSValueConversionException.DecodingError(
+                        message = "Failed to decode ConnectRequestEvent: ${e.message}",
+                        cause = e,
+                    )
                 } catch (e: Exception) {
                     Logger.e(TAG, ERROR_FAILED_PARSE_CONNECT_REQUEST, e)
-                    null
+                    throw JSValueConversionException.Unknown(
+                        message = "Failed to parse connect request: ${e.message}",
+                        cause = e,
+                    )
                 }
             }
 
@@ -83,9 +94,18 @@ internal class EventParser(
                             handler = engine,
                         )
                     TONWalletKitEvent.TransactionRequest(request)
+                } catch (e: SerializationException) {
+                    Logger.e(TAG, ERROR_FAILED_PARSE_TRANSACTION_REQUEST, e)
+                    throw JSValueConversionException.DecodingError(
+                        message = "Failed to decode TransactionRequestEvent: ${e.message}",
+                        cause = e,
+                    )
                 } catch (e: Exception) {
                     Logger.e(TAG, ERROR_FAILED_PARSE_TRANSACTION_REQUEST, e)
-                    null
+                    throw JSValueConversionException.Unknown(
+                        message = "Failed to parse transaction request: ${e.message}",
+                        cause = e,
+                    )
                 }
             }
 
@@ -101,9 +121,18 @@ internal class EventParser(
                             handler = engine,
                         )
                     TONWalletKitEvent.SignDataRequest(request)
+                } catch (e: SerializationException) {
+                    Logger.e(TAG, ERROR_FAILED_PARSE_SIGN_DATA_REQUEST, e)
+                    throw JSValueConversionException.DecodingError(
+                        message = "Failed to decode SignDataRequestEvent: ${e.message}",
+                        cause = e,
+                    )
                 } catch (e: Exception) {
                     Logger.e(TAG, ERROR_FAILED_PARSE_SIGN_DATA_REQUEST, e)
-                    null
+                    throw JSValueConversionException.Unknown(
+                        message = "Failed to parse sign data request: ${e.message}",
+                        cause = e,
+                    )
                 }
             }
 
