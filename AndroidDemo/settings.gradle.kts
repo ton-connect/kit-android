@@ -17,8 +17,8 @@ rootProject.name = "AndroidDemo"
 include(":app")
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
     }

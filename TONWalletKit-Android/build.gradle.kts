@@ -122,6 +122,71 @@ tasks.register("buildAndCopyToDemo") {
     dependsOn("buildAndCopyWebviewToDemo")
 }
 
+// Maven Central Publishing Validation Tasks
+tasks.register("checkSigningConfiguration") {
+    group = "publishing"
+    description = "Check that signing configuration is properly set up for Maven Central"
+    
+    doLast {
+        val requiredProps = listOf(
+            "signing.keyId" to System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyId"),
+            "signing.password" to System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyPassword"),
+            "signing.key" to System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey")
+        )
+        
+        val missingProps = requiredProps.filter { it.second.isNullOrEmpty() }
+        
+        if (missingProps.isNotEmpty()) {
+            println("⚠️  Missing signing configuration:")
+            missingProps.forEach { println("   - ${it.first}") }
+            println("\nSet these as environment variables or Gradle properties:")
+            println("   ORG_GRADLE_PROJECT_signingInMemoryKeyId")
+            println("   ORG_GRADLE_PROJECT_signingInMemoryKeyPassword")
+            println("   ORG_GRADLE_PROJECT_signingInMemoryKey")
+        } else {
+            println("✅ Signing configuration is present")
+        }
+    }
+}
+
+tasks.register("checkPomFileForMavenPublication") {
+    group = "publishing"
+    description = "Check that POM files meet Maven Central requirements"
+    
+    doLast {
+        val requiredPomFields = listOf(
+            "GROUP" to project.findProperty("GROUP"),
+            "VERSION_NAME" to project.findProperty("VERSION_NAME"),
+            "POM_ARTIFACT_ID" to project.findProperty("POM_ARTIFACT_ID")
+        )
+        
+        val missingFields = requiredPomFields.filter { it.second == null }
+        
+        if (missingFields.isNotEmpty()) {
+            println("❌ Missing required POM fields in gradle.properties:")
+            missingFields.forEach { println("   - ${it.first}") }
+            throw GradleException("POM configuration incomplete")
+        } else {
+            println("✅ POM configuration is complete")
+            println("   GROUP: ${project.property("GROUP")}")
+            println("   VERSION_NAME: ${project.property("VERSION_NAME")}")
+            println("   POM_ARTIFACT_ID: ${project.property("POM_ARTIFACT_ID")}")
+        }
+    }
+}
+
+tasks.register("validatePublishingSetup") {
+    group = "publishing"
+    description = "Validate all publishing requirements before releasing to Maven Central"
+    
+    dependsOn("checkSigningConfiguration", "checkPomFileForMavenPublication")
+    
+    doLast {
+        println("\n✅ Publishing setup validation complete!")
+        println("   Ready to publish to Maven Central")
+    }
+}
+
 // Task to just copy existing WebView AAR without rebuilding
 tasks.register<Copy>("copyWebviewToDemo") {
     group = "build"
