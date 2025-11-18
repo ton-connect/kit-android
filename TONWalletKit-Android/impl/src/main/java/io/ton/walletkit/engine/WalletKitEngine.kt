@@ -27,7 +27,6 @@ import io.ton.walletkit.event.ConnectRequestEvent
 import io.ton.walletkit.event.SignDataRequestEvent
 import io.ton.walletkit.event.TransactionRequestEvent
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSession
@@ -145,6 +144,8 @@ internal interface WalletKitEngine : RequestHandler {
      * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
      * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
      * @param walletId Wallet ID for address uniqueness
+     * @param publicKey Public key hex string (required for custom signers)
+     * @param isCustom Whether this is a custom signer (hardware wallet)
      * @return Adapter info with ID and wallet address
      * @throws WalletKitBridgeException if adapter creation fails
      */
@@ -153,17 +154,8 @@ internal interface WalletKitEngine : RequestHandler {
         network: String? = null,
         workchain: Int = 0,
         walletId: Long = 2147483409L,
-    ): WalletAdapterInfo
-
-    /**
-     * Create a V5R1 wallet adapter from a custom signer (hardware wallet).
-     * Use this for custom signers created with createSignerFromCustom.
-     */
-    suspend fun createV5R1AdapterFromCustom(
-        signerInfo: WalletSignerInfo,
-        network: String? = null,
-        workchain: Int = 0,
-        walletId: Long = 2147483409L,
+        publicKey: String? = null,
+        isCustom: Boolean = false,
     ): WalletAdapterInfo
 
     /**
@@ -174,6 +166,8 @@ internal interface WalletKitEngine : RequestHandler {
      * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
      * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
      * @param walletId Wallet ID for address uniqueness
+     * @param publicKey Public key hex string (required for custom signers)
+     * @param isCustom Whether this is a custom signer (hardware wallet)
      * @return Adapter info with ID and wallet address
      * @throws WalletKitBridgeException if adapter creation fails
      */
@@ -182,17 +176,8 @@ internal interface WalletKitEngine : RequestHandler {
         network: String? = null,
         workchain: Int = 0,
         walletId: Long = 698983191L,
-    ): WalletAdapterInfo
-
-    /**
-     * Create a V4R2 wallet adapter from a custom signer (hardware wallet).
-     * Use this for custom signers created with createSignerFromCustom.
-     */
-    suspend fun createV4R2AdapterFromCustom(
-        signerInfo: WalletSignerInfo,
-        network: String? = null,
-        workchain: Int = 0,
-        walletId: Long = 698983191L,
+        publicKey: String? = null,
+        isCustom: Boolean = false,
     ): WalletAdapterInfo
 
     /**
@@ -236,16 +221,6 @@ internal interface WalletKitEngine : RequestHandler {
      * @throws WalletKitBridgeException if balance retrieval fails
      */
     suspend fun getBalance(address: String): String
-
-    /**
-     * Get recent transactions for a wallet.
-     *
-     * @param address Wallet address
-     * @param limit Maximum number of transactions to return (default 10)
-     * @return List of recent transactions
-     * @throws WalletKitBridgeException if transaction retrieval fails
-     */
-    suspend fun getRecentTransactions(address: String, limit: Int = 10): List<Transaction>
 
     /**
      * Handle a TON Connect URL (e.g., from QR code scan or deep link).

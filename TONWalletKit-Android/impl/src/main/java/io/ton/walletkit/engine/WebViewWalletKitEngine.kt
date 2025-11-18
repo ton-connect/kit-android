@@ -37,7 +37,6 @@ import io.ton.walletkit.engine.operations.TonConnectOperations
 import io.ton.walletkit.engine.operations.TransactionOperations
 import io.ton.walletkit.engine.operations.WalletOperations
 import io.ton.walletkit.engine.parsing.EventParser
-import io.ton.walletkit.engine.parsing.TransactionParser
 import io.ton.walletkit.engine.state.EventRouter
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.event.ConnectRequestEvent
@@ -58,7 +57,6 @@ import io.ton.walletkit.model.TONNFTTransferParamsRaw
 import io.ton.walletkit.model.TONNetwork
 import io.ton.walletkit.model.TONTransactionPreview
 import io.ton.walletkit.model.TONTransferParams
-import io.ton.walletkit.model.Transaction
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSession
@@ -111,10 +109,6 @@ internal class WebViewWalletKitEngine private constructor(
     private val eventRouter = EventRouter()
     private val storageManager = StorageManager(storageAdapter) { persistentStorageEnabled }
 
-    // Transaction parser - initialized lazily to access current network
-    private val transactionParser: TransactionParser
-        get() = TransactionParser(isTestnet = currentNetwork == NetworkConstants.NETWORK_TESTNET)
-
     private val webViewManager: WebViewManager
     private val rpcClient: BridgeRpcClient
     private val initManager: InitializationManager
@@ -158,7 +152,6 @@ internal class WebViewWalletKitEngine private constructor(
                 ensureInitialized = ensureInitialized,
                 rpcClient = rpcClient,
                 signerManager = signerManager,
-                transactionParser = transactionParser,
                 currentNetworkProvider = { currentNetwork },
                 json = json,
             )
@@ -281,28 +274,18 @@ internal class WebViewWalletKitEngine private constructor(
         network: String?,
         workchain: Int,
         walletId: Long,
-    ): WalletAdapterInfo = walletOperations.createV5R1Adapter(signerId, network, workchain, walletId)
-
-    override suspend fun createV5R1AdapterFromCustom(
-        signerInfo: WalletSignerInfo,
-        network: String?,
-        workchain: Int,
-        walletId: Long,
-    ): WalletAdapterInfo = walletOperations.createV5R1AdapterFromCustom(signerInfo, network, workchain, walletId)
+        publicKey: String?,
+        isCustom: Boolean,
+    ): WalletAdapterInfo = walletOperations.createV5R1Adapter(signerId, network, workchain, walletId, publicKey, isCustom)
 
     override suspend fun createV4R2Adapter(
         signerId: String,
         network: String?,
         workchain: Int,
         walletId: Long,
-    ): WalletAdapterInfo = walletOperations.createV4R2Adapter(signerId, network, workchain, walletId)
-
-    override suspend fun createV4R2AdapterFromCustom(
-        signerInfo: WalletSignerInfo,
-        network: String?,
-        workchain: Int,
-        walletId: Long,
-    ): WalletAdapterInfo = walletOperations.createV4R2AdapterFromCustom(signerInfo, network, workchain, walletId)
+        publicKey: String?,
+        isCustom: Boolean,
+    ): WalletAdapterInfo = walletOperations.createV4R2Adapter(signerId, network, workchain, walletId, publicKey, isCustom)
 
     override suspend fun addWallet(adapterId: String): WalletAccount =
         walletOperations.addWallet(adapterId)
@@ -314,9 +297,6 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun removeWallet(address: String) = walletOperations.removeWallet(address)
 
     override suspend fun getBalance(address: String): String = walletOperations.getBalance(address)
-
-    override suspend fun getRecentTransactions(address: String, limit: Int): List<Transaction> =
-        walletOperations.getRecentTransactions(address, limit)
 
     override suspend fun handleTonConnectUrl(url: String) = tonConnectOperations.handleTonConnectUrl(url)
 

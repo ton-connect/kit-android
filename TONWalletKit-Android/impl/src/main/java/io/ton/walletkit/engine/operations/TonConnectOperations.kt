@@ -22,6 +22,7 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.operations.requests.ApproveConnectRequest
 import io.ton.walletkit.engine.operations.requests.ApproveSignDataRequest
@@ -32,7 +33,6 @@ import io.ton.walletkit.engine.operations.requests.ProcessInternalBrowserRequest
 import io.ton.walletkit.engine.operations.requests.RejectConnectRequest
 import io.ton.walletkit.engine.operations.requests.RejectSignDataRequest
 import io.ton.walletkit.engine.operations.requests.RejectTransactionRequest
-import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.event.ConnectRequestEvent
 import io.ton.walletkit.event.SignDataRequestEvent
 import io.ton.walletkit.event.TransactionRequestEvent
@@ -96,7 +96,7 @@ internal class TonConnectOperations(
                 messageId = messageId,
                 method = method,
                 params = paramsElement,
-                url = url
+                url = url,
             )
 
             Logger.d(TAG, "🔵 Calling processInternalBrowserRequest via bridge...")
@@ -129,7 +129,7 @@ internal class TonConnectOperations(
 
         val request = ApproveConnectRequest(
             event = event,
-            walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+            walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED),
         )
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_CONNECT_REQUEST, json.toJSONObject(request))
     }

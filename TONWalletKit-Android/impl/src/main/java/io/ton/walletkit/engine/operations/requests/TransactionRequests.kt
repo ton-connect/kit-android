@@ -62,5 +62,6 @@ internal data class SendTransactionRequest(
 @Serializable
 internal data class GetTransactionPreviewRequest(
     val address: String,
-    val transactionContent: String, // JSON string
+    // JSON string
+    val transactionContent: String,
 )

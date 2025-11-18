@@ -44,8 +44,7 @@ data class KeyPair(
     }
 
     override fun hashCode(): Int {
-        var result = publicKey.contentHashCode()
-        result = 31 * result + secretKey.contentHashCode()
-        return result
+        // SECURITY: Only hash public key to prevent information leakage.
+        return publicKey.contentHashCode()
     }
 }

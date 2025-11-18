@@ -21,66 +21,29 @@
  */
 package io.ton.walletkit
 
+import android.util.Base64
+
 /**
  * Utility functions for TON Wallet Kit.
  *
- * Provides helpers for common operations like hex encoding/decoding,
- * matching the JS WalletKit utility functions.
- *
- * ## Common Usage Patterns
- *
- * ### Converting signatures to hex for display:
- * ```kotlin
- * val signature: ByteArray = wallet.signTransaction(...)
- * val hexSignature = WalletKitUtils.byteArrayToHex(signature)
- * // Display: "0x1234abcd..."
- * ```
- *
- * ### Converting public keys for comparison:
- * ```kotlin
- * val publicKey1 = signer1.getPublicKey()
- * val publicKey2 = signer2.getPublicKey()
- *
- * // Compare as hex strings
- * if (WalletKitUtils.byteArrayToHexNoPrefix(publicKey1) ==
- *     WalletKitUtils.byteArrayToHexNoPrefix(publicKey2)) {
- *     println("Same key!")
- * }
- * ```
- *
- * ### Parsing hex input from users:
- * ```kotlin
- * // Accepts both "0x..." and raw hex
- * val userInput = "0x1234abcd"
- * val bytes = WalletKitUtils.hexToByteArray(userInput)
- * ```
- *
- * ### Round-trip conversion:
- * ```kotlin
- * val originalData = byteArrayOf(0x01, 0x02, 0x03)
- * val hex = WalletKitUtils.byteArrayToHex(originalData)
- * val restored = WalletKitUtils.hexToByteArray(hex)
- * // originalData == restored
- * ```
+ * Provides helpers for hex encoding/decoding and base64 conversions.
  */
 object WalletKitUtils {
     private val HEX_CHARS = "0123456789abcdef".toCharArray()
 
     /**
      * Convert a byte array to a hex string with 0x prefix.
+     * Matches the JS WalletKit's `Uint8ArrayToHex` utility function.
      *
-     * This matches the JS WalletKit's `Uint8ArrayToHex` utility function.
-     * The output is always lowercase hex with a `0x` prefix.
+     * @param bytes The byte array to convert
+     * @return Hex string with 0x prefix (lowercase), e.g. "0x123abc"
      *
      * Example:
      * ```kotlin
-     * val bytes = byteArrayOf(0x12, 0x34, 0x56)
-     * val hex = WalletKitUtils.byteArrayToHex(bytes)
-     * // hex = "0x123456"
+     * val signature: ByteArray = wallet.signTransaction(...)
+     * val hex = WalletKitUtils.byteArrayToHex(signature)
+     * // hex = "0x1234abcd..."
      * ```
-     *
-     * @param bytes The byte array to convert
-     * @return Hex string with 0x prefix (e.g., "0x123abc")
      */
     fun byteArrayToHex(bytes: ByteArray): String {
         if (bytes.isEmpty()) return "0x"
@@ -97,21 +60,17 @@ object WalletKitUtils {
 
     /**
      * Convert a hex string to a byte array.
-     *
-     * This is the inverse of [byteArrayToHex].
-     * The input can optionally start with "0x" prefix, which will be stripped.
-     * Both uppercase and lowercase hex characters are supported.
-     *
-     * Example:
-     * ```kotlin
-     * val hex = "0x123456"
-     * val bytes = WalletKitUtils.hexToByteArray(hex)
-     * // bytes = [0x12, 0x34, 0x56]
-     * ```
+     * Accepts hex with or without 0x prefix. Both uppercase and lowercase supported.
      *
      * @param hex Hex string with optional 0x prefix
      * @return Byte array
      * @throws IllegalArgumentException if hex string is invalid
+     *
+     * Example:
+     * ```kotlin
+     * val userInput = "0x1234abcd"
+     * val bytes = WalletKitUtils.hexToByteArray(userInput)
+     * ```
      */
     fun hexToByteArray(hex: String): ByteArray {
         val cleanHex = if (hex.startsWith("0x") || hex.startsWith("0X")) {
@@ -135,19 +94,20 @@ object WalletKitUtils {
 
     /**
      * Convert a byte array to a hex string WITHOUT the 0x prefix.
+     * Useful for comparing public keys or when raw hex is needed.
      *
-     * This is useful when you need raw hex without the prefix.
-     * The output is always lowercase hex.
+     * @param bytes The byte array to convert
+     * @return Hex string without prefix (lowercase), e.g. "123abc"
      *
      * Example:
      * ```kotlin
-     * val bytes = byteArrayOf(0x12, 0x34, 0x56)
-     * val hex = WalletKitUtils.byteArrayToHexNoPrefix(bytes)
-     * // hex = "123456"
+     * val publicKey1 = signer1.getPublicKey()
+     * val publicKey2 = signer2.getPublicKey()
+     * if (WalletKitUtils.byteArrayToHexNoPrefix(publicKey1) ==
+     *     WalletKitUtils.byteArrayToHexNoPrefix(publicKey2)) {
+     *     println("Same key!")
+     * }
      * ```
-     *
-     * @param bytes The byte array to convert
-     * @return Hex string without prefix (e.g., "123abc")
      */
     fun byteArrayToHexNoPrefix(bytes: ByteArray): String {
         if (bytes.isEmpty()) return ""
@@ -158,5 +118,67 @@ object WalletKitUtils {
             result[i * 2 + 1] = HEX_CHARS[v and 0x0F]
         }
         return String(result)
+    }
+
+    /**
+     * Convert a Base64 string to hex (without 0x prefix).
+     * Returns null if conversion fails.
+     *
+     * @param base64 The Base64 encoded string to convert
+     * @return Hex string (lowercase, no prefix) or null on error
+     *
+     * Example:
+     * ```kotlin
+     * val base64 = "EjRWeA=="
+     * val hex = WalletKitUtils.base64ToHex(base64)
+     * // hex = "12345678"
+     * ```
+     */
+    fun base64ToHex(base64: String?): String? {
+        if (base64.isNullOrBlank()) return null
+
+        return try {
+            val bytes = Base64.decode(base64, Base64.NO_WRAP)
+            byteArrayToHexNoPrefix(bytes)
+        } catch (e: IllegalArgumentException) {
+            null
+        }
+    }
+
+    /**
+     * Convert a hex string to Base64.
+     * Accepts hex with or without 0x prefix.
+     *
+     * @param hex The hex string to convert
+     * @return Base64 encoded string
+     * @throws IllegalArgumentException if hex string is invalid
+     *
+     * Example:
+     * ```kotlin
+     * val hex = "12345678"
+     * val base64 = WalletKitUtils.hexToBase64(hex)
+     * // base64 = "EjRWeA=="
+     * ```
+     */
+    fun hexToBase64(hex: String): String {
+        val bytes = hexToByteArray(hex)
+        return Base64.encodeToString(bytes, Base64.NO_WRAP)
+    }
+
+    /**
+     * Strip the 0x or 0X prefix from a hex string.
+     *
+     * @param hex The hex string to process
+     * @return Hex string without prefix
+     *
+     * Example:
+     * ```kotlin
+     * val hex = "0x123abc"
+     * val stripped = WalletKitUtils.stripHexPrefix(hex)
+     * // stripped = "123abc"
+     * ```
+     */
+    fun stripHexPrefix(hex: String): String {
+        return hex.removePrefix("0x").removePrefix("0X")
     }
 }

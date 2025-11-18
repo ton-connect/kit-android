@@ -563,7 +563,7 @@ class WalletKitViewModel @Inject constructor(
             }
             WalletInterfaceType.SECRET_KEY -> {
                 // Validate hex string format and length (64 hex chars = 32 bytes)
-                val trimmed = secretKeyHex.trim().removePrefix("0x")
+                val trimmed = WalletKitUtils.stripHexPrefix(secretKeyHex.trim())
                 if (!trimmed.matches(Regex("^[0-9a-fA-F]{64}$"))) {
                     _state.update { it.copy(error = uiString(R.string.wallet_error_invalid_secret_key)) }
                     return
@@ -586,7 +586,9 @@ class WalletKitViewModel @Inject constructor(
 
             val result = runCatching {
                 val kit = getKit()
-                when (interfaceType) {
+
+                // Create signer based on interface type
+                val signerInfo = when (interfaceType) {
                     WalletInterfaceType.SIGNER -> {
                         // Create wallet with custom signer (educational demo)
                         // This demonstrates the WalletSigner interface for external signing scenarios.
@@ -599,45 +601,38 @@ class WalletKitViewModel @Inject constructor(
                         // For this demo, we simulate it by deriving public key from mnemonic,
                         // then implementing a custom signer that shows confirmation dialogs.
                         Log.d(LOG_TAG, "Creating wallet with SIGNER interface type (custom signer demo)")
-
                         val customSigner = createDemoSigner(cleaned, pending.metadata.name)
-                        val signerInfo = kit.createSignerFromCustom(customSigner)
-
-                        val adapter = when (version) {
-                            // Note: You can optionally specify workchain and walletId parameters:
-                            // - workchain: 0 (basechain, default) or -1 (masterchain)
-                            // - walletId: unique ID for multiple wallets from same signer
-                            // Example: kit.createV5R1Adapter(signerInfo, network, workchain = 0, walletId = WalletKitConstants.DEFAULT_WALLET_ID_V5R1)
-                            "v4r2" -> kit.createV4R2Adapter(signerInfo, network)
-                            "v5r1" -> kit.createV5R1Adapter(signerInfo, network)
-                            else -> throw IllegalArgumentException("Unsupported wallet version: $version")
-                        }
-                        kit.addWallet(adapter.adapterId)
+                        kit.createSignerFromCustom(customSigner)
                     }
                     WalletInterfaceType.SECRET_KEY -> {
                         // Create wallet from secret key
-                        val secretKeyBytes = secretKeyHex.trim().removePrefix("0x").chunked(2)
-                            .map { it.toInt(16).toByte() }
-                            .toByteArray()
-                        val signer = kit.createSignerFromSecretKey(secretKeyBytes)
-                        val adapter = when (version) {
-                            "v4r2" -> kit.createV4R2Adapter(signer, network)
-                            "v5r1" -> kit.createV5R1Adapter(signer, network)
-                            else -> throw IllegalArgumentException("Unsupported wallet version: $version")
+                        val secretKeyBytes = try {
+                            WalletKitUtils.hexToByteArray(secretKeyHex.trim())
+                        } catch (e: Exception) {
+                            _state.update { it.copy(error = uiString(R.string.wallet_error_invalid_secret_key)) }
+                            return@launch
                         }
-                        kit.addWallet(adapter.adapterId)
+                        kit.createSignerFromSecretKey(secretKeyBytes)
                     }
                     WalletInterfaceType.MNEMONIC -> {
                         // Create regular mnemonic wallet
-                        val signer = kit.createSignerFromMnemonic(cleaned)
-                        val adapter = when (version) {
-                            "v4r2" -> kit.createV4R2Adapter(signer, network)
-                            "v5r1" -> kit.createV5R1Adapter(signer, network)
-                            else -> throw IllegalArgumentException("Unsupported wallet version: $version")
-                        }
-                        kit.addWallet(adapter.adapterId)
+                        kit.createSignerFromMnemonic(cleaned)
                     }
                 }
+
+                // Create adapter based on wallet version
+                // Note: You can optionally specify workchain and walletId parameters:
+                // - workchain: 0 (basechain, default) or -1 (masterchain)
+                // - walletId: unique ID for multiple wallets from same signer
+                // Example: kit.createV5R1Adapter(signerInfo, network, workchain = 0, walletId = WalletKitConstants.DEFAULT_WALLET_ID_V5R1)
+                val adapter = when (version) {
+                    "v4r2" -> kit.createV4R2Adapter(signerInfo, network)
+                    "v5r1" -> kit.createV5R1Adapter(signerInfo, network)
+                    else -> throw IllegalArgumentException("Unsupported wallet version: $version")
+                }
+
+                // Add wallet to WalletKit
+                kit.addWallet(adapter.adapterId)
             }
 
             if (result.isSuccess) {
@@ -1317,9 +1312,10 @@ class WalletKitViewModel @Inject constructor(
         // Use SDK's mnemonicToKeyPair to get public key without creating a wallet
         val kit = getKit()
         val keyPair = kit.mnemonicToKeyPair(mnemonic)
-        val publicKey = WalletKitUtils.byteArrayToHexNoPrefix(keyPair.publicKey)
+        // Use byteArrayToHex to get hex with 0x prefix (required by JavaScript bridge)
+        val publicKey = WalletKitUtils.byteArrayToHex(keyPair.publicKey)
 
-        Log.d(LOG_TAG, "Derived public key for signer wallet: ${publicKey.take(16)}...")
+        Log.d(LOG_TAG, "Derived public key for signer wallet: ${publicKey.take(18)}...")
 
         val signerMnemonic = mnemonic.toList()
 

@@ -40,8 +40,6 @@ import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.DAppInfo
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONNetwork
-import io.ton.walletkit.model.Transaction
-import io.ton.walletkit.model.TransactionType
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletSession
 import io.ton.walletkit.presentation.impl.quickjs.QuickJs
@@ -324,30 +322,17 @@ internal class QuickJsWalletKitEngine(
         throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
     }
 
-    override suspend fun createV5R1AdapterFromCustom(
-        signerInfo: io.ton.walletkit.model.WalletSignerInfo,
-        network: String?,
-        workchain: Int,
-        walletId: Long,
-    ): io.ton.walletkit.model.WalletAdapterInfo {
-        throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
-    }
-
-    override suspend fun createV4R2AdapterFromCustom(
-        signerInfo: io.ton.walletkit.model.WalletSignerInfo,
-        network: String?,
-        workchain: Int,
-        walletId: Long,
-    ): io.ton.walletkit.model.WalletAdapterInfo {
-        throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
-    }
-
     override suspend fun createV5R1Adapter(
         signerId: String,
         network: String?,
         workchain: Int,
         walletId: Long,
+        publicKey: String?,
+        isCustom: Boolean,
     ): io.ton.walletkit.model.WalletAdapterInfo {
+        if (isCustom) {
+            throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
+        }
         throw UnsupportedOperationException("QuickJS engine does not support adapter creation. Use WebView engine.")
     }
 
@@ -356,7 +341,12 @@ internal class QuickJsWalletKitEngine(
         network: String?,
         workchain: Int,
         walletId: Long,
+        publicKey: String?,
+        isCustom: Boolean,
     ): io.ton.walletkit.model.WalletAdapterInfo {
+        if (isCustom) {
+            throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
+        }
         throw UnsupportedOperationException("QuickJS engine does not support adapter creation. Use WebView engine.")
     }
 
@@ -442,117 +432,6 @@ internal class QuickJsWalletKitEngine(
         }
         Log.d(logTag, "getBalance balance: $balance")
         return balance ?: "0"
-    }
-
-    override suspend fun getRecentTransactions(address: String, limit: Int): List<Transaction> {
-        ensureWalletKitInitialized()
-        val params = JSONObject().apply {
-            put("address", address)
-            put("limit", limit)
-        }
-        val result = call("getRecentTransactions", params)
-        return parseTransactions(result.optJSONArray("items"))
-    }
-
-    /**
-     * Parse JSONArray of transactions into typed Transaction list.
-     */
-    private fun parseTransactions(jsonArray: JSONArray?): List<Transaction> {
-        if (jsonArray == null) return emptyList()
-
-        return buildList(jsonArray.length()) {
-            for (i in 0 until jsonArray.length()) {
-                val txJson = jsonArray.optJSONObject(i) ?: continue
-
-                // Get messages
-                val inMsg = txJson.optJSONObject("in_msg")
-                val outMsgs = txJson.optJSONArray("out_msgs")
-
-                // Filter out jetton/token transactions
-                // Jetton transactions have op_code in their messages or have a message body/payload
-                val isJettonOrTokenTx = when {
-                    // Check incoming message for jetton markers
-                    inMsg != null -> {
-                        val opCode = inMsg.optString("op_code")?.takeIf { it.isNotEmpty() }
-                        val body = inMsg.optString("body")?.takeIf { it.isNotEmpty() }
-                        val message = inMsg.optString("message")?.takeIf { it.isNotEmpty() }
-                        // Has op_code or has complex body (not just a comment)
-                        opCode != null || (body != null && body != "te6ccgEBAQEAAgAAAA==") ||
-                            (message != null && message.length > 200)
-                    }
-                    // Check outgoing messages for jetton markers
-                    outMsgs != null && outMsgs.length() > 0 -> {
-                        var hasJettonMarkers = false
-                        for (j in 0 until outMsgs.length()) {
-                            val msg = outMsgs.optJSONObject(j) ?: continue
-                            val opCode = msg.optString("op_code")?.takeIf { it.isNotEmpty() }
-                            val body = msg.optString("body")?.takeIf { it.isNotEmpty() }
-                            val message = msg.optString("message")?.takeIf { it.isNotEmpty() }
-                            if (opCode != null || (body != null && body != "te6ccgEBAQEAAgAAAA==") ||
-                                (message != null && message.length > 200)
-                            ) {
-                                hasJettonMarkers = true
-                                break
-                            }
-                        }
-                        hasJettonMarkers
-                    }
-                    else -> false
-                }
-
-                // Skip non-TON transactions
-                if (isJettonOrTokenTx) {
-                    Log.d(logTag, "Skipping jetton/token transaction: ${txJson.optString("hash", "unknown")}")
-                    continue
-                }
-
-                // Determine transaction type based on incoming/outgoing value
-                // Check if incoming message has value (meaning we received funds)
-                val incomingValue = inMsg?.optString("value")?.toLongOrNull() ?: 0L
-                val hasIncomingValue = incomingValue > 0
-
-                // Check if we have outgoing messages with value
-                var outgoingValue = 0L
-                if (outMsgs != null) {
-                    for (j in 0 until outMsgs.length()) {
-                        val msg = outMsgs.optJSONObject(j)
-                        val value = msg?.optString("value")?.toLongOrNull() ?: 0L
-                        outgoingValue += value
-                    }
-                }
-                val hasOutgoingValue = outgoingValue > 0
-
-                // Transaction is INCOMING if we received value, OUTGOING if we only sent value
-                // Note: Many incoming transactions also have outgoing messages (fees, change, etc.)
-                val type = when {
-                    hasIncomingValue -> TransactionType.INCOMING
-                    hasOutgoingValue -> TransactionType.OUTGOING
-                    else -> TransactionType.UNKNOWN
-                }
-
-                add(
-                    Transaction(
-                        hash = txJson.optString("hash", ""),
-                        // Convert to milliseconds
-                        timestamp = txJson.optLong("utime", 0L) * 1000,
-                        amount = when (type) {
-                            TransactionType.INCOMING -> incomingValue.toString()
-                            TransactionType.OUTGOING -> outgoingValue.toString()
-                            else -> "0"
-                        },
-                        fee = txJson.optString("fee"),
-                        comment = when (type) {
-                            TransactionType.INCOMING -> inMsg?.optString("message")
-                            TransactionType.OUTGOING -> outMsgs?.optJSONObject(0)?.optString("message")
-                            else -> null
-                        },
-                        sender = inMsg?.optString("source"),
-                        recipient = outMsgs?.optJSONObject(0)?.optString("destination"),
-                        type = type,
-                    ),
-                )
-            }
-        }
     }
 
     override suspend fun handleTonConnectUrl(url: String) {
