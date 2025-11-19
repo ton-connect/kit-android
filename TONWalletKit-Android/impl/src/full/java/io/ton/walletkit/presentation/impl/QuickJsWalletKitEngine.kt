@@ -372,7 +372,7 @@ internal class QuickJsWalletKitEngine(
             for (index in 0 until items.length()) {
                 val entry = items.optJSONObject(index) ?: continue
                 val account = WalletAccount(
-                    address = entry.optString("address"),
+                    address = TONUserFriendlyAddress(entry.optString("address")),
                     publicKey = entry.optNullableString("publicKey"),
                     version = entry.optString("version", "unknown"),
                     network = entry.optString("network", currentNetwork),
@@ -397,7 +397,7 @@ internal class QuickJsWalletKitEngine(
         }
 
         return WalletAccount(
-            address = result.optString("address"),
+            address = TONUserFriendlyAddress(result.optString("address")),
             publicKey = result.optNullableString("publicKey"),
             version = result.optString("version", "unknown"),
             network = result.optString("network", currentNetwork),

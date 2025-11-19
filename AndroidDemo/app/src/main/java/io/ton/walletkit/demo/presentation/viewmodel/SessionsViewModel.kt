@@ -82,7 +82,7 @@ class SessionsViewModel(
                         val walletSessions = wallet.sessions()
                         allSessions.addAll(walletSessions)
                     }.onFailure { error ->
-                        Log.w(TAG, "Failed to get sessions for wallet ${wallet.address}", error)
+                        Log.w(TAG, "Failed to get sessions for wallet ${wallet.address?.value}", error)
                     }
                 }
 
@@ -152,7 +152,7 @@ class SessionsViewModel(
                     if (domainSession != null) {
                         domainSession.disconnect(kit)
                         disconnected = true
-                        Log.d(TAG, "Disconnected session $sessionId from wallet ${wallet.address}")
+                        Log.d(TAG, "Disconnected session $sessionId from wallet ${wallet.address?.value}")
                         break
                     }
                 }

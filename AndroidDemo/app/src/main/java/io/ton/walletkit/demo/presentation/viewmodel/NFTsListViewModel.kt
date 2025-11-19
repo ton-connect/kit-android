@@ -54,12 +54,12 @@ class NFTsListViewModel(
     private var loadJob: Job? = null
 
     init {
-        Log.d("NFTsListViewModel", "Created for wallet: ${wallet.address}")
+        Log.d("NFTsListViewModel", "Created for wallet: ${wallet.address?.value}")
     }
 
     override fun onCleared() {
         super.onCleared()
-        Log.d("NFTsListViewModel", "Cleared for wallet: ${wallet.address}")
+        Log.d("NFTsListViewModel", "Cleared for wallet: ${wallet.address?.value}")
         loadJob?.cancel()
     }
 
@@ -77,7 +77,7 @@ class NFTsListViewModel(
             return
         }
 
-        Log.d("NFTsListViewModel", "Starting loadNFTs for wallet: ${wallet.address}")
+        Log.d("NFTsListViewModel", "Starting loadNFTs for wallet: ${wallet.address?.value}")
         loadJob?.cancel() // Cancel any existing load operation
         loadJob = viewModelScope.launch {
             try {
