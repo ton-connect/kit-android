@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request/Response Flow Scenarios</title>
+</head>
+<body>
+    <h1>Mock Bridge - Request/Response Flow Scenarios</h1>
+    <script type="module">
+        import { 
+            approveTwiceOnSameRequest,
+            rejectAfterApprove,
+            approveWithInvalidAddress,
+            transactionMissingBoc,
+            signDataInvalidType,
+            requestTimeoutNoResponse,
+            jsRejectsAndroidApproved,
+            requestExtremelyLongPayload,
+            requestCallbackThrows
+        } from './request-response-flow-scenarios.mjs';
+        
+        const scenario = new URLSearchParams(window.location.search).get('scenario') || 'approveTwiceOnSameRequest';
+        
+        const scenarios = {
+            approveTwiceOnSameRequest,
+            rejectAfterApprove,
+            approveWithInvalidAddress,
+            transactionMissingBoc,
+            signDataInvalidType,
+            requestTimeoutNoResponse,
+            jsRejectsAndroidApproved,
+            requestExtremelyLongPayload,
+            requestCallbackThrows
+        };
+        
+        if (scenarios[scenario]) {
+            scenarios[scenario]();
+        }
+    </script>
+</body>
+</html>

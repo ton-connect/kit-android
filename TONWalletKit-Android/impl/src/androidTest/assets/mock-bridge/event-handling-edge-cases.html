@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Handling Edge Cases</title>
+</head>
+<body>
+    <h1>Mock Bridge - Event Handling Edge Cases</h1>
+    <script type="module">
+        import { 
+            duplicateEventSameId,
+            handlerThrowsException,
+            multipleHandlersOneFails,
+            eventWrongPayloadType,
+            eventAfterSdkDestroyed,
+            sameHandlerAddedMultipleTimes,
+            removeUnregisteredHandler
+        } from './event-handling-edge-cases.mjs';
+        
+        const scenario = new URLSearchParams(window.location.search).get('scenario') || 'duplicateEventSameId';
+        
+        const scenarios = {
+            duplicateEventSameId,
+            handlerThrowsException,
+            multipleHandlersOneFails,
+            eventWrongPayloadType,
+            eventAfterSdkDestroyed,
+            sameHandlerAddedMultipleTimes,
+            removeUnregisteredHandler
+        };
+        
+        if (scenarios[scenario]) {
+            scenarios[scenario]();
+        }
+    </script>
+</body>
+</html>

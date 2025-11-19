@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Scenarios</title>
+</head>
+<body>
+    <h1>Mock Bridge - Performance Scenarios</h1>
+    <script type="module">
+        import { cpuThrottling, memoryLeakDetected, frameDropAnimation, batterySaverMode, thermalThrottling } from './performance-scenarios.mjs';
+        
+        const scenario = new URLSearchParams(window.location.search).get('scenario') || 'cpuThrottling';
+        
+        const scenarios = {
+            cpuThrottling,
+            memoryLeakDetected,
+            frameDropAnimation,
+            batterySaverMode,
+            thermalThrottling
+        };
+        
+        if (scenarios[scenario]) {
+            scenarios[scenario]();
+        }
+    </script>
+</body>
+</html>

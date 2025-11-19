@@ -22,6 +22,7 @@
 package io.ton.walletkit
 
 import io.mockk.*
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Test
@@ -35,18 +36,18 @@ import org.junit.Test
  */
 class WalletManagementTest {
 
-    private fun createMockWallet(address: String): ITONWallet {
+    private fun createMockWallet(addressString: String): ITONWallet {
         return mockk<ITONWallet>(relaxed = true) {
-            every { this@mockk.address } returns address
-            every { publicKey } returns "test_public_key_$address"
+            every { this@mockk.address } returns TONUserFriendlyAddress(addressString)
+            every { publicKey } returns "test_public_key_$addressString"
         }
     }
 
     @Test
     fun `getWallet returns wallet when it exists`() = runTest {
         val mockKit = mockk<ITONWalletKit>()
-        val address = "EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t"
-        val expectedWallet = createMockWallet(address)
+        val address = TONUserFriendlyAddress("EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t")
+        val expectedWallet = createMockWallet(address.value)
 
         coEvery { mockKit.getWallet(address) } returns expectedWallet
 
@@ -60,7 +61,8 @@ class WalletManagementTest {
     @Test
     fun `getWallet returns null when wallet does not exist`() = runTest {
         val mockKit = mockk<ITONWalletKit>()
-        val nonExistentAddress = "EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_FAKE"
+        // Use a valid TON testnet address for non-existent wallet
+        val nonExistentAddress = TONUserFriendlyAddress("kf8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM_BP")
 
         coEvery { mockKit.getWallet(nonExistentAddress) } returns null
 
@@ -73,7 +75,7 @@ class WalletManagementTest {
     @Test
     fun `removeWallet returns true when wallet exists`() = runTest {
         val mockKit = mockk<ITONWalletKit>()
-        val address = "EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t"
+        val address = TONUserFriendlyAddress("EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t")
 
         coEvery { mockKit.removeWallet(address) } returns true
 
@@ -86,7 +88,7 @@ class WalletManagementTest {
     @Test
     fun `removeWallet returns false when wallet does not exist`() = runTest {
         val mockKit = mockk<ITONWalletKit>()
-        val nonExistentAddress = "EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_FAKE"
+        val nonExistentAddress = TONUserFriendlyAddress("kf8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM_BP")
 
         coEvery { mockKit.removeWallet(nonExistentAddress) } returns false
 
@@ -100,12 +102,12 @@ class WalletManagementTest {
     fun `clearWallets removes all wallets`() = runTest {
         val mockKit = mockk<ITONWalletKit>()
 
-        // Setup: Add multiple wallets first
+        // Setup: Add multiple wallets first with valid addresses
         coEvery { mockKit.getWallets() } returnsMany listOf(
             listOf(
-                createMockWallet("EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t"),
-                createMockWallet("EQD5FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_1u"),
-                createMockWallet("EQD6FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_2v"),
+                createMockWallet("Ef8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM0vF"),
+                createMockWallet("EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N"),
+                createMockWallet("kf8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM_BP"),
             ),
             emptyList(),
         )
@@ -151,8 +153,8 @@ class WalletManagementTest {
     fun `getWallets returns multiple wallets`() = runTest {
         val mockKit = mockk<ITONWalletKit>()
         val expectedWallets = listOf(
-            createMockWallet("EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t"),
-            createMockWallet("EQD5FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_1u"),
+            createMockWallet("Ef8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM0vF"),
+            createMockWallet("EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N"),
         )
 
         coEvery { mockKit.getWallets() } returns expectedWallets
@@ -167,10 +169,13 @@ class WalletManagementTest {
     @Test
     fun `removing wallet does not affect other wallets`() = runTest {
         val mockKit = mockk<ITONWalletKit>()
-        val wallet1 = createMockWallet("EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t")
-        val wallet2 = createMockWallet("EQD5FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_1u")
-        val address1 = "EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t"
-        val address2 = "EQD5FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_1u"
+        // Use valid TON mainnet addresses
+        val address1Str = "Ef8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM0vF"
+        val address2Str = "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N"
+        val wallet1 = createMockWallet(address1Str)
+        val wallet2 = createMockWallet(address2Str)
+        val address1 = TONUserFriendlyAddress(address1Str)
+        val address2 = TONUserFriendlyAddress(address2Str)
 
         // Setup: Return both wallets initially
         coEvery { mockKit.getWallets() } returns listOf(wallet1, wallet2)

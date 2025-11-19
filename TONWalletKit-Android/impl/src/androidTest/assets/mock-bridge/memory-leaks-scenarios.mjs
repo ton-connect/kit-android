@@ -1,0 +1,7 @@
+// Scenarios #131-135
+function scenario131_webViewNotReleased() { window.__walletkitCall('bridgeReady', JSON.stringify({ protocolVersion: 1 })); setTimeout(() => { window.__walletkitCall('event', JSON.stringify({ id: 1, event: 'memoryLeak', payload: { type: 'webview' }})); }, 100); }
+function scenario132_eventListenersNotCleared() { window.__walletkitCall('bridgeReady', JSON.stringify({ protocolVersion: 1 })); setTimeout(() => { window.__walletkitCall('event', JSON.stringify({ id: 1, event: 'memoryLeak', payload: { type: 'listeners' }})); }, 100); }
+function scenario133_coroutineNotCancelled() { window.__walletkitCall('bridgeReady', JSON.stringify({ protocolVersion: 1 })); setTimeout(() => { window.__walletkitCall('event', JSON.stringify({ id: 1, event: 'memoryLeak', payload: { type: 'coroutine' }})); }, 100); }
+function scenario134_bitmapMemoryLeak() { window.__walletkitCall('bridgeReady', JSON.stringify({ protocolVersion: 1 })); setTimeout(() => { window.__walletkitCall('event', JSON.stringify({ id: 1, event: 'memoryLeak', payload: { type: 'bitmap' }})); }, 100); }
+function scenario135_fileDescriptorLeak() { window.__walletkitCall('bridgeReady', JSON.stringify({ protocolVersion: 1 })); setTimeout(() => { window.__walletkitCall('event', JSON.stringify({ id: 1, event: 'memoryLeak', payload: { type: 'fd' }})); }, 100); }
+window.memoryLeaksScenarios = { scenario131_webViewNotReleased, scenario132_eventListenersNotCleared, scenario133_coroutineNotCancelled, scenario134_bitmapMemoryLeak, scenario135_fileDescriptorLeak };

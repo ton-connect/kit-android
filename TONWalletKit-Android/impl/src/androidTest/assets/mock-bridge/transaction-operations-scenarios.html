@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Scenarios</title>
+    <script type="module">
+        import * as scenarios from './transaction-operations-scenarios.mjs';
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const scenario = urlParams.get('scenario');
+            const scenariosKey = Object.keys(window).find(k => k.includes('Scenarios'));
+            if (scenario && scenariosKey && window[scenariosKey][scenario]) {
+                console.log('Running scenario:', scenario);
+                window[scenariosKey][scenario]();
+            } else {
+                console.error('Unknown scenario:', scenario);
+            }
+        });
+    </script>
+</head>
+<body><h1>Test Scenarios</h1><p id="status">Initializing...</p></body>
+</html>

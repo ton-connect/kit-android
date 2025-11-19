@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebView Lifecycle Scenarios</title>
+</head>
+<body>
+    <h1>Mock Bridge - WebView Lifecycle Scenarios</h1>
+    <script type="module">
+        import { webViewReload, webViewMemoryPressure, webViewCrashRecovery, webViewSuspended, jsEngineTimeout } from './webview-lifecycle-scenarios.mjs';
+        
+        const scenario = new URLSearchParams(window.location.search).get('scenario') || 'webViewReload';
+        
+        const scenarios = {
+            webViewReload,
+            webViewMemoryPressure,
+            webViewCrashRecovery,
+            webViewSuspended,
+            jsEngineTimeout
+        };
+        
+        if (scenarios[scenario]) {
+            scenarios[scenario]();
+        }
+    </script>
+</body>
+</html>

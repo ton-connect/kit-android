@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridge Ready State Edge Cases</title>
+</head>
+<body>
+    <h1>Mock Bridge - Bridge Ready State Edge Cases</h1>
+    <script type="module">
+        import { 
+            readyConflictingNetwork,
+            jsContextLostRecovered,
+            initCalledConcurrently,
+            initAfterDestroy,
+            initInvalidConfig
+        } from './bridge-ready-edge-cases.mjs';
+        
+        const scenario = new URLSearchParams(window.location.search).get('scenario') || 'readyConflictingNetwork';
+        
+        const scenarios = {
+            readyConflictingNetwork,
+            jsContextLostRecovered,
+            initCalledConcurrently,
+            initAfterDestroy,
+            initInvalidConfig
+        };
+        
+        if (scenarios[scenario]) {
+            scenarios[scenario]();
+        }
+    </script>
+</body>
+</html>

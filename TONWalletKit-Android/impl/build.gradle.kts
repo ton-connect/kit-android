@@ -293,6 +293,9 @@ dependencies {
     testImplementation(libs.androidxTestCore)
     testImplementation(libs.robolectric)
     testImplementation(libs.shadowsFramework)
+
+    // androidTest needs api module too
+    androidTestImplementation(project(":api"))
     androidTestImplementation(libs.androidxTestExt)
     androidTestImplementation(libs.androidxTestRunner)
     androidTestImplementation(libs.kotlinxCoroutinesTest)

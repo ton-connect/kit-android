@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Storage & Persistence Scenarios</title>
+    <script type="module">
+        import * as scenarios from './storage-persistence-scenarios.mjs';
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const scenario = urlParams.get('scenario');
+            
+            if (scenario && window.storagePersistenceScenarios && window.storagePersistenceScenarios[scenario]) {
+                console.log('Running scenario:', scenario);
+                window.storagePersistenceScenarios[scenario]();
+            } else {
+                console.error('Unknown scenario:', scenario);
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>Storage & Persistence Test Scenarios</h1>
+    <p id="status">Initializing...</p>
+</body>
+</html>

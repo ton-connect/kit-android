@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebView Lifecycle Scenarios</title>
+    <script type="module">
+        import * as scenarios from './webview-lifecycle-scenarios.mjs';
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const scenario = urlParams.get('scenario');
+            
+            if (scenario && window.webviewLifecycleScenarios && window.webviewLifecycleScenarios[scenario]) {
+                console.log('Running scenario:', scenario);
+                window.webviewLifecycleScenarios[scenario]();
+            } else {
+                console.error('Unknown scenario:', scenario);
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>WebView Lifecycle Test Scenarios</h1>
+    <p id="status">Initializing...</p>
+</body>
+</html>

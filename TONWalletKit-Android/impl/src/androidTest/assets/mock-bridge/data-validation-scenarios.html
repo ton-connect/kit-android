@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Validation Scenarios</title>
+</head>
+<body>
+    <h1>Mock Bridge - Data Validation Scenarios</h1>
+    <script type="module">
+        import { invalidWalletAddress, negativeAmountValue, nullParameters, stringInjection, integerOverflow, unicodeEdgeCases } from './data-validation-scenarios.mjs';
+        
+        const scenario = new URLSearchParams(window.location.search).get('scenario') || 'invalidWalletAddress';
+        
+        const scenarios = {
+            invalidWalletAddress,
+            negativeAmountValue,
+            nullParameters,
+            stringInjection,
+            integerOverflow,
+            unicodeEdgeCases
+        };
+        
+        if (scenarios[scenario]) {
+            scenarios[scenario]();
+        }
+    </script>
+</body>
+</html>

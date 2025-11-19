@@ -30,15 +30,16 @@ class ModelTest {
 
     @Test
     fun testWalletAccountHasRequiredFields() {
+        val address = TONUserFriendlyAddress("EQDexample")
         val wallet = WalletAccount(
-            address = "EQDexample",
+            address = address,
             publicKey = "pubkey",
             name = "My Wallet",
             version = "v5r1",
             network = "mainnet",
             index = 0,
         )
-        assertEquals("EQDexample", wallet.address)
+        assertEquals(address, wallet.address)
         assertEquals("v5r1", wallet.version)
     }
 

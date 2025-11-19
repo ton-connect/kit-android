@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android Bridge Specifics</title>
+</head>
+<body>
+    <h1>Mock Bridge - Android Bridge Specifics</h1>
+    <script type="module">
+        import { 
+            walletkitCallBeforeReady,
+            jsExceptionDuringCall,
+            responseMissingKind,
+            responseUnknownKind,
+            eventListenerSetupFails,
+            storageAdapterNotAvailable,
+            storageGetReturnsNull,
+            storageSetThrows
+        } from './android-bridge-specifics.mjs';
+        
+        const scenario = new URLSearchParams(window.location.search).get('scenario') || 'walletkitCallBeforeReady';
+        
+        const scenarios = {
+            walletkitCallBeforeReady,
+            jsExceptionDuringCall,
+            responseMissingKind,
+            responseUnknownKind,
+            eventListenerSetupFails,
+            storageAdapterNotAvailable,
+            storageGetReturnsNull,
+            storageSetThrows
+        };
+        
+        if (scenarios[scenario]) {
+            scenarios[scenario]();
+        }
+    </script>
+</body>
+</html>

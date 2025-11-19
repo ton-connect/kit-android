@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Scenarios</title>
+</head>
+<body>
+    <h1>Mock Bridge - Network Scenarios</h1>
+    <script type="module">
+        import { networkConnectivityLost, networkTypeSwitch, intermittentConnectivity, highLatencyNetwork, dnsResolutionFailure, sslTlsError } from './network-scenarios.mjs';
+        
+        const scenario = new URLSearchParams(window.location.search).get('scenario') || 'networkConnectivityLost';
+        
+        const scenarios = {
+            networkConnectivityLost,
+            networkTypeSwitch,
+            intermittentConnectivity,
+            highLatencyNetwork,
+            dnsResolutionFailure,
+            sslTlsError
+        };
+        
+        if (scenarios[scenario]) {
+            scenarios[scenario]();
+        }
+    </script>
+</body>
+</html>
