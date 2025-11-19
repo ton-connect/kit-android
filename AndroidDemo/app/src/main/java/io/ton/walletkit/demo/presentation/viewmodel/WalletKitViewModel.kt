@@ -1000,7 +1000,16 @@ class WalletKitViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         jettons = summaries,
-                        canLoadMoreJettons = viewModel.canLoadMore,
+                    )
+                }
+            }
+        }
+
+        val canLoadMoreJob = viewModelScope.launch {
+            viewModel.canLoadMore.collect { canLoad ->
+                _state.update {
+                    it.copy(
+                        canLoadMoreJettons = canLoad,
                     )
                 }
             }
@@ -1017,7 +1026,6 @@ class WalletKitViewModel @Inject constructor(
                     current.copy(
                         isLoadingJettons = jettonState is JettonsListViewModel.JettonState.Loading,
                         jettonsError = errorMessage,
-                        canLoadMoreJettons = viewModel.canLoadMore,
                     )
                 }
             }
@@ -1032,7 +1040,7 @@ class WalletKitViewModel @Inject constructor(
             }
         }
 
-        jettonsCollectors = listOf(dataJob, stateJob, transferErrorJob)
+        jettonsCollectors = listOf(dataJob, canLoadMoreJob, stateJob, transferErrorJob)
         viewModel.loadJettons()
     }
 

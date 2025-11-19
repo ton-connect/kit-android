@@ -27,7 +27,6 @@ import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.model.TONJettonTransferParams
 import io.ton.walletkit.model.TONJettonWallet
-import io.ton.walletkit.model.TONPagination
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,10 +53,11 @@ class JettonsListViewModel(
     private val _transferError = MutableStateFlow<String?>(null)
     val transferError: StateFlow<String?> = _transferError.asStateFlow()
 
-    private var pagination: TONPagination? = null
+    private val _canLoadMore = MutableStateFlow(false)
+    val canLoadMore: StateFlow<Boolean> = _canLoadMore.asStateFlow()
+
     private val limit = 100
     private var loadJob: Job? = null
-    private var hasMoreItems = false
 
     init {
         Log.d(TAG, "Created for wallet: ${wallet.address}")
@@ -68,9 +68,6 @@ class JettonsListViewModel(
         Log.d(TAG, "Cleared for wallet: ${wallet.address}")
         loadJob?.cancel()
     }
-
-    val canLoadMore: Boolean
-        get() = hasMoreItems
 
     sealed class JettonState {
         data object Initial : JettonState()
@@ -95,31 +92,26 @@ class JettonsListViewModel(
             try {
                 _state.value = JettonState.Loading
 
-                val result = wallet.getJettons(limit = limit, offset = 0)
+                val jettons = wallet.getJettons(limit = limit, offset = 0)
 
-                Log.d(TAG, "Loaded ${result.items.size} jettons, pagination: ${result.pagination}")
-                result.items.forEachIndexed { index, jettonWallet ->
+                Log.d(TAG, "Loaded ${jettons.size} jettons")
+                jettons.forEachIndexed { index, jettonWallet ->
                     Log.d(TAG, "Jetton[$index]: address=${jettonWallet.jettonAddress}, balance=${jettonWallet.balance}, name=${jettonWallet.jetton?.name}")
                 }
 
-                if (result.items.isEmpty()) {
+                if (jettons.isEmpty()) {
                     _state.value = JettonState.Empty
-                    hasMoreItems = false
+                    _canLoadMore.value = false
                 } else {
-                    pagination = result.pagination
-                    _jettons.value = result.items
+                    _canLoadMore.value = jettons.size == limit
+                    _jettons.value = jettons
                     _state.value = JettonState.Success
-
-                    // Check if there are more items based on pagination info
-                    hasMoreItems = pagination?.let { p ->
-                        p.offset + result.items.size < (p.pages ?: Int.MAX_VALUE)
-                    } ?: false
-                    Log.d(TAG, "hasMoreItems: $hasMoreItems (pagination=$pagination)")
+                    Log.d(TAG, "canLoadMore: ${_canLoadMore.value} (got ${jettons.size} items, limit=$limit)")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load jettons", e)
                 _state.value = JettonState.Error(e.message ?: "Unknown error")
-                hasMoreItems = false
+                _canLoadMore.value = false
             }
         }
     }
@@ -128,8 +120,8 @@ class JettonsListViewModel(
      * Load more jettons with pagination.
      */
     fun loadMoreJettons() {
-        if (_state.value != JettonState.Success || _isLoadingMore.value || !hasMoreItems) {
-            Log.d(TAG, "Skipping loadMoreJettons - state=${_state.value}, isLoadingMore=${_isLoadingMore.value}, hasMore=$hasMoreItems")
+        if (_state.value != JettonState.Success || _isLoadingMore.value || !_canLoadMore.value) {
+            Log.d(TAG, "Skipping loadMoreJettons - state=${_state.value}, isLoadingMore=${_isLoadingMore.value}, canLoadMore=${_canLoadMore.value}")
             return
         }
 
@@ -140,27 +132,23 @@ class JettonsListViewModel(
             try {
                 _isLoadingMore.value = true
 
-                val result = wallet.getJettons(
+                val jettons = wallet.getJettons(
                     limit = limit,
                     offset = currentOffset,
                 )
 
-                Log.d(TAG, "Loaded ${result.items.size} more jettons")
+                Log.d(TAG, "Loaded ${jettons.size} more jettons")
 
-                pagination = result.pagination
+                _canLoadMore.value = jettons.size == limit
                 // Filter duplicates by jetton address
                 val existingAddresses = _jettons.value.map { it.jettonAddress }.toSet()
-                val newJettons = result.items.filterNot { it.jettonAddress in existingAddresses }
+                val newJettons = jettons.filterNot { it.jettonAddress in existingAddresses }
                 _jettons.value = _jettons.value + newJettons
 
-                // Update hasMoreItems based on pagination
-                hasMoreItems = pagination?.let { p ->
-                    p.offset + result.items.size < (p.pages ?: Int.MAX_VALUE)
-                } ?: false
-                Log.d(TAG, "Added ${newJettons.size} new jettons (filtered ${result.items.size - newJettons.size} duplicates), hasMoreItems=$hasMoreItems")
+                Log.d(TAG, "Added ${newJettons.size} new jettons (filtered ${jettons.size - newJettons.size} duplicates), canLoadMore=${_canLoadMore.value}")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load more jettons", e)
-                hasMoreItems = false
+                _canLoadMore.value = false
             } finally {
                 _isLoadingMore.value = false
             }
@@ -173,8 +161,7 @@ class JettonsListViewModel(
     fun refresh() {
         _state.value = JettonState.Initial
         _jettons.value = emptyList()
-        pagination = null
-        hasMoreItems = false
+        _canLoadMore.value = false
         loadJettons()
     }
 
