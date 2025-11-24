@@ -712,9 +712,9 @@ internal class TonConnectInjector(
                 is TONWalletKitConfiguration.SignDataFeature -> {
                     if (feature.types.isNotEmpty()) {
                         val types = feature.types.joinToString(",") { "\"${it.name.lowercase()}\"" }
-                        listOf("SignData", "SignData:{\"types\":[$types]}")
+                        listOf("SignData:{\"types\":[$types]}")
                     } else {
-                        listOf("SignData")
+                        emptyList()
                     }
                 }
                 else -> emptyList()
