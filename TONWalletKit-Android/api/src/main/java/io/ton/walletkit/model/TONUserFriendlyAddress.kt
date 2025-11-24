@@ -142,15 +142,11 @@ data class TONUserFriendlyAddress(
          * @return Parsed TONUserFriendlyAddress
          * @throws IllegalArgumentException if the address is invalid
          */
-        fun parse(address: String): TONUserFriendlyAddress =
-            TONUserFriendlyAddress(
-                AddrStd.parse(address).toString(
-                    userFriendly = true,
-                    urlSafe = true,
-                    testOnly = false,
-                    bounceable = true,
-                ),
-            )
+        fun parse(address: String): TONUserFriendlyAddress {
+            // Validate by parsing, but keep the original address string
+            AddrStd.parse(address)
+            return TONUserFriendlyAddress(address)
+        }
 
         /**
          * Parses a raw address in "workchain:hash" format.
@@ -176,14 +172,10 @@ data class TONUserFriendlyAddress(
          * @return Parsed TONUserFriendlyAddress
          * @throws IllegalArgumentException if the address is invalid
          */
-        fun parseUserFriendly(userFriendlyAddress: String): TONUserFriendlyAddress =
-            TONUserFriendlyAddress(
-                AddrStd.parseUserFriendly(userFriendlyAddress).toString(
-                    userFriendly = true,
-                    urlSafe = true,
-                    testOnly = false,
-                    bounceable = true,
-                ),
-            )
+        fun parseUserFriendly(userFriendlyAddress: String): TONUserFriendlyAddress {
+            // Validate by parsing, but keep the original address string
+            AddrStd.parseUserFriendly(userFriendlyAddress)
+            return TONUserFriendlyAddress(userFriendlyAddress)
+        }
     }
 }
