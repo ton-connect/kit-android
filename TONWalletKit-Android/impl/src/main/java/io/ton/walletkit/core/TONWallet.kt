@@ -28,7 +28,7 @@ import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.SignDataResult
 import io.ton.walletkit.model.TONJettonTransferParams
-import io.ton.walletkit.model.TONJettonWallet
+import io.ton.walletkit.model.TONJettonWallets
 import io.ton.walletkit.model.TONNFTItem
 import io.ton.walletkit.model.TONNFTTransferParamsHuman
 import io.ton.walletkit.model.TONNFTTransferParamsRaw
@@ -328,16 +328,15 @@ internal class TONWallet internal constructor(
      *
      * @param limit Maximum number of jetton wallets to return (default: 100)
      * @param offset Offset for pagination (default: 0)
-     * @return List of jetton wallets
+     * @return Jetton wallets with metadata wrapper
      * @throws WalletKitBridgeException if jetton retrieval fails
      */
     override suspend fun getJettons(
         limit: Int?,
         offset: Int?,
-    ): List<TONJettonWallet> {
+    ): TONJettonWallets {
         val addr = address ?: throw WalletKitBridgeException("Wallet address is null")
-        val jettonWallets = engine.getJettons(addr, limit ?: 100, offset ?: 0)
-        return jettonWallets.items
+        return engine.getJettons(addr, limit ?: 100, offset ?: 0)
     }
 
     /**

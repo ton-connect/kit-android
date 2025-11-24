@@ -95,7 +95,7 @@ interface ITONWallet {
     suspend fun getJettons(
         limit: Int? = null,
         offset: Int? = null,
-    ): List<TONJettonWallet>
+    ): TONJettonWallets
 
     /**
      * Get balance of a specific jetton.
