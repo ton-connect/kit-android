@@ -2,6 +2,9 @@
 # TON WalletKit Android SDK - Public API ProGuard Rules
 # These rules ensure the public API remains readable and accessible
 # while allowing internal implementation details to be obfuscated
+# 
+# Maven Central Published Library - Consumer Rules
+# Applied automatically when apps depend on this library
 # ============================================================
 
 # ------------------------------------------------------------
@@ -21,6 +24,12 @@
 # Keep all public enums
 -keep public enum io.ton.walletkit.** { 
     *; 
+}
+
+# Keep data classes with all their members (required for serialization)
+-keep class io.ton.walletkit.**$$serializer { *; }
+-keepclassmembers class io.ton.walletkit.** {
+    *** Companion;
 }
 
 # ------------------------------------------------------------

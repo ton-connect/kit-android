@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.mavenPublish)
     jacoco // Enable JaCoCo for test coverage
 }
 
@@ -266,9 +267,10 @@ tasks.register<JacocoReport>("jacocoTestReport") {
 }
 
 dependencies {
-    // API module with public models, events, configs - embed into this AAR
-    // Using api() makes classes available to consumers, and they'll be packaged in the AAR
-    api(project(":api"))
+    // API module - classes are merged into this AAR via the fat AAR task
+    // Use compileOnly to avoid adding it as a dependency in the published POM
+    // The fat AAR already contains all API classes merged in
+    compileOnly(project(":api"))
 
     implementation(libs.androidxCoreKtx)
     implementation(libs.androidxLifecycleRuntimeKtx)
@@ -293,6 +295,66 @@ dependencies {
     androidTestImplementation(libs.androidxTestRunner)
     androidTestImplementation(libs.kotlinxCoroutinesTest)
     testImplementation(kotlin("test"))
+}
+
+// Maven Publishing Configuration for both variants
+mavenPublishing {
+    publishToMavenCentral()
+
+    // Only sign if credentials are configured (CI/CD or manual local publish)
+    if (project.hasProperty("signing.keyId") || System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyId") != null) {
+        signAllPublications()
+    }
+
+    // Publish the webview release variant by default
+    // Disable Javadoc for now due to Dokka compatibility issues
+    // This publishes the FAT AAR that includes merged API + impl classes
+    configure(
+        com.vanniktech.maven.publish.AndroidSingleVariantLibrary(
+            variant = "webviewRelease",
+            sourcesJar = true,
+            publishJavadocJar = false,
+        ),
+    )
+
+    // Single artifact containing the complete SDK (API + impl merged)
+    coordinates(
+        project.property("GROUP").toString(),
+        project.property("POM_ARTIFACT_ID").toString(),
+        project.property("VERSION_NAME").toString(),
+    )
+
+    pom {
+        name.set("TON WalletKit for Android")
+        description.set("Android SDK for integrating TON Wallet functionality with dApp support")
+        inceptionYear.set("2025")
+        url.set("https://github.com/ton-connect/kit-android")
+
+        licenses {
+            license {
+                name.set("MIT License")
+                url.set("https://opensource.org/licenses/MIT")
+                distribution.set("repo")
+            }
+        }
+
+        developers {
+            developer {
+                id.set("ton-connect")
+                name.set("TON")
+                email.set("dnikulin@ton.org")
+                url.set("https://github.com/ton-connect")
+                organization.set("TonTech")
+                organizationUrl.set("https://github.com/ton-connect")
+            }
+        }
+
+        scm {
+            url.set("https://github.com/ton-connect/kit-android")
+            connection.set("scm:git:git://github.com/ton-connect/kit-android.git")
+            developerConnection.set("scm:git:ssh://git@github.com/ton-connect/kit-android.git")
+        }
+    }
 }
 
 // Task to create fat AAR with embedded API module classes
