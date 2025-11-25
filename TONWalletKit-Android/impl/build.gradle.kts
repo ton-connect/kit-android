@@ -285,6 +285,8 @@ dependencies {
     implementation(libs.androidxDatastorePreferences)
     implementation(libs.androidxSecurityCrypto)
 
+    // API module needed for tests to access WalletKitBridgeException
+    testImplementation(project(":api"))
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinxCoroutinesTest)

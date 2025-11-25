@@ -31,6 +31,7 @@ import io.ton.walletkit.engine.operations.requests.GetJettonWalletAddressRequest
 import io.ton.walletkit.engine.operations.requests.GetJettonsRequest
 import io.ton.walletkit.engine.operations.requests.GetNftRequest
 import io.ton.walletkit.engine.operations.requests.GetNftsRequest
+import io.ton.walletkit.exceptions.JSValueConversionException
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.model.TONJettonTransferParams
 import io.ton.walletkit.model.TONJettonWallets
@@ -38,6 +39,7 @@ import io.ton.walletkit.model.TONNFTItem
 import io.ton.walletkit.model.TONNFTItems
 import io.ton.walletkit.model.TONNFTTransferParamsHuman
 import io.ton.walletkit.model.TONNFTTransferParamsRaw
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
 /**
@@ -61,7 +63,14 @@ internal class AssetOperations(
 
         val request = GetNftsRequest(address = walletAddress, limit = limit, offset = offset)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_NFTS, json.toJSONObject(request))
-        return json.decodeFromString(result.toString())
+        return try {
+            json.decodeFromString(result.toString())
+        } catch (e: SerializationException) {
+            throw JSValueConversionException.DecodingError(
+                message = "Failed to decode TONNFTItems: ${e.message}",
+                cause = e,
+            )
+        }
     }
 
     suspend fun getNft(nftAddress: String): TONNFTItem? {
@@ -70,7 +79,14 @@ internal class AssetOperations(
         val request = GetNftRequest(address = nftAddress)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_NFT, json.toJSONObject(request))
         return if (result.has("address")) {
-            json.decodeFromString(result.toString())
+            try {
+                json.decodeFromString(result.toString())
+            } catch (e: SerializationException) {
+                throw JSValueConversionException.DecodingError(
+                    message = "Failed to decode TONNFTItem: ${e.message}",
+                    cause = e,
+                )
+            }
         } else {
             null
         }
@@ -114,7 +130,14 @@ internal class AssetOperations(
 
         val request = GetJettonsRequest(address = walletAddress, limit = limit, offset = offset)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_JETTONS, json.toJSONObject(request))
-        return json.decodeFromString(result.toString())
+        return try {
+            json.decodeFromString(result.toString())
+        } catch (e: SerializationException) {
+            throw JSValueConversionException.DecodingError(
+                message = "Failed to decode TONJettonWallets: ${e.message}",
+                cause = e,
+            )
+        }
     }
 
     suspend fun createTransferJettonTransaction(
