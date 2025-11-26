@@ -704,15 +704,17 @@ internal class TonConnectInjector(
             when (feature) {
                 is TONWalletKitConfiguration.SendTransactionFeature -> {
                     if (feature.maxMessages != null) {
-                        listOf("SendTransaction", "SendTransaction:{\"maxMessages\":${feature.maxMessages}}")
+                        val optionsJson = Json.encodeToString(mapOf("maxMessages" to feature.maxMessages))
+                        listOf("SendTransaction", "SendTransaction:$optionsJson")
                     } else {
                         listOf("SendTransaction")
                     }
                 }
                 is TONWalletKitConfiguration.SignDataFeature -> {
                     if (feature.types.isNotEmpty()) {
-                        val types = feature.types.joinToString(",") { "\"${it.name.lowercase()}\"" }
-                        listOf("SignData:{\"types\":[$types]}")
+                        val types = feature.types.map { it.name.lowercase() }
+                        val typesJson = Json.encodeToString(mapOf("types" to types))
+                        listOf("SignData:$typesJson")
                     } else {
                         emptyList()
                     }
