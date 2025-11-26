@@ -1,6 +1,121 @@
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+const ERROR_CODES = {
+  // Bridge Manager Errors (7000-7099)
+  BRIDGE_NOT_INITIALIZED: 7e3,
+  BRIDGE_CONNECTION_FAILED: 7001,
+  BRIDGE_EVENT_PROCESSING_FAILED: 7002,
+  BRIDGE_RESPONSE_SEND_FAILED: 7003,
+  // Session Errors (7100-7199)
+  SESSION_NOT_FOUND: 7100,
+  SESSION_ID_REQUIRED: 7101,
+  SESSION_CREATION_FAILED: 7102,
+  SESSION_DOMAIN_REQUIRED: 7103,
+  SESSION_RESTORATION_FAILED: 7104,
+  // Event Store Errors (7200-7299)
+  EVENT_STORE_NOT_INITIALIZED: 7200,
+  EVENT_STORE_OPERATION_FAILED: 7201,
+  // Storage Errors (7300-7399)
+  STORAGE_READ_FAILED: 7300,
+  STORAGE_WRITE_FAILED: 7301,
+  // Wallet Errors (7400-7499)
+  WALLET_NOT_FOUND: 7400,
+  WALLET_REQUIRED: 7401,
+  WALLET_INVALID: 7402,
+  WALLET_CREATION_FAILED: 7403,
+  WALLET_INITIALIZATION_FAILED: 7404,
+  LEDGER_DEVICE_ERROR: 7405,
+  // Request Processing Errors (7500-7599)
+  INVALID_REQUEST_EVENT: 7500,
+  REQUEST_PROCESSING_FAILED: 7501,
+  RESPONSE_CREATION_FAILED: 7502,
+  APPROVAL_FAILED: 7503,
+  REJECTION_FAILED: 7504,
+  // API Client Errors (7600-7699)
+  API_CLIENT_ERROR: 7600,
+  TON_CLIENT_INITIALIZATION_FAILED: 7601,
+  API_REQUEST_FAILED: 7602,
+  ACCOUNT_NOT_FOUND: 7603,
+  // Jetton/NFT Errors (7700-7799)
+  JETTONS_MANAGER_ERROR: 7700,
+  NFT_MANAGER_ERROR: 7701,
+  // Contract Errors (7800-7899)
+  CONTRACT_DEPLOYMENT_FAILED: 7800,
+  CONTRACT_EXECUTION_FAILED: 7801,
+  CONTRACT_VALIDATION_FAILED: 7802,
+  // Generic Errors (7900-7999)
+  UNKNOWN_ERROR: 7900,
+  VALIDATION_ERROR: 7901,
+  INITIALIZATION_ERROR: 7902,
+  CONFIGURATION_ERROR: 7903,
+  NETWORK_ERROR: 7904,
+  UNKNOWN_EMULATION_ERROR: 7905,
+  INVALID_CONFIG: 7906
+};
+function getErrorCodeName(code) {
+  const entry = Object.entries(ERROR_CODES).find(([, value]) => value === code);
+  return entry ? entry[0] : `UNKNOWN_CODE_${code}`;
+}
+class WalletKitError extends Error {
+  code;
+  codeName;
+  originalError;
+  context;
+  constructor(code, message, originalError, context) {
+    const fullMessage = originalError ? `${message}: ${originalError.message}` : message;
+    super(fullMessage);
+    this.name = "WalletKitError";
+    this.code = code;
+    this.codeName = getErrorCodeName(code);
+    this.originalError = originalError;
+    this.context = context;
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, WalletKitError);
+    }
+    if (originalError?.stack) {
+      this.stack = `${this.stack}
+Caused by: ${originalError.stack}`;
+    }
+  }
+  /**
+   * Create a WalletKitError from an unknown error
+   */
+  static fromError(code, message, error2, context) {
+    if (error2 instanceof Error) {
+      return new WalletKitError(code, message, error2, context);
+    }
+    const errorMessage = error2 && typeof error2 === "object" && "message" in error2 ? String(error2.message) : String(error2);
+    return new WalletKitError(code, `${message}: ${errorMessage}`, void 0, { ...context, originalValue: error2 });
+  }
+  /**
+   * Check if an error is a WalletKitError with a specific code
+   */
+  static isWalletKitError(error2, code) {
+    if (!(error2 instanceof WalletKitError)) {
+      return false;
+    }
+    if (code !== void 0) {
+      return error2.code === code;
+    }
+    return true;
+  }
+  /**
+   * Serialize error to JSON
+   */
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      code: this.code,
+      codeName: this.codeName,
+      context: this.context,
+      stack: this.stack,
+      originalError: this.originalError ? {
+        name: this.originalError.name,
+        message: this.originalError.message,
+        stack: this.originalError.stack
+      } : void 0
+    };
+  }
+}
 const DEFAULT_DEVICE_INFO = {
   platform: "browser",
   appName: "Wallet",
@@ -53,15 +168,15 @@ function validateBridgeConfig(config) {
   }
 }
 class TonConnectBridge {
+  // Public properties as per TonConnect spec
+  deviceInfo;
+  walletInfo;
+  protocolVersion;
+  isWalletBrowser;
+  // Private state
+  transport;
+  eventListeners = [];
   constructor(config, transport) {
-    // Public properties as per TonConnect spec
-    __publicField(this, "deviceInfo");
-    __publicField(this, "walletInfo");
-    __publicField(this, "protocolVersion");
-    __publicField(this, "isWalletBrowser");
-    // Private state
-    __publicField(this, "transport");
-    __publicField(this, "eventListeners", []);
     this.deviceInfo = config.deviceInfo;
     this.walletInfo = config.walletInfo;
     this.protocolVersion = config.protocolVersion;
@@ -149,153 +264,11 @@ class TonConnectBridge {
     this.transport.destroy();
   }
 }
-const TONCONNECT_BRIDGE_REQUEST = "TONCONNECT_BRIDGE_REQUEST";
-const TONCONNECT_BRIDGE_RESPONSE = "TONCONNECT_BRIDGE_RESPONSE";
-const TONCONNECT_BRIDGE_EVENT = "TONCONNECT_BRIDGE_EVENT";
-const INJECT_CONTENT_SCRIPT = "INJECT_CONTENT_SCRIPT";
-const DEFAULT_REQUEST_TIMEOUT = 3e5;
-const RESTORE_CONNECTION_TIMEOUT = 1e4;
 const SUPPORTED_PROTOCOL_VERSION = 2;
-class ExtensionTransport {
-  constructor(window2, source) {
-    __publicField(this, "extensionId", null);
-    __publicField(this, "source");
-    __publicField(this, "window");
-    __publicField(this, "pendingRequests", /* @__PURE__ */ new Map());
-    __publicField(this, "eventCallback", null);
-    __publicField(this, "messageListener", null);
-    this.window = window2;
-    this.source = source;
-    this.setupMessageListener();
-  }
-  /**
-   * Setup listener for messages from extension
-   */
-  setupMessageListener() {
-    this.messageListener = (event) => {
-      if (event.source !== this.window)
-        return;
-      const data = event.data;
-      if (!data || typeof data !== "object")
-        return;
-      if (data.type === "INJECT_EXTENSION_ID") {
-        this.extensionId = data.extensionId;
-        return;
-      }
-      if (data.type === TONCONNECT_BRIDGE_RESPONSE && data.source === this.source) {
-        this.handleResponse(data);
-        return;
-      }
-      if (data.type === TONCONNECT_BRIDGE_EVENT && data.source === this.source) {
-        this.handleEvent(data.event);
-        return;
-      }
-    };
-    this.window.addEventListener("message", this.messageListener);
-  }
-  /**
-   * Handle response from extension
-   */
-  handleResponse(data) {
-    const pendingRequest = this.pendingRequests.get(data.messageId);
-    if (!pendingRequest)
-      return;
-    const { resolve, reject, timeoutId } = pendingRequest;
-    this.pendingRequests.delete(data.messageId);
-    clearTimeout(timeoutId);
-    if (data.success) {
-      resolve(data.payload);
-    } else {
-      reject(data.error);
-    }
-  }
-  /**
-   * Handle event from extension
-   */
-  handleEvent(event) {
-    if (this.eventCallback) {
-      try {
-        this.eventCallback(event);
-      } catch (error2) {
-        console.error("TonConnect event callback error:", error2);
-      }
-    }
-  }
-  /**
-   * Send request to extension
-   */
-  async send(request) {
-    if (!this.isAvailable()) {
-      throw new Error("Chrome extension transport is not available");
-    }
-    return new Promise((resolve, reject) => {
-      const messageId = crypto.randomUUID();
-      const timeout = request.method === "restoreConnection" ? RESTORE_CONNECTION_TIMEOUT : DEFAULT_REQUEST_TIMEOUT;
-      const timeoutId = setTimeout(() => {
-        if (this.pendingRequests.has(messageId)) {
-          this.pendingRequests.delete(messageId);
-          reject(new Error(`Request timeout: ${request.method}`));
-        }
-      }, timeout);
-      this.pendingRequests.set(messageId, { resolve, reject, timeoutId });
-      try {
-        chrome.runtime.sendMessage(this.extensionId, {
-          type: TONCONNECT_BRIDGE_REQUEST,
-          source: this.source,
-          payload: request,
-          messageId
-        });
-      } catch (error2) {
-        this.pendingRequests.delete(messageId);
-        clearTimeout(timeoutId);
-        reject(error2);
-      }
-    });
-  }
-  /**
-   * Register event callback
-   */
-  onEvent(callback) {
-    this.eventCallback = callback;
-  }
-  /**
-   * Check if transport is available
-   */
-  isAvailable() {
-    return typeof chrome !== "undefined" && this.extensionId !== null;
-  }
-  /**
-   * Request content script injection for iframes
-   */
-  requestContentScriptInjection() {
-    if (!this.isAvailable())
-      return;
-    try {
-      chrome.runtime.sendMessage(this.extensionId, {
-        type: INJECT_CONTENT_SCRIPT
-      });
-    } catch (error2) {
-      console.error("Failed to request content script injection:", error2);
-    }
-  }
-  /**
-   * Cleanup resources
-   */
-  destroy() {
-    this.pendingRequests.forEach(({ timeoutId }) => clearTimeout(timeoutId));
-    this.pendingRequests.clear();
-    if (this.messageListener) {
-      this.window.removeEventListener("message", this.messageListener);
-      this.messageListener = null;
-    }
-    this.eventCallback = null;
-    this.extensionId = null;
-  }
-}
 class IframeWatcher {
+  onIframeDetected;
+  observer = null;
   constructor(onIframeDetected) {
-    __publicField(this, "onIframeDetected");
-    __publicField(this, "observer", null);
     this.onIframeDetected = onIframeDetected;
   }
   /**
@@ -370,10 +343,10 @@ class IframeWatcher {
   }
 }
 class WindowAccessor {
+  window;
+  bridgeKey;
+  injectTonKey;
   constructor(window2, { bridgeKey, injectTonKey }) {
-    __publicField(this, "window");
-    __publicField(this, "bridgeKey");
-    __publicField(this, "injectTonKey");
     this.window = window2;
     this.bridgeKey = bridgeKey;
     this.injectTonKey = injectTonKey ?? true;
@@ -477,10 +450,9 @@ function injectBridge(window2, options, argsTransport) {
   }
   let transport;
   if (argsTransport) {
-    transport = argsTransport;
+    transport = typeof argsTransport === "function" ? argsTransport() : argsTransport;
   } else {
-    const source = `${config.jsBridgeKey}-tonconnect`;
-    transport = new ExtensionTransport(window2, source);
+    throw new WalletKitError(ERROR_CODES.INVALID_CONFIG, "Transport is not configured");
   }
   const bridge = new TonConnectBridge(config, transport);
   windowAccessor.injectBridge(bridge);
@@ -491,6 +463,8 @@ function injectBridge(window2, options, argsTransport) {
   iframeWatcher.start();
   return;
 }
+const TONCONNECT_BRIDGE_REQUEST = "TONCONNECT_BRIDGE_REQUEST";
+const TONCONNECT_BRIDGE_EVENT = "TONCONNECT_BRIDGE_EVENT";
 function injectBridgeCode(window2, options, transport) {
   injectBridge(window2, options, transport);
 }
@@ -632,7 +606,7 @@ class AndroidWebViewTransport {
         const eventStr = bridge.pullEvent(frameId);
         if (eventStr) {
           const data = JSON.parse(eventStr);
-          if (data.type === "TONCONNECT_BRIDGE_EVENT" && data.event) {
+          if (data.type === TONCONNECT_BRIDGE_EVENT && data.event) {
             this.eventCallbacks.forEach((callback) => {
               try {
                 callback(data.event);
@@ -656,7 +630,7 @@ class AndroidWebViewTransport {
       }
       bridge.postMessage(
         JSON.stringify({
-          type: "TONCONNECT_BRIDGE_REQUEST",
+          type: TONCONNECT_BRIDGE_REQUEST,
           messageId,
           method: request.method || "unknown",
           params: request.params || {},
