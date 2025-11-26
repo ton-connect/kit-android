@@ -2,7 +2,8 @@
 
 Kotlin library providing TON wallet capabilities for Android.
 
-- Minimum: Android 7.0 (API 24)
+- Minimum: Android 8.0 (API 26)
+- Requires up-to-date Android System WebView (tested with 138.0.7204.179+)
 
 ## Installation
 
