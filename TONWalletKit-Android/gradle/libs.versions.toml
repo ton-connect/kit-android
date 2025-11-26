@@ -1,12 +1,13 @@
 [versions]
 agp = "8.13.1"
 kotlin = "2.2.21"
-spotless = "8.0.0"
+spotless = "8.1.0"
 mavenPublish = "0.35.0"
 androidxCoreKtx = "1.17.0"
 lifecycle = "2.9.4"
 coroutinesAndroid = "1.10.2"
 kotlinxSerialization = "1.9.0"
+tonKotlinCrypto = "0.5.0"
 webkit = "1.14.0"
 datastorePreferences = "1.1.7"
 securityCrypto = "1.1.0"
@@ -36,6 +37,7 @@ androidxTestCore = { module = "androidx.test:core-ktx", version.ref = "androidxT
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 shadowsFramework = { module = "org.robolectric:shadows-framework", version.ref = "robolectric" }
 kotlinxCoroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutinesTest" }
+tonKotlinBlockTlb = { module = "org.ton.kotlin:ton-kotlin-block-tlb", version.ref = "tonKotlinCrypto" }
 
 [plugins]
 androidLibrary = { id = "com.android.library", version.ref = "agp" }

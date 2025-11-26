@@ -32,6 +32,7 @@ import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
@@ -265,9 +266,9 @@ internal class TONWalletKit private constructor(
     /**
      * Get a single wallet by its address.
      */
-    override suspend fun getWallet(address: String): ITONWallet? {
+    override suspend fun getWallet(address: TONUserFriendlyAddress): ITONWallet? {
         checkNotDestroyed()
-        val account = engine.getWallet(address) ?: return null
+        val account = engine.getWallet(address.value) ?: return null
         return TONWallet(
             address = account.address,
             engine = engine,
@@ -278,7 +279,7 @@ internal class TONWalletKit private constructor(
     /**
      * Remove a wallet by its address.
      */
-    override suspend fun removeWallet(address: String): Boolean {
+    override suspend fun removeWallet(address: TONUserFriendlyAddress): Boolean {
         checkNotDestroyed()
         val wallet = getWallet(address)
         return if (wallet != null) {
@@ -350,7 +351,7 @@ internal class TONWalletKit private constructor(
      */
     override suspend fun handleNewTransaction(wallet: ITONWallet, transactionContent: String) {
         checkNotDestroyed()
-        val addr = wallet.address ?: throw IllegalArgumentException("Wallet address is null")
+        val addr = wallet.address?.value ?: throw IllegalArgumentException("Wallet address is null")
         engine.handleNewTransaction(addr, transactionContent)
     }
 

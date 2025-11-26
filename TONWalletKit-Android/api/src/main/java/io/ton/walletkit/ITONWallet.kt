@@ -31,9 +31,9 @@ import io.ton.walletkit.model.*
  */
 interface ITONWallet {
     /**
-     * Wallet address in user-friendly format (UQ... or EQ...).
+     * Wallet address in user-friendly format.
      */
-    val address: String?
+    val address: TONUserFriendlyAddress?
 
     /**
      * Public key as hex string.

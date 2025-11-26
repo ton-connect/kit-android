@@ -242,6 +242,13 @@ internal class MessageDispatcher(
 
         mainHandler.post {
             try {
+                // If sessionId is empty (e.g., wallet-initiated disconnect), broadcast to all WebViews
+                if (sessionId.isNullOrEmpty()) {
+                    Logger.d(TAG, "📤 sessionId is empty, broadcasting event to all registered WebViews")
+                    TonConnectInjector.broadcastEventToAllWebViews(event)
+                    return@post
+                }
+
                 Logger.d(TAG, "📤 Looking up WebView for session: $sessionId")
                 val targetWebView = TonConnectInjector.getWebViewForSession(sessionId)
 

@@ -74,7 +74,7 @@ class WalletLifecycleManager(
         val wallets = kit.getWallets()
         tonWallets.clear()
         wallets.forEach { wallet ->
-            wallet.address?.let { tonWallets[it] = wallet }
+            wallet.address?.value?.let { tonWallets[it] = wallet }
         }
 
         if (tonWallets.isEmpty()) {
@@ -85,7 +85,7 @@ class WalletLifecycleManager(
         tonWallets.clear()
         val metadataCorrections = mutableListOf<String>()
         for (wallet in walletsAfterMigration) {
-            val address = wallet.address ?: continue
+            val address = wallet.address?.value ?: continue
             tonWallets[address] = wallet
             if (walletMetadata[address] == null) {
                 val storedRecord = storage.loadWallet(address)
@@ -120,15 +120,15 @@ class WalletLifecycleManager(
         val wallets = kit.getWallets()
         tonWallets.clear()
         wallets.forEach { wallet ->
-            wallet.address?.let { tonWallets[it] = wallet }
+            wallet.address?.value?.let { tonWallets[it] = wallet }
         }
 
-        val knownAddresses = wallets.mapNotNull { it.address }.toSet()
+        val knownAddresses = wallets.mapNotNull { it.address?.value }.toSet()
         walletMetadata.keys.retainAll(knownAddresses)
 
         val result = mutableListOf<WalletSummary>()
         for (wallet in wallets) {
-            val address = wallet.address ?: continue
+            val address = wallet.address?.value ?: continue
             val publicKey = wallet.publicKey
             val metadata = ensureMetadataForAddress(address)
 
@@ -233,7 +233,7 @@ class WalletLifecycleManager(
             }
             result.onSuccess { walletNullable ->
                 val wallet = walletNullable ?: return@onSuccess
-                val restoredAddress = wallet.address
+                val restoredAddress = wallet.address?.value
                 if (restoredAddress.isNullOrBlank()) {
                     Log.w(LOG_TAG, "rehydrate: wallet added but address null for stored $storedAddress")
                     return@onSuccess

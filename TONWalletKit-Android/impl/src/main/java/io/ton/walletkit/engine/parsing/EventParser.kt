@@ -57,13 +57,15 @@ internal class EventParser(
             EventTypeConstants.EVENT_CONNECT_REQUEST -> {
                 try {
                     val event = json.decodeFromString<ConnectRequestEvent>(data.toString())
+                    // Normalize manifest URL to include https:// if it's just a domain
+                    val normalizedEvent = normalizeManifestUrl(event)
                     val dAppInfo = parseDAppInfo(data)
-                    val permissions = event.preview?.permissions ?: emptyList()
+                    val permissions = normalizedEvent.preview?.permissions ?: emptyList()
                     val request =
                         TONWalletConnectionRequest(
                             dAppInfo = dAppInfo,
                             permissions = permissions,
-                            event = event,
+                            event = normalizedEvent,
                             handler = engine,
                         )
                     TONWalletKitEvent.ConnectRequest(request)
@@ -218,6 +220,21 @@ internal class EventParser(
             null, JSONObject.NULL -> null
             else -> value.toString()
         }
+    }
+
+    /**
+     * Normalizes the manifest URL in a ConnectRequestEvent to include https:// if it's just a domain.
+     * The JS bridge may pass just the domain (e.g., "toncommunity.org") instead of a full URL.
+     */
+    private fun normalizeManifestUrl(event: ConnectRequestEvent): ConnectRequestEvent {
+        val manifestUrl = event.preview?.manifest?.url
+        if (manifestUrl.isNullOrEmpty()) return event
+        if (manifestUrl.startsWith("http://") || manifestUrl.startsWith("https://")) return event
+
+        val normalizedUrl = "https://$manifestUrl"
+        val normalizedManifest = event.preview?.manifest?.copy(url = normalizedUrl)
+        val normalizedPreview = event.preview?.copy(manifest = normalizedManifest)
+        return event.copy(preview = normalizedPreview)
     }
 
     private companion object {

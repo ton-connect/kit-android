@@ -52,6 +52,7 @@ import io.ton.walletkit.demo.presentation.util.TransactionDetailMapper
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.extensions.disconnect
 import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.TONWalletData
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.request.TONWalletConnectionRequest
@@ -362,7 +363,7 @@ class WalletKitViewModel @Inject constructor(
         }
 
         if (logSwitch) {
-            val walletName = lifecycleManager.walletMetadata[address]?.name ?: wallet.address ?: address
+            val walletName = lifecycleManager.walletMetadata[address]?.name ?: wallet.address?.value ?: address
             eventLogger.log(R.string.wallet_event_switched_wallet, walletName)
         }
     }
@@ -640,11 +641,11 @@ class WalletKitViewModel @Inject constructor(
 
                 var newAddress: String? = null
                 newWallet?.address?.let { address ->
-                    newAddress = address
-                    lifecycleManager.tonWallets[address] = newWallet
+                    newAddress = address.value
+                    lifecycleManager.tonWallets[address.value] = newWallet
 
                     // Store metadata and mnemonic for UI
-                    lifecycleManager.walletMetadata[address] = pending.metadata
+                    lifecycleManager.walletMetadata[address.value] = pending.metadata
                     val record = WalletRecord(
                         mnemonic = cleaned,
                         name = pending.metadata.name,
@@ -652,9 +653,9 @@ class WalletKitViewModel @Inject constructor(
                         version = version,
                         interfaceType = interfaceType.value,
                     )
-                    runCatching { storage.saveWallet(address, record) }
-                        .onSuccess { Log.d(LOG_TAG, "importWallet: saved wallet record for $address") }
-                        .onFailure { Log.e(LOG_TAG, "importWallet: failed to save wallet record for $address", it) }
+                    runCatching { storage.saveWallet(address.value, record) }
+                        .onSuccess { Log.d(LOG_TAG, "importWallet: saved wallet record for ${address.value}") }
+                        .onFailure { Log.e(LOG_TAG, "importWallet: failed to save wallet record for ${address.value}", it) }
                 }
 
                 newAddress?.let { address ->
@@ -735,10 +736,10 @@ class WalletKitViewModel @Inject constructor(
 
                 var newAddress: String? = null
                 newWallet?.address?.let { address ->
-                    newAddress = address
-                    lifecycleManager.tonWallets[address] = newWallet
+                    newAddress = address.value
+                    lifecycleManager.tonWallets[address.value] = newWallet
 
-                    lifecycleManager.walletMetadata[address] = pending.metadata
+                    lifecycleManager.walletMetadata[address.value] = pending.metadata
                     val record = WalletRecord(
                         mnemonic = emptyList(), // Random mnemonic not saved in demo app
                         name = pending.metadata.name,
@@ -746,9 +747,9 @@ class WalletKitViewModel @Inject constructor(
                         version = version,
                         interfaceType = interfaceType.value,
                     )
-                    runCatching { storage.saveWallet(address, record) }
-                        .onSuccess { Log.d(LOG_TAG, "generateWallet: saved wallet record for $address") }
-                        .onFailure { Log.e(LOG_TAG, "generateWallet: failed to save wallet record for $address", it) }
+                    runCatching { storage.saveWallet(address.value, record) }
+                        .onSuccess { Log.d(LOG_TAG, "generateWallet: saved wallet record for ${address.value}") }
+                        .onFailure { Log.e(LOG_TAG, "generateWallet: failed to save wallet record for ${address.value}", it) }
                 }
 
                 newAddress?.let { address ->
@@ -1075,7 +1076,7 @@ class WalletKitViewModel @Inject constructor(
         viewModelScope.launch {
             // Use the new SDK method instead of manual removal
             val kit = getKit()
-            val removeResult = runCatching { kit.removeWallet(address) }
+            val removeResult = runCatching { kit.removeWallet(TONUserFriendlyAddress(address)) }
 
             if (removeResult.isFailure) {
                 val fallback = uiString(R.string.wallet_error_remove_wallet)

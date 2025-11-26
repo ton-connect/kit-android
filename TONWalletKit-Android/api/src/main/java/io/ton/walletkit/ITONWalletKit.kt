@@ -27,6 +27,7 @@ import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
@@ -168,18 +169,18 @@ interface ITONWalletKit {
     /**
      * Get a single wallet by its address.
      *
-     * @param address Wallet address in user-friendly format (UQ... or EQ...)
+     * @param address Wallet address
      * @return Wallet instance or null if not found
      */
-    suspend fun getWallet(address: String): ITONWallet?
+    suspend fun getWallet(address: TONUserFriendlyAddress): ITONWallet?
 
     /**
      * Remove a wallet by its address.
      *
-     * @param address Wallet address in user-friendly format
+     * @param address Wallet address
      * @return True if wallet was found and removed, false otherwise
      */
-    suspend fun removeWallet(address: String): Boolean
+    suspend fun removeWallet(address: TONUserFriendlyAddress): Boolean
 
     /**
      * Clear all wallets from the SDK.

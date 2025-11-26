@@ -147,6 +147,32 @@ internal class TonConnectInjector(
             Logger.d(TAG, "Clearing all WebView registrations")
             activeWebViews.clear()
         }
+
+        /**
+         * Broadcast an event to all registered WebViews.
+         * Used when sessionId is not available (e.g., wallet-initiated disconnect).
+         */
+        @JvmStatic
+        internal fun broadcastEventToAllWebViews(event: JSONObject) {
+            Logger.d(TAG, "📤 Broadcasting event to all registered WebViews")
+            cleanupStaleReferences()
+
+            val webViews = activeWebViews.values.mapNotNull { it.get() }.distinct()
+            Logger.d(TAG, "📤 Found ${webViews.size} unique WebViews to broadcast to")
+
+            for (webView in webViews) {
+                try {
+                    // Use the same tag that's used when attaching injectors
+                    val injector = webView.getTag("tonconnect_injector".hashCode()) as? TonConnectInjector
+                    if (injector != null) {
+                        Logger.d(TAG, "📤 Sending event to WebView: ${webView.hashCode()}")
+                        injector.sendEvent(event)
+                    }
+                } catch (e: Exception) {
+                    Logger.w(TAG, "⚠️ Failed to send event to WebView", e)
+                }
+            }
+        }
     }
 
     // Use application context to avoid leaking Activity context

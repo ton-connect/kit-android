@@ -60,6 +60,9 @@ dependencies {
     api(libs.kotlinxSerializationJson)
     api(libs.kotlinxCoroutinesAndroid)
 
+    // TON Kotlin for address handling and crypto
+    implementation(libs.tonKotlinBlockTlb)
+
     // Test dependencies
     testImplementation(libs.junit)
     testImplementation(libs.kotlinxCoroutinesTest)

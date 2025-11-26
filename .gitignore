@@ -53,3 +53,6 @@ gradle.properties.template
 *.log
 node.log
 build-js-bundles.sh
+
+# Source maps (generated, can be regenerated from build)
+*.map
