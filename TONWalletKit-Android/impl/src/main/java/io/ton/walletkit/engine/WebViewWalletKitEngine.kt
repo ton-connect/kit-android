@@ -246,6 +246,9 @@ internal class WebViewWalletKitEngine private constructor(
         refreshDerivedState()
     }
 
+    override fun getConfiguration(): TONWalletKitConfiguration? =
+        initManager.getConfiguration()
+
     override suspend fun mnemonicToKeyPair(words: List<String>, mnemonicType: String): KeyPair =
         cryptoOperations.mnemonicToKeyPair(words, mnemonicType)
 

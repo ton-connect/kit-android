@@ -33,6 +33,7 @@ import androidx.webkit.WebViewFeature
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.WebViewTonConnectInjector
 import io.ton.walletkit.bridge.BuildConfig
+import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.TONWalletKit
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
@@ -44,6 +45,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
 import java.lang.ref.WeakReference
@@ -206,12 +210,22 @@ internal class TonConnectInjector(
                     .bufferedReader()
                     .use { it.readText() }
 
+                // Build injection options from WalletKit configuration
+                val config = (walletKit as? TONWalletKit)?.engine?.getConfiguration()
+                val injectOptions = buildInjectOptions(config)
+
+                // Create initialization script that calls window.injectWalletKit(options)
+                val fullScript = """
+                    $injectionScript
+                    window.injectWalletKit($injectOptions);
+                """.trimIndent()
+
                 // Allow all origins (*) since this is a wallet browser that loads any dApp
                 val allowedOrigins = setOf("*")
 
                 WebViewCompat.addDocumentStartJavaScript(
                     webView,
-                    injectionScript,
+                    fullScript,
                     allowedOrigins,
                 )
 
@@ -619,5 +633,94 @@ internal class TonConnectInjector(
         webView.evaluateJavascript(script) { result ->
             Logger.d(TAG, "📣 Notification result: $result")
         }
+    }
+
+    @Serializable
+    private data class InjectOptions(
+        val isWalletBrowser: Boolean,
+        val deviceInfo: DeviceInfo,
+        val walletInfo: WalletInfo,
+    )
+
+    @Serializable
+    private data class DeviceInfo(
+        val platform: String,
+        val appName: String,
+        val appVersion: String,
+        val maxProtocolVersion: Int,
+        val features: List<String>,
+    )
+
+    @Serializable
+    private data class WalletInfo(
+        val name: String,
+        val app_name: String,
+        val about_url: String,
+        val image: String,
+        val platforms: List<String>,
+        val jsBridgeKey: String,
+        val injected: Boolean,
+        val embedded: Boolean,
+        val tondns: String? = null,
+        val bridgeUrl: String,
+    )
+
+    private fun buildInjectOptions(config: TONWalletKitConfiguration?): String {
+        val manifest = config?.walletManifest
+        val deviceInfo = config?.deviceInfo
+
+        val features = buildFeaturesList(deviceInfo?.features ?: config?.features)
+
+        val options = InjectOptions(
+            isWalletBrowser = true,
+            deviceInfo = DeviceInfo(
+                platform = deviceInfo?.platform ?: "android",
+                appName = deviceInfo?.appName ?: manifest?.appName ?: "TON Wallet",
+                appVersion = deviceInfo?.appVersion ?: "1.0.0",
+                maxProtocolVersion = deviceInfo?.maxProtocolVersion ?: 2,
+                features = features,
+            ),
+            walletInfo = WalletInfo(
+                name = manifest?.name ?: "tonwallet",
+                app_name = manifest?.appName ?: "TON Wallet",
+                about_url = manifest?.aboutUrl ?: "",
+                image = manifest?.imageUrl ?: "",
+                platforms = listOf("android"),
+                jsBridgeKey = manifest?.name ?: "tonwallet",
+                injected = true,
+                embedded = true,
+                tondns = manifest?.tondns,
+                bridgeUrl = manifest?.bridgeUrl ?: "",
+            ),
+        )
+
+        return Json.encodeToString(options)
+    }
+
+    private fun buildFeaturesList(features: List<TONWalletKitConfiguration.Feature>?): List<String> {
+        if (features.isNullOrEmpty()) return listOf("SendTransaction")
+
+        return features.flatMap { feature ->
+            when (feature) {
+                is TONWalletKitConfiguration.SendTransactionFeature -> {
+                    if (feature.maxMessages != null) {
+                        val optionsJson = Json.encodeToString(mapOf("maxMessages" to feature.maxMessages))
+                        listOf("SendTransaction", "SendTransaction:$optionsJson")
+                    } else {
+                        listOf("SendTransaction")
+                    }
+                }
+                is TONWalletKitConfiguration.SignDataFeature -> {
+                    if (feature.types.isNotEmpty()) {
+                        val types = feature.types.map { it.name.lowercase() }
+                        val typesJson = Json.encodeToString(mapOf("types" to types))
+                        listOf("SignData:$typesJson")
+                    } else {
+                        emptyList()
+                    }
+                }
+                else -> emptyList()
+            }
+        }.distinct()
     }
 }
