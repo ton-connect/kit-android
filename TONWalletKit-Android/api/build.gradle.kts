@@ -35,6 +35,7 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
     }
 }
 
@@ -58,6 +59,7 @@ artifacts {
 dependencies {
     // Minimal dependencies - only what public API needs
     api(libs.kotlinxSerializationJson)
+    api(libs.kotlinxDatetime)
     api(libs.kotlinxCoroutinesAndroid)
 
     // Test dependencies

@@ -1,0 +1,15 @@
+{
+  "packageName": "io.ton.walletkit.api",
+  "modelPackage": "io.ton.walletkit.api.generated",
+  "serializationLibrary": "kotlinx_serialization",
+  "dateLibrary": "kotlinx-datetime",
+  "collectionType": "list",
+  "enumPropertyNaming": "original",
+  "sourceFolder": "src/main/kotlin",
+  "nonPublicApi": false,
+  "modelMutable": false,
+  "parcelizeModels": false,
+  "sortModelPropertiesByRequiredFlag": true,
+  "typeMappings": {},
+  "schemaMappings": {}
+}
