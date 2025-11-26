@@ -26,7 +26,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.model.TONNFTItem
-import io.ton.walletkit.model.TONPagination
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,10 +47,11 @@ class NFTsListViewModel(
     private val _isLoadingMore = MutableStateFlow(false)
     val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
 
-    private var pagination: TONPagination? = null
+    private val _canLoadMore = MutableStateFlow(false)
+    val canLoadMore: StateFlow<Boolean> = _canLoadMore.asStateFlow()
+
     private val limit = 10
     private var loadJob: Job? = null
-    private var hasMoreItems = false // Track if there are more items to load
 
     init {
         Log.d("NFTsListViewModel", "Created for wallet: ${wallet.address}")
@@ -62,9 +62,6 @@ class NFTsListViewModel(
         Log.d("NFTsListViewModel", "Cleared for wallet: ${wallet.address}")
         loadJob?.cancel()
     }
-
-    val canLoadMore: Boolean
-        get() = hasMoreItems
 
     sealed class NFTState {
         data object Initial : NFTState()
@@ -86,64 +83,59 @@ class NFTsListViewModel(
             try {
                 _state.value = NFTState.Loading
 
-                val result = wallet.getNFTItems(limit = limit, offset = 0)
+                val nfts = wallet.getNFTItems(limit = limit, offset = 0)
 
-                Log.d("NFTsListViewModel", "Loaded ${result.items.size} NFTs, pagination: ${result.pagination}")
-                result.items.forEachIndexed { index, nft ->
+                Log.d("NFTsListViewModel", "Loaded ${nfts.size} NFTs")
+                nfts.forEachIndexed { index, nft ->
                     Log.d("NFTsListViewModel", "NFT[$index]: address=${nft.address}, name=${nft.metadata?.name}, image=${nft.metadata?.image}")
                 }
 
-                if (result.items.isEmpty()) {
+                if (nfts.isEmpty()) {
                     _state.value = NFTState.Empty
-                    hasMoreItems = false
+                    _canLoadMore.value = false
                 } else {
-                    pagination = result.pagination
-                    _nfts.value = result.items
+                    _canLoadMore.value = nfts.size == limit
+                    _nfts.value = nfts
                     _state.value = NFTState.Success
-
-                    // Check if there are more items based on whether we got a full page
-                    hasMoreItems = result.items.size >= limit
-                    Log.d("NFTsListViewModel", "hasMoreItems: $hasMoreItems (got ${result.items.size} items, limit=$limit)")
+                    Log.d("NFTsListViewModel", "canLoadMore: ${_canLoadMore.value} (got ${nfts.size} items, limit=$limit)")
                 }
             } catch (e: Exception) {
                 Log.e("NFTsListViewModel", "Failed to load NFTs", e)
                 _state.value = NFTState.Error(e.message ?: "Unknown error")
-                hasMoreItems = false
+                _canLoadMore.value = false
             }
         }
     }
 
     fun loadMoreNFTs() {
-        val currentPagination = pagination ?: return
-        if (_state.value != NFTState.Success || _isLoadingMore.value) {
-            Log.d("NFTsListViewModel", "Skipping loadMoreNFTs - state=${_state.value}, isLoadingMore=${_isLoadingMore.value}")
+        if (_state.value != NFTState.Success || _isLoadingMore.value || !_canLoadMore.value) {
+            Log.d("NFTsListViewModel", "Skipping loadMoreNFTs - state=${_state.value}, isLoadingMore=${_isLoadingMore.value}, canLoadMore=${_canLoadMore.value}")
             return
         }
 
-        Log.d("NFTsListViewModel", "Loading more NFTs with offset=${currentPagination.offset}, limit=$limit")
+        val currentOffset = _nfts.value.size
+        Log.d("NFTsListViewModel", "Loading more NFTs with offset=$currentOffset, limit=$limit")
         viewModelScope.launch {
             try {
                 _isLoadingMore.value = true
 
-                val result = wallet.getNFTItems(
+                val nfts = wallet.getNFTItems(
                     limit = limit,
-                    offset = currentPagination.offset,
+                    offset = currentOffset,
                 )
 
-                Log.d("NFTsListViewModel", "Loaded ${result.items.size} more NFTs")
+                Log.d("NFTsListViewModel", "Loaded ${nfts.size} more NFTs")
 
-                pagination = result.pagination
+                _canLoadMore.value = nfts.size == limit
                 // Only add NFTs that don't already exist (filter duplicates by address)
                 val existingAddresses = _nfts.value.map { it.address }.toSet()
-                val newNfts = result.items.filterNot { it.address in existingAddresses }
+                val newNfts = nfts.filterNot { it.address in existingAddresses }
                 _nfts.value = _nfts.value + newNfts
 
-                // Update hasMoreItems based on whether we got a full page
-                hasMoreItems = result.items.size >= limit
-                Log.d("NFTsListViewModel", "Added ${newNfts.size} new NFTs (filtered ${result.items.size - newNfts.size} duplicates), hasMoreItems=$hasMoreItems")
+                Log.d("NFTsListViewModel", "Added ${newNfts.size} new NFTs (filtered ${nfts.size - newNfts.size} duplicates), canLoadMore=${_canLoadMore.value}")
             } catch (e: Exception) {
                 Log.e("NFTsListViewModel", "Failed to load more NFTs", e)
-                hasMoreItems = false
+                _canLoadMore.value = false
             } finally {
                 _isLoadingMore.value = false
             }
@@ -153,8 +145,7 @@ class NFTsListViewModel(
     fun refresh() {
         _state.value = NFTState.Initial
         _nfts.value = emptyList()
-        pagination = null
-        hasMoreItems = false
+        _canLoadMore.value = false
         loadNFTs()
     }
 }

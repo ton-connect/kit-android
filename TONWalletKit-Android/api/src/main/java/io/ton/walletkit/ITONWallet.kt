@@ -74,7 +74,7 @@ interface ITONWallet {
         offset: Int? = null,
         collectionAddress: String? = null,
         indirectOwnership: Boolean? = null,
-    ): TONNFTItems
+    ): List<TONNFTItem>
 
     /**
      * Get a single NFT by address.

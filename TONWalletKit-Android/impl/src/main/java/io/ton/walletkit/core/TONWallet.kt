@@ -30,7 +30,6 @@ import io.ton.walletkit.model.SignDataResult
 import io.ton.walletkit.model.TONJettonTransferParams
 import io.ton.walletkit.model.TONJettonWallets
 import io.ton.walletkit.model.TONNFTItem
-import io.ton.walletkit.model.TONNFTItems
 import io.ton.walletkit.model.TONNFTTransferParamsHuman
 import io.ton.walletkit.model.TONNFTTransferParamsRaw
 import io.ton.walletkit.model.TONTransactionPreview
@@ -245,7 +244,7 @@ internal class TONWallet internal constructor(
      *
      * @param limit Maximum number of NFTs to return (default: 100)
      * @param offset Offset for pagination (default: 0)
-     * @return NFT items with pagination information
+     * @return List of NFT items
      * @throws WalletKitBridgeException if NFT retrieval fails
      */
     override suspend fun getNFTItems(
@@ -253,9 +252,10 @@ internal class TONWallet internal constructor(
         offset: Int?,
         collectionAddress: String?,
         indirectOwnership: Boolean?,
-    ): TONNFTItems {
+    ): List<TONNFTItem> {
         val addr = address ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.getNfts(addr, limit ?: 100, offset ?: 0)
+        val nftItems = engine.getNfts(addr, limit ?: 100, offset ?: 0)
+        return nftItems.items
     }
 
     /**
@@ -323,12 +323,12 @@ internal class TONWallet internal constructor(
     }
 
     /**
-     * Get jetton wallets owned by this wallet with pagination.
+     * Get jetton wallets owned by this wallet.
      * Matches the JS API `wallet.getJettons()` function.
      *
      * @param limit Maximum number of jetton wallets to return (default: 100)
      * @param offset Offset for pagination (default: 0)
-     * @return Jetton wallets with pagination information
+     * @return Jetton wallets with metadata wrapper
      * @throws WalletKitBridgeException if jetton retrieval fails
      */
     override suspend fun getJettons(

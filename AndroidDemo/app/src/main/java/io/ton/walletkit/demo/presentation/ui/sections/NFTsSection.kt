@@ -60,6 +60,7 @@ fun NFTsSection(
     val state by viewModel.state.collectAsState()
     val nfts by viewModel.nfts.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
+    val canLoadMore by viewModel.canLoadMore.collectAsState()
 
     // Auto-load NFTs when section is first displayed or when viewModel changes (wallet switch)
     LaunchedEffect(viewModel) {
@@ -101,7 +102,7 @@ fun NFTsSection(
                         }
 
                         // Load More button at the end
-                        if (viewModel.canLoadMore) {
+                        if (canLoadMore) {
                             item {
                                 Box(
                                     modifier = Modifier
