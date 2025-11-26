@@ -156,14 +156,7 @@ data class TONUserFriendlyAddress(
          * @throws IllegalArgumentException if the address is invalid
          */
         fun parseRaw(rawAddress: String): TONUserFriendlyAddress =
-            TONUserFriendlyAddress(
-                AddrStd.parseRaw(rawAddress).toString(
-                    userFriendly = true,
-                    urlSafe = true,
-                    testOnly = false,
-                    bounceable = true,
-                ),
-            )
+            TONUserFriendlyAddress(TONRawAddress.parse(rawAddress))
 
         /**
          * Parses a user-friendly Base64 address.
