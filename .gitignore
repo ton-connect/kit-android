@@ -4,6 +4,7 @@ dist-android-quickjs/
 
 # Dependencies
 node_modules/
+walletkit/
 
 # macOS
 .DS_Store
@@ -48,6 +49,7 @@ gradle.properties
 JITPACK_QUICKSTART.md
 PUBLISHING_GUIDE.md
 gradle.properties.template
+Scripts/generate-api/generated/
 
 # Build logs
 *.log

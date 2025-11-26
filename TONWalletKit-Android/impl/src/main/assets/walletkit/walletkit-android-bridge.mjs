@@ -77460,6 +77460,12 @@ function initTonWalletKit(config, deps) {
               log$l("[walletkitBridge] ✅ Resolving response promise for messageId:", bridgeMessage.messageId);
               resolvers == null ? void 0 : resolvers.delete(bridgeMessage.messageId);
               resolver.resolve(bridgeMessage);
+              log$l("[walletkitBridge] 📤 Sending response back to internal browser via native");
+              deps.postToNative({
+                kind: "jsBridgeEvent",
+                sessionId,
+                event: bridgeMessage
+              });
             } else {
               warn("[walletkitBridge] ⚠️ No pending promise for messageId:", bridgeMessage.messageId);
             }
