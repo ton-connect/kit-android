@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>WalletKit Mock - Method Efficiency Tests</title>
+</head>
+<body>
+<h3>Mock Bridge - Method Efficiency Tests</h3>
+<script>
+    /**
+     * Method Efficiency Mock - Tracks all method calls to detect redundant calls.
+     * 
+     * Used by EngineMethodEfficiencyTests to verify:
+     * - init() is not called multiple times
+     * - setEventsListeners is called only once even with multiple handlers
+     * - Other methods aren't called redundantly
+     */
+
+    // Global state with call tracking
+    window.__walletkit_mock_state = {
+        ready: false,
+        network: 'testnet',
+        tonApiUrl: 'https://testnet.tonapi.io',
+        eventListenersRegistered: false,
+        pendingCalls: new Map(),
+        sessionStorage: new Map()
+    };
+
+    // Call counter for each method
+    window.__walletkit_method_call_counts = {};
+
+    // Complete call log with timestamps
+    window.__walletkit_call_log = [];
+
+    function sendToAndroid(payload) {
+        const message = JSON.stringify(payload);
+        console.log('[METHOD_EFFICIENCY] Sending to Android:', message);
+        if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+            window.WalletKitNative.postMessage(message);
+        } else {
+            console.error('[METHOD_EFFICIENCY] WalletKitNative.postMessage not available!');
+        }
+    }
+
+    function sendReadyEvent(network, tonApiUrl) {
+        window.__walletkit_mock_state.ready = true;
+        window.__walletkit_mock_state.network = network;
+        window.__walletkit_mock_state.tonApiUrl = tonApiUrl;
+        sendToAndroid({ kind: 'ready', network: network, tonApiUrl: tonApiUrl });
+    }
+
+    function sendRpcResponse(id, result, error) {
+        const payload = { kind: 'response', id: id };
+        if (error) { payload.error = error; } else { payload.result = result; }
+        sendToAndroid(payload);
+    }
+
+    function sendEvent(eventType, eventData) {
+        sendToAndroid({
+            kind: 'event',
+            event: { type: eventType, data: eventData, id: 'event-' + Date.now() + '-' + Math.random() }
+        });
+    }
+
+    // Track method call
+    function trackMethodCall(method, params) {
+        const timestamp = Date.now();
+        
+        // Increment counter
+        if (!window.__walletkit_method_call_counts[method]) {
+            window.__walletkit_method_call_counts[method] = 0;
+        }
+        window.__walletkit_method_call_counts[method]++;
+
+        // Add to call log
+        window.__walletkit_call_log.push({
+            method: method,
+            params: params,
+            timestamp: timestamp,
+            callNumber: window.__walletkit_method_call_counts[method]
+        });
+
+        console.log('[METHOD_EFFICIENCY] Method "' + method + '" called (count: ' + 
+            window.__walletkit_method_call_counts[method] + ')');
+    }
+
+    // Get method call count (can be called from Android via evaluateJavascript)
+    window.getMethodCallCount = function(method) {
+        return window.__walletkit_method_call_counts[method] || 0;
+    };
+
+    // Get all method call counts
+    window.getAllMethodCallCounts = function() {
+        return JSON.stringify(window.__walletkit_method_call_counts);
+    };
+
+    // Get complete call log
+    window.getCallLog = function() {
+        return JSON.stringify(window.__walletkit_call_log);
+    };
+
+    // Reset tracking
+    window.resetMethodTracking = function() {
+        window.__walletkit_method_call_counts = {};
+        window.__walletkit_call_log = [];
+    };
+
+    // Auto-send ready event on load
+    setTimeout(function() {
+        console.log('[METHOD_EFFICIENCY] Sending ready event');
+        sendReadyEvent('testnet', 'https://testnet.tonapi.io');
+    }, 100);
+
+    // Handle RPC calls
+    window.__walletkitCall = function(id, method, paramsJson) {
+        // Parse params JSON string
+        var params = null;
+        if (paramsJson && typeof paramsJson === 'string') {
+            try { params = JSON.parse(paramsJson); } catch(e) {}
+        }
+        
+        // Track every method call
+        trackMethodCall(method, params);
+        
+        console.log('[METHOD_EFFICIENCY] Handling ' + method);
+        
+        switch (method) {
+            case 'init':
+                sendRpcResponse(id, { network: 'testnet', tonApiUrl: 'https://testnet.tonapi.io' });
+                break;
+            case 'setEventsListeners':
+                window.__walletkit_mock_state.eventListenersRegistered = true;
+                sendRpcResponse(id, { ok: true });
+                break;
+            case 'removeEventListeners':
+                window.__walletkit_mock_state.eventListenersRegistered = false;
+                sendRpcResponse(id, { ok: true });
+                break;
+            case 'getWallets':
+                sendRpcResponse(id, { wallets: [] });
+                break;
+            case 'getSessions':
+                sendRpcResponse(id, { sessions: [] });
+                break;
+            case 'disconnect':
+                var sessionId = params ? params.sessionId : null;
+                if (sessionId) {
+                    setTimeout(function() { 
+                        sendEvent('disconnect', { sessionId: sessionId }); 
+                    }, 50);
+                }
+                sendRpcResponse(id, { success: true });
+                break;
+            case 'getMethodCallCount':
+                // Special method to retrieve call count for a method
+                var targetMethod = params ? params.method : null;
+                sendRpcResponse(id, { count: window.getMethodCallCount(targetMethod) });
+                break;
+            case 'getAllMethodCallCounts':
+                // Special method to retrieve all call counts
+                sendRpcResponse(id, { counts: window.__walletkit_method_call_counts });
+                break;
+            case 'getCallLog':
+                // Special method to retrieve complete call log
+                sendRpcResponse(id, { log: window.__walletkit_call_log });
+                break;
+            case 'resetMethodTracking':
+                window.resetMethodTracking();
+                sendRpcResponse(id, { ok: true });
+                break;
+            default:
+                sendRpcResponse(id, { success: true });
+        }
+    };
+
+    console.log('[METHOD_EFFICIENCY] Mock initialized with method tracking');
+</script>
+</body>
+</html>
