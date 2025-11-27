@@ -8,29 +8,102 @@
 <body>
     <h1>Mock Bridge - Race Conditions Scenarios</h1>
     <script>
+        window.__mockState = {
+            ready: false,
+            callCount: 0
+        };
+
         function sendToAndroid(payload) {
             var message = JSON.stringify(payload);
-            console.log('[Mock] Sending to Android:', message);
+            console.log('[RaceConditions] Sending to Android:', message);
             if (window.WalletKitNative && window.WalletKitNative.postMessage) {
                 window.WalletKitNative.postMessage(message);
             }
         }
 
         function sendReadyEvent(network, tonApiUrl) {
-            sendToAndroid({ kind: 'ready', network: network || 'testnet', tonApiUrl: tonApiUrl || 'https://testnet.tonapi.io' });
+            window.__mockState.ready = true;
+            sendToAndroid({ 
+                kind: 'ready', 
+                network: network || 'testnet', 
+                tonApiUrl: tonApiUrl || 'https://testnet.tonapi.io' 
+            });
         }
 
         function sendRpcResponse(id, result, error) {
             var payload = { kind: 'response', id: id };
-            if (error) { payload.error = error; } else { payload.result = result || {}; }
+            if (error) { 
+                payload.error = error; 
+            } else { 
+                payload.result = result || {}; 
+            }
             sendToAndroid(payload);
         }
 
-        setTimeout(function() { sendReadyEvent('testnet'); }, 100);
+        function sendEvent(type, data) {
+            sendToAndroid({
+                kind: 'event',
+                event: {
+                    type: type,
+                    id: 'event-' + Date.now(),
+                    data: data || {}
+                }
+            });
+        }
 
-        window.__walletkitCall = function(id, method, params) {
-            console.log('[Mock] Call:', method);
-            sendRpcResponse(id, { success: true });
+        // Auto-send ready event
+        setTimeout(function() { 
+            console.log('[RaceConditions] Sending ready event');
+            sendReadyEvent('testnet'); 
+        }, 50);
+
+        window.__walletkitCall = function(id, method, paramsJson) {
+            console.log('[RaceConditions] RPC call:', method, 'id:', id);
+            window.__mockState.callCount++;
+            
+            var params = null;
+            if (paramsJson && typeof paramsJson === 'string') {
+                try { params = JSON.parse(paramsJson); } catch(e) {}
+            }
+
+            switch(method) {
+                case 'init':
+                    sendRpcResponse(id, { network: 'testnet', tonApiUrl: 'https://testnet.tonapi.io' });
+                    break;
+                    
+                case 'setEventsListeners':
+                    sendRpcResponse(id, { success: true });
+                    break;
+                    
+                case 'removeEventsListeners':
+                    sendRpcResponse(id, { success: true });
+                    break;
+                    
+                case 'disconnectSession':
+                    var sessionId = params && params.sessionId ? params.sessionId : 'unknown';
+                    // Emit disconnect event
+                    setTimeout(function() {
+                        sendEvent('disconnect', { sessionId: sessionId });
+                    }, 10);
+                    sendRpcResponse(id, { success: true });
+                    break;
+                    
+                // Test helper: Slow RPC that takes time to respond
+                case 'test_slowRpc':
+                    var delayMs = params && params.delayMs ? params.delayMs : 200;
+                    setTimeout(function() {
+                        sendRpcResponse(id, { callId: id, delayed: true });
+                    }, delayMs);
+                    break;
+                    
+                // Test helper: RPC that returns call count
+                case 'test_getCallCount':
+                    sendRpcResponse(id, { count: window.__mockState.callCount });
+                    break;
+                    
+                default:
+                    sendRpcResponse(id, { success: true });
+            }
         };
     </script>
 </body>
