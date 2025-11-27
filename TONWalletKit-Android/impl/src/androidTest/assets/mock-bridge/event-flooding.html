@@ -7,6 +7,65 @@
 </head>
 <body>
 <h3>Mock Bridge - Event Flooding</h3>
-<script type="module" src="event-flooding-mock.mjs"></script>
+<script>
+    /**
+     * Edge Case: Event Flooding
+     * 
+     * Scenario #12: JS sends 100+ events within milliseconds
+     * Tests SDK's ability to handle rapid event succession
+     */
+
+    function sendToAndroid(payload) {
+        const message = JSON.stringify(payload);
+        console.log('[FLOODING] Sending to Android:', message);
+        if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+            window.WalletKitNative.postMessage(message);
+        } else {
+            console.error('[FLOODING] WalletKitNative.postMessage not available!');
+        }
+    }
+
+    function sendReadyEvent(network, tonApiUrl) {
+        sendToAndroid({ kind: 'ready', network: network, tonApiUrl: tonApiUrl });
+    }
+
+    function sendRpcResponse(id, result, error) {
+        const payload = { kind: 'response', id: id };
+        if (error) { payload.error = error; } else { payload.result = result; }
+        sendToAndroid(payload);
+    }
+
+    function sendEvent(eventType, eventData) {
+        sendToAndroid({
+            kind: 'event',
+            event: { type: eventType, data: eventData, id: 'event-' + Date.now() + '-' + Math.random() }
+        });
+    }
+
+    setTimeout(function() {
+        sendReadyEvent('testnet', 'https://testnet.tonapi.io');
+        
+        // After ready, flood with events
+        setTimeout(function() {
+            console.log('[FLOODING] Starting event flood...');
+            
+            for (var i = 0; i < 150; i++) {
+                sendEvent('testEvent', {
+                    index: i,
+                    timestamp: Date.now(),
+                    data: 'Event ' + i
+                });
+            }
+            
+            console.log('[FLOODING] Sent 150 events');
+        }, 200);
+    }, 100);
+
+    window.__walletkitCall = function(id, method, params) {
+        sendRpcResponse(id, { success: true });
+    };
+
+    console.log('[FLOODING] Mock initialized');
+</script>
 </body>
 </html>

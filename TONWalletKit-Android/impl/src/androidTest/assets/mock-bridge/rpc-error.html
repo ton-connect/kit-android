@@ -5,6 +5,51 @@
     <title>RPC Error Mock</title>
 </head>
 <body>
-    <script type="module" src="rpc-error-mock.mjs"></script>
+<script>
+    /**
+     * Mock scenario: RPC error responses
+     * Tests SDK handling of error responses from JavaScript bridge.
+     */
+
+    function sendToAndroid(payload) {
+        const message = JSON.stringify(payload);
+        console.log('[RPC Error Mock] Sending to Android:', message);
+        if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+            window.WalletKitNative.postMessage(message);
+        } else {
+            console.error('[RPC Error Mock] WalletKitNative.postMessage not available!');
+        }
+    }
+
+    function sendReadyEvent(network) {
+        sendToAndroid({ kind: 'ready', network: network, tonApiUrl: 'https://testnet.tonapi.io' });
+    }
+
+    function sendRpcResponse(id, result, error) {
+        const payload = { kind: 'response', id: id };
+        if (error) { payload.error = error; } else { payload.result = result; }
+        sendToAndroid(payload);
+    }
+
+    // Send ready event
+    setTimeout(function() {
+        sendReadyEvent('testnet');
+    }, 100);
+
+    // Handle RPC calls - always return errors
+    window.__walletkitCall = function(id, method, params) {
+        console.log('[RPC Error Mock] Received call: ' + method + ' (' + id + ')');
+        
+        setTimeout(function() {
+            if (method === 'getWallets') {
+                sendRpcResponse(id, null, 'NO_WALLETS_FOUND');
+            } else if (method === 'disconnect') {
+                sendRpcResponse(id, null, 'DISCONNECT_FAILED');
+            } else {
+                sendRpcResponse(id, null, 'UNKNOWN_ERROR');
+            }
+        }, 50);
+    };
+</script>
 </body>
 </html>

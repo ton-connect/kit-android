@@ -1,6 +1,0 @@
-// Scenarios #141-144
-function scenario141_multipleSDKInstances() { window.__walletkitCall('bridgeReady', JSON.stringify({ protocolVersion: 1, instanceId: 'instance-1' })); setTimeout(() => { window.__walletkitCall('bridgeReady', JSON.stringify({ protocolVersion: 1, instanceId: 'instance-2' })); }, 100); }
-function scenario142_getInstanceBeforeInit() { setTimeout(() => { window.__walletkitCall('response', JSON.stringify({ id: 'instance-1', kind: 'method', result: { error: 'SDK not initialized' }})); }, 100); }
-function scenario143_destroyThenGetInstance() { window.__walletkitCall('bridgeReady', JSON.stringify({ protocolVersion: 1 })); setTimeout(() => { window.__walletkitCall('event', JSON.stringify({ id: 1, event: 'destroyed' })); setTimeout(() => { window.__walletkitCall('response', JSON.stringify({ id: 'instance-2', kind: 'method', result: { error: 'SDK was destroyed' }})); }, 100); }, 100); }
-function scenario144_singletonViolation() { window.__walletkitCall('bridgeReady', JSON.stringify({ protocolVersion: 1 })); setTimeout(() => { window.__walletkitCall('event', JSON.stringify({ id: 1, event: 'singletonViolation', payload: { instances: 2 }})); }, 100); }
-window.sdkInstanceScenarios = { scenario141_multipleSDKInstances, scenario142_getInstanceBeforeInit, scenario143_destroyThenGetInstance, scenario144_singletonViolation };

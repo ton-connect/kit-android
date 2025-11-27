@@ -7,22 +7,31 @@
 </head>
 <body>
     <h1>Mock Bridge - Transaction Scenarios</h1>
-    <script type="module">
-        import { transactionTimeout, transactionFailedAfterPending, multipleTransactionsQueued, transactionSigningCancelled, transactionAmountError } from './transaction-scenarios.mjs';
-        
-        const scenario = new URLSearchParams(window.location.search).get('scenario') || 'transactionTimeout';
-        
-        const scenarios = {
-            transactionTimeout,
-            transactionFailedAfterPending,
-            multipleTransactionsQueued,
-            transactionSigningCancelled,
-            transactionAmountError
-        };
-        
-        if (scenarios[scenario]) {
-            scenarios[scenario]();
+    <script>
+        function sendToAndroid(payload) {
+            var message = JSON.stringify(payload);
+            console.log('[Mock] Sending to Android:', message);
+            if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+                window.WalletKitNative.postMessage(message);
+            }
         }
+
+        function sendReadyEvent(network, tonApiUrl) {
+            sendToAndroid({ kind: 'ready', network: network || 'testnet', tonApiUrl: tonApiUrl || 'https://testnet.tonapi.io' });
+        }
+
+        function sendRpcResponse(id, result, error) {
+            var payload = { kind: 'response', id: id };
+            if (error) { payload.error = error; } else { payload.result = result || {}; }
+            sendToAndroid(payload);
+        }
+
+        setTimeout(function() { sendReadyEvent('testnet'); }, 100);
+
+        window.__walletkitCall = function(id, method, params) {
+            console.log('[Mock] Call:', method);
+            sendRpcResponse(id, { success: true });
+        };
     </script>
 </body>
 </html>

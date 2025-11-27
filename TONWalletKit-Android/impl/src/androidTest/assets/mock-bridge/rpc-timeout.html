@@ -5,6 +5,46 @@
     <title>RPC Timeout Mock</title>
 </head>
 <body>
-    <script type="module" src="rpc-timeout-mock.mjs"></script>
+<script>
+    /**
+     * Mock scenario: RPC timeout
+     * Tests SDK behavior when RPC calls don't receive responses within timeout period.
+     */
+
+    function sendToAndroid(payload) {
+        const message = JSON.stringify(payload);
+        console.log('[RPC Timeout Mock] Sending to Android:', message);
+        if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+            window.WalletKitNative.postMessage(message);
+        } else {
+            console.error('[RPC Timeout Mock] WalletKitNative.postMessage not available!');
+        }
+    }
+
+    function sendReadyEvent(network) {
+        sendToAndroid({ kind: 'ready', network: network, tonApiUrl: 'https://testnet.tonapi.io' });
+    }
+
+    function sendRpcResponse(id, result, error) {
+        const payload = { kind: 'response', id: id };
+        if (error) { payload.error = error; } else { payload.result = result; }
+        sendToAndroid(payload);
+    }
+
+    // Send ready event
+    setTimeout(function() {
+        sendReadyEvent('testnet');
+    }, 100);
+
+    // Handle RPC calls - intentionally delay responses beyond timeout
+    window.__walletkitCall = function(id, method, params) {
+        console.log('[RPC Timeout Mock] Received call: ' + method + ' (' + id + ')');
+        
+        // Delay response by 10 seconds (way beyond typical timeout)
+        setTimeout(function() {
+            sendRpcResponse(id, { delayed: true });
+        }, 10000);
+    };
+</script>
 </body>
 </html>

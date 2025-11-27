@@ -1,21 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test Scenarios</title>
-    <script type="module">
-        import * as scenarios from './cryptographic-operations-scenarios.mjs';
-        window.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const scenario = urlParams.get('scenario');
-            const scenariosKey = Object.keys(window).find(k => k.includes('Scenarios'));
-            if (scenario && scenariosKey && window[scenariosKey][scenario]) {
-                console.log('Running scenario:', scenario);
-                window[scenariosKey][scenario]();
-            } else {
-                console.error('Unknown scenario:', scenario);
-            }
-        });
-    </script>
+    <meta charset="UTF-8">
+    <title>Cryptographic Operations Scenarios</title>
 </head>
-<body><h1>Test Scenarios</h1><p id="status">Initializing...</p></body>
+<body>
+    <h1>Mock Bridge - Cryptographic Operations Scenarios</h1>
+    <script>
+        function sendToAndroid(payload) {
+            var message = JSON.stringify(payload);
+            console.log('[Mock] Sending to Android:', message);
+            if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+                window.WalletKitNative.postMessage(message);
+            }
+        }
+
+        function sendReadyEvent(network, tonApiUrl) {
+            sendToAndroid({ kind: 'ready', network: network || 'testnet', tonApiUrl: tonApiUrl || 'https://testnet.tonapi.io' });
+        }
+
+        function sendRpcResponse(id, result, error) {
+            var payload = { kind: 'response', id: id };
+            if (error) { payload.error = error; } else { payload.result = result || {}; }
+            sendToAndroid(payload);
+        }
+
+        setTimeout(function() { sendReadyEvent('testnet'); }, 100);
+
+        window.__walletkitCall = function(id, method, params) {
+            console.log('[Mock] Call:', method);
+            sendRpcResponse(id, { success: true });
+        };
+    </script>
+</body>
 </html>

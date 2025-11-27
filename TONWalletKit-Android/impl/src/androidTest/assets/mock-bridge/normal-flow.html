@@ -7,6 +7,94 @@
 </head>
 <body>
 <h3>Mock Bridge - Normal Flow</h3>
-<script type="module" src="normal-flow-mock.mjs"></script>
+<script>
+    /**
+     * Normal Flow Mock - Simulates expected/happy path behavior
+     * 
+     * Covers scenarios:
+     * - Normal ready event
+     * - Successful RPC calls
+     * - Normal event emission
+     * - Standard connect/disconnect flow
+     */
+
+    // Global state
+    window.__walletkit_mock_state = {
+        ready: false,
+        network: 'testnet',
+        tonApiUrl: 'https://testnet.tonapi.io',
+        eventListenersRegistered: false,
+        pendingCalls: new Map(),
+        sessionStorage: new Map()
+    };
+
+    function sendToAndroid(payload) {
+        const message = JSON.stringify(payload);
+        console.log('[NORMAL_FLOW] Sending to Android:', message);
+        if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+            window.WalletKitNative.postMessage(message);
+        } else {
+            console.error('[NORMAL_FLOW] WalletKitNative.postMessage not available!');
+        }
+    }
+
+    function sendReadyEvent(network, tonApiUrl) {
+        window.__walletkit_mock_state.ready = true;
+        window.__walletkit_mock_state.network = network;
+        window.__walletkit_mock_state.tonApiUrl = tonApiUrl;
+        sendToAndroid({ kind: 'ready', network: network, tonApiUrl: tonApiUrl });
+    }
+
+    function sendRpcResponse(id, result, error) {
+        const payload = { kind: 'response', id: id };
+        if (error) { payload.error = error; } else { payload.result = result; }
+        sendToAndroid(payload);
+    }
+
+    function sendEvent(eventType, eventData) {
+        sendToAndroid({
+            kind: 'event',
+            event: { type: eventType, data: eventData, id: 'event-' + Date.now() + '-' + Math.random() }
+        });
+    }
+
+    // Auto-send ready event on load
+    setTimeout(function() {
+        console.log('[NORMAL_FLOW] Sending ready event');
+        sendReadyEvent('testnet', 'https://testnet.tonapi.io');
+    }, 100);
+
+    // Handle RPC calls
+    window.__walletkitCall = function(id, method, params) {
+        console.log('[NORMAL_FLOW] Handling ' + method);
+        
+        switch (method) {
+            case 'init':
+                sendRpcResponse(id, { network: 'testnet', tonApiUrl: 'https://testnet.tonapi.io' });
+                break;
+            case 'setEventsListeners':
+                window.__walletkit_mock_state.eventListenersRegistered = true;
+                sendRpcResponse(id, { success: true });
+                break;
+            case 'getWallets':
+                sendRpcResponse(id, { wallets: [] });
+                break;
+            case 'getSessions':
+                sendRpcResponse(id, { sessions: [] });
+                break;
+            case 'disconnect':
+                var sessionId = params ? params.sessionId : null;
+                if (sessionId) {
+                    setTimeout(function() { sendEvent('disconnect', { sessionId: sessionId }); }, 50);
+                }
+                sendRpcResponse(id, { success: true });
+                break;
+            default:
+                sendRpcResponse(id, { success: true });
+        }
+    };
+
+    console.log('[NORMAL_FLOW] Mock initialized');
+</script>
 </body>
 </html>

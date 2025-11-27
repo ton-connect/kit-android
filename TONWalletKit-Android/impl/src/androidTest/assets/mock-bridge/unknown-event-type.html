@@ -1,3 +1,44 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Unknown Event Type</title></head>
-<body><script type="module" src="unknown-event-type-mock.mjs"></script></body></html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Unknown Event Type</title>
+</head>
+<body>
+<script>
+    /**
+     * Scenario #19: Event type unknown/unsupported
+     */
+
+    function sendToAndroid(payload) {
+        const message = JSON.stringify(payload);
+        console.log('[Unknown Event Type] Sending to Android:', message);
+        if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+            window.WalletKitNative.postMessage(message);
+        } else {
+            console.error('[Unknown Event Type] WalletKitNative.postMessage not available!');
+        }
+    }
+
+    function sendReadyEvent(network) {
+        sendToAndroid({ kind: 'ready', network: network, tonApiUrl: 'https://testnet.tonapi.io' });
+    }
+
+    setTimeout(function() { sendReadyEvent('testnet'); }, 100);
+
+    setTimeout(function() {
+        // Send event with unknown type
+        sendToAndroid({
+            kind: 'event',
+            event: {
+                type: 'future_event_v2_not_yet_supported',
+                data: { some: 'data' },
+                id: 'event-' + Date.now()
+            }
+        });
+    }, 200);
+
+    window.__walletkitCall = function(id, method, params) {};
+</script>
+</body>
+</html>

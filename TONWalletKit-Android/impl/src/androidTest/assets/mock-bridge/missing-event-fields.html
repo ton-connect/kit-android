@@ -1,3 +1,43 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Missing Event Fields</title></head>
-<body><script type="module" src="missing-event-fields-mock.mjs"></script></body></html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Missing Event Fields</title>
+</head>
+<body>
+<script>
+    /**
+     * Scenario #17: Event with missing required fields
+     */
+
+    function sendToAndroid(payload) {
+        const message = JSON.stringify(payload);
+        console.log('[Missing Event Fields] Sending to Android:', message);
+        if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+            window.WalletKitNative.postMessage(message);
+        } else {
+            console.error('[Missing Event Fields] WalletKitNative.postMessage not available!');
+        }
+    }
+
+    function sendReadyEvent(network) {
+        sendToAndroid({ kind: 'ready', network: network, tonApiUrl: 'https://testnet.tonapi.io' });
+    }
+
+    setTimeout(function() { sendReadyEvent('testnet'); }, 100);
+
+    setTimeout(function() {
+        // Send malformed event - missing data field
+        sendToAndroid({
+            kind: 'event',
+            event: {
+                type: 'connect_request'
+                // Missing data field!
+            }
+        });
+    }, 200);
+
+    window.__walletkitCall = function(id, method, params) {};
+</script>
+</body>
+</html>

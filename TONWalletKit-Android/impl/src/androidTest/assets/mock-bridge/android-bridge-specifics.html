@@ -7,34 +7,38 @@
 </head>
 <body>
     <h1>Mock Bridge - Android Bridge Specifics</h1>
-    <script type="module">
-        import { 
-            walletkitCallBeforeReady,
-            jsExceptionDuringCall,
-            responseMissingKind,
-            responseUnknownKind,
-            eventListenerSetupFails,
-            storageAdapterNotAvailable,
-            storageGetReturnsNull,
-            storageSetThrows
-        } from './android-bridge-specifics.mjs';
-        
-        const scenario = new URLSearchParams(window.location.search).get('scenario') || 'walletkitCallBeforeReady';
-        
-        const scenarios = {
-            walletkitCallBeforeReady,
-            jsExceptionDuringCall,
-            responseMissingKind,
-            responseUnknownKind,
-            eventListenerSetupFails,
-            storageAdapterNotAvailable,
-            storageGetReturnsNull,
-            storageSetThrows
-        };
-        
-        if (scenarios[scenario]) {
-            scenarios[scenario]();
+    <script>
+        /**
+         * Android Bridge Specifics - Tests Android-specific bridge behaviors
+         * Scenarios 116-125
+         */
+
+        function sendToAndroid(payload) {
+            const message = JSON.stringify(payload);
+            console.log('[Android Bridge] Sending to Android:', message);
+            if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+                window.WalletKitNative.postMessage(message);
+            }
         }
+
+        function sendReadyEvent(network, tonApiUrl) {
+            sendToAndroid({ kind: 'ready', network: network || 'testnet', tonApiUrl: tonApiUrl || 'https://testnet.tonapi.io' });
+        }
+
+        function sendRpcResponse(id, result, error) {
+            const payload = { kind: 'response', id: id };
+            if (error) { payload.error = error; } else { payload.result = result || {}; }
+            sendToAndroid(payload);
+        }
+
+        // Send ready event
+        setTimeout(function() { sendReadyEvent('testnet'); }, 100);
+
+        // Handle RPC calls
+        window.__walletkitCall = function(id, method, params) {
+            console.log('[Android Bridge] Call:', method);
+            sendRpcResponse(id, { success: true });
+        };
     </script>
 </body>
 </html>

@@ -1,3 +1,45 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Huge Payload</title></head>
-<body><script type="module" src="huge-payload-mock.mjs"></script></body></html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Huge Payload</title>
+</head>
+<body>
+<script>
+    /**
+     * Scenario #7: RPC response payload exceeds size limits
+     */
+
+    function sendToAndroid(payload) {
+        const message = JSON.stringify(payload);
+        console.log('[Huge Payload] Sending to Android (' + message.length + ' bytes)');
+        if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+            window.WalletKitNative.postMessage(message);
+        } else {
+            console.error('[Huge Payload] WalletKitNative.postMessage not available!');
+        }
+    }
+
+    function sendReadyEvent(network) {
+        sendToAndroid({ kind: 'ready', network: network, tonApiUrl: 'https://testnet.tonapi.io' });
+    }
+
+    function sendRpcResponse(id, result, error) {
+        const payload = { kind: 'response', id: id };
+        if (error) { payload.error = error; } else { payload.result = result; }
+        sendToAndroid(payload);
+    }
+
+    setTimeout(function() { sendReadyEvent('testnet'); }, 100);
+
+    window.__walletkitCall = function(id, method, params) {
+        // Create 10MB+ response
+        var hugeString = '';
+        for (var i = 0; i < 10 * 1024 * 1024; i++) { hugeString += 'x'; }
+        setTimeout(function() {
+            sendRpcResponse(id, { data: hugeString });
+        }, 100);
+    };
+</script>
+</body>
+</html>
