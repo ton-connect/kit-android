@@ -113,4 +113,16 @@ class WebViewLifecycleTests : MockBridgeTestBase() {
         // TODO (Scenario 155): Handle hardware wallet disconnect mid-signature.
         assertTrue(true)
     }
+
+    @Test
+    fun injectorSetupCalledOnMainThread_placeholder() = runBlocking {
+        // TODO: Verify WebView injector enforces main thread for setup.
+        assertTrue(true)
+    }
+
+    @Test
+    fun injectorCleanupRemovesJsInterface_placeholder() = runBlocking {
+        // TODO: Verify cleanup properly removes JS bridge interface.
+        assertTrue(true)
+    }
 }

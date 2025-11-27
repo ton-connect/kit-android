@@ -65,4 +65,10 @@ class ComprehensiveEdgeCaseTests : MockBridgeTestBase() {
         // TODO (Scenario 105): Restore and reconcile state after process death.
         assertTrue(true)
     }
+
+    @Test
+    fun reconnectionAfterProcessDeath_placeholder() = runBlocking {
+        // TODO: SDK reconnects/restores state properly after process death.
+        assertTrue(true)
+    }
 }

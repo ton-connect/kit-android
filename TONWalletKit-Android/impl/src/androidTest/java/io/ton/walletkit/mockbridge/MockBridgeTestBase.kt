@@ -149,7 +149,7 @@ abstract class MockBridgeTestBase {
     @After
     fun teardownMockBridge() = runBlocking {
         withContext(Dispatchers.Main) {
-            if (::sdk.isInitialized) {
+            if (::sdk.isInitialized && !skipTeardownDestroy) {
                 sdk.destroy()
             }
         }
@@ -157,6 +157,12 @@ abstract class MockBridgeTestBase {
 
     protected open fun autoAddEventsHandler(): Boolean = true
     protected open fun autoInitWalletKit(): Boolean = true
+
+    /**
+     * Set to true in tests that manually call sdk.destroy() to prevent
+     * double-destroy (which crashes WebView). Reset after each test.
+     */
+    protected var skipTeardownDestroy: Boolean = false
     internal open suspend fun createTestInstance(
         context: Context,
         mockAssetPath: String,

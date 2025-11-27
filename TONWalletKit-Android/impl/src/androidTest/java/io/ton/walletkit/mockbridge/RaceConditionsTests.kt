@@ -95,4 +95,16 @@ class RaceConditionsTests : MockBridgeTestBase() {
         // TODO (Scenario 130): Modify sessions during getSessions safely.
         assertTrue(true)
     }
+
+    @Test
+    fun sdkHandlesMainThreadRequirement_placeholder() = runBlocking {
+        // TODO: Verify SDK enforces/handles main thread requirement for WebView ops.
+        assertTrue(true)
+    }
+
+    @Test
+    fun sdkCancellationPropagates_placeholder() = runBlocking {
+        // TODO: Verify coroutine cancellation properly cancels pending bridge calls.
+        assertTrue(true)
+    }
 }

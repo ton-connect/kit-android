@@ -28,47 +28,47 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * SDK instance management (scenarios 141-144).
+ * SDK configuration handling tests - verifies how SDK applies different configurations.
  */
 @RunWith(AndroidJUnit4::class)
-class SDKInstanceTests : MockBridgeTestBase() {
-    override fun getMockScenarioHtml(): String = "sdk-instance-scenarios"
+class SDKConfigurationTests : MockBridgeTestBase() {
+    override fun getMockScenarioHtml(): String = "normal-flow"
     override fun autoInitWalletKit(): Boolean = false
     override fun autoAddEventsHandler(): Boolean = false
 
     @Test
-    fun multipleInstancesCreated_placeholder() = runBlocking {
-        // TODO (Scenario 141): Creating multiple instances handled appropriately.
+    fun sdkAppliesConfigurationToBridge_placeholder() = runBlocking {
+        // TODO: Verify config (network, manifest) is correctly sent to bridge on init.
         assertTrue(true)
     }
 
     @Test
-    fun methodsOnDestroyedInstance_placeholder() = runBlocking {
-        // TODO (Scenario 142): Calls on destroyed instance should error safely.
+    fun sdkRespectsStoragePersistenceFlag_placeholder() = runBlocking {
+        // TODO: Verify persistent=false skips storage operations.
         assertTrue(true)
     }
 
     @Test
-    fun recreateAfterDestroy_placeholder() = runBlocking {
-        // TODO (Scenario 143): New instance after destroy initializes cleanly.
+    fun differentNetworkConfigs_placeholder() = runBlocking {
+        // TODO: SDK handles switching between MAINNET/TESTNET configs correctly.
         assertTrue(true)
     }
 
     @Test
-    fun staticStateFromPreviousInstance_placeholder() = runBlocking {
-        // TODO (Scenario 144): Ensure no stale static state bleeds into new instance.
+    fun differentManifestConfigs_placeholder() = runBlocking {
+        // TODO: SDK correctly applies different wallet manifest configurations.
         assertTrue(true)
     }
 
     @Test
-    fun sdkClearsStateOnDestroy_placeholder() = runBlocking {
-        // TODO: Verify destroy clears internal maps/state completely.
+    fun differentStorageConfigs_placeholder() = runBlocking {
+        // TODO: SDK respects persistent vs non-persistent storage config.
         assertTrue(true)
     }
 
     @Test
-    fun sdkRejectsOperationsAfterDestroy_placeholder() = runBlocking {
-        // TODO: Verify post-destroy API calls fail gracefully with appropriate error.
+    fun differentFeatureConfigs_placeholder() = runBlocking {
+        // TODO: SDK correctly reports supported features (maxMessages, signData types).
         assertTrue(true)
     }
 }

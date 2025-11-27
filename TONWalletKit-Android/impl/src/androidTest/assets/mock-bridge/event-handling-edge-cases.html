@@ -8,29 +8,181 @@
 <body>
     <h1>Mock Bridge - Event Handling Edge Cases</h1>
     <script>
+        /**
+         * Event Handling Edge Cases Mock
+         * 
+         * Tests SDK's ability to handle various event edge cases:
+         * - Duplicate event IDs
+         * - Missing fields
+         * - Wrong payload types
+         * - Unknown event types
+         * - Handler exceptions (SDK-side)
+         */
+
+        window.__mockState = {
+            ready: false,
+            eventIdCounter: 0
+        };
+
         function sendToAndroid(payload) {
             var message = JSON.stringify(payload);
-            console.log('[Mock] Sending to Android:', message);
+            console.log('[EventEdgeCases] Sending to Android:', message);
             if (window.WalletKitNative && window.WalletKitNative.postMessage) {
                 window.WalletKitNative.postMessage(message);
             }
         }
 
         function sendReadyEvent(network, tonApiUrl) {
-            sendToAndroid({ kind: 'ready', network: network || 'testnet', tonApiUrl: tonApiUrl || 'https://testnet.tonapi.io' });
+            window.__mockState.ready = true;
+            sendToAndroid({ 
+                kind: 'ready', 
+                network: network || 'testnet', 
+                tonApiUrl: tonApiUrl || 'https://testnet.tonapi.io' 
+            });
         }
 
         function sendRpcResponse(id, result, error) {
             var payload = { kind: 'response', id: id };
-            if (error) { payload.error = error; } else { payload.result = result || {}; }
+            if (error) { 
+                payload.error = error; 
+            } else { 
+                payload.result = result || {}; 
+            }
             sendToAndroid(payload);
         }
 
-        setTimeout(function() { sendReadyEvent('testnet'); }, 100);
+        // Send a typed event to Android
+        function sendEvent(type, data, eventId) {
+            var id = eventId || ('event-' + (++window.__mockState.eventIdCounter));
+            sendToAndroid({
+                kind: 'event',
+                event: {
+                    type: type,
+                    id: id,
+                    data: data || {}
+                }
+            });
+            return id;
+        }
 
-        window.__walletkitCall = function(id, method, params) {
-            console.log('[Mock] Call:', method);
-            sendRpcResponse(id, { success: true });
+        // Test helper: Send duplicate event with same ID
+        function sendDuplicateEvent(type, data, eventId) {
+            sendEvent(type, data, eventId);
+            sendEvent(type, data, eventId); // Same ID again
+        }
+
+        // Test helper: Send event with missing required fields
+        function sendEventMissingFields(type) {
+            sendToAndroid({
+                kind: 'event',
+                event: {
+                    type: type
+                    // Missing 'data' and 'id'
+                }
+            });
+        }
+
+        // Test helper: Send event with wrong payload type (array instead of object)
+        function sendEventWrongPayloadType() {
+            sendToAndroid({
+                kind: 'event',
+                event: ['this', 'is', 'an', 'array'] // Wrong type
+            });
+        }
+
+        // Test helper: Send unknown event type
+        function sendUnknownEventType() {
+            sendEvent('unknown_event_type_xyz', { foo: 'bar' });
+        }
+
+        // Auto-send ready event
+        setTimeout(function() { 
+            console.log('[EventEdgeCases] Sending ready event');
+            sendReadyEvent('testnet'); 
+        }, 50);
+
+        // Handle RPC calls
+        window.__walletkitCall = function(id, method, paramsJson) {
+            console.log('[EventEdgeCases] RPC call:', method, 'id:', id);
+            
+            var params = null;
+            if (paramsJson && typeof paramsJson === 'string') {
+                try { params = JSON.parse(paramsJson); } catch(e) {}
+            }
+
+            switch(method) {
+                case 'init':
+                    sendRpcResponse(id, { network: 'testnet', tonApiUrl: 'https://testnet.tonapi.io' });
+                    break;
+                case 'setEventsListeners':
+                    sendRpcResponse(id, { success: true });
+                    break;
+                case 'removeEventsListeners':
+                    sendRpcResponse(id, { success: true });
+                    break;
+                    
+                // Real SDK method - disconnectSession triggers a disconnect event
+                case 'disconnectSession':
+                    var sessionId = params && params.sessionId ? params.sessionId : 'unknown-session';
+                    // Emit disconnect event as the real bridge would
+                    setTimeout(function() {
+                        sendEvent('disconnect', { sessionId: sessionId });
+                    }, 10);
+                    sendRpcResponse(id, { success: true });
+                    break;
+                    
+                // Test trigger methods - for edge case testing
+                case 'test_sendDuplicateEvent':
+                    var eventId = sendEvent('disconnect', { sessionId: 'test-session-1' });
+                    setTimeout(function() {
+                        sendEvent('disconnect', { sessionId: 'test-session-1' }, eventId); // Same ID
+                    }, 50);
+                    sendRpcResponse(id, { eventId: eventId });
+                    break;
+                    
+                case 'test_sendUnknownEventType':
+                    sendEvent('completely_unknown_event_type', { data: 'test' });
+                    sendRpcResponse(id, { success: true });
+                    break;
+                    
+                case 'test_sendEventMissingFields':
+                    sendToAndroid({
+                        kind: 'event',
+                        event: {
+                            type: 'disconnect'
+                            // Missing data
+                        }
+                    });
+                    sendRpcResponse(id, { success: true });
+                    break;
+                    
+                case 'test_sendDisconnectEvent':
+                    var testSessionId = params && params.sessionId ? params.sessionId : 'test-session';
+                    sendEvent('disconnect', { sessionId: testSessionId });
+                    sendRpcResponse(id, { success: true });
+                    break;
+                    
+                case 'test_sendEventWrongPayloadType':
+                    // Send event with wrong payload type (array instead of object)
+                    sendToAndroid({
+                        kind: 'event',
+                        event: ['this', 'is', 'an', 'array'] // Wrong type - should be object
+                    });
+                    sendRpcResponse(id, { success: true });
+                    break;
+                    
+                default:
+                    sendRpcResponse(id, { success: true });
+            }
+        };
+
+        // Expose test helpers globally
+        window.__testHelpers = {
+            sendEvent: sendEvent,
+            sendDuplicateEvent: sendDuplicateEvent,
+            sendEventMissingFields: sendEventMissingFields,
+            sendEventWrongPayloadType: sendEventWrongPayloadType,
+            sendUnknownEventType: sendUnknownEventType
         };
     </script>
 </body>

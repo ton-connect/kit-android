@@ -28,47 +28,29 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * SDK instance management (scenarios 141-144).
+ * SDK bridge communication tests - verifies how SDK serializes/deserializes bridge messages.
  */
 @RunWith(AndroidJUnit4::class)
-class SDKInstanceTests : MockBridgeTestBase() {
-    override fun getMockScenarioHtml(): String = "sdk-instance-scenarios"
+class SDKBridgeCommunicationTests : MockBridgeTestBase() {
+    override fun getMockScenarioHtml(): String = "normal-flow"
     override fun autoInitWalletKit(): Boolean = false
     override fun autoAddEventsHandler(): Boolean = false
 
     @Test
-    fun multipleInstancesCreated_placeholder() = runBlocking {
-        // TODO (Scenario 141): Creating multiple instances handled appropriately.
+    fun sdkForwardsMethodParamsCorrectlyToBridge_placeholder() = runBlocking {
+        // TODO: Verify SDK serializes and sends params to JS correctly.
         assertTrue(true)
     }
 
     @Test
-    fun methodsOnDestroyedInstance_placeholder() = runBlocking {
-        // TODO (Scenario 142): Calls on destroyed instance should error safely.
+    fun sdkParsesStandardResponseCorrectly_placeholder() = runBlocking {
+        // TODO: Verify SDK correctly deserializes normal bridge responses.
         assertTrue(true)
     }
 
     @Test
-    fun recreateAfterDestroy_placeholder() = runBlocking {
-        // TODO (Scenario 143): New instance after destroy initializes cleanly.
-        assertTrue(true)
-    }
-
-    @Test
-    fun staticStateFromPreviousInstance_placeholder() = runBlocking {
-        // TODO (Scenario 144): Ensure no stale static state bleeds into new instance.
-        assertTrue(true)
-    }
-
-    @Test
-    fun sdkClearsStateOnDestroy_placeholder() = runBlocking {
-        // TODO: Verify destroy clears internal maps/state completely.
-        assertTrue(true)
-    }
-
-    @Test
-    fun sdkRejectsOperationsAfterDestroy_placeholder() = runBlocking {
-        // TODO: Verify post-destroy API calls fail gracefully with appropriate error.
+    fun sdkMaintainsWalletListAcrossOperations_placeholder() = runBlocking {
+        // TODO: Verify internal wallet list stays consistent across operations.
         assertTrue(true)
     }
 }

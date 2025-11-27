@@ -99,6 +99,8 @@ internal class WebViewWalletKitEngine private constructor(
 
     @Volatile private var persistentStorageEnabled: Boolean = true
 
+    @Volatile private var isDestroyed: Boolean = false
+
     @Volatile private var currentNetwork: String = NetworkConstants.DEFAULT_NETWORK
 
     @Volatile private var apiBaseUrl: String = NetworkConstants.DEFAULT_TESTNET_API_URL
@@ -224,6 +226,9 @@ internal class WebViewWalletKitEngine private constructor(
     }
 
     private suspend fun call(method: String, params: JSONObject? = null): JSONObject {
+        if (isDestroyed) {
+            throw WalletKitBridgeException("Cannot call method '$method' - SDK has been destroyed")
+        }
         return rpcClient.call(method, params)
     }
 
@@ -455,6 +460,12 @@ internal class WebViewWalletKitEngine private constructor(
     }
 
     override suspend fun destroy() {
+        if (isDestroyed) {
+            Logger.d(TAG, "destroy() called but already destroyed, skipping")
+            return
+        }
+        isDestroyed = true
+
         withContext(Dispatchers.Main) {
             try {
                 if (initManager.isInitialized()) {
