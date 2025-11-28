@@ -118,7 +118,7 @@ class TonConnectViewModel(
     /**
      * Reject a connection request from a dApp.
      */
-    fun rejectConnect(request: ConnectRequestUi, reason: String = "User rejected") {
+    fun rejectConnect(request: ConnectRequestUi, reason: String = "User declined the connection") {
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
@@ -170,7 +170,7 @@ class TonConnectViewModel(
     /**
      * Reject a transaction request from a dApp.
      */
-    fun rejectTransaction(request: TransactionRequestUi, reason: String = "User rejected") {
+    fun rejectTransaction(request: TransactionRequestUi, reason: String = "User declined the transaction") {
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
@@ -221,7 +221,7 @@ class TonConnectViewModel(
     /**
      * Reject a sign data request from a dApp.
      */
-    fun rejectSignData(request: SignDataRequestUi, reason: String = "User rejected") {
+    fun rejectSignData(request: SignDataRequestUi, reason: String = "User declined the request") {
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, error = null)
 

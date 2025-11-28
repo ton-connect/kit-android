@@ -26352,6 +26352,22 @@ class ConnectHandler extends BasicHandler {
         };
       }
       const result = await response.json();
+      if (result?.url) {
+        try {
+          const manifestAppUrl = new URL(result.url);
+          if (manifestAppUrl.host.indexOf(".") === -1) {
+            return {
+              manifest: null,
+              manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR
+            };
+          }
+        } catch (_) {
+          return {
+            manifest: null,
+            manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR
+          };
+        }
+      }
       return {
         manifest: result,
         manifestFetchErrorCode: void 0
@@ -75132,14 +75148,21 @@ class WalletV4R2Adapter {
     }
     const timeout = input.valid_until ? Math.min(input.valid_until, Math.floor(Date.now() / 1e3) + 600) : Math.floor(Date.now() / 1e3) + 60;
     try {
-      const messages = input.messages.map((m2) => distExports$3.internal({
-        to: distExports$3.Address.parse(m2.address),
-        value: BigInt(m2.amount),
-        bounce: true,
-        extracurrency: m2.extraCurrency ? Object.fromEntries(Object.entries(m2.extraCurrency).map(([k2, v2]) => [Number(k2), BigInt(v2)])) : void 0,
-        body: m2.payload ? distExports$3.Cell.fromBase64(m2.payload) : void 0,
-        init: m2.stateInit ? distExports$3.loadStateInit(distExports$3.Cell.fromBase64(m2.stateInit).asSlice()) : void 0
-      }));
+      const messages = input.messages.map((m2) => {
+        let bounce = true;
+        const parsedAddress = distExports$3.Address.parseFriendly(m2.address);
+        if (parsedAddress.isBounceable === false) {
+          bounce = false;
+        }
+        return distExports$3.internal({
+          to: distExports$3.Address.parse(m2.address),
+          value: BigInt(m2.amount),
+          bounce,
+          extracurrency: m2.extraCurrency ? Object.fromEntries(Object.entries(m2.extraCurrency).map(([k2, v2]) => [Number(k2), BigInt(v2)])) : void 0,
+          body: m2.payload ? distExports$3.Cell.fromBase64(m2.payload) : void 0,
+          init: m2.stateInit ? distExports$3.loadStateInit(distExports$3.Cell.fromBase64(m2.stateInit).asSlice()) : void 0
+        });
+      });
       const data = this.walletContract.createTransfer({
         seqno,
         sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY + distExports$3.SendMode.IGNORE_ERRORS,
@@ -77721,7 +77744,25 @@ function rejectConnectRequest(args) {
       if (!args.event) {
         throw new Error("Connect request event is required");
       }
-      const result = yield walletKit.rejectConnectRequest(args.event, args.reason);
+      let reason;
+      let errorCode;
+      if (typeof args.reason === "object" && args.reason !== null) {
+        reason = args.reason.message;
+        errorCode = args.reason.code;
+      } else if (typeof args.reason === "string") {
+        try {
+          const parsed = JSON.parse(args.reason);
+          if (typeof parsed === "object" && parsed !== null && "code" in parsed && "message" in parsed) {
+            reason = parsed.message;
+            errorCode = parsed.code;
+          } else {
+            reason = args.reason;
+          }
+        } catch (e) {
+          reason = args.reason;
+        }
+      }
+      const result = yield walletKit.rejectConnectRequest(args.event, reason, errorCode);
       if (result == null) {
         return { success: true };
       }
@@ -77748,7 +77789,22 @@ function rejectTransactionRequest(args) {
       if (!args.event) {
         throw new Error("Transaction request event is required");
       }
-      const result = yield walletKit.rejectTransactionRequest(args.event, args.reason);
+      let reason;
+      if (typeof args.reason === "object" && args.reason !== null) {
+        reason = { code: args.reason.code, message: args.reason.message };
+      } else if (typeof args.reason === "string") {
+        try {
+          const parsed = JSON.parse(args.reason);
+          if (typeof parsed === "object" && parsed !== null && "code" in parsed && "message" in parsed) {
+            reason = { code: parsed.code, message: parsed.message };
+          } else {
+            reason = args.reason;
+          }
+        } catch (e) {
+          reason = args.reason;
+        }
+      }
+      const result = yield walletKit.rejectTransactionRequest(args.event, reason);
       if (result == null) {
         return { success: true };
       }
