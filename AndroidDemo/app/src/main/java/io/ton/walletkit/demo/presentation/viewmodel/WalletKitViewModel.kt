@@ -1488,7 +1488,7 @@ class WalletKitViewModel @Inject constructor(
         private val DEFAULT_NETWORK = TONNetwork.MAINNET
         private const val LOG_TAG = "WalletKitVM"
         private const val ERROR_REQUEST_OBJECT_NOT_AVAILABLE = "Request object not available"
-        private const val DEFAULT_REJECTION_REASON = "User rejected"
+        private const val DEFAULT_REJECTION_REASON = "User declined the connection"
         private const val SIGNER_CONFIRMATION_CANCEL_REASON = "User cancelled signer confirmation"
         private const val ERROR_DIRECT_SIGNING_UNSUPPORTED = "Direct signing not supported - use SDK's transaction/signData methods"
     }
