@@ -105,8 +105,8 @@ internal object TestWalletKitFactory {
         every { mockEngine.kind } returns WalletKitEngineKind.WEBVIEW
         every { mockEngine.getConfiguration() } returns null
 
-        // Track handlers for event dispatch
-        val handlers = mutableListOf<TONBridgeEventsHandler>()
+        // Track handlers for event dispatch (thread-safe for concurrent registration)
+        val handlers = java.util.concurrent.CopyOnWriteArrayList<TONBridgeEventsHandler>()
         coEvery { mockEngine.addEventsHandler(any()) } answers {
             handlers.add(firstArg())
         }
