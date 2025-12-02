@@ -1,0 +1,276 @@
+/*
+ * Copyright (c) 2025 TonTech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package io.ton.walletkit.engine.operations
+
+import io.ton.walletkit.model.TONJettonTransferParams
+import io.ton.walletkit.model.TONNFTTransferMessageDTO
+import io.ton.walletkit.model.TONNFTTransferParamsHuman
+import io.ton.walletkit.model.TONNFTTransferParamsRaw
+import kotlinx.coroutines.runBlocking
+import org.json.JSONArray
+import org.json.JSONObject
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * Tests for AssetOperations (NFT and Jetton) response parsing.
+ *
+ * Focus: NFT/Jetton list parsing, balance extraction, transfer transaction building.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE, sdk = [28])
+class AssetOperationsTest : OperationsTestBase() {
+
+    private lateinit var assetOperations: AssetOperations
+
+    companion object {
+        const val TEST_ADDRESS = "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N"
+        const val TEST_NFT_ADDRESS = "EQNft123456789012345678901234567890123456789012"
+        const val TEST_JETTON_ADDRESS = "EQJetton12345678901234567890123456789012345678"
+    }
+
+    @Before
+    override fun setup() {
+        super.setup()
+        assetOperations = AssetOperations(
+            ensureInitialized = ensureInitialized,
+            rpcClient = rpcClient,
+            json = json,
+        )
+    }
+
+    // --- getNfts tests ---
+
+    @Test
+    fun getNfts_parsesNftItemsArray() = runBlocking {
+        givenBridgeReturns(
+            JSONObject().apply {
+                put(
+                    "items",
+                    JSONArray().apply {
+                        put(
+                            JSONObject().apply {
+                                put("address", TEST_NFT_ADDRESS)
+                                put("ownerAddress", TEST_ADDRESS)
+                            },
+                        )
+                    },
+                )
+            },
+        )
+
+        val result = assetOperations.getNfts(TEST_ADDRESS, limit = 10, offset = 0)
+
+        assertEquals(1, result.items.size)
+        assertEquals(TEST_NFT_ADDRESS, result.items[0].address)
+    }
+
+    @Test
+    fun getNfts_returnsEmptyItemsIfNone() = runBlocking {
+        givenBridgeReturns(
+            JSONObject().apply {
+                put("items", JSONArray())
+            },
+        )
+
+        val result = assetOperations.getNfts(TEST_ADDRESS, limit = 10, offset = 0)
+
+        assertTrue(result.items.isEmpty())
+    }
+
+    // --- getNft tests ---
+
+    @Test
+    fun getNft_parsesSingleNft() = runBlocking {
+        givenBridgeReturns(
+            JSONObject().apply {
+                put("address", TEST_NFT_ADDRESS)
+                put("ownerAddress", TEST_ADDRESS)
+            },
+        )
+
+        val result = assetOperations.getNft(TEST_NFT_ADDRESS)
+
+        assertNotNull(result)
+        assertEquals(TEST_NFT_ADDRESS, result!!.address)
+    }
+
+    @Test
+    fun getNft_returnsNullIfNoAddress() = runBlocking {
+        givenBridgeReturns(JSONObject()) // No address field
+
+        val result = assetOperations.getNft(TEST_NFT_ADDRESS)
+
+        assertNull(result)
+    }
+
+    // --- getJettons tests ---
+
+    @Test
+    fun getJettons_parsesJettonWallets() = runBlocking {
+        // TONJettonWallets uses "jettons" for items, and TONJettonWallet requires "jettonWalletAddress"
+        givenBridgeReturns(
+            JSONObject().apply {
+                put(
+                    "jettons",
+                    JSONArray().apply {
+                        put(
+                            JSONObject().apply {
+                                put("jettonWalletAddress", TEST_JETTON_ADDRESS) // Required field
+                                put("address", TEST_JETTON_ADDRESS) // Jetton master address
+                                put("balance", "1000000000")
+                            },
+                        )
+                    },
+                )
+            },
+        )
+
+        val result = assetOperations.getJettons(TEST_ADDRESS, limit = 10, offset = 0)
+
+        assertEquals(1, result.items.size)
+        assertEquals(TEST_JETTON_ADDRESS, result.items[0].walletAddress)
+    }
+
+    @Test
+    fun getJettons_returnsEmptyIfNone() = runBlocking {
+        givenBridgeReturns(
+            JSONObject().apply {
+                put("jettons", JSONArray())
+            },
+        )
+
+        val result = assetOperations.getJettons(TEST_ADDRESS, limit = 10, offset = 0)
+
+        assertTrue(result.items.isEmpty())
+    }
+
+    // --- getJettonBalance tests ---
+
+    @Test
+    fun getJettonBalance_extractsBalanceString() = runBlocking {
+        givenBridgeReturns(
+            jsonOf(
+                "balance" to "5000000000",
+            ),
+        )
+
+        val result = assetOperations.getJettonBalance(TEST_ADDRESS, TEST_JETTON_ADDRESS)
+
+        assertEquals("5000000000", result)
+    }
+
+    @Test
+    fun getJettonBalance_returnsZeroIfMissing() = runBlocking {
+        givenBridgeReturns(JSONObject())
+
+        val result = assetOperations.getJettonBalance(TEST_ADDRESS, TEST_JETTON_ADDRESS)
+
+        assertEquals("0", result)
+    }
+
+    // --- getJettonWalletAddress tests ---
+
+    @Test
+    fun getJettonWalletAddress_extractsAddress() = runBlocking {
+        givenBridgeReturns(
+            jsonOf(
+                "jettonWalletAddress" to TEST_JETTON_ADDRESS,
+            ),
+        )
+
+        val result = assetOperations.getJettonWalletAddress(TEST_ADDRESS, TEST_JETTON_ADDRESS)
+
+        assertEquals(TEST_JETTON_ADDRESS, result)
+    }
+
+    @Test
+    fun getJettonWalletAddress_returnsEmptyIfMissing() = runBlocking {
+        givenBridgeReturns(JSONObject())
+
+        val result = assetOperations.getJettonWalletAddress(TEST_ADDRESS, TEST_JETTON_ADDRESS)
+
+        assertEquals("", result)
+    }
+
+    // --- createTransferNftTransaction tests ---
+
+    @Test
+    fun createTransferNftTransaction_returnsTransactionString() = runBlocking {
+        val transactionContent = """{"messages":[{"address":"EQ...","amount":"50000000"}]}"""
+        givenBridgeReturns(JSONObject(transactionContent))
+
+        val params = TONNFTTransferParamsHuman(
+            nftAddress = TEST_NFT_ADDRESS,
+            toAddress = TEST_ADDRESS,
+            transferAmount = "50000000",
+            comment = "Test transfer",
+        )
+        val result = assetOperations.createTransferNftTransaction(TEST_ADDRESS, params)
+
+        assertTrue(result.contains("messages"))
+    }
+
+    // --- createTransferNftRawTransaction tests ---
+
+    @Test
+    fun createTransferNftRawTransaction_returnsTransactionString() = runBlocking {
+        val transactionContent = """{"boc":"te6..."}"""
+        givenBridgeReturns(JSONObject(transactionContent))
+
+        val transferMessage = TONNFTTransferMessageDTO(
+            queryId = "0",
+            newOwner = TEST_ADDRESS,
+            forwardAmount = "1",
+        )
+        val params = TONNFTTransferParamsRaw(
+            nftAddress = TEST_NFT_ADDRESS,
+            transferAmount = "50000000",
+            transferMessage = transferMessage,
+        )
+        val result = assetOperations.createTransferNftRawTransaction(TEST_ADDRESS, params)
+
+        assertTrue(result.contains("boc"))
+    }
+
+    // --- createTransferJettonTransaction tests ---
+
+    @Test
+    fun createTransferJettonTransaction_returnsTransactionString() = runBlocking {
+        val transactionContent = """{"messages":[{"address":"EQ..."}]}"""
+        givenBridgeReturns(JSONObject(transactionContent))
+
+        val params = TONJettonTransferParams(
+            toAddress = TEST_ADDRESS,
+            jettonAddress = TEST_JETTON_ADDRESS,
+            amount = "1000000000",
+            comment = "Jetton transfer",
+        )
+        val result = assetOperations.createTransferJettonTransaction(TEST_ADDRESS, params)
+
+        assertTrue(result.contains("messages"))
+    }
+}

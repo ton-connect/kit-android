@@ -24,7 +24,6 @@ package io.ton.walletkit.engine.operations
 import io.mockk.mockk
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.engine.state.SignerManager
-import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -73,12 +72,14 @@ class WalletOperationsTest : OperationsTestBase() {
     @Test
     fun createSignerFromMnemonic_extractsSignerFromNestedResponse() = runBlocking {
         // JS returns { _tempId, signer: { publicKey } }
-        givenBridgeReturns(jsonOf(
-            "_tempId" to "signer-123",
-            "signer" to JSONObject().apply {
-                put("publicKey", "0xabcdef1234567890")
-            }
-        ))
+        givenBridgeReturns(
+            jsonOf(
+                "_tempId" to "signer-123",
+                "signer" to JSONObject().apply {
+                    put("publicKey", "0xabcdef1234567890")
+                },
+            ),
+        )
 
         val result = walletOperations.createSignerFromMnemonic(listOf("word1", "word2"))
 
@@ -88,12 +89,14 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun createSignerFromMnemonic_stripsHexPrefixFromPublicKey() = runBlocking {
-        givenBridgeReturns(jsonOf(
-            "_tempId" to "signer-1",
-            "signer" to JSONObject().apply {
-                put("publicKey", "0x1234abcd")
-            }
-        ))
+        givenBridgeReturns(
+            jsonOf(
+                "_tempId" to "signer-1",
+                "signer" to JSONObject().apply {
+                    put("publicKey", "0x1234abcd")
+                },
+            ),
+        )
 
         val result = walletOperations.createSignerFromMnemonic(listOf("test"))
 
@@ -102,12 +105,14 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun createSignerFromMnemonic_handlesPublicKeyWithoutPrefix() = runBlocking {
-        givenBridgeReturns(jsonOf(
-            "_tempId" to "signer-1",
-            "signer" to JSONObject().apply {
-                put("publicKey", "abcd1234")
-            }
-        ))
+        givenBridgeReturns(
+            jsonOf(
+                "_tempId" to "signer-1",
+                "signer" to JSONObject().apply {
+                    put("publicKey", "abcd1234")
+                },
+            ),
+        )
 
         val result = walletOperations.createSignerFromMnemonic(listOf("test"))
 
@@ -117,10 +122,12 @@ class WalletOperationsTest : OperationsTestBase() {
     @Test
     fun createSignerFromMnemonic_fallsBackToRootObjectIfNoSignerNested() = runBlocking {
         // Legacy format: { _tempId, publicKey } without nested signer
-        givenBridgeReturns(jsonOf(
-            "_tempId" to "signer-legacy",
-            "publicKey" to "0xlegacykey"
-        ))
+        givenBridgeReturns(
+            jsonOf(
+                "_tempId" to "signer-legacy",
+                "publicKey" to "0xlegacykey",
+            ),
+        )
 
         val result = walletOperations.createSignerFromMnemonic(listOf("test"))
 
@@ -130,17 +137,21 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun createSignerFromMnemonic_generatesSignerIdIfTempIdMissing() = runBlocking {
-        givenBridgeReturns(jsonOf(
-            "signer" to JSONObject().apply {
-                put("publicKey", "0xkey123")
-            }
-        ))
+        givenBridgeReturns(
+            jsonOf(
+                "signer" to JSONObject().apply {
+                    put("publicKey", "0xkey123")
+                },
+            ),
+        )
 
         val result = walletOperations.createSignerFromMnemonic(listOf("test"))
 
         // Should generate an ID (starts with "signer_")
-        assertTrue("Expected generated signerId starting with signer_, got: ${result.signerId}",
-            result.signerId.startsWith("signer_"))
+        assertTrue(
+            "Expected generated signerId starting with signer_, got: ${result.signerId}",
+            result.signerId.startsWith("signer_"),
+        )
         assertEquals("key123", result.publicKey)
     }
 
@@ -148,21 +159,30 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun getWallets_parsesArrayOfWallets() = runBlocking {
-        givenBridgeReturns(JSONObject().apply {
-            put("items", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("address", TEST_ADDRESS_1)
-                    put("publicKey", "0xpub1")
-                    put("version", "v5r1")
-                    put("network", "mainnet")
-                })
-                put(JSONObject().apply {
-                    put("address", TEST_ADDRESS_2)
-                    put("publicKey", "pub2") // no 0x prefix
-                    put("version", "v4r2")
-                })
-            })
-        })
+        givenBridgeReturns(
+            JSONObject().apply {
+                put(
+                    "items",
+                    JSONArray().apply {
+                        put(
+                            JSONObject().apply {
+                                put("address", TEST_ADDRESS_1)
+                                put("publicKey", "0xpub1")
+                                put("version", "v5r1")
+                                put("network", "mainnet")
+                            },
+                        )
+                        put(
+                            JSONObject().apply {
+                                put("address", TEST_ADDRESS_2)
+                                put("publicKey", "pub2") // no 0x prefix
+                                put("version", "v4r2")
+                            },
+                        )
+                    },
+                )
+            },
+        )
 
         val result = walletOperations.getWallets()
 
@@ -183,14 +203,21 @@ class WalletOperationsTest : OperationsTestBase() {
     fun getWallets_handlesDirectArrayResponse() = runBlocking {
         // Some JS responses return array directly without "items" wrapper
         // Note: JSONObject can't be JSONArray, so this tests the optJSONArray fallback
-        givenBridgeReturns(JSONObject().apply {
-            put("items", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("address", TEST_ADDRESS_1)
-                    put("publicKey", "directKey")
-                })
-            })
-        })
+        givenBridgeReturns(
+            JSONObject().apply {
+                put(
+                    "items",
+                    JSONArray().apply {
+                        put(
+                            JSONObject().apply {
+                                put("address", TEST_ADDRESS_1)
+                                put("publicKey", "directKey")
+                            },
+                        )
+                    },
+                )
+            },
+        )
 
         val result = walletOperations.getWallets()
 
@@ -210,14 +237,21 @@ class WalletOperationsTest : OperationsTestBase() {
     @Test
     fun getWallets_usesAlternateKeyNames() = runBlocking {
         // Tests that it checks both "publicKey" and legacy key names
-        givenBridgeReturns(JSONObject().apply {
-            put("items", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("address", TEST_ADDRESS_1)
-                    put("public_key", "0xaltkey") // alternate key name
-                })
-            })
-        })
+        givenBridgeReturns(
+            JSONObject().apply {
+                put(
+                    "items",
+                    JSONArray().apply {
+                        put(
+                            JSONObject().apply {
+                                put("address", TEST_ADDRESS_1)
+                                put("public_key", "0xaltkey") // alternate key name
+                            },
+                        )
+                    },
+                )
+            },
+        )
 
         val result = walletOperations.getWallets()
 
@@ -230,12 +264,14 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun getWallet_parsesWalletObject() = runBlocking {
-        givenBridgeReturns(jsonOf(
-            "address" to TEST_ADDRESS_1,
-            "publicKey" to "0xsinglekey",
-            "version" to "v5r1",
-            "name" to "My Wallet"
-        ))
+        givenBridgeReturns(
+            jsonOf(
+                "address" to TEST_ADDRESS_1,
+                "publicKey" to "0xsinglekey",
+                "version" to "v5r1",
+                "name" to "My Wallet",
+            ),
+        )
 
         val result = walletOperations.getWallet(TEST_ADDRESS_1)
 
@@ -257,11 +293,13 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun getWallet_returnsNullIfAddressMissing() = runBlocking {
-        givenBridgeReturns(jsonOf(
-            "publicKey" to "0xkey",
-            "version" to "v4r2"
-            // no address!
-        ))
+        givenBridgeReturns(
+            jsonOf(
+                "publicKey" to "0xkey",
+                "version" to "v4r2",
+                // no address!
+            ),
+        )
 
         val result = walletOperations.getWallet("missing")
 
@@ -272,9 +310,11 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun getBalance_extractsBalanceFromObject() = runBlocking {
-        givenBridgeReturns(jsonOf(
-            "balance" to "1000000000"
-        ))
+        givenBridgeReturns(
+            jsonOf(
+                "balance" to "1000000000",
+            ),
+        )
 
         val result = walletOperations.getBalance("EQAddress")
 
@@ -283,9 +323,11 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun getBalance_extractsBalanceFromValueKey() = runBlocking {
-        givenBridgeReturns(jsonOf(
-            "value" to "500000000"
-        ))
+        givenBridgeReturns(
+            jsonOf(
+                "value" to "500000000",
+            ),
+        )
 
         val result = walletOperations.getBalance("EQAddress")
 
@@ -339,11 +381,13 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun addWallet_parsesWalletResponse() = runBlocking {
-        givenBridgeReturns(jsonOf(
-            "address" to TEST_ADDRESS_1,
-            "publicKey" to "0xnewkey",
-            "version" to "v5r1"
-        ))
+        givenBridgeReturns(
+            jsonOf(
+                "address" to TEST_ADDRESS_1,
+                "publicKey" to "0xnewkey",
+                "version" to "v5r1",
+            ),
+        )
 
         val result = walletOperations.addWallet("adapter-123")
 
@@ -355,10 +399,12 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun addWallet_usesUnknownVersionIfMissing() = runBlocking {
-        givenBridgeReturns(jsonOf(
-            "address" to TEST_ADDRESS_1
-            // no version
-        ))
+        givenBridgeReturns(
+            jsonOf(
+                "address" to TEST_ADDRESS_1,
+                // no version
+            ),
+        )
 
         val result = walletOperations.addWallet("adapter-123")
 

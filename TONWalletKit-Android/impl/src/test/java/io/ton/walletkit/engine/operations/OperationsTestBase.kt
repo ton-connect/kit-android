@@ -23,7 +23,6 @@ package io.ton.walletkit.engine.operations
 
 import io.mockk.coEvery
 import io.mockk.mockk
-import io.mockk.slot
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
