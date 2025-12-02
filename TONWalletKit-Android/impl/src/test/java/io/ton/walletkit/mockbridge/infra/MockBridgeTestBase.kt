@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.mockbridge
+package io.ton.walletkit.mockbridge.infra
 
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.config.SignDataType
@@ -29,7 +29,6 @@ import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.TONNetwork
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.runner.RunWith
@@ -74,7 +73,10 @@ abstract class MockBridgeTestBase {
                         events.add(event)
                     }
                 }
-            } else null,
+            } else {
+                null
+            },
+            autoInit = autoInitWalletKit(),
         )
 
         sdk = testInstance.sdk
@@ -120,6 +122,12 @@ abstract class MockBridgeTestBase {
     }
 
     protected open fun autoAddEventsHandler(): Boolean = true
+
+    /**
+     * Override to return false if the test should not auto-initialize the SDK.
+     * When false, the test must call sdk.init() manually.
+     */
+    protected open fun autoInitWalletKit(): Boolean = true
 
     /**
      * Set to true in tests that manually call sdk.destroy() to prevent

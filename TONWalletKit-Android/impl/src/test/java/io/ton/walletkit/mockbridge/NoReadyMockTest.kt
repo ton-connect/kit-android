@@ -63,7 +63,7 @@ class NoReadyMockTest : MockBridgeTestBase() {
             // Simulate JS never sending ready - hang indefinitely
             delay(Long.MAX_VALUE / 2)
         }
-        
+
         // All other methods fail because init never completed
         override fun handleCreateTonMnemonic(wordCount: Int): List<String> {
             throw WalletKitBridgeException("Failed to auto-initialize WalletKit: SDK not ready")
@@ -71,7 +71,7 @@ class NoReadyMockTest : MockBridgeTestBase() {
     }
 
     override fun getMockScenario(): MockScenario = NoReadyScenario()
-    
+
     // Don't auto-init because we want to test init behavior
     override fun autoInitWalletKit(): Boolean = false
     override fun autoAddEventsHandler(): Boolean = false

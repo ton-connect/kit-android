@@ -21,6 +21,9 @@
  */
 package io.ton.walletkit.mockbridge
 
+import io.ton.walletkit.mockbridge.infra.DefaultMockScenario
+import io.ton.walletkit.mockbridge.infra.MockBridgeTestBase
+import io.ton.walletkit.mockbridge.infra.MockScenario
 import io.ton.walletkit.model.TONNFTCollection
 import io.ton.walletkit.model.TONNFTItem
 import io.ton.walletkit.model.TONNFTItems
@@ -86,7 +89,7 @@ class LargePayloadMockTest : MockBridgeTestBase() {
                         ownerAddress = "EQOwner${actualIndex.toString().padStart(40, '0')}",
                         realOwner = "EQOwner${actualIndex.toString().padStart(40, '0')}",
                         saleContractAddress = if (actualIndex % 10 == 0) "EQSale${actualIndex.toString().padStart(41, '0')}" else null,
-                    )
+                    ),
                 )
             }
             return TONNFTItems(items = nfts)
@@ -129,7 +132,7 @@ class LargePayloadMockTest : MockBridgeTestBase() {
         repeat(3) { iteration ->
             val nfts = wallet.getNFTItems(limit = 100, offset = iteration * 100)
             totalNfts += nfts.size
-            
+
             // Verify offset is being used correctly
             if (nfts.isNotEmpty()) {
                 val expectedFirstIndex = iteration * 100

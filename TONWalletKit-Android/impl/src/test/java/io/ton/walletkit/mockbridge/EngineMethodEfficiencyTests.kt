@@ -23,8 +23,10 @@ package io.ton.walletkit.mockbridge
 
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.mockbridge.infra.DefaultMockScenario
+import io.ton.walletkit.mockbridge.infra.MockBridgeTestBase
+import io.ton.walletkit.mockbridge.infra.MockScenario
 import io.ton.walletkit.model.TONNFTItems
-import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSignerInfo

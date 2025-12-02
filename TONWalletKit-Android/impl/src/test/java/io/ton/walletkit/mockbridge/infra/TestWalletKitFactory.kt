@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.mockbridge
+package io.ton.walletkit.mockbridge.infra
 
 import io.mockk.coEvery
 import io.mockk.every
@@ -30,6 +30,8 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.TONWalletKit
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
+import io.ton.walletkit.event.DisconnectEvent
+import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import org.json.JSONObject
 
@@ -62,17 +64,21 @@ internal object TestWalletKitFactory {
      * @param scenario Mock scenario that defines RPC method responses
      * @param configuration SDK configuration
      * @param eventsHandler Optional events handler to track SDK events
+     * @param autoInit If true, calls mockEngine.init() during creation. If false, test must call sdk.init() manually.
      * @return TestSDKInstance with SDK and mock references
      */
     internal suspend fun createWithMockScenario(
         scenario: MockScenario,
         configuration: TONWalletKitConfiguration,
         eventsHandler: TONBridgeEventsHandler? = null,
+        autoInit: Boolean = true,
     ): TestSDKInstance {
         val mockEngine = createMockEngine(scenario)
-        
-        // Initialize the mock engine
-        mockEngine.init(configuration)
+
+        // Initialize the mock engine only if autoInit is true
+        if (autoInit) {
+            mockEngine.init(configuration)
+        }
 
         // Wrap in TONWalletKit (accessing internal constructor via reflection)
         val constructor = TONWalletKit::class.java.getDeclaredConstructor(
@@ -94,11 +100,11 @@ internal object TestWalletKitFactory {
      */
     private fun createMockEngine(scenario: MockScenario): WalletKitEngine {
         val mockEngine = mockk<WalletKitEngine>(relaxed = true)
-        
+
         // Setup basic engine properties
         every { mockEngine.kind } returns WalletKitEngineKind.WEBVIEW
         every { mockEngine.getConfiguration() } returns null
-        
+
         // Track handlers for event dispatch
         val handlers = mutableListOf<TONBridgeEventsHandler>()
         coEvery { mockEngine.addEventsHandler(any()) } answers {
@@ -107,23 +113,24 @@ internal object TestWalletKitFactory {
         coEvery { mockEngine.removeEventsHandler(any()) } answers {
             handlers.remove(firstArg())
         }
-        
-        // Setup init
-        coEvery { mockEngine.init(any()) } answers {
+
+        // Setup init - delegate to scenario's handleInit
+        coEvery { mockEngine.init(any()) } coAnswers {
             val config = firstArg<TONWalletKitConfiguration>()
+            scenario.handleInit(config)
             every { mockEngine.getConfiguration() } returns config
         }
-        
+
         // Setup createTonMnemonic
         coEvery { mockEngine.createTonMnemonic(any()) } answers {
             scenario.handleCreateTonMnemonic(firstArg())
         }
-        
+
         // Setup createSignerFromMnemonic
         coEvery { mockEngine.createSignerFromMnemonic(any(), any()) } answers {
             scenario.handleCreateSignerFromMnemonic(firstArg(), secondArg())
         }
-        
+
         // Setup createV5R1Adapter
         coEvery { mockEngine.createV5R1Adapter(any(), any(), any(), any(), any(), any()) } answers {
             scenario.handleCreateV5R1Adapter(
@@ -135,7 +142,7 @@ internal object TestWalletKitFactory {
                 isCustom = arg(5),
             )
         }
-        
+
         // Setup createV4R2Adapter
         coEvery { mockEngine.createV4R2Adapter(any(), any(), any(), any(), any(), any()) } answers {
             scenario.handleCreateV4R2Adapter(
@@ -147,29 +154,49 @@ internal object TestWalletKitFactory {
                 isCustom = arg(5),
             )
         }
-        
+
         // Setup addWallet
         coEvery { mockEngine.addWallet(any()) } answers {
             scenario.handleAddWallet(firstArg())
         }
-        
+
         // Setup getWallets
         coEvery { mockEngine.getWallets() } answers {
             scenario.handleGetWallets()
         }
-        
+
         // Setup getNfts
         coEvery { mockEngine.getNfts(any(), any(), any()) } answers {
             scenario.handleGetNfts(firstArg(), secondArg(), thirdArg())
         }
-        
+
+        // Setup disconnectSession - dispatch disconnect event to handlers
+        coEvery { mockEngine.disconnectSession(any()) } answers {
+            val sessionId = firstArg<String?>()
+            val event = TONWalletKitEvent.Disconnect(
+                event = DisconnectEvent(
+                    sessionId = sessionId,
+                    reason = "disconnected",
+                ),
+            )
+            // Dispatch to all registered handlers
+            handlers.toList().forEach { handler ->
+                handler.handle(event)
+            }
+        }
+
         // Setup callBridgeMethod for generic RPC calls
         val methodSlot = slot<String>()
         val paramsSlot = slot<JSONObject?>()
-        coEvery { mockEngine.callBridgeMethod(capture(methodSlot), captureNullable(paramsSlot)) } answers {
+        coEvery {
+            mockEngine.callBridgeMethod(
+                capture(methodSlot),
+                captureNullable(paramsSlot),
+            )
+        } answers {
             scenario.handleRpcCall(methodSlot.captured, paramsSlot.captured)
         }
-        
+
         return mockEngine
     }
 }

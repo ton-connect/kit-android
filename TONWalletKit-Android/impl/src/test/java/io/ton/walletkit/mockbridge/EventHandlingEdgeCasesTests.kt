@@ -22,13 +22,14 @@
 package io.ton.walletkit.mockbridge
 
 import io.mockk.coVerify
-import io.mockk.slot
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.mockbridge.infra.DefaultMockScenario
+import io.ton.walletkit.mockbridge.infra.MockBridgeTestBase
+import io.ton.walletkit.mockbridge.infra.MockScenario
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner

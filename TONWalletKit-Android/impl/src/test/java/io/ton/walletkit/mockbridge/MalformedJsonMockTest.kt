@@ -21,8 +21,10 @@
  */
 package io.ton.walletkit.mockbridge
 
-import io.mockk.coEvery
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.mockbridge.infra.DefaultMockScenario
+import io.ton.walletkit.mockbridge.infra.MockBridgeTestBase
+import io.ton.walletkit.mockbridge.infra.MockScenario
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Test
@@ -159,12 +161,14 @@ class MalformedJsonMockTest : MockBridgeTestBase() {
         assertTrue(failed)
 
         // Other SDK methods should still work (they have their own mock handlers)
-        val signer = sdk.createSignerFromMnemonic(listOf(
-            "abandon", "ability", "able", "about", "above", "absent",
-            "absorb", "abstract", "absurd", "abuse", "access", "accident",
-            "account", "accuse", "achieve", "acid", "acoustic", "acquire",
-            "across", "act", "action", "actor", "actress", "actual"
-        ))
+        val signer = sdk.createSignerFromMnemonic(
+            listOf(
+                "abandon", "ability", "able", "about", "above", "absent",
+                "absorb", "abstract", "absurd", "abuse", "access", "accident",
+                "account", "accuse", "achieve", "acid", "acoustic", "acquire",
+                "across", "act", "action", "actor", "actress", "actual",
+            ),
+        )
         assertNotNull("Other methods should still work", signer)
         assertTrue(signer.signerId.isNotEmpty())
     }
@@ -172,13 +176,13 @@ class MalformedJsonMockTest : MockBridgeTestBase() {
     @Test
     fun `error isolation - failed call doesnt affect pending calls`() = runTest {
         // This test verifies that when one call fails, it doesn't affect other operations
-        
+
         // Create signer first (this uses different mock handler, won't fail)
         val mnemonic = listOf(
             "abandon", "ability", "able", "about", "above", "absent",
             "absorb", "abstract", "absurd", "abuse", "access", "accident",
             "account", "accuse", "achieve", "acid", "acoustic", "acquire",
-            "across", "act", "action", "actor", "actress", "actual"
+            "across", "act", "action", "actor", "actress", "actual",
         )
         val signer = sdk.createSignerFromMnemonic(mnemonic)
 
@@ -195,7 +199,7 @@ class MalformedJsonMockTest : MockBridgeTestBase() {
 
         sdk.createTonMnemonic() // 1
         sdk.createTonMnemonic() // 2
-        
+
         try {
             sdk.createTonMnemonic() // 3 - fails
         } catch (e: WalletKitBridgeException) {

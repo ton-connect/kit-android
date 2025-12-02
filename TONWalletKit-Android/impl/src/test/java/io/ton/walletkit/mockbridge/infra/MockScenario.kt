@@ -19,9 +19,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.mockbridge
+package io.ton.walletkit.mockbridge.infra
 
-import io.ton.walletkit.model.TONNFTItem
+import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.model.TONNFTItems
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletAccount
@@ -31,11 +31,20 @@ import org.json.JSONObject
 
 /**
  * Interface for mock scenarios that define how the mocked engine responds to RPC calls.
- * 
+ *
  * Each test can implement this interface to define custom behavior for specific test cases.
  * Default implementations are provided for common operations.
  */
 interface MockScenario {
+
+    /**
+     * Handle init RPC call.
+     * Override to simulate delayed initialization or init that never completes.
+     * By default, init completes immediately.
+     */
+    suspend fun handleInit(configuration: TONWalletKitConfiguration) {
+        // Default: init completes immediately
+    }
 
     /**
      * Handle createTonMnemonic RPC call.
@@ -46,7 +55,7 @@ interface MockScenario {
         "abandon", "ability", "able", "about", "above", "absent",
         "absorb", "abstract", "absurd", "abuse", "access", "accident",
         "account", "accuse", "achieve", "acid", "acoustic", "acquire",
-        "across", "act", "action", "actor", "actress", "actual"
+        "across", "act", "action", "actor", "actress", "actual",
     ).take(wordCount)
 
     /**

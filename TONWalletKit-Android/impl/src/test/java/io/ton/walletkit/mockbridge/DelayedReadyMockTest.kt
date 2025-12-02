@@ -21,7 +21,9 @@
  */
 package io.ton.walletkit.mockbridge
 
-import kotlinx.coroutines.delay
+import io.ton.walletkit.mockbridge.infra.DefaultMockScenario
+import io.ton.walletkit.mockbridge.infra.MockBridgeTestBase
+import io.ton.walletkit.mockbridge.infra.MockScenario
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.*
@@ -52,10 +54,10 @@ class DelayedReadyMockTest : MockBridgeTestBase() {
      * Scenario that simulates slow responses (like delayed initialization).
      */
     private class DelayedResponseScenario : DefaultMockScenario() {
-        
+
         // Track if initialization delay has been applied
         private var initializationComplete = false
-        
+
         override fun handleCreateTonMnemonic(wordCount: Int): List<String> {
             // Simulate slow initialization on first call
             if (!initializationComplete) {
@@ -63,12 +65,12 @@ class DelayedReadyMockTest : MockBridgeTestBase() {
                 // Note: In a real scenario, this delay would happen in a suspending context
                 // For testing purposes, we mark that initialization happened
             }
-            
+
             return listOf(
                 "abandon", "ability", "able", "about", "above", "absent",
                 "absorb", "abstract", "absurd", "abuse", "access", "accident",
                 "account", "accuse", "achieve", "acid", "acoustic", "acquire",
-                "across", "act", "action", "actor", "actress", "actual"
+                "across", "act", "action", "actor", "actress", "actual",
             ).take(wordCount)
         }
     }
@@ -96,7 +98,7 @@ class DelayedReadyMockTest : MockBridgeTestBase() {
             // Both should succeed
             assertEquals(24, mnemonic1.size)
             assertEquals(24, mnemonic2.size)
-            
+
             // Verify they're the same (deterministic mock)
             assertEquals(mnemonic1, mnemonic2)
         }

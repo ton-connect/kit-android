@@ -21,6 +21,9 @@
  */
 package io.ton.walletkit.mockbridge
 
+import io.ton.walletkit.mockbridge.infra.DefaultMockScenario
+import io.ton.walletkit.mockbridge.infra.MockBridgeTestBase
+import io.ton.walletkit.mockbridge.infra.MockScenario
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
@@ -60,16 +63,16 @@ class DuplicateCallIdMockTest : MockBridgeTestBase() {
     private class DuplicateCallScenario : DefaultMockScenario() {
         val mnemonicCallCount = AtomicInteger(0)
         val signerCallCount = AtomicInteger(0)
-        
+
         override fun handleCreateTonMnemonic(wordCount: Int): List<String> {
             val callNumber = mnemonicCallCount.incrementAndGet()
-            
+
             // Return same mnemonic regardless of call count
             return listOf(
                 "abandon", "ability", "able", "about", "above", "absent",
                 "absorb", "abstract", "absurd", "abuse", "access", "accident",
                 "account", "accuse", "achieve", "acid", "acoustic", "acquire",
-                "across", "act", "action", "actor", "actress", "actual"
+                "across", "act", "action", "actor", "actress", "actual",
             ).take(wordCount)
         }
     }
@@ -77,7 +80,7 @@ class DuplicateCallIdMockTest : MockBridgeTestBase() {
     @Test
     fun `duplicate calls - SDK handles multiple rapid calls correctly`() = runTest {
         val scenario = scenario as DuplicateCallScenario
-        
+
         withTimeout(3.seconds) {
             events.clear()
 
@@ -102,7 +105,7 @@ class DuplicateCallIdMockTest : MockBridgeTestBase() {
     @Test
     fun `duplicate calls - sequential calls with delay handled correctly`() = runTest {
         val scenario = scenario as DuplicateCallScenario
-        
+
         withTimeout(3.seconds) {
             events.clear()
 
