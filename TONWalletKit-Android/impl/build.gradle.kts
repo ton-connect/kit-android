@@ -5,8 +5,54 @@ plugins {
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.mavenPublish)
-    jacoco // Enable JaCoCo for test coverage
+    jacoco
 }
+
+// Coverage exclusions: classes that cannot be unit tested (WebView/Android runtime dependencies)
+val coverageExclusions =
+    listOf(
+        // === engine package ===
+        // WebViewManager: Creates/manages WebView, uses Handler, Looper, WebViewClient
+        "**/engine/infrastructure/WebViewManager*",
+        // MessageDispatcher: Depends on WebViewManager for JS execution
+        "**/engine/infrastructure/MessageDispatcher*",
+        // WebViewWalletKitEngine: Top-level orchestrator, creates WebViewManager in constructor
+        "**/engine/WebViewWalletKitEngine*",
+        // QuickJsWalletKitEngine: Deprecated, replaced by WebView implementation
+        "**/engine/QuickJsWalletKitEngine*",
+        // WalletKitEngine: Interface with no executable code
+        "**/engine/WalletKitEngine.class",
+        "**/engine/WalletKitEngine\$*.class",
+        // === browser package ===
+        // TonConnectInjector: Depends on WebView for JavaScript injection
+        "**/browser/TonConnectInjector*",
+        // BridgeInterface: Uses @JavascriptInterface, requires WebView runtime
+        "**/browser/BridgeInterface*",
+        // NOTE: PendingRequest is NOT excluded - it's a pure data class
+        // === storage package ===
+        // Storage classes create MasterKey and EncryptedSharedPreferences internally (not injected),
+        // so they cannot be mocked. Requires instrumented tests on device/emulator.
+        // SecureBridgeStorageAdapter: Uses EncryptedSharedPreferences
+        "**/storage/SecureBridgeStorageAdapter*",
+        // SecureWalletKitStorage: Uses EncryptedSharedPreferences, MasterKey, Android Keystore
+        "**/storage/SecureWalletKitStorage*",
+        // BridgeStorageAdapter: Interface with no executable code
+        "**/storage/BridgeStorageAdapter.class",
+        // === core package ===
+        // TONWallet: Thin delegation layer, all methods delegate to WalletKitEngine
+        "**/walletkit/core/TONWallet*.class",
+        // TONWalletKit: Main SDK facade, all methods delegate to WalletKitEngine
+        "**/walletkit/core/TONWalletKit*.class",
+        // WalletKitEngineFactory: Requires Android Context, creates WebView-dependent engines
+        "**/walletkit/core/WalletKitEngineFactory*.class",
+        // WalletKitEngineKind: Simple enum with no executable logic
+        "**/walletkit/core/WalletKitEngineKind*.class",
+        // === internal package ===
+        // Logger: Uses android.util.Log, requires Android runtime
+        "**/internal/util/Logger*",
+        // All constants files: Just const val declarations, no executable logic
+        "**/internal/constants/**",
+    )
 
 android {
     namespace = "io.ton.walletkit.bridge"
@@ -63,6 +109,7 @@ android {
         }
         debug {
             isMinifyEnabled = false
+            enableUnitTestCoverage = true // Enable JaCoCo for unit tests
 
             // Debug: all logs including detailed debugging (DEBUG level)
             buildConfigField("String", "LOG_LEVEL", "\"DEBUG\"")
@@ -96,17 +143,21 @@ android {
             isReturnDefaultValues = true
             isIncludeAndroidResources = true
 
-            // Fix for Robolectric + JaCoCo coverage bytecode conflict
-            // https://github.com/robolectric/robolectric/issues/6593
             all {
-                // Add JVM args to avoid bytecode verification errors with instrumented classes
+                // Add JVM args for Robolectric and coverage compatibility
                 it.jvmArgs(
                     "-XX:+IgnoreUnrecognizedVMOptions",
                     "--add-opens=java.base/java.lang=ALL-UNNAMED",
                     "--add-opens=java.base/java.util=ALL-UNNAMED",
-                    // Disable bytecode verification for coverage-instrumented code
+                    // Required for IntelliJ/Android Studio coverage instrumentation
                     "-noverify",
                 )
+
+                // Required for JaCoCo to work with Robolectric
+                it.extensions.configure(JacocoTaskExtension::class.java) {
+                    isIncludeNoLocationClasses = true
+                    excludes = listOf("jdk.internal.*")
+                }
             }
         }
     }
@@ -216,54 +267,6 @@ tasks.matching { it.name.contains("assemble") && !it.name.contains("Test") }.con
 // Fix implicit dependency warnings by explicitly declaring dependencies on merge tasks
 tasks.matching { it.name.contains("merge") && it.name.contains("Assets") }.configureEach {
     dependsOn(syncWalletKitWebViewAssets, syncWalletKitQuickJsAssets)
-}
-
-// JaCoCo configuration - exclude deprecated QuickJS module from coverage
-tasks.withType<JacocoReport> {
-    reports {
-        xml.required.set(true)
-        html.required.set(true)
-    }
-
-    classDirectories.setFrom(
-        files(
-            classDirectories.files.map {
-                fileTree(it) {
-                    exclude(
-                        "**/QuickJsWalletKitEngine.class",
-                        "**/QuickJsWalletKitEngine\$*.class",
-                        "**/BuildConfig.class",
-                        // Synthetic/generated classes
-                        "**/*\$\$*.class",
-                    )
-                }
-            },
-        ),
-    )
-}
-
-// Create coverage report task
-tasks.register<JacocoReport>("jacocoTestReport") {
-    dependsOn("testWebviewDebugUnitTest")
-
-    reports {
-        xml.required.set(true)
-        html.required.set(true)
-        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/html"))
-    }
-
-    sourceDirectories.setFrom(files("src/main/java"))
-    classDirectories.setFrom(
-        fileTree("build/tmp/kotlin-classes/webviewDebug") {
-            exclude(
-                "**/QuickJsWalletKitEngine.class",
-                "**/QuickJsWalletKitEngine\$*.class",
-                "**/BuildConfig.class",
-                "**/*\$\$*.class",
-            )
-        },
-    )
-    executionData.setFrom("build/jacoco/testWebviewDebugUnitTest.exec")
 }
 
 dependencies {
@@ -480,5 +483,41 @@ tasks.configureEach {
     if (isWebviewVariant && isCMakeTask) {
         enabled = false
         logger.info("Disabled CMake task for webview variant: $name")
+    }
+}
+
+// JaCoCo coverage report with exclusions
+// Run: ./gradlew :impl:jacocoTestReport
+// Report: impl/build/reports/jacoco/jacocoTestReport/html/index.html
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testWebviewDebugUnitTest")
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+
+    val debugTree =
+        fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/webviewDebug") {
+            exclude(coverageExclusions)
+        }
+
+    classDirectories.setFrom(debugTree)
+    sourceDirectories.setFrom(files("src/main/java", "src/main/kotlin"))
+    executionData.setFrom(
+        fileTree(layout.buildDirectory) {
+            include("outputs/unit_test_code_coverage/webviewDebugUnitTest/testWebviewDebugUnitTest.exec")
+        },
+    )
+}
+
+// Configure the built-in Android coverage report task to use exclusions
+tasks.matching { it.name == "createWebviewDebugUnitTestCoverageReport" }.configureEach {
+    if (this is JacocoReport) {
+        classDirectories.setFrom(
+            fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/webviewDebug") {
+                exclude(coverageExclusions)
+            },
+        )
     }
 }
