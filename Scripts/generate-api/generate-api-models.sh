@@ -10,15 +10,20 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Resolve walletkit path using the resolver script
 echo "Resolving walletkit path..."
-WALLETKIT_PATH=$("$PROJECT_ROOT/Scripts/resolve-walletkit-path.sh" "$1")
+WALLETKIT_PATH=${1}
 
 if [ -z "$WALLETKIT_PATH" ]; then
     echo "Error: Failed to resolve walletkit path"
+    echo "Usage: ./generate-api-models.sh <path-to-walletkit>"
+    echo "Example: ./generate-api-models.sh /path/to/kit/packages/walletkit"
     exit 1
 fi
 
 echo "Walletkit path: $WALLETKIT_PATH"
+cd "$WALLETKIT_PATH"
 
+# Run pnpm build
+echo "Running pnpm generate-openapi-spec..."
 if ! command -v pnpm &> /dev/null; then
     echo "Error: pnpm is not installed. Please install it first."
     echo "Run: npm install -g pnpm"
@@ -30,32 +35,10 @@ if ! command -v openapi-generator &> /dev/null; then
     exit 1
 fi
 
-# Allow overriding the OpenAPI spec path (useful for local testing)
-MANUAL_SPEC="${OPENAPI_SPEC:-${WALLETKIT_OPENAPI_SPEC:-$2}}"
-if [ -n "$MANUAL_SPEC" ]; then
-    OPENAPI_SPEC="$(cd "$(dirname "$MANUAL_SPEC")" && pwd)/$(basename "$MANUAL_SPEC")"
-    echo "Using provided OpenAPI spec: $OPENAPI_SPEC"
-else
-    cd "$WALLETKIT_PATH"
+pnpm install
 
-    echo "Installing WalletKit dependencies..."
-    pnpm install
-
-    # Try to run generate-openapi-spec from walletkit-android-bridge package
-    if [ -f "packages/walletkit-android-bridge/package.json" ] && grep -q "generate-openapi-spec" "packages/walletkit-android-bridge/package.json"; then
-        echo "Running pnpm generate-openapi-spec in walletkit-android-bridge..."
-        cd packages/walletkit-android-bridge
-        OPENAPI_SPEC=$(pnpm generate-openapi-spec 2>&1 | grep -oE '/.*walletkit-openapi\.json' | tail -1)
-        cd "$WALLETKIT_PATH"
-    elif pnpm -s run | grep -q "generate-openapi-spec"; then
-        echo "Running pnpm generate-openapi-spec..."
-        OPENAPI_SPEC=$(pnpm generate-openapi-spec 2>&1 | grep -oE '/.*walletkit-openapi\.json' | tail -1)
-    else
-        echo "Error: No generate-openapi-spec script found in walletkit. Provide an OpenAPI spec via OPENAPI_SPEC=<path> or WALLETKIT_OPENAPI_SPEC=<path>."
-        exit 1
-    fi
-    echo "OpenAPI spec path: $OPENAPI_SPEC"
-fi
+OPENAPI_SPEC=$(pnpm generate-openapi-spec 2>&1 | grep -oE '/.*walletkit-openapi\.json' | tail -1)
+echo "OpenAPI spec path: $OPENAPI_SPEC"
 
 OUTPUT_DIR="${SCRIPT_DIR}/generated/openapi"
 CONFIG_FILE="${SCRIPT_DIR}/generate-api-models-config.json"

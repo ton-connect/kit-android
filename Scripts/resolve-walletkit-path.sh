@@ -12,7 +12,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Default walletkit folder name (in project root)
 WALLETKIT_FOLDER="$PROJECT_ROOT/walletkit"
 REPO_URL="https://github.com/ton-connect/kit.git"
-BRANCH="main"
+BRANCH="feature/convert-ts-to-swift"
 
 # Check if path parameter is provided
 if [ -z "$1" ]; then

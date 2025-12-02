@@ -10,6 +10,13 @@
   "modelMutable": false,
   "parcelizeModels": false,
   "sortModelPropertiesByRequiredFlag": true,
-  "typeMappings": {},
+  "typeMappings": {
+    "number": "kotlin.Int",
+    "object": "kotlinx.serialization.json.JsonObject",
+    "AnyType": "kotlinx.serialization.json.JsonObject"
+  },
+  "importMappings": {
+    "kotlinx.serialization.json.JsonObject": "kotlinx.serialization.json.JsonObject"
+  },
   "schemaMappings": {}
 }
