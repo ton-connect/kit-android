@@ -65,6 +65,7 @@ fun BrowserSheet(
     isLoading: Boolean = false,
     currentUrl: String = url,
     webViewHolder: androidx.compose.runtime.MutableState<WebView?>? = null,
+    injectTonConnect: Boolean = true,
 ) {
     val context = LocalContext.current
 
@@ -82,8 +83,11 @@ fun BrowserSheet(
             // Disable nested scrolling to allow WebView to handle all scroll events
             isNestedScrollingEnabled = false
 
-            // Inject TonConnect support
-            injectTonConnect(walletKit)
+            // Inject TonConnect support (if enabled)
+            // When disabled, the dApp will show its own TonConnect modal with QR code
+            if (injectTonConnect) {
+                injectTonConnect(walletKit)
+            }
 
             // Load the URL
             loadUrl(url)

@@ -44,10 +44,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.testTag
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
@@ -68,12 +68,12 @@ fun ConnectRequestSheet(
         modifier = Modifier
             .padding(20.dp)
             .testTag(TestTags.CONNECT_REQUEST_SHEET),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
             stringResource(R.string.connect_request_title),
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.testTag(TestTags.CONNECT_REQUEST_TITLE)
+            modifier = Modifier.testTag(TestTags.CONNECT_REQUEST_TITLE),
         )
         Text(request.dAppName, style = MaterialTheme.typography.titleMedium)
         Text(
@@ -122,7 +122,7 @@ fun ConnectRequestSheet(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             TextButton(
                 onClick = { onReject(request) },
-                modifier = Modifier.weight(1f).testTag(TestTags.CONNECT_REJECT_BUTTON)
+                modifier = Modifier.weight(1f).testTag(TestTags.CONNECT_REJECT_BUTTON),
             ) { Text(stringResource(R.string.action_reject)) }
             Button(
                 onClick = { selectedWallet?.let { w -> onApprove(request, w) } },

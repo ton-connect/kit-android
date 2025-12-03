@@ -541,8 +541,8 @@ class WalletKitViewModel @Inject constructor(
         uiCoordinator.hideUrlPrompt()
     }
 
-    fun openBrowser(url: String) {
-        uiCoordinator.openBrowser(url)
+    fun openBrowser(url: String, injectTonConnect: Boolean = true) {
+        uiCoordinator.openBrowser(url, injectTonConnect)
     }
 
     fun importWallet(

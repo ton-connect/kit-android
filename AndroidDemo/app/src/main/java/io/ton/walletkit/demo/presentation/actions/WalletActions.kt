@@ -37,7 +37,7 @@ import io.ton.walletkit.model.TONNetwork
 interface WalletActions {
     fun onAddWalletClick()
     fun onUrlPromptClick()
-    fun onOpenBrowser(url: String)
+    fun onOpenBrowser(url: String, injectTonConnect: Boolean = true)
     fun onRefresh()
     fun onDismissSheet()
     fun onWalletDetails(address: String)

@@ -60,11 +60,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.testTag
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.util.TestTags
@@ -128,6 +128,12 @@ fun AddWalletSheet(
                     onClick = { selectedTab = tab },
                     shape = SegmentedButtonDefaults.itemShape(index, AddWalletTab.entries.size),
                     label = { Text(stringResource(tab.labelRes)) },
+                    modifier = Modifier.testTag(
+                        when (tab) {
+                            AddWalletTab.Import -> TestTags.ADD_WALLET_TAB_IMPORT
+                            AddWalletTab.Generate -> TestTags.ADD_WALLET_TAB_GENERATE
+                        },
+                    ),
                 )
             }
         }
@@ -281,7 +287,7 @@ fun AddWalletSheet(
                                             parseSeedPhrase(clipboardText)
                                         }
                                     },
-                                    modifier = Modifier.testTag(TestTags.PASTE_ALL_BUTTON)
+                                    modifier = Modifier.testTag(TestTags.PASTE_ALL_BUTTON),
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.ContentPaste,
@@ -359,7 +365,7 @@ fun AddWalletSheet(
 
                     Button(
                         onClick = { onGenerateWallet(walletName, network, walletVersion, interfaceType) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag(TestTags.GENERATE_WALLET_PROCESS_BUTTON),
                         enabled = interfaceType == WalletInterfaceType.MNEMONIC, // Only enable for Mnemonic
                     ) { Text(stringResource(R.string.action_generate_wallet)) }
                 }

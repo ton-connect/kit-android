@@ -1,0 +1,257 @@
+/*
+ * Copyright (c) 2025 TonTech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package io.ton.walletkit.demo.e2e.tests
+
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.LargeTest
+import io.qameta.allure.kotlin.AllureId
+import io.qameta.allure.kotlin.Description
+import io.qameta.allure.kotlin.Feature
+import io.qameta.allure.kotlin.Severity
+import io.qameta.allure.kotlin.SeverityLevel
+import io.qameta.allure.kotlin.Story
+import io.ton.walletkit.demo.e2e.infrastructure.BaseE2ETest
+import io.ton.walletkit.demo.e2e.infrastructure.ConnectTest
+import io.ton.walletkit.demo.e2e.infrastructure.TestCaseDataProvider
+import io.ton.walletkit.demo.presentation.MainActivity
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * E2E tests for TonConnect connection flow.
+ *
+ * These tests verify the wallet can successfully connect to a dApp
+ * using TonConnect protocol.
+ *
+ * Flow:
+ * 1. Setup wallet (generate new wallet)
+ * 2. Open internal browser with demo dApp
+ * 3. Click Connect button in dApp
+ * 4. Click "Copy Link" to get TonConnect URL
+ * 5. Close browser, open URL handler, paste URL
+ * 6. Approve/reject connection request
+ */
+@RunWith(AndroidJUnit4::class)
+@LargeTest
+@Feature("TonConnect")
+@Story("Connect")
+class ConnectE2ETest : BaseE2ETest() {
+
+    @get:Rule
+    val composeTestRule = createAndroidComposeRule<MainActivity>()
+
+    override fun setUp() {
+        super.setUp()
+        // Wait for the activity and Compose to be ready
+        composeTestRule.waitForIdle()
+        walletController.init(composeTestRule)
+        dAppController.init(composeTestRule)
+
+        // Ensure wallet is ready (handles setup/unlock automatically)
+        ensureWalletReady()
+    }
+
+    @Test
+    @ConnectTest
+    @AllureId("2294")
+    @Severity(SeverityLevel.CRITICAL)
+    @Description("Verify wallet can successfully connect to a dApp")
+    fun testSuccessfulConnect() {
+        // Fetch test case data - uses Allure API if available, falls back to hardcoded data
+        val testData = TestCaseDataProvider.getTestCaseData("2294", allureClient)
+        val precondition = testData?.precondition ?: ""
+        val expectedResult = testData?.expectedResult ?: ""
+        android.util.Log.d("ConnectE2ETest", "Test data - precondition: $precondition, expectedResult: $expectedResult")
+
+        step("Get TonConnect URL from dApp") {
+            // Open browser
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+
+            // Fill precondition and expected result BEFORE clicking connect
+            if (precondition.isNotBlank()) {
+                android.util.Log.d("ConnectE2ETest", "Filling precondition...")
+                dAppController.fillConnectPrecondition(precondition)
+            }
+            if (expectedResult.isNotBlank()) {
+                android.util.Log.d("ConnectE2ETest", "Filling expectedResult...")
+                dAppController.fillConnectExpectedResult(expectedResult)
+            }
+
+            // Click Connect and get URL
+            dAppController.clickConnectButton()
+            val connectUrl = dAppController.clickCopyLinkInModal()
+
+            // Close browser (just the modal + browser sheet)
+            dAppController.closeBrowserFully()
+
+            step("Paste TonConnect URL into wallet") {
+                walletController.connectByUrl(connectUrl)
+            }
+        }
+
+        step("Wait for connect request sheet") {
+            // The wallet should show the connect approval dialog
+            waitFor(timeoutMs = 10000) {
+                walletController.isConnectRequestVisible()
+            }
+        }
+
+        step("Approve connection") {
+            walletController.approveConnect()
+        }
+
+        step("Verify connection established") {
+            // Wait for the connect sheet to disappear (connection completed)
+            waitFor(timeoutMs = 5000) {
+                !walletController.isConnectRequestVisible()
+            }
+        }
+
+        step("Verify dApp received valid connection") {
+            // Open browser to check dApp validation result
+            dAppController.openBrowser()
+
+            // Wait for page to load
+            dAppController.waitForDAppPage()
+
+            // Close the TonConnect modal if it's still open from previous connection
+            dAppController.closeTonConnectModal()
+
+            // Scroll to the validation result in the e2e connect block
+            dAppController.scrollToConnectValidation()
+
+            // Wait for dApp to validate the connection response
+            val validationPassed = dAppController.verifyConnectionValidation()
+
+            // Get the actual validation text for debugging
+            val validationText = dAppController.getConnectValidationResult()
+            android.util.Log.d("ConnectE2ETest", "Validation text: $validationText")
+
+            dAppController.closeBrowserFully()
+
+            // Assert validation passed (either "Validation Passed" or connect event received)
+            assert(validationPassed) { "dApp validation failed - got: $validationText" }
+        }
+    }
+
+    @Test
+    @ConnectTest
+    @AllureId("2295")
+    @Severity(SeverityLevel.NORMAL)
+    @Description("Verify user can reject a connection request")
+    fun testRejectConnect() {
+        // Fetch test case data - uses Allure API if available, falls back to hardcoded data
+        val testData = TestCaseDataProvider.getTestCaseData("2295", allureClient)
+        val precondition = testData?.precondition ?: ""
+        val expectedResult = testData?.expectedResult ?: ""
+
+        step("Get TonConnect URL from dApp") {
+            // Open browser
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+
+            // Fill precondition and expected result BEFORE clicking connect
+            if (precondition.isNotBlank()) {
+                dAppController.fillConnectPrecondition(precondition)
+            }
+            if (expectedResult.isNotBlank()) {
+                dAppController.fillConnectExpectedResult(expectedResult)
+            }
+
+            // Click Connect and get URL
+            dAppController.clickConnectButton()
+            val connectUrl = dAppController.clickCopyLinkInModal()
+
+            // Close browser
+            dAppController.closeBrowserFully()
+
+            step("Paste TonConnect URL into wallet") {
+                walletController.connectByUrl(connectUrl)
+            }
+        }
+
+        step("Wait for connect request sheet") {
+            waitFor(timeoutMs = 10000) {
+                walletController.isConnectRequestVisible()
+            }
+        }
+
+        step("Reject connection") {
+            walletController.rejectConnect()
+        }
+
+        step("Verify connection not established") {
+            // Wait for the connect sheet to disappear (rejection processed)
+            waitFor(timeoutMs = 5000) {
+                !walletController.isConnectRequestVisible()
+            }
+        }
+
+        step("Verify dApp received rejection error") {
+            // Open browser to check dApp validation result
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+
+            // Close the TonConnect modal if it's still open
+            dAppController.closeTonConnectModal()
+
+            // Scroll to the validation result
+            dAppController.scrollToConnectValidation()
+
+            // Verify the validation result
+            val validationPassed = dAppController.verifyConnectionValidation()
+            val validationText = dAppController.getConnectValidationResult()
+            android.util.Log.d("ConnectE2ETest", "Rejection validation text: $validationText")
+
+            dAppController.closeBrowserFully()
+
+            // Assert validation passed (dApp validates rejection was handled correctly)
+            assert(validationPassed) { "dApp rejection validation failed - got: $validationText" }
+        }
+    }
+
+    // Disconnect test commented out until disconnect flow is implemented
+    // @Test
+    // @ConnectTest
+    // @AllureId("2296")
+    // @Severity(SeverityLevel.NORMAL)
+    // @Description("Verify user can disconnect from a connected dApp")
+    // fun testDisconnect() {
+    //     // First connect
+    //     testSuccessfulConnect()
+    //
+    //     step("Disconnect from dApp") {
+    //         dAppController.openBrowser()
+    //         dAppController.disconnect()
+    //         dAppController.closeBrowser()
+    //     }
+    //
+    //     step("Verify disconnected") {
+    //         dAppController.openBrowser()
+    //         assert(!dAppController.isConnected())
+    //         dAppController.closeBrowser()
+    //     }
+    // }
+}

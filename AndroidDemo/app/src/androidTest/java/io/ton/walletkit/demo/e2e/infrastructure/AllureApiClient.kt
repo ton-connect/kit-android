@@ -33,80 +33,80 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Client for interacting with Allure TestOps API.
- * 
+ *
  * This mirrors the AllureApiClient from the web demo-wallet e2e tests.
  */
 class AllureApiClient(private val config: AllureConfig) {
-    
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
-    
-    private val json = Json { 
-        ignoreUnknownKeys = true 
+
+    private val json = Json {
+        ignoreUnknownKeys = true
         isLenient = true
     }
-    
+
     private var cachedToken: String? = null
     private var tokenExpiry: Long = 0
-    
+
     /**
      * Get a valid OAuth token, refreshing if necessary.
      */
     private fun getValidToken(): String {
         val now = System.currentTimeMillis()
-        
+
         if (cachedToken != null && now < tokenExpiry) {
             return cachedToken!!
         }
-        
+
         val formBody = FormBody.Builder()
             .add("grant_type", "apitoken")
             .add("scope", "openid")
             .add("token", config.apiToken)
             .build()
-        
+
         val request = Request.Builder()
             .url("${config.baseUrl}/api/uaa/oauth/token")
             .post(formBody)
             .header("Accept", "application/json")
             .build()
-        
+
         val response = client.newCall(request).execute()
         if (!response.isSuccessful) {
             throw RuntimeException("Failed to get Allure token: ${response.code} ${response.message}")
         }
-        
+
         val tokenResponse = json.decodeFromString<TokenResponse>(response.body?.string() ?: "")
         cachedToken = tokenResponse.accessToken
         // Token expires in 1 hour, refresh 5 minutes early
         tokenExpiry = now + (55 * 60 * 1000)
-        
+
         return cachedToken!!
     }
-    
+
     /**
      * Make an authenticated request to the Allure API.
      */
     private fun makeRequest(endpoint: String): String {
         val token = getValidToken()
-        
+
         val request = Request.Builder()
             .url("${config.baseUrl}$endpoint")
             .header("Authorization", "Bearer $token")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .build()
-        
+
         val response = client.newCall(request).execute()
         if (!response.isSuccessful) {
             throw RuntimeException("API request failed: ${response.code} ${response.message}")
         }
-        
+
         return response.body?.string() ?: ""
     }
-    
+
     /**
      * Get test case data by Allure ID.
      */
@@ -114,25 +114,25 @@ class AllureApiClient(private val config: AllureConfig) {
         val responseBody = makeRequest("/api/rs/testcase/allureId/$allureId")
         return json.decodeFromString(responseBody)
     }
-    
+
     /**
      * Get test case data including precondition and expected result.
      */
     fun getTestCaseData(allureId: String): TestCaseData {
         val testCase = getTestCase(allureId)
-        
+
         // Extract precondition and expected result from test case
         val precondition = testCase.precondition?.firstOrNull()?.content ?: ""
         val expectedResult = testCase.expectedResult?.firstOrNull()?.content ?: ""
         val isPositiveCase = !testCase.name.contains("[ERROR]")
-        
+
         return TestCaseData(
             precondition = precondition,
             expectedResult = expectedResult,
-            isPositiveCase = isPositiveCase
+            isPositiveCase = isPositiveCase,
         )
     }
-    
+
     companion object {
         /**
          * Extract Allure ID from test title.
@@ -151,7 +151,7 @@ class AllureApiClient(private val config: AllureConfig) {
 data class AllureConfig(
     val baseUrl: String = "https://tontech.testops.cloud",
     val apiToken: String,
-    val projectId: Int = 100
+    val projectId: Int = 100,
 )
 
 @Serializable
@@ -159,7 +159,7 @@ data class TokenResponse(
     @SerialName("access_token") val accessToken: String,
     @SerialName("token_type") val tokenType: String,
     @SerialName("expires_in") val expiresIn: Int,
-    val scope: String
+    val scope: String,
 )
 
 @Serializable
@@ -167,13 +167,13 @@ data class TestCaseResponse(
     val id: Long,
     val name: String,
     val precondition: List<StepContent>? = null,
-    val expectedResult: List<StepContent>? = null
+    val expectedResult: List<StepContent>? = null,
 )
 
 @Serializable
 data class StepContent(
     val content: String? = null,
-    val contentHtml: String? = null
+    val contentHtml: String? = null,
 )
 
 /**
@@ -182,5 +182,5 @@ data class StepContent(
 data class TestCaseData(
     val precondition: String,
     val expectedResult: String,
-    val isPositiveCase: Boolean
+    val isPositiveCase: Boolean,
 )

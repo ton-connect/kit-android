@@ -75,8 +75,8 @@ class WalletUiStateCoordinator(
         setSheet(SheetState.TransferJetton(details))
     }
 
-    fun openBrowser(url: String) {
-        setSheet(SheetState.Browser(url))
+    fun openBrowser(url: String, injectTonConnect: Boolean = true) {
+        setSheet(SheetState.Browser(url, injectTonConnect))
     }
 
     fun showUrlPrompt() {

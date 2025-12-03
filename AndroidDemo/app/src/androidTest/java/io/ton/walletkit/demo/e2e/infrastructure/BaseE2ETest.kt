@@ -1,0 +1,258 @@
+/*
+ * Copyright (c) 2025 TonTech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package io.ton.walletkit.demo.e2e.infrastructure
+
+import android.content.Context
+import android.graphics.Bitmap
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
+import io.qameta.allure.kotlin.Allure
+import io.qameta.allure.kotlin.Epic
+import io.qameta.allure.kotlin.Feature
+import io.qameta.allure.kotlin.Step
+import io.ton.walletkit.demo.e2e.dapp.JsDAppController
+import io.ton.walletkit.demo.e2e.wallet.WalletController
+import org.junit.After
+import org.junit.Before
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+
+/**
+ * Base class for all E2E tests.
+ *
+ * Provides common setup/teardown and helper methods.
+ *
+ * Test classes should:
+ * 1. Create a @get:Rule val composeTestRule = createAndroidComposeRule<MainActivity>()
+ * 2. Call super.setUp() in their setUp() method
+ * 3. Call walletController.init(composeTestRule) after super.setUp()
+ */
+@Epic("TonConnect E2E Tests")
+abstract class BaseE2ETest {
+
+    protected lateinit var context: Context
+    protected lateinit var walletController: WalletController
+    protected lateinit var dAppController: JsDAppController
+    protected var allureClient: AllureApiClient? = null
+
+    companion object {
+        // Default password used for tests
+        const val TEST_PASSWORD = "testpass123"
+
+        // Allure TestOps config (token from environment)
+        fun getAllureConfig(): AllureConfig? {
+            val token = System.getenv("ALLURE_API_TOKEN")
+                ?: InstrumentationRegistry.getArguments().getString("allureToken")
+            return token?.let { AllureConfig(apiToken = it) }
+        }
+    }
+
+    @Before
+    open fun setUp() {
+        context = ApplicationProvider.getApplicationContext()
+
+        // Initialize Allure client if token is available
+        getAllureConfig()?.let { config ->
+            allureClient = AllureApiClient(config)
+        }
+
+        // Initialize controllers
+        walletController = WalletController()
+        dAppController = JsDAppController()
+    }
+
+    @After
+    open fun tearDown() {
+        // Override in subclasses if needed
+    }
+
+    /**
+     * Ensure wallet is ready for testing.
+     * This handles all authentication states: setup password, unlock, or already on home.
+     * Call this after initializing controllers to ensure wallet is on home screen.
+     */
+    protected fun ensureWalletReady() {
+        walletController.setupWalletGenerate(TEST_PASSWORD)
+        walletController.waitForWalletHome()
+    }
+
+    /**
+     * Clear app data to ensure clean state.
+     * This clears the EncryptedSharedPreferences files used by the demo app.
+     */
+    private fun clearAppData() {
+        // Clear the encrypted shared preferences files
+        // These are the actual names used by SecureDemoAppStorage
+        val prefsToDelete = listOf(
+            "walletkit_demo_wallets",
+            "walletkit_demo_prefs",
+        )
+
+        for (prefName in prefsToDelete) {
+            try {
+                // Clear the SharedPreferences
+                context.getSharedPreferences(prefName, Context.MODE_PRIVATE)
+                    .edit()
+                    .clear()
+                    .commit()
+
+                // Also delete the file itself (for EncryptedSharedPreferences)
+                val prefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
+                val prefsFile = File(prefsDir, "$prefName.xml")
+                if (prefsFile.exists()) {
+                    prefsFile.delete()
+                }
+            } catch (e: Exception) {
+                // Ignore errors - file might not exist or be inaccessible
+            }
+        }
+
+        // Also clear any files/cache
+        context.filesDir?.deleteRecursively()
+        context.cacheDir?.deleteRecursively()
+
+        // Clear datastore if present
+        val datastoreDir = File(context.filesDir, "datastore")
+        if (datastoreDir.exists()) {
+            datastoreDir.deleteRecursively()
+        }
+    }
+
+    /**
+     * Get test case data from Allure TestOps.
+     */
+    protected fun getTestCaseData(allureId: String): TestCaseData? = allureClient?.getTestCaseData(allureId)
+
+    /**
+     * Setup wallet and connect to dApp.
+     * This is a common flow used by SendTransaction and SignData tests.
+     *
+     * @return true if connection was established successfully
+     */
+    protected fun setupWalletAndConnect(): Boolean {
+        step("Set up wallet") {
+            walletController.setupWalletGenerate()
+        }
+
+        step("Wait for wallet home screen") {
+            walletController.waitForWalletHome()
+        }
+
+        step("Get TonConnect URL from dApp") {
+            // Open browser
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+
+            // Click Connect and get URL
+            dAppController.clickConnectButton()
+            val connectUrl = dAppController.clickCopyLinkInModal()
+
+            // Close browser
+            dAppController.closeBrowserFully()
+
+            step("Paste TonConnect URL into wallet") {
+                walletController.connectByUrl(connectUrl)
+            }
+        }
+
+        step("Wait for connect request sheet") {
+            waitFor(timeoutMs = 10000) {
+                walletController.isConnectRequestVisible()
+            }
+        }
+
+        step("Approve connection") {
+            walletController.approveConnect()
+        }
+
+        step("Verify connection established") {
+            waitFor(timeoutMs = 5000) {
+                !walletController.isConnectRequestVisible()
+            }
+        }
+
+        return true
+    }
+
+    /**
+     * Run a test step with Allure reporting.
+     */
+    @Step("{description}")
+    protected fun step(description: String, block: () -> Unit) {
+        block()
+    }
+
+    /**
+     * Wait for a condition to be true.
+     */
+    protected fun waitFor(
+        timeoutMs: Long = 10000,
+        intervalMs: Long = 100,
+        condition: () -> Boolean,
+    ): Boolean {
+        val startTime = System.currentTimeMillis()
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            if (condition()) {
+                return true
+            }
+            Thread.sleep(intervalMs)
+        }
+        return false
+    }
+
+    /**
+     * Take a screenshot and attach to Allure report.
+     * Note: This method requires passing the ComposeTestRule from the test class.
+     * Consider using the Allure screenshot annotation instead.
+     */
+    protected fun takeScreenshot(name: String, activity: android.app.Activity) {
+        val rootView = activity.window.decorView.rootView
+        rootView.isDrawingCacheEnabled = true
+        val bitmap = rootView.drawingCache
+        if (bitmap != null) {
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            val bytes = stream.toByteArray()
+            Allure.attachment(name, ByteArrayInputStream(bytes), "image/png", "png")
+        }
+        rootView.isDrawingCacheEnabled = false
+    }
+}
+
+/**
+ * Test category annotation for connect tests.
+ */
+@Feature("Connect")
+annotation class ConnectTest
+
+/**
+ * Test category annotation for send transaction tests.
+ */
+@Feature("Send Transaction")
+annotation class SendTransactionTest
+
+/**
+ * Test category annotation for sign data tests.
+ */
+@Feature("Sign Data")
+annotation class SignDataTest

@@ -23,7 +23,7 @@ package io.ton.walletkit.demo.presentation.util
 
 /**
  * Test tags for UI components - used by Espresso/Compose testing.
- * 
+ *
  * These tags mirror the testIds used in the web demo-wallet for consistency.
  */
 object TestTags {
@@ -35,16 +35,20 @@ object TestTags {
     const val SETUP_PASSWORD_SUBTITLE = "subtitle"
 
     // UnlockWalletScreen
+    const val UNLOCK_TITLE = "unlock-title"
     const val UNLOCK_PASSWORD_FIELD = "unlock-password"
     const val UNLOCK_SUBMIT_BUTTON = "unlock-submit"
     const val UNLOCK_RESET_BUTTON = "unlock-reset"
 
     // AddWalletSheet
+    const val ADD_WALLET_TAB_IMPORT = "add-wallet-tab-import"
+    const val ADD_WALLET_TAB_GENERATE = "add-wallet-tab-generate"
     const val IMPORT_WALLET_BUTTON = "import-wallet"
     const val GENERATE_WALLET_BUTTON = "generate-wallet"
     const val MNEMONIC_FIELD = "mnemonic"
     const val MNEMONIC_PROCESS_BUTTON = "mnemonic-process"
     const val IMPORT_WALLET_PROCESS_BUTTON = "import-wallet-process"
+    const val GENERATE_WALLET_PROCESS_BUTTON = "generate-wallet-process"
     const val PASTE_ALL_BUTTON = "paste-all"
 
     // WalletScreen
@@ -53,6 +57,7 @@ object TestTags {
     const val WALLET_BALANCE = "wallet-balance"
     const val ADD_WALLET_BUTTON = "add-wallet"
     const val REFRESH_BUTTON = "refresh"
+    const val BROWSER_NO_INJECT_BUTTON = "browser-no-inject"
 
     // ConnectRequestSheet
     const val CONNECT_REQUEST_SHEET = "request"
@@ -73,6 +78,7 @@ object TestTags {
     const val SIGN_DATA_REJECT_BUTTON = "sign-data-reject"
 
     // TonConnect URL input (for manual connection testing)
+    const val HANDLE_URL_BUTTON = "handle-url"
     const val TONCONNECT_URL_FIELD = "tonconnect-url"
     const val TONCONNECT_PROCESS_BUTTON = "tonconnect-process"
 
@@ -80,4 +86,18 @@ object TestTags {
     const val AUTO_LOCK_TOGGLE = "auto-lock"
     const val HOLD_TO_SIGN_TOGGLE = "hold-to-sign"
     const val NETWORK_SELECT = "network-select"
+
+    // Additional wallet screen elements
+    const val WALLET_ADDRESS = "wallet-address"
+    const val WALLET_COPY_ADDRESS_BUTTON = "copy-address"
+    const val WALLET_RECEIVE_BUTTON = "receive"
+    const val WALLET_SEND_BUTTON = "send"
+
+    // Mnemonic paste field (for clipboard import)
+    const val MNEMONIC_PASTE_FIELD = "mnemonic-paste-field"
+
+    // Sheet action buttons (aliases for consistency)
+    const val SIGN_DATA_SHEET = SIGN_DATA_REQUEST_SHEET
+    const val TRANSACTION_APPROVE_BUTTON = SEND_TRANSACTION_APPROVE_BUTTON
+    const val TRANSACTION_REJECT_BUTTON = SEND_TRANSACTION_REJECT_BUTTON
 }
