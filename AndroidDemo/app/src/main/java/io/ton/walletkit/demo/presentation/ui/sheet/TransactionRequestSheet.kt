@@ -40,9 +40,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
+import io.ton.walletkit.demo.presentation.util.TestTags
 import io.ton.walletkit.demo.presentation.util.abbreviated
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -56,7 +58,12 @@ fun TransactionRequestSheet(
     onApprove: () -> Unit,
     onReject: () -> Unit,
 ) {
-    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        modifier = Modifier
+            .padding(20.dp)
+            .testTag(TestTags.TRANSACTION_REQUEST_SHEET),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         val isDirectSend = request.dAppName == UNKNOWN_DAPP_SENTINEL || request.dAppName.isBlank()
         val dAppNameDisplay = if (request.dAppName == UNKNOWN_DAPP_SENTINEL || request.dAppName.isBlank()) {
             stringResource(R.string.transaction_request_unknown_dapp)
@@ -170,8 +177,14 @@ fun TransactionRequestSheet(
         // Note: Fee estimation removed - only shown in completed transactions
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onReject, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_reject)) }
-            Button(onClick = onApprove, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_approve)) }
+            TextButton(
+                onClick = onReject,
+                modifier = Modifier.weight(1f).testTag(TestTags.SEND_TRANSACTION_REJECT_BUTTON)
+            ) { Text(stringResource(R.string.action_reject)) }
+            Button(
+                onClick = onApprove,
+                modifier = Modifier.weight(1f).testTag(TestTags.SEND_TRANSACTION_APPROVE_BUTTON)
+            ) { Text(stringResource(R.string.action_approve)) }
         }
     }
 }

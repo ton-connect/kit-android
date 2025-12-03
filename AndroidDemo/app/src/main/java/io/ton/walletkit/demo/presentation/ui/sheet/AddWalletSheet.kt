@@ -64,8 +64,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
+import io.ton.walletkit.demo.presentation.util.TestTags
 import io.ton.walletkit.model.TONNetwork
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -269,7 +271,7 @@ fun AddWalletSheet(
                             },
                             label = { Text(stringResource(R.string.add_wallet_paste_label)) },
                             placeholder = { Text(stringResource(R.string.add_wallet_recovery_placeholder)) },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().testTag(TestTags.MNEMONIC_FIELD),
                             minLines = 2,
                             maxLines = 3,
                             trailingIcon = {
@@ -279,6 +281,7 @@ fun AddWalletSheet(
                                             parseSeedPhrase(clipboardText)
                                         }
                                     },
+                                    modifier = Modifier.testTag(TestTags.PASTE_ALL_BUTTON)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.ContentPaste,
@@ -317,7 +320,7 @@ fun AddWalletSheet(
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(
                             onClick = { onImportWallet(walletName, network, mnemonicWords.toList(), "", walletVersion, interfaceType) },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().testTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON),
                         ) { Text(stringResource(R.string.action_import_wallet)) }
                     }
                 }

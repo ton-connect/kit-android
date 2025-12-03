@@ -80,4 +80,33 @@ dependencies {
     // implementation("io.github.ton-connect:tonwalletkit-android:1.0.0-alpha01")
 
     debugImplementation(libs.leakcanaryAndroid)
+
+    // Testing - Unit Tests
+    testImplementation(libs.junit)
+
+    // Testing - Instrumentation Tests (Espresso + Compose)
+    androidTestImplementation(libs.androidxTestCore)
+    androidTestImplementation(libs.androidxTestCoreKtx)
+    androidTestImplementation(libs.androidxTestRunner)
+    androidTestImplementation(libs.androidxTestRules)
+    androidTestImplementation(libs.androidxTestEspressoCore)
+    androidTestImplementation(libs.androidxTestEspressoWeb)
+    androidTestImplementation(libs.androidxTestEspressoIntents)
+    androidTestImplementation(libs.androidxTestUiAutomator)
+    androidTestImplementation(platform(libs.androidxComposeBom))
+    androidTestImplementation(libs.androidxComposeUiTestJunit4)
+    debugImplementation(libs.androidxComposeUiTestManifest)
+
+    // Allure reporting for tests
+    androidTestImplementation(libs.allureKotlinAndroid)
+    androidTestImplementation(libs.allureKotlinModel)
+    androidTestImplementation(libs.allureKotlinCommons)
+
+    // OkHttp for Allure API client
+    androidTestImplementation(libs.okhttp)
+    androidTestImplementation(libs.kotlinxSerializationJson)
+
+    // Hilt testing
+    androidTestImplementation(libs.hiltAndroidTesting)
+    kspAndroidTest(libs.hiltCompiler)
 }

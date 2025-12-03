@@ -45,6 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.presentation.util.TestTags
+import androidx.compose.ui.platform.testTag
 
 @Composable
 fun SetupPasswordScreen(
@@ -70,6 +72,7 @@ fun SetupPasswordScreen(
             text = "Create Password",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.testTag(TestTags.SETUP_PASSWORD_TITLE),
         )
 
         Text(
@@ -92,7 +95,7 @@ fun SetupPasswordScreen(
             placeholder = { Text("Enter a strong password") },
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.PASSWORD_FIELD),
             supportingText = {
                 Text("At least 4 characters")
             },
@@ -109,7 +112,7 @@ fun SetupPasswordScreen(
             placeholder = { Text("Confirm your password") },
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.PASSWORD_CONFIRM_FIELD),
         )
 
         // Error message
@@ -147,7 +150,7 @@ fun SetupPasswordScreen(
                 }
             },
             enabled = password.isNotEmpty() && confirmPassword.isNotEmpty() && !isLoading,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.PASSWORD_SUBMIT_BUTTON),
         ) {
             if (isLoading) {
                 CircularProgressIndicator(

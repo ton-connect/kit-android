@@ -47,10 +47,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
+import io.ton.walletkit.demo.presentation.util.TestTags
 import io.ton.walletkit.demo.presentation.util.abbreviated
 
 @Composable
@@ -62,8 +64,17 @@ fun ConnectRequestSheet(
 ) {
     var selectedWallet by remember { mutableStateOf(wallets.firstOrNull()) }
 
-    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(stringResource(R.string.connect_request_title), style = MaterialTheme.typography.titleLarge)
+    Column(
+        modifier = Modifier
+            .padding(20.dp)
+            .testTag(TestTags.CONNECT_REQUEST_SHEET),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            stringResource(R.string.connect_request_title),
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.testTag(TestTags.CONNECT_REQUEST_TITLE)
+        )
         Text(request.dAppName, style = MaterialTheme.typography.titleMedium)
         Text(
             request.dAppUrl,
@@ -109,11 +120,14 @@ fun ConnectRequestSheet(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = { onReject(request) }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_reject)) }
+            TextButton(
+                onClick = { onReject(request) },
+                modifier = Modifier.weight(1f).testTag(TestTags.CONNECT_REJECT_BUTTON)
+            ) { Text(stringResource(R.string.action_reject)) }
             Button(
                 onClick = { selectedWallet?.let { w -> onApprove(request, w) } },
                 enabled = selectedWallet != null,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).testTag(TestTags.CONNECT_APPROVE_BUTTON),
             ) { Text(stringResource(R.string.action_connect)) }
         }
     }
