@@ -94,19 +94,16 @@ class SignDataE2ETest : BaseE2ETest() {
         // Scroll to sign data section
         step("Scroll to Sign Data section") {
             dAppController.scrollToSignDataValidation()
-            
         }
 
         // Click sign data button
         step("Click Sign Data button") {
             dAppController.clickSignData()
-            
         }
 
         // Approve in wallet
         step("Approve sign data in wallet") {
             walletController.approveSignData()
-            
         }
 
         // Verify result
@@ -137,19 +134,16 @@ class SignDataE2ETest : BaseE2ETest() {
         // Scroll to sign data section
         step("Scroll to Sign Data section") {
             dAppController.scrollToSignDataValidation()
-            
         }
 
         // Click sign data button
         step("Click Sign Data button") {
             dAppController.clickSignData()
-            
         }
 
         // Reject in wallet
         step("Reject sign data in wallet") {
             walletController.rejectSignData()
-            
         }
 
         // Verify result

@@ -121,7 +121,7 @@ class JsDAppController {
         composeTestRule.waitForIdle()
 
         // Wait for WebView to load
-        
+
         android.util.Log.d("JsDAppController", "Browser opened, waiting for WebView...")
     }
 
@@ -138,7 +138,7 @@ class JsDAppController {
 
         // Press back once - this should close the top-most dialog/sheet
         device.pressBack()
-        
+
         composeTestRule.waitForIdle()
 
         jsBridge.clearCache()
@@ -157,9 +157,8 @@ class JsDAppController {
 
         // Press back twice: once for modal (if open), once for browser sheet
         device.pressBack()
-        
+
         device.pressBack()
-        
 
         composeTestRule.waitForIdle()
         jsBridge.clearCache()
@@ -206,8 +205,6 @@ class JsDAppController {
 
         // If modal was found but click didn't work, use tap via coordinates
         if (result?.contains("modal_found") == true || result?.contains("closed") == true) {
-            
-
             // Get button coordinates and tap
             val coordScript = """
                 (function() {
@@ -241,8 +238,6 @@ class JsDAppController {
                     android.util.Log.w("JsDAppController", "Failed to tap: ${e.message}")
                 }
             }
-
-            
         }
     }
 
@@ -266,7 +261,6 @@ class JsDAppController {
         }
 
         // Wait a bit for page to load
-        
 
         // Wait for TonConnect button to appear (indicates page + SDK loaded)
         val tcButtonAppeared = jsBridge.waitForCondition(
@@ -288,8 +282,6 @@ class JsDAppController {
                 android.util.Log.w("JsDAppController", "TonConnect button not found, but continuing...")
             }
         }
-
-        
     }
 
     // ===========================================
@@ -326,7 +318,7 @@ class JsDAppController {
         )
 
         android.util.Log.d("JsDAppController", "Scroll result: $scrollAndClick")
-         // Wait for scroll
+        // Wait for scroll
 
         // Now click the connect button inside the e2e block
         val clicked = jsBridge.evaluateJs(
@@ -353,7 +345,7 @@ class JsDAppController {
 
         if (clicked?.contains("clicked") == true) {
             android.util.Log.d("JsDAppController", "Clicked e2e connect button")
-             // Wait for modal to open
+            // Wait for modal to open
             return
         }
 
@@ -436,7 +428,6 @@ class JsDAppController {
         }
 
         // Wait for QR code view to appear
-        
 
         // STEP 2: Hook the clipboard API to intercept the URL when copy is clicked
         // Then click the Copy Link button using touch simulation
@@ -510,7 +501,6 @@ class JsDAppController {
         android.util.Log.d("JsDAppController", "Copy link click result: $result")
 
         // Wait for clipboard hook to capture the URL
-        
 
         // STEP 3: Retrieve the intercepted URL
         val interceptedUrl = jsBridge.evaluateJs(
@@ -592,7 +582,6 @@ class JsDAppController {
             })()
             """.trimIndent(),
         )
-        
     }
 
     /**
@@ -713,7 +702,6 @@ class JsDAppController {
             try {
                 // Wait for compose to be ready
                 composeTestRule.waitForIdle()
-                
 
                 openBrowser()
                 waitForDAppPage()
@@ -742,13 +730,11 @@ class JsDAppController {
 
                 android.util.Log.w("JsDAppController", "Invalid or empty URL, retrying...")
                 closeBrowserFully()
-                
             } catch (e: Exception) {
                 android.util.Log.e("JsDAppController", "Error in attempt $attempt: ${e.message}", e)
                 try {
                     closeBrowserFully()
                 } catch (closeError: Exception) {}
-                
             }
         }
 
@@ -856,7 +842,6 @@ class JsDAppController {
     @Step("Click Send Transaction button")
     fun clickSendTransaction() {
         jsBridge.waitAndClickElement(SEND_TX_BUTTON, timeoutMs = ELEMENT_TIMEOUT)
-        
     }
 
     /**
@@ -895,7 +880,6 @@ class JsDAppController {
     @Step("Scroll to send transaction validation")
     fun scrollToSendTxValidation() {
         jsBridge.scrollIntoView(SEND_TX_VALIDATION)
-        
     }
 
     /**
@@ -937,7 +921,6 @@ class JsDAppController {
     @Step("Click Sign Data button")
     fun clickSignData() {
         jsBridge.waitAndClickElement(SIGN_DATA_BUTTON, timeoutMs = ELEMENT_TIMEOUT)
-        
     }
 
     /**
@@ -976,7 +959,6 @@ class JsDAppController {
     @Step("Scroll to sign data validation")
     fun scrollToSignDataValidation() {
         jsBridge.scrollIntoView(SIGN_DATA_VALIDATION)
-        
     }
 
     /**
