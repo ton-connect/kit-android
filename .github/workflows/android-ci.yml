@@ -66,14 +66,14 @@ jobs:
       #   working-directory: TONWalletKit-Android
       #   run: ./gradlew :impl:testWebviewReleaseUnitTest
 
-      - name: Build WebView variant
+      - name: Build WebView variant (Release)
         working-directory: TONWalletKit-Android
-        run: ./gradlew buildWebview
+        run: ./gradlew buildWebviewRelease
 
       - name: Upload WebView AAR
         uses: actions/upload-artifact@v4
         with:
-          name: bridge-webview-release
+          name: sdk-webview-aar
           path: TONWalletKit-Android/impl/build/outputs/aar/impl-webview-release.aar
           retention-days: 7
 
@@ -107,11 +107,11 @@ jobs:
       - name: Download SDK AAR
         uses: actions/download-artifact@v4
         with:
-          name: bridge-webview-release
+          name: sdk-webview-aar
           path: AndroidDemo/app/libs/
 
       - name: Rename AAR
-        run: mv AndroidDemo/app/libs/impl-webview-release.aar AndroidDemo/app/libs/bridge-release.aar
+        run: mv AndroidDemo/app/libs/impl-webview-release.aar AndroidDemo/app/libs/tonwalletkit-release.aar
 
       - name: Grant execute permission for gradlew
         working-directory: AndroidDemo
