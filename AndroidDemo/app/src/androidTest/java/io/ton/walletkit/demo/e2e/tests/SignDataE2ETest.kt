@@ -94,19 +94,19 @@ class SignDataE2ETest : BaseE2ETest() {
         // Scroll to sign data section
         step("Scroll to Sign Data section") {
             dAppController.scrollToSignDataValidation()
-            Thread.sleep(1000)
+            
         }
 
         // Click sign data button
         step("Click Sign Data button") {
             dAppController.clickSignData()
-            Thread.sleep(2000)
+            
         }
 
         // Approve in wallet
         step("Approve sign data in wallet") {
             walletController.approveSignData()
-            Thread.sleep(3000)
+            
         }
 
         // Verify result
@@ -137,19 +137,19 @@ class SignDataE2ETest : BaseE2ETest() {
         // Scroll to sign data section
         step("Scroll to Sign Data section") {
             dAppController.scrollToSignDataValidation()
-            Thread.sleep(1000)
+            
         }
 
         // Click sign data button
         step("Click Sign Data button") {
             dAppController.clickSignData()
-            Thread.sleep(2000)
+            
         }
 
         // Reject in wallet
         step("Reject sign data in wallet") {
             walletController.rejectSignData()
-            Thread.sleep(3000)
+            
         }
 
         // Verify result

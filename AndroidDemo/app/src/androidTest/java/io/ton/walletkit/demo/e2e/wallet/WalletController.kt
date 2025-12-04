@@ -153,7 +153,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
         // Wait for transition to complete
         composeTestRule.waitForIdle()
-        Thread.sleep(1000) // Give extra time for app to finish state transition
+         // Give extra time for app to finish state transition
         android.util.Log.d("WalletController", "Unlock completed, waiting for app to stabilize...")
     }
 
@@ -196,7 +196,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
         composeTestRule.waitForIdle()
 
         // Give the UI time to settle
-        Thread.sleep(500)
+        
 
         // Check which screen we're on
         val onUnlock = try {
@@ -251,7 +251,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     @Step("Authenticate")
     fun authenticate(password: String = "testpass123") {
         composeTestRule.waitForIdle()
-        Thread.sleep(1000) // Give app time to settle after activity start
+         // Give app time to settle after activity start
 
         // Wait for one of the expected screens to appear (up to 15 seconds)
         // This handles the case when the app is starting up
@@ -303,7 +303,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             // None detected yet, wait and try again
             android.util.Log.d("WalletController", "No auth screen detected yet (attempt ${attempts + 1}/$maxAttempts)")
             attempts++
-            Thread.sleep(500)
+            
         }
 
         // If we get here, check one more time for home screen (maybe transitions happened)
@@ -336,7 +336,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
             // Wait for transition
             composeTestRule.waitForIdle()
-            Thread.sleep(500)
+            
         } catch (e: Exception) {
             android.util.Log.w("WalletController", "setupPasswordSafe failed: ${e.message}")
         }
@@ -357,7 +357,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
             // Wait for transition to complete
             composeTestRule.waitForIdle()
-            Thread.sleep(1000) // Give extra time for app to finish state transition
+             // Give extra time for app to finish state transition
             android.util.Log.d("WalletController", "Unlock completed, waiting for app to stabilize...")
         } catch (e: Exception) {
             android.util.Log.w("WalletController", "unlockWalletSafe failed: ${e.message}")
@@ -382,7 +382,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             .performTextInput(mnemonicString)
 
         // Wait a bit for auto-parsing
-        Thread.sleep(500)
+        
 
         // Click import button
         composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON)
@@ -422,7 +422,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
         // Wait for wallet to be generated
         composeTestRule.waitForIdle()
-        Thread.sleep(1000) // Give time for wallet generation
+         // Give time for wallet generation
     }
 
     /**
@@ -433,7 +433,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     @Step("Setup wallet (generate)")
     fun setupWalletGenerate(password: String = "testpass123") {
         composeTestRule.waitForIdle()
-        Thread.sleep(500)
+        
 
         // Check if we're already on home screen with a wallet (no AddWalletSheet showing)
         if (isOnHomeScreen()) {
@@ -453,7 +453,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
         // After authentication, wait for UI to stabilize
         composeTestRule.waitForIdle()
-        Thread.sleep(1000)
+        
 
         // After authentication, check again if we're on home screen with wallet
         for (i in 1..5) {
@@ -470,7 +470,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             }
 
             android.util.Log.d("WalletController", "Waiting for home/addWallet screen (check $i)...")
-            Thread.sleep(500)
+            
         }
 
         // Last resort: try to generate wallet anyway
@@ -587,7 +587,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
         }
 
         // Small delay to let the sheet animation complete
-        Thread.sleep(500)
+        
 
         // Click approve button (no scroll needed as button should be visible)
         composeTestRule.onNodeWithTag(TestTags.CONNECT_APPROVE_BUTTON)

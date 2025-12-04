@@ -94,19 +94,19 @@ class SendTransactionE2ETest : BaseE2ETest() {
         // Scroll to send transaction section
         step("Scroll to Send Transaction section") {
             dAppController.scrollToSendTxValidation()
-            Thread.sleep(1000)
+            
         }
 
         // Click send transaction button
         step("Click Send Transaction button") {
             dAppController.clickSendTransaction()
-            Thread.sleep(2000)
+            
         }
 
         // Approve in wallet
         step("Approve transaction in wallet") {
             walletController.approveTransaction()
-            Thread.sleep(3000)
+            
         }
 
         // Verify result
@@ -137,19 +137,19 @@ class SendTransactionE2ETest : BaseE2ETest() {
         // Scroll to send transaction section
         step("Scroll to Send Transaction section") {
             dAppController.scrollToSendTxValidation()
-            Thread.sleep(1000)
+            
         }
 
         // Click send transaction button
         step("Click Send Transaction button") {
             dAppController.clickSendTransaction()
-            Thread.sleep(2000)
+            
         }
 
         // Reject in wallet
         step("Reject transaction in wallet") {
             walletController.rejectTransaction()
-            Thread.sleep(3000)
+            
         }
 
         // Verify result
