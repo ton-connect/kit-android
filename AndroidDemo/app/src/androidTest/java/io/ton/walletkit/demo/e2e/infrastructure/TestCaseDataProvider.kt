@@ -41,7 +41,7 @@ object TestCaseDataProvider {
      * First tries the Allure API (if client provided), falls back to hardcoded data.
      */
     fun getTestCaseData(allureId: String, allureClient: AllureApiClient? = null): TestCaseData? {
-        // Try Allure API first
+        // Try Allure API first if client is provided
         allureClient?.let { client ->
             try {
                 return client.getTestCaseData(allureId)

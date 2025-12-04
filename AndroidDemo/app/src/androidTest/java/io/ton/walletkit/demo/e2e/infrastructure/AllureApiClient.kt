@@ -25,16 +25,13 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.FormBody
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Protocol
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
 /**
  * Client for interacting with Allure TestOps API.
- *
- * This mirrors the AllureApiClient from the web demo-wallet e2e tests.
  */
 class AllureApiClient(private val config: AllureConfig) {
 
@@ -71,6 +68,7 @@ class AllureApiClient(private val config: AllureConfig) {
             .url("${config.baseUrl}/api/uaa/oauth/token")
             .post(formBody)
             .header("Accept", "application/json")
+            .header("Content-Type", "application/x-www-form-urlencoded")
             .build()
 
         val response = client.newCall(request).execute()
@@ -111,7 +109,7 @@ class AllureApiClient(private val config: AllureConfig) {
      * Get test case data by Allure ID.
      */
     fun getTestCase(allureId: String): TestCaseResponse {
-        val responseBody = makeRequest("/api/rs/testcase/allureId/$allureId")
+        val responseBody = makeRequest("/api/rs/testcase/$allureId")
         return json.decodeFromString(responseBody)
     }
 
@@ -122,8 +120,8 @@ class AllureApiClient(private val config: AllureConfig) {
         val testCase = getTestCase(allureId)
 
         // Extract precondition and expected result from test case
-        val precondition = testCase.precondition?.firstOrNull()?.content ?: ""
-        val expectedResult = testCase.expectedResult?.firstOrNull()?.content ?: ""
+        val precondition = testCase.precondition ?: ""
+        val expectedResult = testCase.expectedResult ?: ""
         val isPositiveCase = !testCase.name.contains("[ERROR]")
 
         return TestCaseData(
@@ -166,14 +164,8 @@ data class TokenResponse(
 data class TestCaseResponse(
     val id: Long,
     val name: String,
-    val precondition: List<StepContent>? = null,
-    val expectedResult: List<StepContent>? = null,
-)
-
-@Serializable
-data class StepContent(
-    val content: String? = null,
-    val contentHtml: String? = null,
+    val precondition: String? = null,
+    val expectedResult: String? = null,
 )
 
 /**

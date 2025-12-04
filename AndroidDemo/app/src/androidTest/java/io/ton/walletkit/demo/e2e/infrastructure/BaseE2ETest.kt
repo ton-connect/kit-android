@@ -59,10 +59,12 @@ abstract class BaseE2ETest {
         // Default password used for tests
         const val TEST_PASSWORD = "testpass123"
 
-        // Allure TestOps config (token from environment)
+        /**
+         * Get Allure config from instrumentation arguments.
+         * Token is passed via Android Studio run configuration or CI workflow.
+         */
         fun getAllureConfig(): AllureConfig? {
-            val token = System.getenv("ALLURE_API_TOKEN")
-                ?: InstrumentationRegistry.getArguments().getString("allureToken")
+            val token = InstrumentationRegistry.getArguments().getString("allureToken")?.takeIf { it.isNotBlank() }
             return token?.let { AllureConfig(apiToken = it) }
         }
     }

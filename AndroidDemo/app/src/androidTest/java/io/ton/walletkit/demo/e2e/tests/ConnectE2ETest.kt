@@ -74,12 +74,12 @@ class ConnectE2ETest : BaseE2ETest() {
 
     @Test
     @ConnectTest
-    @AllureId("2294")
+    @AllureId("54898")
     @Severity(SeverityLevel.CRITICAL)
     @Description("Verify wallet can successfully connect to a dApp")
     fun testSuccessfulConnect() {
         // Fetch test case data - uses Allure API if available, falls back to hardcoded data
-        val testData = TestCaseDataProvider.getTestCaseData("2294", allureClient)
+        val testData = TestCaseDataProvider.getTestCaseData("54898", allureClient)
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
         android.util.Log.d("ConnectE2ETest", "Test data - precondition: $precondition, expectedResult: $expectedResult")

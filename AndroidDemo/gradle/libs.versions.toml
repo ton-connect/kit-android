@@ -3,30 +3,30 @@ agp = "8.13.1"
 kotlin = "2.2.21"
 ksp = "2.2.21-2.0.4"
 leakcanaryAndroid = "2.14"
-spotless = "8.0.0"
+spotless = "8.1.0"
 androidxCoreKtx = "1.17.0"
 androidxAppcompat = "1.7.1"
 material = "1.13.0"
-androidxActivity = "1.11.0"
+androidxActivity = "1.12.1"
 constraintLayout = "2.2.1"
-composeBom = "2025.11.00"
-lifecycle = "2.9.4"
+composeBom = "2025.12.00"
+lifecycle = "2.10.0"
 coroutinesAndroid = "1.10.2"
 kotlinxSerialization = "1.9.0"
 webkit = "1.14.0"
-datastorePreferences = "1.1.7"
+datastorePreferences = "1.2.0"
 securityCrypto = "1.1.0"
 coil = "3.3.0"
 hilt = "2.57.2"
 # Testing
 junit = "4.13.2"
-androidxTestCore = "1.6.1"
-androidxTestRunner = "1.6.2"
-androidxTestRules = "1.6.1"
-androidxTestEspresso = "3.6.1"
+androidxTestCore = "1.7.0"
+androidxTestRunner = "1.7.0"
+androidxTestRules = "1.7.0"
+androidxTestEspresso = "3.7.0"
 androidxTestUiAutomator = "2.3.0"
 allureKotlin = "2.4.0"
-okhttp = "4.12.0"
+okhttp = "5.3.2"
 
 [libraries]
 androidxCoreKtx = { module = "androidx.core:core-ktx", version.ref = "androidxCoreKtx" }
@@ -76,6 +76,7 @@ androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinCompose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hiltAndroid = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

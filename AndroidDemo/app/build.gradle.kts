@@ -4,8 +4,16 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinCompose)
+    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hiltAndroid)
+}
+
+// Force OkHttp version to avoid conflicts between app dependencies and test dependencies
+configurations.all {
+    resolutionStrategy {
+        force("com.squareup.okhttp3:okhttp:5.3.2")
+    }
 }
 
 android {
