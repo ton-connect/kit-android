@@ -1,0 +1,60 @@
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+
+@Serializable(with = {{classname}}.Serializer::class)
+sealed class {{classname}} {
+
+    abstract val {{vendorExtensions.x-kotlin-discriminator}}: Kind
+
+    @Serializable
+    enum class Kind {
+        {{#vendorExtensions.x-kotlin-cases}}
+        @SerialName("{{value}}") {{enumName}}{{^-last}},{{/-last}}
+        {{/vendorExtensions.x-kotlin-cases}}
+    }
+
+    {{#vendorExtensions.x-kotlin-cases}}
+    @Serializable
+    data class {{wrapperClass}}(val value: {{dataType}}) : {{classname}}() {
+        override val {{vendorExtensions.x-kotlin-discriminator}}: Kind = Kind.{{enumName}}
+    }
+    {{/vendorExtensions.x-kotlin-cases}}
+
+    object Serializer : KSerializer<{{classname}}> {
+        override val descriptor: SerialDescriptor = {{vendorExtensions.x-kotlin-cases.0.dataType}}.serializer().descriptor
+
+        override fun serialize(encoder: Encoder, value: {{classname}}) {
+            val output = encoder as? JsonEncoder
+                ?: throw SerializationException("{{classname}} can be serialized only with JSON")
+            when (value) {
+                {{#vendorExtensions.x-kotlin-cases}}
+                is {{wrapperClass}} -> output.encodeSerializableValue({{dataType}}.serializer(), value.value)
+                {{/vendorExtensions.x-kotlin-cases}}
+            }
+        }
+
+        override fun deserialize(decoder: Decoder): {{classname}} {
+            val input = decoder as? JsonDecoder
+                ?: throw SerializationException("{{classname}} can be deserialized only with JSON")
+            val element = input.decodeJsonElement().jsonObject
+            val typeValue = element["{{vendorExtensions.x-kotlin-discriminator}}"]?.jsonPrimitive?.content
+                ?: throw SerializationException("Missing discriminator '{{vendorExtensions.x-kotlin-discriminator}}'")
+            return when (typeValue) {
+                {{#vendorExtensions.x-kotlin-cases}}
+                "{{value}}" -> {{wrapperClass}}(input.json.decodeFromJsonElement({{dataType}}.serializer(), element))
+                {{/vendorExtensions.x-kotlin-cases}}
+                else -> throw SerializationException("Unknown discriminator value '$typeValue' for {{classname}}")
+            }
+        }
+    }
+}

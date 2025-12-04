@@ -12,11 +12,34 @@
   "sortModelPropertiesByRequiredFlag": true,
   "typeMappings": {
     "number": "kotlin.Int",
+    "integer": "kotlin.Int",
+    "int64": "kotlin.Long",
+    "int32": "kotlin.Int",
+    "int16": "kotlin.Short",
+    "int8": "kotlin.Byte",
+    "uint": "kotlin.Int",
+    "uint64": "kotlin.Long",
+    "uint32": "kotlin.Int",
+    "uint16": "kotlin.Int",
+    "uint8": "kotlin.Int",
+    "bigInt": "kotlin.String",
+    "url": "kotlin.String",
     "object": "kotlinx.serialization.json.JsonObject",
-    "AnyType": "kotlinx.serialization.json.JsonObject"
+    "AnyType": "kotlinx.serialization.json.JsonObject",
+    "UserFriendlyAddress": "kotlin.String",
+    "Address": "kotlin.String",
+    "LogicalTime": "kotlin.String",
+    "Base64String": "kotlin.String",
+    "TokenAmount": "kotlin.String"
   },
   "importMappings": {
     "kotlinx.serialization.json.JsonObject": "kotlinx.serialization.json.JsonObject"
   },
-  "schemaMappings": {}
+  "schemaMappings": {
+    "UserFriendlyAddress": "kotlin.String",
+    "Address": "kotlin.String",
+    "LogicalTime": "kotlin.String",
+    "Base64String": "kotlin.String",
+    "TokenAmount": "kotlin.String"
+  }
 }

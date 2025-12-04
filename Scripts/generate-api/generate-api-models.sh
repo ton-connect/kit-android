@@ -55,6 +55,82 @@ if [ ! -f "$OPENAPI_SPEC" ]; then
     exit 1
 fi
 
+PATCHED_SPEC=$(mktemp /tmp/walletkit-openapi.patched.XXXXXX.json)
+echo "🧩 Applying OpenAPI patches for discriminated unions..."
+python3 - "$OPENAPI_SPEC" "$PATCHED_SPEC" <<'PY'
+import json
+import sys
+
+source, target = sys.argv[1:3]
+
+with open(source, "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+schemas = data.get("components", {}).get("schemas", {})
+ref_prefix = "#/components/schemas"
+
+def add_discriminated_union(name, discriminator, cases, description=None):
+    mapped_cases = []
+    for case in cases:
+        enum_name = case.get("enumName", case["value"])
+        schema_name = case["schema"]
+        mapped_cases.append({
+            "name": case["name"],
+            "value": case["value"],
+            "schema": schema_name,
+            "dataType": schema_name,
+            "enumName": enum_name,
+            "wrapperClass": case.get("wrapperClass", f"{schema_name}Variant")
+        })
+
+    schemas[name] = {
+        "oneOf": [{"$ref": f"{ref_prefix}/{case['schema']}"} for case in cases],
+        "discriminator": {
+            "propertyName": discriminator,
+            "mapping": {case["value"]: f"{ref_prefix}/{case['schema']}" for case in cases}
+        },
+        "type": "object",
+        "required": [discriminator],
+        "x-kotlin-discriminated-union": True,
+        "x-kotlin-discriminator": discriminator,
+        "x-kotlin-cases": mapped_cases,
+    }
+    if description:
+        schemas[name]["description"] = description
+
+# Ensure SignDataPayload uses a named union schema
+payload_schema = schemas.get("SignDataPayload")
+if payload_schema and "properties" in payload_schema:
+    payload_schema["properties"]["value"] = {"$ref": f"{ref_prefix}/SignDataPayloadValue"}
+
+add_discriminated_union(
+    "SignDataPayloadValue",
+    "type",
+    [
+        {"name": "text", "value": "text", "schema": "SignDataPayloadText"},
+        {"name": "binary", "value": "binary", "schema": "SignDataPayloadBinary"},
+        {"name": "cell", "value": "cell", "schema": "SignDataPayloadCell"},
+    ],
+    description="Payload variants for sign data requests"
+)
+
+# Replace SignDataPreview with a discriminated union on 'kind'
+add_discriminated_union(
+    "SignDataPreview",
+    "kind",
+    [
+        {"name": "text", "value": "text", "schema": "SignDataPreviewText"},
+        {"name": "binary", "value": "binary", "schema": "SignDataPreviewBinary"},
+        {"name": "cell", "value": "cell", "schema": "SignDataPreviewCell"},
+    ],
+    description="Preview data for signing"
+)
+
+with open(target, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2)
+PY
+OPENAPI_SPEC="$PATCHED_SPEC"
+
 echo "🧹 Cleaning output directory..."
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
