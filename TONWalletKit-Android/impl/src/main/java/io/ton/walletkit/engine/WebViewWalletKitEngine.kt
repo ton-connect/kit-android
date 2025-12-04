@@ -99,6 +99,8 @@ internal class WebViewWalletKitEngine private constructor(
 
     @Volatile private var persistentStorageEnabled: Boolean = true
 
+    @Volatile private var isDestroyed: Boolean = false
+
     @Volatile private var currentNetwork: String = NetworkConstants.DEFAULT_NETWORK
 
     @Volatile private var apiBaseUrl: String = NetworkConstants.DEFAULT_TESTNET_API_URL
@@ -215,8 +217,8 @@ internal class WebViewWalletKitEngine private constructor(
         messageDispatcher.dispatchMessage(payload)
     }
 
-    private fun handleBridgeError(exception: WalletKitBridgeException) {
-        failBridgeFutures(exception)
+    private fun handleBridgeError(exception: WalletKitBridgeException, malformedJson: String? = null) {
+        messageDispatcher.dispatchError(exception, malformedJson)
     }
 
     private suspend fun ensureEventListenersSetUp() {
@@ -224,6 +226,9 @@ internal class WebViewWalletKitEngine private constructor(
     }
 
     private suspend fun call(method: String, params: JSONObject? = null): JSONObject {
+        if (isDestroyed) {
+            throw WalletKitBridgeException("Cannot call method '$method' - SDK has been destroyed")
+        }
         return rpcClient.call(method, params)
     }
 
@@ -455,6 +460,12 @@ internal class WebViewWalletKitEngine private constructor(
     }
 
     override suspend fun destroy() {
+        if (isDestroyed) {
+            Logger.d(TAG, "destroy() called but already destroyed, skipping")
+            return
+        }
+        isDestroyed = true
+
         withContext(Dispatchers.Main) {
             try {
                 if (initManager.isInitialized()) {
@@ -536,6 +547,27 @@ internal class WebViewWalletKitEngine private constructor(
                     Logger.w(TAG, "🗑️ Cleared all WebView engine instances")
                 }
             }
+        }
+
+        /**
+         * Create engine for testing with custom asset path.
+         *
+         * This allows tests to load mock JavaScript files instead of the production bridge.
+         * Only use this in test code!
+         *
+         * @param context Android context
+         * @param assetPath Path to the HTML file to load (e.g., "mock-bridge/normal-flow.html")
+         * @param eventsHandler Optional events handler to track SDK events
+         * @return New WebViewWalletKitEngine instance configured for testing
+         */
+        @JvmStatic
+        internal fun createForTesting(
+            context: Context,
+            assetPath: String,
+            eventsHandler: TONBridgeEventsHandler? = null,
+        ): WebViewWalletKitEngine {
+            Logger.w(TAG, "🧪 Creating test WebView engine with asset path: $assetPath")
+            return WebViewWalletKitEngine(context, eventsHandler, assetPath)
         }
 
         private const val TAG = LogConstants.TAG_WEBVIEW_ENGINE

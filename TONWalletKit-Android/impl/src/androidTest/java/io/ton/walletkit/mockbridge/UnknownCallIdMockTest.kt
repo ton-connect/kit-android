@@ -19,23 +19,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit
+package io.ton.walletkit.mockbridge
 
-import io.ton.walletkit.event.TONWalletKitEvent
-import io.ton.walletkit.listener.TONBridgeEventsHandler
-import java.util.concurrent.CopyOnWriteArrayList
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
 
-val NoopEventsHandler: TONBridgeEventsHandler =
-    object : TONBridgeEventsHandler {
-        override fun handle(event: TONWalletKitEvent) = Unit
-    }
+/**
+ * RPC response for unknown call ID (Scenario 4).
+ */
+@RunWith(AndroidJUnit4::class)
+class UnknownCallIdMockTest : MockBridgeTestBase() {
+    override fun getMockScenarioHtml(): String = "unknown-call-id"
+    override fun autoInitWalletKit(): Boolean = false
+    override fun autoAddEventsHandler(): Boolean = false
 
-class RecordingEventsHandler : TONBridgeEventsHandler {
-    private val _events = CopyOnWriteArrayList<TONWalletKitEvent>()
-    val events: List<TONWalletKitEvent>
-        get() = _events
-
-    override fun handle(event: TONWalletKitEvent) {
-        _events += event
+    @Test
+    fun unknownCallIdPlaceholder() = runBlocking {
+        // TODO (Scenario 4): Verify RPC client ignores unknown IDs and continues processing valid responses.
+        assertTrue(true)
     }
 }

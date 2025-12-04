@@ -13,11 +13,7 @@ jobs:
   # Code formatting check with Spotless
   spotless:
     name: Spotless Check
-    # runs-on: ubuntu-latest
-    runs-on: [self-hosted, k8s, linux]
-    container:
-      image: cimg/android:2025.10-node
-      options: --user root
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,8 +24,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      # - name: Setup Android SDK
-      #   uses: android-actions/setup-android@v3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Grant execute permission for gradlew
         working-directory: TONWalletKit-Android
@@ -42,11 +39,7 @@ jobs:
   # Build and test SDK
   test-sdk:
     name: Test & Build SDK
-    # runs-on: ubuntu-latest
-    runs-on: [self-hosted, k8s, linux]
-    container:
-      image: cimg/android:2025.10-node
-      options: --user root
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -57,8 +50,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      # - name: Setup Android SDK
-      #   uses: android-actions/setup-android@v3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Grant execute permission for gradlew
         working-directory: TONWalletKit-Android
@@ -90,11 +84,7 @@ jobs:
   # Build Demo App
   build-demo:
     name: Build Demo App
-    # runs-on: ubuntu-latest
-    runs-on: [self-hosted, k8s, linux]
-    container:
-      image: cimg/android:2025.10-node
-      options: --user root
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -105,8 +95,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      # - name: Setup Android SDK
-      #   uses: android-actions/setup-android@v3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Grant execute permission for gradlew (SDK)
         working-directory: TONWalletKit-Android

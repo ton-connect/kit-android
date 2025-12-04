@@ -26,10 +26,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
+import io.ton.walletkit.engine.WebViewWalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.TONNetwork
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -72,6 +74,8 @@ class TONWalletKitSDKTest {
             if (::sdk.isInitialized) {
                 sdk.destroy()
             }
+            // Clear cached WebView engines so each test gets a fresh instance
+            launch { WebViewWalletKitEngine.clearInstances() }.join()
         }
     }
 
@@ -183,7 +187,7 @@ class TONWalletKitSDKTest {
 
                 // Create V4R2 wallet using 3-step pattern
                 val signer = sdk.createSignerFromMnemonic(mnemonic)
-                val adapter = sdk.createV4R2Adapter(signer.signerId, TONNetwork.MAINNET)
+                val adapter = sdk.createV4R2Adapter(signer, TONNetwork.MAINNET)
                 val wallet = sdk.addWallet(adapter.adapterId)
 
                 assertNotNull("Wallet should be created", wallet)
@@ -210,7 +214,7 @@ class TONWalletKitSDKTest {
 
                 // Create V5R1 wallet using 3-step pattern
                 val signer = sdk.createSignerFromMnemonic(mnemonic)
-                val adapter = sdk.createV5R1Adapter(signer.signerId, TONNetwork.TESTNET)
+                val adapter = sdk.createV5R1Adapter(signer, TONNetwork.TESTNET)
                 val wallet = sdk.addWallet(adapter.adapterId)
 
                 assertNotNull("V5R1 wallet should be created", wallet)

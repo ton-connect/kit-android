@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Large Payload Mock</title>
+</head>
+<body>
+    <script>
+        /**
+         * Large Payload Mock - Tests SDK handling of very large responses
+         * 
+         * Simulates APIs that return large data sets (e.g., NFT collections, transaction history).
+         * Tests memory handling, JSON parsing limits, and WebView bridge capacity.
+         */
+
+        function sendToAndroid(payload) {
+          const message = JSON.stringify(payload);
+          console.log('[Large Payload Mock] Sending to Android (' + message.length + ' bytes)');
+          
+          if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+            window.WalletKitNative.postMessage(message);
+          } else {
+            console.error('[Large Payload Mock] WalletKitNative.postMessage not available!');
+          }
+        }
+
+        function sendRpcResponse(id, result, error) {
+          const payload = {
+            kind: 'response',
+            id: id
+          };
+          
+          if (error) {
+            payload.error = error;
+          } else {
+            payload.result = result;
+          }
+          
+          sendToAndroid(payload);
+        }
+
+        // Send ready immediately
+        setTimeout(() => {
+            sendToAndroid({
+                kind: 'ready',
+                network: 'testnet',
+                tonApiUrl: 'https://testnet.tonapi.io'
+            });
+        }, 50);
+
+        // Generate a large NFT collection response
+        function generateLargeNftCollection(count) {
+            const nfts = [];
+            for (let i = 0; i < count; i++) {
+                nfts.push({
+                    address: `EQD${i.toString().padStart(46, '0')}`,
+                    auctionContractAddress: null,
+                    codeHash: `0x${i.toString(16).padStart(64, '0')}`,
+                    dataHash: `0x${(i+1).toString(16).padStart(64, '0')}`,
+                    collection: {
+                        address: 'EQCollection0000000000000000000000000000000000000000000',
+                        codeHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+                        dataHash: '0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321',
+                        lastTransactionLt: '1000000',
+                        nextItemIndex: String(count),
+                        ownerAddress: 'EQCollectionOwner00000000000000000000000000000000000'
+                    },
+                    collectionAddress: 'EQCollection0000000000000000000000000000000000000000000',
+                    metadata: {
+                        name: `NFT Item #${i}`,
+                        description: `This is a test NFT item number ${i} with some metadata that makes the payload larger. It includes various attributes and properties to simulate real NFT data.`,
+                        image: `https://example.com/nft/${i}.png`,
+                        nftIndex: String(i),
+                        type: 'nft',
+                        valid: true
+                    },
+                    index: String(i),
+                    initFlag: true,
+                    lastTransactionLt: String(Date.now() + i),
+                    onSale: i % 10 === 0,
+                    ownerAddress: `EQOwner${i.toString().padStart(40, '0')}`,
+                    realOwner: `EQOwner${i.toString().padStart(40, '0')}`,
+                    saleContractAddress: i % 10 === 0 ? `EQSale${i.toString().padStart(41, '0')}` : null
+                });
+            }
+            return nfts;
+        }
+
+        // Handle RPC calls
+        window.__walletkitCall = function(id, method, paramsJson) {
+            console.log(`[Large Payload Mock] __walletkitCall: ${method} (id=${id})`);
+            console.log(`[Large Payload Mock] paramsJson type: ${typeof paramsJson}, value:`, paramsJson);
+            
+            // Parse params - SDK sends JSON string as third parameter
+            let params = null;
+            if (paramsJson && typeof paramsJson === 'string') {
+                try {
+                    params = JSON.parse(paramsJson);
+                    console.log('[Large Payload Mock] Parsed params:', params);
+                } catch (e) {
+                    console.error('[Large Payload Mock] Failed to parse params:', e);
+                }
+            }
+            
+            if (method === 'createTonMnemonic') {
+                const words = [
+                    'abandon', 'ability', 'able', 'about', 'above', 'absent',
+                    'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident',
+                    'account', 'accuse', 'achieve', 'acid', 'acoustic', 'acquire',
+                    'across', 'act', 'action', 'actor', 'actress', 'actual'
+                ];
+                sendRpcResponse(id, { items: words });
+            } else if (method === 'createSignerFromMnemonic' || method === 'mnemonicToKeyPair') {
+                // Return signer/keypair
+                sendRpcResponse(id, {
+                    id: 'signer-' + Math.random().toString(36).substr(2, 9),
+                    publicKey: '0x' + '0'.repeat(64)
+                });
+            } else if (method === 'createV5R1Adapter' || method === 'createV4R2Adapter') {
+                // Return adapter
+                sendRpcResponse(id, {
+                    id: 'adapter-' + Math.random().toString(36).substr(2, 9),
+                    address: 'EQDTest' + Math.random().toString(36).substr(2, 40)
+                });
+            } else if (method === 'addWallet') {
+                // Return wallet
+                sendRpcResponse(id, {
+                    address: 'EQDTest' + Math.random().toString(36).substr(2, 40),
+                    publicKey: '0x' + '0'.repeat(64)
+                });
+            } else if (method === 'getNfts') {
+                // Return HUGE NFT collection based on requested limit
+                console.log('[Large Payload Mock] getNfts params:', JSON.stringify(params));
+                const limit = params?.limit || 100;
+                const offset = params?.offset || 0;
+                console.log(`[Large Payload Mock] Parsed limit=${limit}, offset=${offset}`);
+                
+                const nfts = generateLargeNftCollection(limit);
+                
+                console.log(`[Large Payload Mock] Generated ${nfts.length} NFTs`);
+                
+                // Return in TONNFTItems format that SDK expects
+                sendRpcResponse(id, {
+                    items: nfts,
+                    pagination: {
+                        total: 1000,
+                        limit: limit,
+                        offset: offset
+                    }
+                });
+            } else {
+                sendRpcResponse(id, { success: true });
+            }
+        };
+    </script>
+</body>
+</html>

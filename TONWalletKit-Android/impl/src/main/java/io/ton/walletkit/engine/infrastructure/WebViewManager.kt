@@ -62,7 +62,7 @@ internal class WebViewManager(
     private val storageManager: StorageManager,
     private val signerManager: io.ton.walletkit.engine.state.SignerManager,
     private val onMessage: (JSONObject) -> Unit,
-    private val onBridgeError: (WalletKitBridgeException) -> Unit,
+    private val onBridgeError: (WalletKitBridgeException, String?) -> Unit,
 ) {
     private val appContext = context.applicationContext
     private val assetLoader =
@@ -164,7 +164,7 @@ internal class WebViewManager(
                                     WebViewConstants.ERROR_BUNDLE_LOAD_FAILED + MSG_OPEN_PAREN + description + MSG_CLOSE_PAREN_PERIOD_SPACE + WebViewConstants.BUILD_INSTRUCTION,
                                 )
                             failBridgeFutures(exception)
-                            onBridgeError(exception)
+                            onBridgeError(exception, null)
                         }
                     }
 
@@ -217,6 +217,7 @@ internal class WebViewManager(
                 WalletKitBridgeException(
                     WebViewConstants.ERROR_BUNDLE_LOAD_FAILED + MSG_OPEN_PAREN + (e.message ?: ResponseConstants.VALUE_UNKNOWN) + MSG_CLOSE_PAREN_PERIOD_SPACE + WebViewConstants.BUILD_INSTRUCTION,
                 ),
+                null,
             )
         }
     }
@@ -242,7 +243,7 @@ internal class WebViewManager(
                     WebViewConstants.ERROR_BUNDLE_LOAD_FAILED + MSG_OPEN_PAREN + safeMessage + MSG_CLOSE_PAREN_PERIOD_SPACE + WebViewConstants.BUILD_INSTRUCTION,
                 )
             failBridgeFutures(exception)
-            onBridgeError(exception)
+            onBridgeError(exception, null)
         }
     }
 
@@ -264,10 +265,12 @@ internal class WebViewManager(
                 Logger.v(TAG, "📨 Raw JSON: $json")
 
                 val payload = JSONObject(json)
+                Logger.d(TAG, "✅ JSON parsed successfully")
                 onMessage(payload)
             } catch (err: JSONException) {
-                Logger.e(TAG, "❌ " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
-                onBridgeError(WalletKitBridgeException(LogConstants.ERROR_MALFORMED_PAYLOAD_PREFIX + err.message))
+                Logger.e(TAG, "❌ JSONException: " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
+                Logger.e(TAG, "❌ Malformed JSON string: $json")
+                onBridgeError(WalletKitBridgeException(LogConstants.ERROR_MALFORMED_PAYLOAD_PREFIX + err.message), json)
             }
         }
 

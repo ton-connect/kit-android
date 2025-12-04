@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>No Ready Mock</title>
+</head>
+<body>
+    <script>
+        /**
+         * No Ready Mock - Tests SDK behavior when ready event never arrives
+         * 
+         * Simulates:
+         * - JavaScript bundle failed to load
+         * - Critical error in bridge initialization
+         * - Network timeout preventing bridge setup
+         * 
+         * The SDK should timeout gracefully and not hang indefinitely.
+         */
+
+        console.log('[No Ready Mock] Bridge loaded but will NEVER send ready event');
+
+        window.__walletkit_mock_state = {
+          ready: false,
+          callCount: 0
+        };
+
+        function sendToAndroid(payload) {
+          const message = JSON.stringify(payload);
+          console.log('[No Ready Mock] Sending to Android:', message);
+          
+          if (window.WalletKitNative && window.WalletKitNative.postMessage) {
+            window.WalletKitNative.postMessage(message);
+          } else {
+            console.error('[No Ready Mock] WalletKitNative.postMessage not available!');
+          }
+        }
+
+        // NEVER send ready event - this is the test scenario
+        // setTimeout(() => { sendReadyEvent(); }, 50);  <-- COMMENTED OUT
+
+        // Handle RPC calls - but they should never arrive since SDK should timeout
+        window.__walletkitCall = function(id, method, paramsJson) {
+            window.__walletkit_mock_state.callCount++;
+            console.error(`[No Ready Mock] Unexpected call received before ready! ${method} (id=${id})`);
+            console.error(`[No Ready Mock] Total unexpected calls: ${window.__walletkit_mock_state.callCount}`);
+            
+            // Don't respond - bridge is "broken"
+        };
+    </script>
+</body>
+</html>
