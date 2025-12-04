@@ -6,7 +6,7 @@ on:
     types: [completed]
     branches:
       - main
-      - feature/mock-unit-test  # Temporary - remove after testing
+      - feature/allure-e2e  # Temporary - remove after testing
   workflow_dispatch:
     inputs:
       run_id:
