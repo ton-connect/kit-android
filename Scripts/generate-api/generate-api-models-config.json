@@ -10,6 +10,7 @@
   "modelMutable": false,
   "parcelizeModels": false,
   "sortModelPropertiesByRequiredFlag": true,
+  "modelNamePrefix": "TON",
   "typeMappings": {
     "number": "kotlin.Int",
     "integer": "kotlin.Int",

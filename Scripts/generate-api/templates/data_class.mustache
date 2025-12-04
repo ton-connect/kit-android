@@ -1,7 +1,7 @@
-{{#vendorExtensions.x-kotlin-discriminated-union}}
+{{#vendorExtensions.x-discriminated-union}}
 {{>modelDiscriminatedUnion}}
-{{/vendorExtensions.x-kotlin-discriminated-union}}
-{{^vendorExtensions.x-kotlin-discriminated-union}}
+{{/vendorExtensions.x-discriminated-union}}
+{{^vendorExtensions.x-discriminated-union}}
 {{^multiplatform}}
 {{#gson}}
 {{#generateOneOfAnyOfWrappers}}
@@ -404,4 +404,4 @@ import {{packageName}}.infrastructure.ITransformForStorage
 {{#vendorExtensions.x-has-data-class-body}}
 }
 {{/vendorExtensions.x-has-data-class-body}}
-{{/vendorExtensions.x-kotlin-discriminated-union}}
+{{/vendorExtensions.x-discriminated-union}}

@@ -55,7 +55,7 @@ if [ ! -f "$OPENAPI_SPEC" ]; then
     exit 1
 fi
 
-PATCHED_SPEC=$(mktemp /tmp/walletkit-openapi.patched.XXXXXX.json)
+PATCHED_SPEC="$(mktemp -t walletkit-openapi.patched.XXXXXX)".json
 echo "🧩 Applying OpenAPI patches for discriminated unions..."
 python3 - "$OPENAPI_SPEC" "$PATCHED_SPEC" <<'PY'
 import json
@@ -66,8 +66,22 @@ source, target = sys.argv[1:3]
 with open(source, "r", encoding="utf-8") as f:
     data = json.load(f)
 
-schemas = data.get("components", {}).get("schemas", {})
+components_schemas = data.get("components", {}).get("schemas", {}) or {}
 ref_prefix = "#/components/schemas"
+
+
+def _rewrite_refs(node):
+    if isinstance(node, dict):
+        return {k: _rewrite_refs(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [_rewrite_refs(item) for item in node]
+    if isinstance(node, str) and "#/definitions/" in node:
+        return node.replace("#/definitions/", "#/components/schemas/")
+    return node
+
+# Normalize legacy refs to components/schemas
+data = _rewrite_refs(data)
+schemas = components_schemas
 
 def add_discriminated_union(name, discriminator, cases, description=None):
     mapped_cases = []
