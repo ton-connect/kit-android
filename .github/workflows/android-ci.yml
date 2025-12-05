@@ -208,15 +208,9 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            # Install APKs
             adb install -r apks/app-debug.apk
             adb install -r apks/app-debug-androidTest.apk
-            
-            # Run specific test class with Allure token
-            adb shell am instrument -w \
-              -e class io.ton.walletkit.demo.e2e.tests.${{ matrix.test-class }} \
-              -e allureToken "${{ secrets.ALLURE_API_TOKEN }}" \
-              io.ton.walletkit.demo.test/androidx.test.runner.AndroidJUnitRunner
+            adb shell am instrument -w -e class io.ton.walletkit.demo.e2e.tests.${{ matrix.test-class }} -e allureToken "${{ secrets.ALLURE_API_TOKEN }}" io.ton.walletkit.demo.test/androidx.test.runner.AndroidJUnitRunner
 
       - name: Upload test results
         if: always()
