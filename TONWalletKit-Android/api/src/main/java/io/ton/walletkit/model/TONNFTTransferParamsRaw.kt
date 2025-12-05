@@ -54,7 +54,7 @@ data class TONNFTTransferMessageDTO(
  */
 @Serializable
 data class TONNFTTransferParamsRaw(
-    val nftAddress: String,
+    val nftAddress: TONUserFriendlyAddress,
     val transferAmount: String,
     val transferMessage: TONNFTTransferMessageDTO,
 )

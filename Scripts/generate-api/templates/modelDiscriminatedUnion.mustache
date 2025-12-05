@@ -46,7 +46,7 @@ sealed class {{classname}} {
      */
     @Serializable
     data class {{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}}(
-        @SerialName("{{baseName}}")
+        @SerialName("value")
         val value: {{{dataType}}}
     ) : {{classname}}() {
         override val type: String = "{{vendorExtensions.x-enum-case-raw-value}}"
@@ -82,7 +82,7 @@ sealed class {{classname}} {
                     val valueJson = jsonEncoder.json.encodeToJsonElement(valueSerializer, value.value)
                     buildJsonObject {
                         put("type", JsonPrimitive("{{vendorExtensions.x-enum-case-raw-value}}"))
-                        put("{{baseName}}", valueJson)
+                        put("value", valueJson)
                     }
                 }
 {{/vendorExtensions.x-enum-case-name}}
@@ -108,8 +108,8 @@ sealed class {{classname}} {
 {{#vars}}
 {{#vendorExtensions.x-enum-case-name}}
                 "{{vendorExtensions.x-enum-case-raw-value}}" -> {
-                    val valueJson = jsonObject["{{baseName}}"]
-                        ?: throw SerializationException("Missing '{{baseName}}' value for {{classname}}.{{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}}")
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for {{classname}}.{{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}}")
                     {{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}}(
                         jsonDecoder.json.decodeFromJsonElement(serializer<{{{dataType}}}>(), valueJson)
                     )

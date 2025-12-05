@@ -102,7 +102,7 @@ internal class AssetOperations(
             walletId = walletId,
             nftAddress = params.nftAddress,
             transferAmount = params.transferAmount,
-            toAddress = params.toAddress,
+            toAddress = params.toAddress.value,
             comment = params.comment,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_TRANSACTION, json.toJSONObject(request))

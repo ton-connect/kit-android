@@ -33,8 +33,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class TONJettonTransferParams(
-    val toAddress: String,
-    val jettonAddress: String,
+    val toAddress: TONUserFriendlyAddress,
+    val jettonAddress: TONUserFriendlyAddress,
     val amount: String,
     val comment: String? = null,
 )

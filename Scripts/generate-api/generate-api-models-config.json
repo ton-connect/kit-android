@@ -11,6 +11,9 @@
   "parcelizeModels": false,
   "sortModelPropertiesByRequiredFlag": true,
   "modelNamePrefix": "TON",
+  "modelNameMappings": {
+    "TONTransferRequest": "TONTransferRequest"
+  },
   "typeMappings": {
     "number": "kotlin.Int",
     "integer": "kotlin.Int",
@@ -27,20 +30,20 @@
     "url": "kotlin.String",
     "object": "kotlinx.serialization.json.JsonObject",
     "AnyType": "kotlinx.serialization.json.JsonObject",
-    "UserFriendlyAddress": "kotlin.String",
-    "Address": "kotlin.String",
+    "UserFriendlyAddress": "io.ton.walletkit.model.TONUserFriendlyAddress",
     "LogicalTime": "kotlin.String",
-    "Base64String": "kotlin.String",
+    "Base64String": "io.ton.walletkit.model.TONBase64",
     "TokenAmount": "kotlin.String"
   },
   "importMappings": {
-    "kotlinx.serialization.json.JsonObject": "kotlinx.serialization.json.JsonObject"
+    "kotlinx.serialization.json.JsonObject": "kotlinx.serialization.json.JsonObject",
+    "io.ton.walletkit.model.TONUserFriendlyAddress": "io.ton.walletkit.model.TONUserFriendlyAddress",
+    "io.ton.walletkit.model.TONBase64": "io.ton.walletkit.model.TONBase64"
   },
   "schemaMappings": {
-    "UserFriendlyAddress": "kotlin.String",
-    "Address": "kotlin.String",
+    "UserFriendlyAddress": "io.ton.walletkit.model.TONUserFriendlyAddress",
     "LogicalTime": "kotlin.String",
-    "Base64String": "kotlin.String",
+    "Base64String": "io.ton.walletkit.model.TONBase64",
     "TokenAmount": "kotlin.String"
   }
 }

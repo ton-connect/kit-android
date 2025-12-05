@@ -33,8 +33,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class TONNFTTransferParamsHuman(
-    val nftAddress: String,
+    val nftAddress: TONUserFriendlyAddress,
     val transferAmount: String,
-    val toAddress: String,
+    val toAddress: TONUserFriendlyAddress,
     val comment: String? = null,
 )

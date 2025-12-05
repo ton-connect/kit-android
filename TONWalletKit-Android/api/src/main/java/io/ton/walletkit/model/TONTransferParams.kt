@@ -47,15 +47,13 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class TONTransferParams(
-    val toAddress: String,
+    val toAddress: TONUserFriendlyAddress,
     val amount: String,
     val comment: String? = null,
     val body: String? = null,
     val stateInit: String? = null,
 ) {
     init {
-        require(toAddress.isNotBlank()) { "toAddress cannot be blank" }
-        require(amount.isNotBlank()) { "amount cannot be blank" }
         // Ensure only one of comment or body is set
         require(comment == null || body == null) {
             "Only one of 'comment' or 'body' can be specified, not both"
