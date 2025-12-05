@@ -58,6 +58,7 @@ data class ConnectRequestEvent(
         val manifest: Manifest? = null,
         val permissions: List<ConnectPermission>,
         val requestedItems: List<Request>? = null,
+        val manifestFetchErrorCode: Int? = null,
     )
 
     @Serializable

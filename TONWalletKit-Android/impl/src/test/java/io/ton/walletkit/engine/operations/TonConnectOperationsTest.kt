@@ -24,7 +24,6 @@ package io.ton.walletkit.engine.operations
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.event.ConnectRequestEvent
 import io.ton.walletkit.event.TransactionRequestEvent
-import io.ton.walletkit.event.SignDataRequestEvent
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -66,19 +65,26 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
     @Test
     fun listSessions_parsesSessionArray() = runBlocking {
-        givenBridgeReturns(JSONObject().apply {
-            put("items", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("sessionId", TEST_SESSION_ID)
-                    put("dAppName", "Test dApp")
-                    put("walletAddress", TEST_ADDRESS)
-                    put("dAppUrl", TEST_DAPP_URL)
-                    put("iconUrl", "https://example.com/icon.png")
-                    put("createdAt", "2025-01-01T00:00:00Z")
-                    put("lastActivity", "2025-01-02T12:00:00Z")
-                })
-            })
-        })
+        givenBridgeReturns(
+            JSONObject().apply {
+                put(
+                    "items",
+                    JSONArray().apply {
+                        put(
+                            JSONObject().apply {
+                                put("sessionId", TEST_SESSION_ID)
+                                put("dAppName", "Test dApp")
+                                put("walletAddress", TEST_ADDRESS)
+                                put("dAppUrl", TEST_DAPP_URL)
+                                put("iconUrl", "https://example.com/icon.png")
+                                put("createdAt", "2025-01-01T00:00:00Z")
+                                put("lastActivity", "2025-01-02T12:00:00Z")
+                            },
+                        )
+                    },
+                )
+            },
+        )
 
         val result = tonConnectOperations.listSessions()
 
@@ -92,9 +98,11 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
     @Test
     fun listSessions_returnsEmptyListIfNoSessions() = runBlocking {
-        givenBridgeReturns(JSONObject().apply {
-            put("items", JSONArray())
-        })
+        givenBridgeReturns(
+            JSONObject().apply {
+                put("items", JSONArray())
+            },
+        )
 
         val result = tonConnectOperations.listSessions()
 
@@ -103,16 +111,23 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
     @Test
     fun listSessions_handlesNullOptionalFields() = runBlocking {
-        givenBridgeReturns(JSONObject().apply {
-            put("items", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("sessionId", TEST_SESSION_ID)
-                    put("dAppName", "Minimal dApp")
-                    put("walletAddress", TEST_ADDRESS)
-                    // No optional fields
-                })
-            })
-        })
+        givenBridgeReturns(
+            JSONObject().apply {
+                put(
+                    "items",
+                    JSONArray().apply {
+                        put(
+                            JSONObject().apply {
+                                put("sessionId", TEST_SESSION_ID)
+                                put("dAppName", "Minimal dApp")
+                                put("walletAddress", TEST_ADDRESS)
+                                // No optional fields
+                            },
+                        )
+                    },
+                )
+            },
+        )
 
         val result = tonConnectOperations.listSessions()
 
@@ -125,25 +140,36 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
     @Test
     fun listSessions_handlesMultipleSessions() = runBlocking {
-        givenBridgeReturns(JSONObject().apply {
-            put("items", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("sessionId", "session-1")
-                    put("dAppName", "dApp 1")
-                    put("walletAddress", TEST_ADDRESS)
-                })
-                put(JSONObject().apply {
-                    put("sessionId", "session-2")
-                    put("dAppName", "dApp 2")
-                    put("walletAddress", TEST_ADDRESS)
-                })
-                put(JSONObject().apply {
-                    put("sessionId", "session-3")
-                    put("dAppName", "dApp 3")
-                    put("walletAddress", TEST_ADDRESS)
-                })
-            })
-        })
+        givenBridgeReturns(
+            JSONObject().apply {
+                put(
+                    "items",
+                    JSONArray().apply {
+                        put(
+                            JSONObject().apply {
+                                put("sessionId", "session-1")
+                                put("dAppName", "dApp 1")
+                                put("walletAddress", TEST_ADDRESS)
+                            },
+                        )
+                        put(
+                            JSONObject().apply {
+                                put("sessionId", "session-2")
+                                put("dAppName", "dApp 2")
+                                put("walletAddress", TEST_ADDRESS)
+                            },
+                        )
+                        put(
+                            JSONObject().apply {
+                                put("sessionId", "session-3")
+                                put("dAppName", "dApp 3")
+                                put("walletAddress", TEST_ADDRESS)
+                            },
+                        )
+                    },
+                )
+            },
+        )
 
         val result = tonConnectOperations.listSessions()
 
@@ -189,7 +215,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
         val event = ConnectRequestEvent(
             id = "req-123",
-            walletAddress = TEST_ADDRESS
+            walletAddress = TEST_ADDRESS,
         )
 
         // Should not throw
@@ -203,7 +229,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
         val event = ConnectRequestEvent(
             id = "req-123",
             // Missing!
-            walletAddress = null
+            walletAddress = null,
         )
 
         tonConnectOperations.approveConnect(event)
@@ -216,7 +242,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
         givenBridgeReturns(JSONObject())
 
         val event = ConnectRequestEvent(
-            id = "req-123"
+            id = "req-123",
         )
 
         // Should not throw
@@ -228,7 +254,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
         givenBridgeReturns(JSONObject())
 
         val event = ConnectRequestEvent(
-            id = "req-123"
+            id = "req-123",
         )
 
         // Should not throw
@@ -243,7 +269,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
         val event = TransactionRequestEvent(
             id = "tx-req-123",
-            walletAddress = TEST_ADDRESS
+            walletAddress = TEST_ADDRESS,
         )
 
         // Should not throw
@@ -258,7 +284,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
         val event = TransactionRequestEvent(
             id = "tx-req-123",
-            walletAddress = TEST_ADDRESS
+            walletAddress = TEST_ADDRESS,
         )
 
         // Should not throw
@@ -281,7 +307,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
             messageId = "msg-123",
             method = "ton_requestAccounts",
             paramsJson = null,
-            url = TEST_DAPP_URL
+            url = TEST_DAPP_URL,
         ) { response ->
             callbackInvoked = true
             callbackResponse = response
@@ -304,8 +330,9 @@ class TonConnectOperationsTest : OperationsTestBase() {
         tonConnectOperations.handleTonConnectRequest(
             messageId = "msg-123",
             method = "ton_requestAccounts",
-            paramsJson = """{"invalid": json}""", // Malformed JSON in params
-            url = TEST_DAPP_URL
+            // Malformed JSON in params
+            paramsJson = """{"invalid": json}""",
+            url = TEST_DAPP_URL,
         ) { response ->
             callbackResponse = response
         }

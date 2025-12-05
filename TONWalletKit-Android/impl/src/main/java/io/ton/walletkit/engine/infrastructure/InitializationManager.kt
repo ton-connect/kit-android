@@ -202,6 +202,9 @@ internal class InitializationManager(
                                 // Use deviceInfo.features if provided, otherwise use configuration.features
                                 val featuresToUse = configuration.deviceInfo?.features ?: configuration.features
 
+                                // Add "SendTransaction" string for backward compatibility
+                                put(JsonConstants.FEATURE_SEND_TRANSACTION)
+                                // Add SendTransaction object with maxMessages for extended info
                                 put(
                                     JSONObject().apply {
                                         put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SEND_TRANSACTION)
