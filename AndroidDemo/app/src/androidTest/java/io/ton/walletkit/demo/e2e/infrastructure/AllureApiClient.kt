@@ -106,23 +106,24 @@ class AllureApiClient(private val config: AllureConfig) {
     }
 
     /**
-     * Get test case data by Allure ID.
+     * Get test result data by Allure test result ID.
      */
-    fun getTestCase(allureId: String): TestCaseResponse {
-        val responseBody = makeRequest("/api/rs/testcase/$allureId")
+    fun getTestResult(testResultId: String): TestResultResponse {
+        val responseBody = makeRequest("/api/testresult/$testResultId")
         return json.decodeFromString(responseBody)
     }
 
     /**
      * Get test case data including precondition and expected result.
+     * Uses the test result endpoint which has machine-readable JSON data.
      */
-    fun getTestCaseData(allureId: String): TestCaseData {
-        val testCase = getTestCase(allureId)
+    fun getTestCaseData(testResultId: String): TestCaseData {
+        val testResult = getTestResult(testResultId)
 
-        // Extract precondition and expected result from test case
-        val precondition = testCase.precondition ?: ""
-        val expectedResult = testCase.expectedResult ?: ""
-        val isPositiveCase = !testCase.name.contains("[ERROR]")
+        // Extract precondition and expected result from test result
+        val precondition = testResult.precondition ?: ""
+        val expectedResult = testResult.expectedResult ?: ""
+        val isPositiveCase = !testResult.name.contains("Error") && !testResult.name.contains("declined")
 
         return TestCaseData(
             precondition = precondition,
@@ -161,8 +162,9 @@ data class TokenResponse(
 )
 
 @Serializable
-data class TestCaseResponse(
+data class TestResultResponse(
     val id: Long,
+    val testCaseId: Long,
     val name: String,
     val precondition: String? = null,
     val expectedResult: String? = null,

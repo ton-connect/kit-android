@@ -31,6 +31,7 @@ import io.qameta.allure.kotlin.Feature
 import io.qameta.allure.kotlin.Severity
 import io.qameta.allure.kotlin.SeverityLevel
 import io.qameta.allure.kotlin.Story
+import io.ton.walletkit.demo.e2e.infrastructure.AllureTestIds
 import io.ton.walletkit.demo.e2e.infrastructure.BaseE2ETest
 import io.ton.walletkit.demo.e2e.infrastructure.SendTransactionTest
 import io.ton.walletkit.demo.e2e.infrastructure.TestCaseDataProvider
@@ -57,8 +58,6 @@ class SendTransactionE2ETest : BaseE2ETest() {
 
     companion object {
         private const val TAG = "SendTransactionE2ETest"
-        private const val SEND_TX_APPROVE_TEST_ID = "2297"
-        private const val SEND_TX_REJECT_TEST_ID = "2298"
     }
 
     @get:Rule
@@ -76,14 +75,14 @@ class SendTransactionE2ETest : BaseE2ETest() {
 
     @Test
     @SendTransactionTest
-    @AllureId("2297")
+    @AllureId(AllureTestIds.TX_IN_WALLET_BROWSER)
     @Severity(SeverityLevel.CRITICAL)
     @Description("Test that approving a send transaction request returns success")
     fun testSendTransactionApprove() {
         Log.d(TAG, "Starting Send Transaction Approve test")
 
         // Fetch test case data
-        val testData = TestCaseDataProvider.getTestCaseData(SEND_TX_APPROVE_TEST_ID, allureClient)
+        val testData = TestCaseDataProvider.getTestCaseData(AllureTestIds.TX_IN_WALLET_BROWSER, allureClient)
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
         Log.d(TAG, "Test data - precondition: ${precondition.take(100)}..., expectedResult: ${expectedResult.take(100)}...")
@@ -116,14 +115,14 @@ class SendTransactionE2ETest : BaseE2ETest() {
 
     @Test
     @SendTransactionTest
-    @AllureId("2298")
+    @AllureId(AllureTestIds.TX_USER_DECLINED)
     @Severity(SeverityLevel.CRITICAL)
     @Description("Test that rejecting a send transaction request returns appropriate error")
     fun testSendTransactionReject() {
         Log.d(TAG, "Starting Send Transaction Reject test")
 
         // Fetch test case data
-        val testData = TestCaseDataProvider.getTestCaseData(SEND_TX_REJECT_TEST_ID, allureClient)
+        val testData = TestCaseDataProvider.getTestCaseData(AllureTestIds.TX_USER_DECLINED, allureClient)
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
         Log.d(TAG, "Test data - precondition: ${precondition.take(100)}..., expectedResult: ${expectedResult.take(100)}...")

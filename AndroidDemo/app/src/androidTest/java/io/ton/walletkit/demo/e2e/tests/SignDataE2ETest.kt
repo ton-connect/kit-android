@@ -31,6 +31,7 @@ import io.qameta.allure.kotlin.Feature
 import io.qameta.allure.kotlin.Severity
 import io.qameta.allure.kotlin.SeverityLevel
 import io.qameta.allure.kotlin.Story
+import io.ton.walletkit.demo.e2e.infrastructure.AllureTestIds
 import io.ton.walletkit.demo.e2e.infrastructure.BaseE2ETest
 import io.ton.walletkit.demo.e2e.infrastructure.SignDataTest
 import io.ton.walletkit.demo.e2e.infrastructure.TestCaseDataProvider
@@ -57,8 +58,6 @@ class SignDataE2ETest : BaseE2ETest() {
 
     companion object {
         private const val TAG = "SignDataE2ETest"
-        private const val SIGN_DATA_APPROVE_TEST_ID = "2300"
-        private const val SIGN_DATA_REJECT_TEST_ID = "2301"
     }
 
     @get:Rule
@@ -76,14 +75,14 @@ class SignDataE2ETest : BaseE2ETest() {
 
     @Test
     @SignDataTest
-    @AllureId("2300")
+    @AllureId(AllureTestIds.SIGN_DATA_TEXT)
     @Severity(SeverityLevel.CRITICAL)
     @Description("Test that approving a sign data request returns valid signature")
     fun testSignDataApprove() {
         Log.d(TAG, "Starting Sign Data Approve test")
 
         // Fetch test case data
-        val testData = TestCaseDataProvider.getTestCaseData(SIGN_DATA_APPROVE_TEST_ID, allureClient)
+        val testData = TestCaseDataProvider.getTestCaseData(AllureTestIds.SIGN_DATA_TEXT, allureClient)
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
         Log.d(TAG, "Test data - precondition: ${precondition.take(100)}..., expectedResult: ${expectedResult.take(100)}...")
@@ -116,14 +115,14 @@ class SignDataE2ETest : BaseE2ETest() {
 
     @Test
     @SignDataTest
-    @AllureId("2301")
+    @AllureId(AllureTestIds.SIGN_DATA_BINARY)
     @Severity(SeverityLevel.CRITICAL)
     @Description("Test that rejecting a sign data request returns appropriate error")
     fun testSignDataReject() {
         Log.d(TAG, "Starting Sign Data Reject test")
 
         // Fetch test case data
-        val testData = TestCaseDataProvider.getTestCaseData(SIGN_DATA_REJECT_TEST_ID, allureClient)
+        val testData = TestCaseDataProvider.getTestCaseData(AllureTestIds.SIGN_DATA_BINARY, allureClient)
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
         Log.d(TAG, "Test data - precondition: ${precondition.take(100)}..., expectedResult: ${expectedResult.take(100)}...")

@@ -353,6 +353,83 @@ class JsDAppController {
     }
 
     /**
+     * Click the "Connect via Injected" button in the dApp's e2e test block.
+     * This is used for testing the JS bridge (injected provider) connection flow,
+     * where the wallet injects TonConnect into the WebView.
+     *
+     * NOTE: For this to work, the browser must be opened with injectTonConnect=true
+     * (using openBrowser(injectTonConnect = true) or reopening with injection enabled).
+     */
+    @Step("Click Connect via Injected button")
+    fun clickConnectViaInjectedButton() {
+        android.util.Log.d("JsDAppController", "Clicking Connect via Injected button...")
+
+        // First scroll to the e2e connect block
+        val scrollResult = jsBridge.evaluateJs(
+            """
+            (function() {
+                var connectBlock = document.querySelector('#e2e-connect-block');
+                if (!connectBlock) {
+                    connectBlock = document.querySelector('[data-testid="connect-block"]');
+                }
+                
+                if (connectBlock) {
+                    connectBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return 'scrolled';
+                }
+                return 'no_block';
+            })()
+            """.trimIndent(),
+        )
+
+        android.util.Log.d("JsDAppController", "Scroll result: $scrollResult")
+
+        // Try to find and click the "Connect via Injected" button
+        // This button should be in the dApp's e2e test section
+        val clicked = jsBridge.evaluateJs(
+            """
+            (function() {
+                // Look for a button with "injected" in the text or data-testid
+                var btn = document.querySelector('[data-testid="connect-injected-button"]');
+                if (!btn) {
+                    // Fallback: look for button with "Injected" text in the connect block
+                    var buttons = document.querySelectorAll('#e2e-connect-block button');
+                    for (var i = 0; i < buttons.length; i++) {
+                        if (buttons[i].textContent.toLowerCase().includes('injected')) {
+                            btn = buttons[i];
+                            break;
+                        }
+                    }
+                }
+                
+                if (!btn) {
+                    // Another fallback: look for TonConnect button that uses injected provider
+                    btn = document.querySelector('[data-tc-connect-button-injected]');
+                }
+                
+                if (!btn) {
+                    // Try the main TonConnect button which should auto-detect injected provider
+                    btn = document.querySelector('[data-tc-button]');
+                }
+                
+                if (btn) {
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    btn.click();
+                    return 'clicked_injected_button';
+                }
+                return 'no_injected_button';
+            })()
+            """.trimIndent(),
+        )
+
+        android.util.Log.d("JsDAppController", "Click result: $clicked")
+
+        if (clicked?.contains("clicked") != true) {
+            throw IllegalStateException("Could not find Connect via Injected button: $clicked")
+        }
+    }
+
+    /**
      * Click the copy link button in the TonConnect modal and extract the URL.
      *
      * The modal flow on mobile:

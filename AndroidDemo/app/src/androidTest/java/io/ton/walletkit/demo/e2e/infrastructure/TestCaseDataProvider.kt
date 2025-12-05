@@ -32,6 +32,10 @@ package io.ton.walletkit.demo.e2e.infrastructure
  * - The e2e page parses these using evalFenceCondition()
  * - Predicates like isValidString, isValidRawAddressString are available
  *
+ * IMPORTANT: These hardcoded IDs are TEST RESULT IDs from /api/testresult/,
+ * NOT test case IDs. Test result IDs (54898, 55063, etc.) contain the JSON
+ * precondition/expectedResult data that can be parsed by the test runner.
+ *
  * @see https://allure-test-runner.vercel.app/e2e
  */
 object TestCaseDataProvider {
@@ -57,55 +61,99 @@ object TestCaseDataProvider {
     /**
      * Get hardcoded test case data for known test IDs.
      * This mirrors the data structure in Allure TestOps.
+     *
+     * IDs map to Allure TestOps TEST RESULT IDs (from /api/testresult/):
+     * - 54898: [In-Wallet browser] Connect (testCaseId: 1289)
+     * - 55098: User declined the connection (testCaseId: 1095)
+     * - 54889: [In-Wallet browser] Send transaction (testCaseId: 1297)
+     * - 54913: User declined the transaction (testCaseId: 1122)
+     * - 54903: Sign text (testCaseId: 1148)
+     * - 54916: Sign binary (testCaseId: 1149)
+     * - 54901: Sign cell (testCaseId: 1150)
      */
     private fun getHardcodedTestCaseData(allureId: String): TestCaseData? = when (allureId) {
-        // Connect tests
-        "2294" -> TestCaseData(
+        // ========================================
+        // Connect tests (Test Result IDs from launch 6874)
+        // ========================================
+        "54898" -> TestCaseData( // CONNECT_IN_WALLET_BROWSER, CONNECT_INJECTED_WEBVIEW
             precondition = CONNECT_SUCCESS_PRECONDITION,
             expectedResult = CONNECT_SUCCESS_EXPECTED_RESULT,
             isPositiveCase = true,
         )
-        "2295" -> TestCaseData(
-            precondition = CONNECT_REJECT_PRECONDITION,
+        "55098" -> TestCaseData( // CONNECT_USER_DECLINED
+            precondition = CONNECT_SUCCESS_PRECONDITION,
             expectedResult = CONNECT_REJECT_EXPECTED_RESULT,
             isPositiveCase = false,
         )
-        // Send Transaction tests
-        "2297" -> TestCaseData(
+        "54888" -> TestCaseData( // CONNECT_WITHOUT_TON_PROOF
+            precondition = CONNECT_NO_TON_PROOF_PRECONDITION,
+            expectedResult = CONNECT_NO_TON_PROOF_EXPECTED_RESULT,
+            isPositiveCase = true,
+        )
+        "55107", "55063" -> TestCaseData( // CONNECT_FAKE_MANIFEST_URL (Universal/Custom QR)
+            precondition = CONNECT_FAKE_MANIFEST_PRECONDITION,
+            expectedResult = CONNECT_FAKE_MANIFEST_EXPECTED_RESULT,
+            isPositiveCase = false,
+        )
+        "54857", "54865" -> TestCaseData( // CONNECT_FAKE_URL_IN_MANIFEST (Universal/Custom QR)
+            precondition = CONNECT_FAKE_MANIFEST_PRECONDITION,
+            expectedResult = CONNECT_FAKE_URL_IN_MANIFEST_EXPECTED_RESULT,
+            isPositiveCase = false,
+        )
+        "55293", "54894", "54899" -> TestCaseData( // Desktop/Mobile Chrome Connect
+            precondition = CONNECT_SUCCESS_PRECONDITION,
+            expectedResult = CONNECT_SUCCESS_EXPECTED_RESULT,
+            isPositiveCase = true,
+        )
+
+        // ========================================
+        // Send Transaction tests (Test Result IDs)
+        // ========================================
+        "54889" -> TestCaseData( // TX_IN_WALLET_BROWSER, TX_SEND_INJECTED_WEBVIEW
             precondition = SEND_TX_PRECONDITION,
             expectedResult = SEND_TX_EXPECTED_RESULT,
             isPositiveCase = true,
         )
-        "2298" -> TestCaseData(
+        "54876", "54905", "54885" -> TestCaseData( // TX_SEND_HTTP_BRIDGE, Mobile Chrome, TMA
+            precondition = SEND_TX_PRECONDITION,
+            expectedResult = SEND_TX_EXPECTED_RESULT,
+            isPositiveCase = true,
+        )
+        "54913" -> TestCaseData( // TX_USER_DECLINED
             precondition = SEND_TX_PRECONDITION,
             expectedResult = SEND_TX_REJECT_EXPECTED_RESULT,
             isPositiveCase = false,
         )
-        // Sign Data tests
-        "2300" -> TestCaseData(
-            precondition = SIGN_DATA_PRECONDITION,
+
+        // ========================================
+        // Sign Data tests (Test Result IDs)
+        // ========================================
+        "54903" -> TestCaseData( // SIGN_DATA_TEXT
+            precondition = SIGN_DATA_TEXT_PRECONDITION,
             expectedResult = SIGN_DATA_EXPECTED_RESULT,
             isPositiveCase = true,
         )
-        "2301" -> TestCaseData(
-            precondition = SIGN_DATA_PRECONDITION,
-            expectedResult = SIGN_DATA_REJECT_EXPECTED_RESULT,
-            isPositiveCase = false,
+        "54916" -> TestCaseData( // SIGN_DATA_BINARY
+            precondition = SIGN_DATA_BINARY_PRECONDITION,
+            expectedResult = SIGN_DATA_EXPECTED_RESULT,
+            isPositiveCase = true,
         )
+        "54901" -> TestCaseData( // SIGN_DATA_CELL
+            precondition = SIGN_DATA_CELL_PRECONDITION,
+            expectedResult = SIGN_DATA_EXPECTED_RESULT,
+            isPositiveCase = true,
+        )
+
+        // ========================================
+        // Legacy IDs (keep for backward compatibility)
+        // ========================================
         else -> null
     }
 
     // ========================================
-    // Connect Test Data (ID: 2294 - Success)
+    // Connect Test Data - Success
     // ========================================
 
-    /**
-     * Precondition for successful connect test.
-     * Empty precondition - standard connect without special requirements.
-     * The __meta field can optionally specify:
-     * - manifestUrl: custom manifest URL
-     * - excludeTonProof: whether to exclude ton_proof from request
-     */
     private val CONNECT_SUCCESS_PRECONDITION = """
 ```json
 {
@@ -114,24 +162,6 @@ object TestCaseDataProvider {
 ```
     """.trimIndent()
 
-    /**
-     * Expected result for successful connect test.
-     * From Allure TestOps - [Mobile Chrome] Connect test case.
-     *
-     * Uses predicates from the test runner:
-     * - isNonNegativeInt: validates positive integer (for id)
-     * - isValidRawAddressString: validates TON address format
-     * - isValidNetwork: validates network value (-239 mainnet, -3 testnet)
-     * - isValidStateInitString: validates stateInit
-     * - isValidPublicKey: validates public key format
-     * - isValidCurrentTimestamp: validates timestamp is recent
-     * - appHostLength(): returns domain length
-     * - appHost(): returns domain value
-     * - tonProofPayload(): returns the ton_proof payload
-     * - isValidTonProofSignature: validates signature format
-     * - isValidString: validates non-empty string
-     * - isValidFeatureList: validates features array
-     */
     private val CONNECT_SUCCESS_EXPECTED_RESULT = """
 ```json
 {
@@ -172,27 +202,9 @@ object TestCaseDataProvider {
     """.trimIndent()
 
     // ========================================
-    // Connect Test Data (ID: 2295 - Reject)
+    // Connect Test Data - Reject
     // ========================================
 
-    /**
-     * Precondition for reject connect test.
-     * Same as success - user will manually reject.
-     */
-    private val CONNECT_REJECT_PRECONDITION = """
-```json
-{
-  "__meta": {}
-}
-```
-    """.trimIndent()
-
-    /**
-     * Expected result for rejected connect test.
-     * Validates that the connect response contains:
-     * - event: "connect_error"
-     * - payload.code: 300 (user declined connection)
-     */
     private val CONNECT_REJECT_EXPECTED_RESULT = """
 ```json
 {
@@ -206,13 +218,90 @@ object TestCaseDataProvider {
     """.trimIndent()
 
     // ========================================
+    // Connect Test Data - No ton_proof
+    // ========================================
+
+    private val CONNECT_NO_TON_PROOF_PRECONDITION = """
+```json
+{
+  "__meta": {
+    "excludeTonProof": true
+  }
+}
+```
+    """.trimIndent()
+
+    private val CONNECT_NO_TON_PROOF_EXPECTED_RESULT = """
+```json
+{
+    "event": "connect",
+    "id": isNonNegativeInt,
+    "payload": {
+        "items": [
+            {
+                "name": "ton_addr",
+                "address": isValidRawAddressString,
+                "network": isValidNetwork,
+                "walletStateInit": isValidStateInitString,
+                "publicKey": isValidPublicKey
+            }
+        ],
+        "device": {
+            "platform": "android",
+            "appName": isValidString,
+            "appVersion": isValidString,
+            "maxProtocolVersion": 2,
+            "features": isValidFeatureList
+        }
+    }
+}
+```
+    """.trimIndent()
+
+    // ========================================
+    // Connect Test Data - Fake manifest URL
+    // ========================================
+
+    private val CONNECT_FAKE_MANIFEST_PRECONDITION = """
+```json
+{
+  "__meta": {
+    "manifestUrl": "https://tonkeeper/tonconnect-manifest.json"
+  }
+}
+```
+    """.trimIndent()
+
+    private val CONNECT_FAKE_MANIFEST_EXPECTED_RESULT = """
+```json
+{
+    "event": "connect_error",
+    "payload": {
+        "code": 2,
+        "message": "App manifest not found"
+    },
+    "id": isNonNegativeInt
+}
+```
+    """.trimIndent()
+
+    private val CONNECT_FAKE_URL_IN_MANIFEST_EXPECTED_RESULT = """
+```json
+{
+    "event": "connect_error",
+    "payload": {
+        "code": 3,
+        "message": isValidString
+    },
+    "id": isNonNegativeInt
+}
+```
+    """.trimIndent()
+
+    // ========================================
     // Send Transaction Test Data
     // ========================================
 
-    /**
-     * Precondition for send transaction test.
-     * Contains the transaction payload to send.
-     */
     private val SEND_TX_PRECONDITION = """
 ```json
 {
@@ -228,9 +317,6 @@ object TestCaseDataProvider {
 ```
     """.trimIndent()
 
-    /**
-     * Expected result for send transaction test.
-     */
     private val SEND_TX_EXPECTED_RESULT = """
 ```json
 {
@@ -240,9 +326,6 @@ object TestCaseDataProvider {
 ```
     """.trimIndent()
 
-    /**
-     * Expected result for rejected send transaction test.
-     */
     private val SEND_TX_REJECT_EXPECTED_RESULT = """
 ```json
 {
@@ -259,55 +342,42 @@ object TestCaseDataProvider {
     // Sign Data Test Data
     // ========================================
 
-    /**
-     * Precondition for sign data test.
-     * Contains the data to sign.
-     */
-    private val SIGN_DATA_PRECONDITION = """
+    private val SIGN_DATA_TEXT_PRECONDITION = """
 ```json
 {
-  "type": "binary",
-  "bytes": "SSBjb25maXJtIHRoaXMgdGVzdCBzaWduYXR1cmUgcmVxdWVzdC4=",
-  "from": sender('raw'),
-  "network": "-239"
+  "type": "text",
+  "text": "I confirm this test signature request."
 }
 ```
     """.trimIndent()
 
-    /**
-     * Expected result for sign data test.
-     */
+    private val SIGN_DATA_BINARY_PRECONDITION = """
+```json
+{
+  "type": "binary",
+  "bytes": "SSBjb25maXJtIHRoaXMgdGVzdCBzaWduYXR1cmUgcmVxdWVzdC4="
+}
+```
+    """.trimIndent()
+
+    private val SIGN_DATA_CELL_PRECONDITION = """
+```json
+{
+  "type": "cell",
+  "schema": "message#_ len:uint16 text:(bits len) = Message",
+  "cell": "te6ccsEBAQEAFgAAKAAoSSBjb25maXJtIHRoaXMgdGVzdC5lJ2Uc"
+}
+```
+    """.trimIndent()
+
     private val SIGN_DATA_EXPECTED_RESULT = """
 ```json
 {
   "id": isValidSignDataId,
   "result": {
     "signature": isValidDataSignature,
-    "address": isValidRawAddressString,
-    "timestamp": isValidCurrentTimestamp,
-    "domain": appHost(),
-    "payload": {
-      "type": "binary",
-      "bytes": "SSBjb25maXJtIHRoaXMgdGVzdCBzaWduYXR1cmUgcmVxdWVzdC4=",
-      "from": sender('raw'),
-      "network": "-239"
-    }
+    "timestamp": isValidCurrentTimestamp
   }
-}
-```
-    """.trimIndent()
-
-    /**
-     * Expected result for rejected sign data test.
-     */
-    private val SIGN_DATA_REJECT_EXPECTED_RESULT = """
-```json
-{
-  "error": {
-    "code": 300,
-    "message": isValidString
-  },
-  "id": isValidSignDataId
 }
 ```
     """.trimIndent()
