@@ -212,14 +212,8 @@ jobs:
             adb install -r apks/app-debug-androidTest.apk
             OUTPUT=$(adb shell am instrument -w -e class io.ton.walletkit.demo.e2e.tests.${{ matrix.test-class }} -e allureToken "${{ secrets.ALLURE_API_TOKEN }}" io.ton.walletkit.demo.test/androidx.test.runner.AndroidJUnitRunner 2>&1)
             echo "$OUTPUT"
-            if echo "$OUTPUT" | grep -q "FAILURES"; then
-              echo "::error::E2E tests failed for ${{ matrix.test-class }}"
-              exit 1
-            fi
-            if echo "$OUTPUT" | grep -q "Error in"; then
-              echo "::error::E2E tests had errors for ${{ matrix.test-class }}"
-              exit 1
-            fi
+            echo "$OUTPUT" | grep -q "FAILURES" && echo "::error::E2E tests failed for ${{ matrix.test-class }}" && exit 1 || true
+            echo "$OUTPUT" | grep -q "Error in" && echo "::error::E2E tests had errors for ${{ matrix.test-class }}" && exit 1 || true
 
       - name: Upload test results
         if: always()
