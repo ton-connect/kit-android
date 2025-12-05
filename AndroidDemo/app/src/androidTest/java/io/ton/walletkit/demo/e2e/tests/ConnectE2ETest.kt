@@ -231,27 +231,4 @@ class ConnectE2ETest : BaseE2ETest() {
             assert(validationPassed) { "dApp rejection validation failed - got: $validationText" }
         }
     }
-
-    // Disconnect test commented out until disconnect flow is implemented
-    // @Test
-    // @ConnectTest
-    // @AllureId("2296")
-    // @Severity(SeverityLevel.NORMAL)
-    // @Description("Verify user can disconnect from a connected dApp")
-    // fun testDisconnect() {
-    //     // First connect
-    //     testSuccessfulConnect()
-    //
-    //     step("Disconnect from dApp") {
-    //         dAppController.openBrowser()
-    //         dAppController.disconnect()
-    //         dAppController.closeBrowser()
-    //     }
-    //
-    //     step("Verify disconnected") {
-    //         dAppController.openBrowser()
-    //         assert(!dAppController.isConnected())
-    //         dAppController.closeBrowser()
-    //     }
-    // }
 }
