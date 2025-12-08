@@ -216,6 +216,14 @@ object TONWalletKitHelper {
     private var mainnetInstance: ITONWalletKit? = null
     private val mutex = kotlinx.coroutines.sync.Mutex()
 
+    /**
+     * Flag to disable network send for testing.
+     * When true, transactions will be simulated but not actually sent to the network.
+     * Set this BEFORE initializing the SDK.
+     */
+    @Volatile
+    var disableNetworkSend: Boolean = false
+
     suspend fun mainnet(application: Application): ITONWalletKit {
         // Fast path: already initialized
         mainnetInstance?.let { return it }
@@ -229,6 +237,13 @@ object TONWalletKitHelper {
             }
 
             Log.w("TONWalletKitHelper", "🔶🔶🔶 Creating NEW ITONWalletKit instance...")
+
+            val devOptions = if (disableNetworkSend) {
+                Log.w("TONWalletKitHelper", "⚠️ Network send is DISABLED - transactions will be simulated only")
+                TONWalletKitConfiguration.DevOptions(disableNetworkSend = true)
+            } else {
+                null
+            }
 
             val config = TONWalletKitConfiguration(
                 network = TONNetwork.MAINNET,
@@ -251,6 +266,7 @@ object TONWalletKitHelper {
                     ),
                 ),
                 storage = TONWalletKitConfiguration.Storage(persistent = true),
+                dev = devOptions,
             )
 
             val kit = ITONWalletKit.initialize(application, config)

@@ -38,6 +38,7 @@ import kotlinx.serialization.Serializable
  * @property apiClient API client configuration (optional)
  * @property features Supported wallet features (used if deviceInfo not provided)
  * @property storage Storage configuration
+ * @property dev Development options for testing
  */
 @Serializable
 data class TONWalletKitConfiguration(
@@ -49,6 +50,8 @@ data class TONWalletKitConfiguration(
     val storage: Storage = Storage(),
     @kotlinx.serialization.Transient
     val deviceInfo: DeviceInfo? = null,
+    @kotlinx.serialization.Transient
+    val dev: DevOptions? = null,
 ) {
     /**
      * Wallet manifest for TON Connect.
@@ -110,6 +113,15 @@ data class TONWalletKitConfiguration(
     @Serializable
     data class Storage(
         val persistent: Boolean = true,
+    )
+
+    /**
+     * Development options for testing.
+     *
+     * @property disableNetworkSend When true, transactions will be simulated but not sent to the network
+     */
+    data class DevOptions(
+        val disableNetworkSend: Boolean = false,
     )
 
     /**

@@ -21,7 +21,6 @@
  */
 package io.ton.walletkit.demo.e2e.tests
 
-import android.util.Log
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -36,28 +35,42 @@ import io.ton.walletkit.demo.e2e.infrastructure.BaseE2ETest
 import io.ton.walletkit.demo.e2e.infrastructure.SendTransactionTest
 import io.ton.walletkit.demo.e2e.infrastructure.TestCaseDataProvider
 import io.ton.walletkit.demo.presentation.MainActivity
+import org.junit.FixMethodOrder
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.runners.MethodSorters
 
 /**
- * E2E tests for Send Transaction functionality.
+ * E2E tests for Send Transaction functionality via HTTP bridge (normal WebView).
  *
- * These tests verify the send transaction flow works correctly by:
- * 1. Connecting to the test dApp
- * 2. Filling in precondition and expected result from test data
- * 3. Triggering send transaction
- * 4. Approving or rejecting in the wallet
- * 5. Validating the result matches expected outcome
+ * Flow for first test:
+ * 1. Open browser, fill sendTx precondition and expected result fields
+ * 2. Click "Connect and Send Transaction" button - opens TonConnect modal
+ * 3. Copy the TonConnect URL from the modal
+ * 4. Close browser, paste URL into wallet, approve connect request
+ * 5. Re-open browser, click "Send Transaction" button (now connected)
+ * 6. Approve/reject transaction in wallet
+ * 7. Re-open browser and verify the validation result
+ *
+ * Flow for subsequent tests (already connected):
+ * 1. Open browser, fill test data
+ * 2. Click "Send Transaction" button
+ * 3. Approve/reject transaction in wallet
+ * 4. Re-open browser and verify validation result
+ *
+ * Tests are ordered to run approve first (which establishes connection), then reject.
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 @Feature("TonConnect")
 @Story("Send Transaction")
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class SendTransactionE2ETest : BaseE2ETest() {
 
     companion object {
-        private const val TAG = "SendTransactionE2ETest"
+        @Volatile
+        private var isConnected = false
     }
 
     @get:Rule
@@ -73,43 +86,73 @@ class SendTransactionE2ETest : BaseE2ETest() {
         ensureWalletReady()
     }
 
+    /**
+     * Connect to the dApp if not already connected.
+     */
+    private fun ensureConnected() {
+        if (isConnected) return
+
+        dAppController.openBrowser()
+        dAppController.waitForDAppPage()
+        dAppController.clickSendTransaction()
+
+        val connectUrl = dAppController.clickCopyLinkInModal()
+
+        dAppController.closeBrowserFully()
+        walletController.connectByUrl(connectUrl)
+
+        waitFor(timeoutMs = 10000) { walletController.isConnectRequestVisible() }
+        walletController.approveConnect()
+        waitFor(timeoutMs = 5000) { !walletController.isConnectRequestVisible() }
+
+        isConnected = true
+    }
+
     @Test
     @SendTransactionTest
     @AllureId(AllureTestIds.TX_IN_WALLET_BROWSER)
     @Severity(SeverityLevel.CRITICAL)
     @Description("Test that approving a send transaction request returns success")
-    fun testSendTransactionApprove() {
-        Log.d(TAG, "Starting Send Transaction Approve test")
-
-        // Fetch test case data
+    fun test1_SendTransactionApprove() {
         val testData = TestCaseDataProvider.getTestCaseData(AllureTestIds.TX_IN_WALLET_BROWSER, allureClient)
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
-        Log.d(TAG, "Test data - precondition: ${precondition.take(100)}..., expectedResult: ${expectedResult.take(100)}...")
 
-        // Setup wallet and connect to dApp
-        connectToDApp(precondition, expectedResult, "sendTx")
-
-        // Scroll to send transaction section
-        step("Scroll to Send Transaction section") {
-            dAppController.scrollToSendTxValidation()
+        step("Ensure wallet is connected to dApp") {
+            ensureConnected()
         }
 
-        // Click send transaction button
+        step("Open browser and fill sendTx test data") {
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+            if (precondition.isNotBlank()) dAppController.fillSendTxPrecondition(precondition)
+            if (expectedResult.isNotBlank()) dAppController.fillSendTxExpectedResult(expectedResult)
+        }
+
         step("Click Send Transaction button") {
             dAppController.clickSendTransaction()
         }
 
-        // Approve in wallet
-        step("Approve transaction in wallet") {
+        step("Wait for transaction request") {
+            waitFor(timeoutMs = 15000) { walletController.isTransactionRequestVisible() }
+        }
+
+        step("Approve transaction") {
             walletController.approveTransaction()
         }
 
-        // Verify result
-        step("Verify send transaction result") {
+        step("Verify transaction result in browser") {
+            waitFor(timeoutMs = 5000) { !walletController.isTransactionRequestVisible() }
+            Thread.sleep(2000)
+
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+            dAppController.scrollToSendTxValidation()
             val isValid = dAppController.verifySendTxValidation()
-            assert(isValid) { "Send Transaction validation failed - expected 'Validation Passed'" }
-            Log.d(TAG, "✅ Send Transaction Approve test passed!")
+            val validationText = dAppController.getSendTxValidationResult()
+
+            dAppController.closeBrowserFully()
+            assert(isValid) { "Send Transaction validation failed - got: $validationText" }
         }
     }
 
@@ -118,96 +161,46 @@ class SendTransactionE2ETest : BaseE2ETest() {
     @AllureId(AllureTestIds.TX_USER_DECLINED)
     @Severity(SeverityLevel.CRITICAL)
     @Description("Test that rejecting a send transaction request returns appropriate error")
-    fun testSendTransactionReject() {
-        Log.d(TAG, "Starting Send Transaction Reject test")
-
-        // Fetch test case data
+    fun test2_SendTransactionReject() {
         val testData = TestCaseDataProvider.getTestCaseData(AllureTestIds.TX_USER_DECLINED, allureClient)
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
-        Log.d(TAG, "Test data - precondition: ${precondition.take(100)}..., expectedResult: ${expectedResult.take(100)}...")
 
-        // Setup wallet and connect to dApp
-        connectToDApp(precondition, expectedResult, "sendTx")
-
-        // Scroll to send transaction section
-        step("Scroll to Send Transaction section") {
-            dAppController.scrollToSendTxValidation()
+        step("Ensure wallet is connected to dApp") {
+            ensureConnected()
         }
 
-        // Click send transaction button
+        step("Open browser and fill sendTx test data") {
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+            if (precondition.isNotBlank()) dAppController.fillSendTxPrecondition(precondition)
+            if (expectedResult.isNotBlank()) dAppController.fillSendTxExpectedResult(expectedResult)
+        }
+
         step("Click Send Transaction button") {
             dAppController.clickSendTransaction()
         }
 
-        // Reject in wallet
-        step("Reject transaction in wallet") {
+        step("Wait for transaction request") {
+            waitFor(timeoutMs = 15000) { walletController.isTransactionRequestVisible() }
+        }
+
+        step("Reject transaction") {
             walletController.rejectTransaction()
         }
 
-        // Verify result
-        step("Verify send transaction reject result") {
+        step("Verify transaction reject result in browser") {
+            waitFor(timeoutMs = 5000) { !walletController.isTransactionRequestVisible() }
+            Thread.sleep(2000)
+
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+            dAppController.scrollToSendTxValidation()
             val isValid = dAppController.verifySendTxValidation()
-            assert(isValid) { "Send Transaction reject validation failed - expected 'Validation Passed'" }
-            Log.d(TAG, "✅ Send Transaction Reject test passed!")
-        }
-    }
+            val validationText = dAppController.getSendTxValidationResult()
 
-    /**
-     * Connect to dApp and fill in test data fields.
-     * Wallet is already set up in setUp(), so we just need to connect.
-     */
-    private fun connectToDApp(precondition: String, expectedResult: String, testType: String) {
-        step("Get TonConnect URL from dApp") {
-            dAppController.openBrowser()
-            dAppController.waitForDAppPage()
-
-            // Fill precondition and expected result for the specific test type
-            when (testType) {
-                "sendTx" -> {
-                    if (precondition.isNotBlank()) {
-                        Log.d(TAG, "Filling send tx precondition...")
-                        dAppController.fillSendTxPrecondition(precondition)
-                    }
-                    if (expectedResult.isNotBlank()) {
-                        Log.d(TAG, "Filling send tx expectedResult...")
-                        dAppController.fillSendTxExpectedResult(expectedResult)
-                    }
-                }
-            }
-
-            // Click Connect and get URL
-            dAppController.clickConnectButton()
-            val connectUrl = dAppController.clickCopyLinkInModal()
             dAppController.closeBrowserFully()
-
-            step("Paste TonConnect URL into wallet") {
-                walletController.connectByUrl(connectUrl)
-            }
-        }
-
-        step("Wait for connect request sheet") {
-            waitFor(timeoutMs = 10000) {
-                walletController.isConnectRequestVisible()
-            }
-        }
-
-        step("Approve connection") {
-            walletController.approveConnect()
-        }
-
-        step("Verify connection established") {
-            waitFor(timeoutMs = 5000) {
-                !walletController.isConnectRequestVisible()
-            }
-        }
-
-        step("Re-open dApp browser to continue test") {
-            dAppController.openBrowser()
-            dAppController.waitForDAppPage()
-
-            // Close TonConnect modal if still open
-            dAppController.closeTonConnectModal()
+            assert(isValid) { "Send Transaction reject validation failed - got: $validationText" }
         }
     }
 }

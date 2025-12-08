@@ -21,7 +21,6 @@
  */
 package io.ton.walletkit.demo.e2e.tests
 
-import android.util.Log
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -36,28 +35,41 @@ import io.ton.walletkit.demo.e2e.infrastructure.BaseE2ETest
 import io.ton.walletkit.demo.e2e.infrastructure.SignDataTest
 import io.ton.walletkit.demo.e2e.infrastructure.TestCaseDataProvider
 import io.ton.walletkit.demo.presentation.MainActivity
+import org.junit.FixMethodOrder
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.runners.MethodSorters
 
 /**
- * E2E tests for Sign Data functionality.
+ * E2E tests for Sign Data functionality via HTTP bridge (normal WebView).
  *
- * These tests verify the sign data flow works correctly by:
- * 1. Connecting to the test dApp
- * 2. Filling in precondition and expected result from test data
- * 3. Triggering sign data request
- * 4. Approving or rejecting in the wallet
- * 5. Validating the result matches expected outcome
+ * Flow for first test:
+ * 1. Open browser, click "Connect and Sign Data" button - opens TonConnect modal
+ * 2. Copy the TonConnect URL from the modal
+ * 3. Close browser, paste URL into wallet, approve connect request
+ * 4. Re-open browser, fill test data, click "Sign Data" button (now connected)
+ * 5. Approve/reject sign data in wallet
+ * 6. Re-open browser and verify the validation result
+ *
+ * Flow for subsequent tests (already connected):
+ * 1. Open browser, fill test data
+ * 2. Click "Sign Data" button
+ * 3. Approve/reject sign data in wallet
+ * 4. Re-open browser and verify validation result
+ *
+ * Tests are ordered to run approve first (which establishes connection), then reject.
  */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 @Feature("TonConnect")
 @Story("Sign Data")
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class SignDataE2ETest : BaseE2ETest() {
 
     companion object {
-        private const val TAG = "SignDataE2ETest"
+        @Volatile
+        private var isConnected = false
     }
 
     @get:Rule
@@ -73,43 +85,71 @@ class SignDataE2ETest : BaseE2ETest() {
         ensureWalletReady()
     }
 
+    /**
+     * Connect to the dApp if not already connected.
+     */
+    private fun ensureConnected() {
+        if (isConnected) return
+
+        dAppController.openBrowser()
+        dAppController.waitForDAppPage()
+        dAppController.clickSignData()
+
+        val connectUrl = dAppController.clickCopyLinkInModal()
+
+        dAppController.closeBrowserFully()
+        walletController.connectByUrl(connectUrl)
+
+        waitFor(timeoutMs = 10000) { walletController.isConnectRequestVisible() }
+        walletController.approveConnect()
+        waitFor(timeoutMs = 5000) { !walletController.isConnectRequestVisible() }
+
+        isConnected = true
+    }
+
     @Test
     @SignDataTest
     @AllureId(AllureTestIds.SIGN_DATA_TEXT)
     @Severity(SeverityLevel.CRITICAL)
     @Description("Test that approving a sign data request returns valid signature")
-    fun testSignDataApprove() {
-        Log.d(TAG, "Starting Sign Data Approve test")
-
-        // Fetch test case data
+    fun test1_SignDataApprove() {
         val testData = TestCaseDataProvider.getTestCaseData(AllureTestIds.SIGN_DATA_TEXT, allureClient)
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
-        Log.d(TAG, "Test data - precondition: ${precondition.take(100)}..., expectedResult: ${expectedResult.take(100)}...")
 
-        // Setup wallet and connect to dApp
-        connectToDApp(precondition, expectedResult, "signData")
-
-        // Scroll to sign data section
-        step("Scroll to Sign Data section") {
-            dAppController.scrollToSignDataValidation()
+        step("Ensure wallet is connected to dApp") {
+            ensureConnected()
         }
 
-        // Click sign data button
+        step("Open browser and fill sign data test data") {
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+            if (precondition.isNotBlank()) dAppController.fillSignDataPrecondition(precondition)
+            if (expectedResult.isNotBlank()) dAppController.fillSignDataExpectedResult(expectedResult)
+        }
+
         step("Click Sign Data button") {
             dAppController.clickSignData()
         }
 
-        // Approve in wallet
+        step("Wait for sign data request") {
+            waitFor(timeoutMs = 15000) { walletController.isSignDataRequestVisible() }
+        }
+
         step("Approve sign data in wallet") {
             walletController.approveSignData()
         }
 
-        // Verify result
-        step("Verify sign data result") {
+        step("Verify sign data result in browser") {
+            waitFor(timeoutMs = 5000) { !walletController.isSignDataRequestVisible() }
+            Thread.sleep(2000)
+
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
             val isValid = dAppController.verifySignDataValidation()
+
+            dAppController.closeBrowserFully()
             assert(isValid) { "Sign Data validation failed - expected 'Validation Passed'" }
-            Log.d(TAG, "✅ Sign Data Approve test passed!")
         }
     }
 
@@ -118,96 +158,44 @@ class SignDataE2ETest : BaseE2ETest() {
     @AllureId(AllureTestIds.SIGN_DATA_BINARY)
     @Severity(SeverityLevel.CRITICAL)
     @Description("Test that rejecting a sign data request returns appropriate error")
-    fun testSignDataReject() {
-        Log.d(TAG, "Starting Sign Data Reject test")
-
-        // Fetch test case data
+    fun test2_SignDataReject() {
         val testData = TestCaseDataProvider.getTestCaseData(AllureTestIds.SIGN_DATA_BINARY, allureClient)
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
-        Log.d(TAG, "Test data - precondition: ${precondition.take(100)}..., expectedResult: ${expectedResult.take(100)}...")
 
-        // Setup wallet and connect to dApp
-        connectToDApp(precondition, expectedResult, "signData")
-
-        // Scroll to sign data section
-        step("Scroll to Sign Data section") {
-            dAppController.scrollToSignDataValidation()
+        step("Ensure wallet is connected to dApp") {
+            ensureConnected()
         }
 
-        // Click sign data button
+        step("Open browser and fill sign data test data") {
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+            if (precondition.isNotBlank()) dAppController.fillSignDataPrecondition(precondition)
+            if (expectedResult.isNotBlank()) dAppController.fillSignDataExpectedResult(expectedResult)
+        }
+
         step("Click Sign Data button") {
             dAppController.clickSignData()
         }
 
-        // Reject in wallet
+        step("Wait for sign data request") {
+            waitFor(timeoutMs = 15000) { walletController.isSignDataRequestVisible() }
+        }
+
         step("Reject sign data in wallet") {
             walletController.rejectSignData()
         }
 
-        // Verify result
-        step("Verify sign data reject result") {
+        step("Verify sign data reject result in browser") {
+            waitFor(timeoutMs = 5000) { !walletController.isSignDataRequestVisible() }
+            Thread.sleep(2000)
+
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
             val isValid = dAppController.verifySignDataValidation()
-            assert(isValid) { "Sign Data reject validation failed - expected 'Validation Passed'" }
-            Log.d(TAG, "✅ Sign Data Reject test passed!")
-        }
-    }
 
-    /**
-     * Connect to dApp and fill in test data fields.
-     * Wallet is already set up in setUp(), so we just need to connect.
-     */
-    private fun connectToDApp(precondition: String, expectedResult: String, testType: String) {
-        step("Get TonConnect URL from dApp") {
-            dAppController.openBrowser()
-            dAppController.waitForDAppPage()
-
-            // Fill precondition and expected result for the specific test type
-            when (testType) {
-                "signData" -> {
-                    if (precondition.isNotBlank()) {
-                        Log.d(TAG, "Filling sign data precondition...")
-                        dAppController.fillSignDataPrecondition(precondition)
-                    }
-                    if (expectedResult.isNotBlank()) {
-                        Log.d(TAG, "Filling sign data expectedResult...")
-                        dAppController.fillSignDataExpectedResult(expectedResult)
-                    }
-                }
-            }
-
-            // Click Connect and get URL
-            dAppController.clickConnectButton()
-            val connectUrl = dAppController.clickCopyLinkInModal()
             dAppController.closeBrowserFully()
-
-            step("Paste TonConnect URL into wallet") {
-                walletController.connectByUrl(connectUrl)
-            }
-        }
-
-        step("Wait for connect request sheet") {
-            waitFor(timeoutMs = 10000) {
-                walletController.isConnectRequestVisible()
-            }
-        }
-
-        step("Approve connection") {
-            walletController.approveConnect()
-        }
-
-        step("Verify connection established") {
-            waitFor(timeoutMs = 5000) {
-                !walletController.isConnectRequestVisible()
-            }
-        }
-
-        step("Re-open dApp browser to continue test") {
-            dAppController.openBrowser()
-            dAppController.waitForDAppPage()
-
-            // Close TonConnect modal if still open
-            dAppController.closeTonConnectModal()
+            assert(isValid) { "Sign Data reject validation failed - expected 'Validation Passed'" }
         }
     }
 }

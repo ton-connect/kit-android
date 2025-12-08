@@ -206,11 +206,11 @@ object AllureTestIds {
     // GROUP 5: TRANSACTION - MERKLE & JETTON + SIGN DATA
     // =====================================================================
 
-    /** Test Result 54889: [In-Wallet browser] Send transaction (testCaseId: 1297) */
-    const val TX_IN_WALLET_BROWSER = "54889"
+    /** Test Result 55968: [In-Wallet browser] Send transaction (testCaseId: 1297) */
+    const val TX_IN_WALLET_BROWSER = "55968"
 
     /** Test Result 54889: [In-Wallet browser] Send transaction - injected WebView (testCaseId: 1297) */
-    const val TX_SEND_INJECTED_WEBVIEW = "54889"
+    const val TX_SEND_INJECTED_WEBVIEW = "55968"
 
     /** Test Result 54876: [Desktop browser] Send transaction (testCaseId: 1291) */
     const val TX_SEND_HTTP_BRIDGE = "54876"

@@ -30,6 +30,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import io.qameta.allure.kotlin.Step
@@ -366,26 +368,80 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
      */
     @Step("Import wallet with mnemonic")
     fun importWallet(mnemonic: List<String>) {
+        android.util.Log.d("WalletController", "importWallet called with ${mnemonic.size} words")
         val mnemonicString = mnemonic.joinToString(" ")
+        android.util.Log.d("WalletController", "Mnemonic to enter: '${mnemonicString.take(50)}...' (${mnemonicString.length} chars)")
 
         // Wait for mnemonic field (the paste field in AddWalletSheet)
+        android.util.Log.d("WalletController", "Waiting for MNEMONIC_FIELD...")
         composeTestRule.waitUntil(5000) {
             composeTestRule.onAllNodesWithTag(TestTags.MNEMONIC_FIELD)
                 .fetchSemanticsNodes().isNotEmpty()
         }
+        android.util.Log.d("WalletController", "MNEMONIC_FIELD found, entering mnemonic...")
 
-        // Enter mnemonic
+        // Clear field first and enter mnemonic
+        composeTestRule.onNodeWithTag(TestTags.MNEMONIC_FIELD)
+            .performTextClearance()
         composeTestRule.onNodeWithTag(TestTags.MNEMONIC_FIELD)
             .performTextInput(mnemonicString)
+        android.util.Log.d("WalletController", "Mnemonic text input performed")
 
-        // Wait a bit for auto-parsing
+        // Wait for auto-parsing to complete
+        composeTestRule.waitForIdle()
+        Thread.sleep(1000) // Give time for mnemonic parsing
+        android.util.Log.d("WalletController", "Waited for parsing")
+
+        // Scroll to the import button (it may be below the visible area)
+        android.util.Log.d("WalletController", "Scrolling to IMPORT_WALLET_PROCESS_BUTTON...")
+        try {
+            composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON)
+                .performScrollTo()
+            android.util.Log.d("WalletController", "Scrolled to import button")
+        } catch (e: Exception) {
+            android.util.Log.w("WalletController", "Could not scroll to import button: ${e.message}")
+        }
+
+        composeTestRule.waitForIdle()
+        Thread.sleep(500) // Let scroll animation complete
+
+        // Check if import button exists and is enabled
+        val importButtonExists = composeTestRule.onAllNodesWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON)
+            .fetchSemanticsNodes().isNotEmpty()
+        android.util.Log.d("WalletController", "Import button exists: $importButtonExists")
 
         // Click import button
-        composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON)
-            .performClick()
+        android.util.Log.d("WalletController", "Clicking IMPORT_WALLET_PROCESS_BUTTON...")
+        try {
+            composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON)
+                .performClick()
+            android.util.Log.d("WalletController", "Import button clicked successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("WalletController", "Failed to click import button: ${e.message}")
+            throw e
+        }
 
-        // Wait for wallet to be imported
+        // Wait for wallet to be imported - check for home screen or error
         composeTestRule.waitForIdle()
+        Thread.sleep(2000) // Give time for import to complete
+
+        // Check if we're on home screen now
+        val onHomeAfterImport = try {
+            composeTestRule.onNodeWithTag(TestTags.BROWSER_NO_INJECT_BUTTON).assertExists()
+            true
+        } catch (e: AssertionError) {
+            false
+        }
+        android.util.Log.d("WalletController", "After import - on home screen: $onHomeAfterImport")
+
+        // Check if AddWalletSheet is still showing (import may have failed)
+        val addWalletStillShowing = try {
+            composeTestRule.onNodeWithTag(TestTags.ADD_WALLET_TAB_GENERATE).assertExists()
+            true
+        } catch (e: AssertionError) {
+            false
+        }
+        android.util.Log.d("WalletController", "After import - AddWalletSheet still showing: $addWalletStillShowing")
     }
 
     /**
@@ -485,13 +541,66 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     /**
      * Complete the full wallet setup flow.
      * Handles both fresh setup (SetupPasswordScreen) and existing setup (UnlockWalletScreen).
+     *
+     * For e2e tests that need a specific wallet:
+     * - If no wallet exists: sets up password and imports wallet
+     * - If wallet already exists: unlocks and checks if AddWalletSheet is shown
+     *   - If AddWalletSheet: imports wallet
+     *   - If home screen: wallet already set up, skip import (assume same wallet)
      */
     @Step("Complete wallet setup")
     fun setupWallet(mnemonic: List<String>, password: String = "testpass123") {
+        android.util.Log.d("WalletController", "=== setupWallet called with ${mnemonic.size} word mnemonic ===")
+        composeTestRule.waitForIdle()
+
+        // Check if we're already on home screen (wallet exists from previous run)
+        val onHomeScreen = isOnHomeScreen()
+        android.util.Log.d("WalletController", "Initial check - isOnHomeScreen: $onHomeScreen")
+        if (onHomeScreen) {
+            android.util.Log.d("WalletController", "Already on home screen - wallet exists, skipping setup")
+            return
+        }
+
+        // Check if AddWalletSheet is already showing (password was set previously)
+        val addWalletShowing = isAddWalletSheetShowing()
+        android.util.Log.d("WalletController", "Initial check - isAddWalletSheetShowing: $addWalletShowing")
+        if (addWalletShowing) {
+            android.util.Log.d("WalletController", "AddWalletSheet already showing - importing wallet directly")
+            importWallet(mnemonic)
+            return
+        }
+
         // First authenticate (handles both setup and unlock)
+        android.util.Log.d("WalletController", "Neither home nor AddWalletSheet detected, calling authenticate()...")
         authenticate(password)
 
-        // Then import wallet
+        // After authentication, wait for UI to stabilize
+        composeTestRule.waitForIdle()
+        android.util.Log.d("WalletController", "authenticate() completed, checking state...")
+
+        // Check state after authentication
+        for (i in 1..10) {
+            composeTestRule.waitForIdle()
+
+            // If on home screen, wallet already exists
+            if (isOnHomeScreen()) {
+                android.util.Log.d("WalletController", "On home screen after auth (check $i) - wallet exists, skipping import")
+                return
+            }
+
+            // If AddWalletSheet is showing, import wallet
+            if (isAddWalletSheetShowing()) {
+                android.util.Log.d("WalletController", "AddWalletSheet showing after auth (check $i) - importing wallet")
+                importWallet(mnemonic)
+                return
+            }
+
+            android.util.Log.d("WalletController", "Waiting for home/addWallet screen (check $i)...")
+            Thread.sleep(200) // Small delay between checks
+        }
+
+        // Fallback: try to import wallet anyway (this may fail)
+        android.util.Log.w("WalletController", "No expected screen detected after 10 checks, attempting import as fallback")
         importWallet(mnemonic)
     }
 
@@ -579,11 +688,23 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        // Small delay to let the sheet animation complete
+        // Wait a bit for the sheet to fully load and button to become enabled
+        Thread.sleep(500)
+        composeTestRule.waitForIdle()
 
-        // Click approve button (no scroll needed as button should be visible)
+        // Wait for button to be enabled (may take time to verify manifest)
+        composeTestRule.waitUntil(5000) {
+            try {
+                composeTestRule.onNodeWithTag(TestTags.CONNECT_APPROVE_BUTTON)
+                    .assertIsEnabled()
+                true
+            } catch (e: AssertionError) {
+                false
+            }
+        }
+
+        // Click approve button
         composeTestRule.onNodeWithTag(TestTags.CONNECT_APPROVE_BUTTON)
-            .assertIsEnabled()
             .performClick()
 
         composeTestRule.waitForIdle()
@@ -599,6 +720,10 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             composeTestRule.onAllNodesWithTag(TestTags.CONNECT_REQUEST_SHEET)
                 .fetchSemanticsNodes().isNotEmpty()
         }
+
+        // Wait a bit for the sheet to fully load
+        Thread.sleep(500)
+        composeTestRule.waitForIdle()
 
         // Click reject button
         composeTestRule.onNodeWithTag(TestTags.CONNECT_REJECT_BUTTON)

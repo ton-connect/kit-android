@@ -221,6 +221,13 @@ internal class InitializationManager(
                         )
                     },
                 )
+
+                // Pass disableNetworkSend flag for testing (transactions simulated but not sent)
+                configuration.dev?.disableNetworkSend?.let { disableNetworkSend ->
+                    if (disableNetworkSend) {
+                        put(JsonConstants.KEY_DISABLE_NETWORK_SEND, true)
+                    }
+                }
             }
 
         Logger.d(

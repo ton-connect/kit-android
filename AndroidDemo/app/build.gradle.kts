@@ -27,6 +27,28 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Pass instrumentation arguments from gradle properties or environment
+        // Usage: ./gradlew connectedDebugAndroidTest -PtestMnemonic="word1 word2 ..."
+        // Or set TEST_MNEMONIC environment variable
+        val testMnemonic =
+            findProperty("testMnemonic") as String?
+                ?: System.getenv("TEST_MNEMONIC")
+        val disableNetworkSend =
+            findProperty("disableNetworkSend") as String?
+                ?: System.getenv("DISABLE_NETWORK_SEND")
+                ?: "true"
+        val allureToken =
+            findProperty("allureToken") as String?
+                ?: System.getenv("ALLURE_API_TOKEN")
+
+        testMnemonic?.let {
+            testInstrumentationRunnerArguments["testMnemonic"] = it
+        }
+        testInstrumentationRunnerArguments["disableNetworkSend"] = disableNetworkSend
+        allureToken?.let {
+            testInstrumentationRunnerArguments["allureToken"] = it
+        }
     }
 
     buildTypes {
