@@ -35,6 +35,7 @@ import io.ton.walletkit.demo.e2e.infrastructure.BaseE2ETest
 import io.ton.walletkit.demo.e2e.infrastructure.ConnectTest
 import io.ton.walletkit.demo.e2e.infrastructure.TestCaseDataProvider
 import io.ton.walletkit.demo.presentation.MainActivity
+import org.junit.AfterClass
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -61,6 +62,12 @@ class ConnectE2ETest : BaseE2ETest() {
 
     companion object {
         private const val TAG = "ConnectE2ETest"
+
+        @JvmStatic
+        @AfterClass
+        fun tearDownClass() {
+            cleanupAllData()
+        }
     }
 
     @get:Rule

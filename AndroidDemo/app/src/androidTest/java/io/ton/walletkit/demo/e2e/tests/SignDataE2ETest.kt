@@ -35,6 +35,7 @@ import io.ton.walletkit.demo.e2e.infrastructure.BaseE2ETest
 import io.ton.walletkit.demo.e2e.infrastructure.SignDataTest
 import io.ton.walletkit.demo.e2e.infrastructure.TestCaseDataProvider
 import io.ton.walletkit.demo.presentation.MainActivity
+import org.junit.AfterClass
 import org.junit.FixMethodOrder
 import org.junit.Rule
 import org.junit.Test
@@ -70,6 +71,12 @@ class SignDataE2ETest : BaseE2ETest() {
     companion object {
         @Volatile
         private var isConnected = false
+
+        @JvmStatic
+        @AfterClass
+        fun tearDownClass() {
+            cleanupAllData()
+        }
     }
 
     @get:Rule
@@ -86,13 +93,16 @@ class SignDataE2ETest : BaseE2ETest() {
     }
 
     /**
-     * Connect to the dApp if not already connected.
+     * Connect to the dApp if not already connected within this test class.
+     * Each test class starts fresh thanks to @AfterClass cleanup.
      */
     private fun ensureConnected() {
         if (isConnected) return
 
         dAppController.openBrowser()
         dAppController.waitForDAppPage()
+
+        // Click Sign Data to initiate connection
         dAppController.clickSignData()
 
         val connectUrl = dAppController.clickCopyLinkInModal()

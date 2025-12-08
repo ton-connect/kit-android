@@ -166,6 +166,32 @@ class JsDAppController {
     }
 
     /**
+     * Clear the dApp's localStorage and sessionStorage.
+     * This disconnects any existing TonConnect sessions from the dApp side.
+     * Must be called when the browser is open and the dApp is loaded.
+     */
+    @Step("Clear dApp storage (disconnect all sessions)")
+    fun clearDAppStorage() {
+        android.util.Log.d("JsDAppController", "Clearing dApp localStorage and sessionStorage...")
+
+        val result = jsBridge.evaluateJs(
+            """
+            (function() {
+                try {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    return 'cleared';
+                } catch(e) {
+                    return 'error: ' + e.message;
+                }
+            })()
+            """.trimIndent(),
+        )
+
+        android.util.Log.d("JsDAppController", "Clear dApp storage result: $result")
+    }
+
+    /**
      * Close any open TonConnect modal by tapping the X button.
      * This is useful when returning to the dApp after a successful connection.
      */
@@ -914,6 +940,42 @@ class JsDAppController {
     // ===========================================
 
     /**
+     * Get the Send Transaction button text to check if connected.
+     * Returns "Send Transaction" if connected, "Connect and Send Transaction" if not.
+     */
+    @Step("Get Send Transaction button text")
+    fun getSendTransactionButtonText(): String {
+        Thread.sleep(300)
+
+        val rawText = jsBridge.evaluateJs(
+            """
+            (function() {
+                var btn = document.querySelector('[data-testid="send-transaction-button"]');
+                if (!btn) {
+                    var buttons = document.querySelectorAll('button');
+                    for (var i = 0; i < buttons.length; i++) {
+                        var text = buttons[i].textContent.toLowerCase().trim();
+                        if (text === 'send transaction' || text === 'connect and send transaction') {
+                            btn = buttons[i];
+                            break;
+                        }
+                    }
+                }
+                if (btn) {
+                    return btn.textContent.trim();
+                }
+                return 'not_found';
+            })()
+            """.trimIndent(),
+        ) ?: "not_found"
+
+        // evaluateJavascript returns JSON-encoded strings, so strip the surrounding quotes
+        val text = rawText.removeSurrounding("\"")
+        android.util.Log.d("JsDAppController", "Send Transaction button text: $text")
+        return text
+    }
+
+    /**
      * Click the Send Transaction button.
      * Handles both "Connect and Send Transaction" (when not connected)
      * and "Send Transaction" (when already connected).
@@ -1040,6 +1102,42 @@ class JsDAppController {
     // ===========================================
     // Sign Data Operations
     // ===========================================
+
+    /**
+     * Get the Sign Data button text to check if connected.
+     * Returns "Sign Data" if connected, "Connect and Sign Data" if not.
+     */
+    @Step("Get Sign Data button text")
+    fun getSignDataButtonText(): String {
+        Thread.sleep(300)
+
+        val rawText = jsBridge.evaluateJs(
+            """
+            (function() {
+                var btn = document.querySelector('[data-testid="sign-data-button"]');
+                if (!btn) {
+                    var buttons = document.querySelectorAll('button');
+                    for (var i = 0; i < buttons.length; i++) {
+                        var text = buttons[i].textContent.toLowerCase().trim();
+                        if (text === 'sign data' || text === 'connect and sign data') {
+                            btn = buttons[i];
+                            break;
+                        }
+                    }
+                }
+                if (btn) {
+                    return btn.textContent.trim();
+                }
+                return 'not_found';
+            })()
+            """.trimIndent(),
+        ) ?: "not_found"
+
+        // evaluateJavascript returns JSON-encoded strings, so strip the surrounding quotes
+        val text = rawText.removeSurrounding("\"")
+        android.util.Log.d("JsDAppController", "Sign Data button text: $text")
+        return text
+    }
 
     /**
      * Click the Sign Data button.

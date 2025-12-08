@@ -35,6 +35,7 @@ import io.ton.walletkit.demo.e2e.infrastructure.BaseE2ETest
 import io.ton.walletkit.demo.e2e.infrastructure.SendTransactionTest
 import io.ton.walletkit.demo.e2e.infrastructure.TestCaseDataProvider
 import io.ton.walletkit.demo.presentation.MainActivity
+import org.junit.AfterClass
 import org.junit.FixMethodOrder
 import org.junit.Rule
 import org.junit.Test
@@ -71,6 +72,12 @@ class SendTransactionE2ETest : BaseE2ETest() {
     companion object {
         @Volatile
         private var isConnected = false
+
+        @JvmStatic
+        @AfterClass
+        fun tearDownClass() {
+            cleanupAllData()
+        }
     }
 
     @get:Rule
@@ -87,13 +94,16 @@ class SendTransactionE2ETest : BaseE2ETest() {
     }
 
     /**
-     * Connect to the dApp if not already connected.
+     * Connect to the dApp if not already connected within this test class.
+     * Each test class starts fresh thanks to @AfterClass cleanup.
      */
     private fun ensureConnected() {
         if (isConnected) return
 
         dAppController.openBrowser()
         dAppController.waitForDAppPage()
+
+        // Click Send Transaction to initiate connection
         dAppController.clickSendTransaction()
 
         val connectUrl = dAppController.clickCopyLinkInModal()

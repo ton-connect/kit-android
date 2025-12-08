@@ -94,6 +94,68 @@ abstract class BaseE2ETest {
          * Can be set via instrumentation arguments: -e disableNetworkSend true
          */
         fun shouldDisableNetworkSend(): Boolean = InstrumentationRegistry.getArguments().getString("disableNetworkSend")?.equals("true", ignoreCase = true) ?: true
+
+        /**
+         * Complete cleanup of all app data, WebView data, and SDK state.
+         * Call this in @AfterClass to ensure the next test class starts fresh.
+         */
+        @JvmStatic
+        fun cleanupAllData() {
+            android.util.Log.d("BaseE2ETest", "cleanupAllData - clearing all app data for fresh start")
+            val context = ApplicationProvider.getApplicationContext<Context>()
+
+            // 1. Clear SharedPreferences
+            val prefsToDelete = listOf(
+                "walletkit_demo_wallets",
+                "walletkit_demo_prefs",
+            )
+            for (prefName in prefsToDelete) {
+                try {
+                    context.getSharedPreferences(prefName, Context.MODE_PRIVATE)
+                        .edit()
+                        .clear()
+                        .commit()
+                    val prefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
+                    val prefsFile = File(prefsDir, "$prefName.xml")
+                    if (prefsFile.exists()) {
+                        prefsFile.delete()
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("BaseE2ETest", "Failed to clear prefs $prefName: ${e.message}")
+                }
+            }
+
+            // 2. Clear files and cache
+            context.filesDir?.deleteRecursively()
+            context.cacheDir?.deleteRecursively()
+
+            // 3. Clear datastore
+            val datastoreDir = File(context.filesDir, "datastore")
+            if (datastoreDir.exists()) {
+                datastoreDir.deleteRecursively()
+            }
+
+            // 4. Clear WebView data (localStorage, sessionStorage, cookies, cache)
+            try {
+                android.webkit.CookieManager.getInstance().removeAllCookies(null)
+                android.webkit.CookieManager.getInstance().flush()
+                android.webkit.WebStorage.getInstance().deleteAllData()
+
+                // Clear WebView cache directory
+                val webViewCacheDir = File(context.cacheDir, "WebView")
+                if (webViewCacheDir.exists()) {
+                    webViewCacheDir.deleteRecursively()
+                }
+                val webViewDataDir = File(context.dataDir, "app_webview")
+                if (webViewDataDir.exists()) {
+                    webViewDataDir.deleteRecursively()
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("BaseE2ETest", "Failed to clear WebView data: ${e.message}")
+            }
+
+            android.util.Log.d("BaseE2ETest", "cleanupAllData completed")
+        }
     }
 
     @Before
@@ -147,6 +209,23 @@ abstract class BaseE2ETest {
         walletController.setupWallet(TEST_MNEMONIC, TEST_PASSWORD)
         walletController.waitForWalletHome()
         android.util.Log.d("BaseE2ETest", "Wallet is ready on home screen (clean state)")
+    }
+
+    /**
+     * Clear app data to ensure clean state.
+     * Uses UiAutomator to execute shell command for complete data wipe.
+     * This also restarts the app process.
+     */
+    protected fun clearAppDataAndRestart() {
+        val packageName = context.packageName
+        val uiDevice = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+            .let { androidx.test.uiautomator.UiDevice.getInstance(it) }
+
+        // Clear app data via shell - this will kill the app process
+        uiDevice.executeShellCommand("pm clear $packageName")
+
+        // Give the system time to clear data
+        Thread.sleep(1000)
     }
 
     /**
