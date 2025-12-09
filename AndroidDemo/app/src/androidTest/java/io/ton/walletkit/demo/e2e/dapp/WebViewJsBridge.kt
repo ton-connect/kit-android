@@ -452,10 +452,11 @@ class WebViewJsBridge {
      */
     fun fillInput(selector: String, value: String): Boolean {
         val escapedSelector = selector.replace("'", "\\'")
-        // Escape special characters for JavaScript string
+        // Escape special characters for JavaScript string (using backticks, so escape backticks and ${)
         val escapedValue = value
             .replace("\\", "\\\\")
-            .replace("'", "\\'")
+            .replace("`", "\\`")
+            .replace("\${", "\\\${")
             .replace("\n", "\\n")
             .replace("\r", "")
             .replace("\t", "\\t")
@@ -463,13 +464,19 @@ class WebViewJsBridge {
         // This script works with React by using the native value setter trick
         // React overrides the value property, so we need to use the native setter
         // to properly trigger React's state update
+        // Using backticks (template literals) to avoid escaping double quotes in JSON
         val script = """
             (function() {
                 var element = document.querySelector('$escapedSelector');
                 if (!element) {
                     console.error('Element not found: $escapedSelector');
-                    return false;
+                    return 'element_not_found';
                 }
+                
+                var newValue = `$escapedValue`;
+                
+                // Focus the element first
+                element.focus();
                 
                 // Get the native value setter (React overrides this)
                 var nativeInputValueSetter = Object.getOwnPropertyDescriptor(
@@ -478,7 +485,7 @@ class WebViewJsBridge {
                 ).set;
                 
                 // Use native setter to set value
-                nativeInputValueSetter.call(element, '$escapedValue');
+                nativeInputValueSetter.call(element, newValue);
                 
                 // Dispatch input event - React listens for this
                 var inputEvent = new Event('input', { bubbles: true, cancelable: true });
@@ -488,15 +495,18 @@ class WebViewJsBridge {
                 var changeEvent = new Event('change', { bubbles: true, cancelable: true });
                 element.dispatchEvent(changeEvent);
                 
-                console.log('fillInput: Set value for ' + '$escapedSelector' + ', length: ' + element.value.length);
-                return true;
+                // Blur to ensure any onBlur handlers fire
+                element.blur();
+                
+                console.log('fillInput: Set value for $escapedSelector, new length: ' + element.value.length);
+                return 'success:' + element.value.length;
             })()
         """.trimIndent()
 
         android.util.Log.d(TAG, "fillInput selector: $escapedSelector, value length: ${value.length}")
         val result = evaluateJs(script)
         android.util.Log.d(TAG, "fillInput result: $result")
-        return result == "true"
+        return result?.startsWith("success") == true
     }
 
     /**

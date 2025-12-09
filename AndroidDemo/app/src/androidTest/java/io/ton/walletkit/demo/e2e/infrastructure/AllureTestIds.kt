@@ -70,27 +70,12 @@ object AllureTestIds {
     /** Test Result 54865: [Fake URL in manifest] Connect error (Custom QR) (testCaseId: 1113) */
     const val CONNECT_FAKE_URL_IN_MANIFEST_CUSTOM_QR = "54865"
 
-    /** Test Result 55293: [Desktop browser] Connect (Custom QR) (testCaseId: 1294) */
-    const val CONNECT_DESKTOP_CUSTOM_QR = "55293"
-
-    /** Test Result 54894: [Desktop browser] Connect (Universal QR) (testCaseId: 1295) */
-    const val CONNECT_DESKTOP_UNIVERSAL_QR = "54894"
-
-    /** Test Result 54899: [Mobile Chrome] Connect (testCaseId: 1288) */
-    const val CONNECT_MOBILE_CHROME = "54899"
-
-    /** Test Result 54868: [TMA dApp] Connect (Custom QR) (testCaseId: 1296) */
-    const val CONNECT_TMA_CUSTOM_QR = "54868"
-
-    /** Test Result 54912: [TMA dApp] Connect (Universal QR) (testCaseId: 1638) */
-    const val CONNECT_TMA_UNIVERSAL_QR = "54912"
-
     // =====================================================================
     // GROUP 2: TRANSACTION - ADDRESS & AMOUNT
     // =====================================================================
 
-    /** Test Result 54867: [address] Error if absent (testCaseId: 1015) */
-    const val TX_ADDRESS_ERROR_ABSENT = "54867"
+    /** Test Result 56101: [address] Error if absent (testCaseId: 1015) */
+    const val TX_ADDRESS_ERROR_ABSENT = "56101"
 
     /** Test Result 54890: [address] Error if in HEX format (testCaseId: 1040) */
     const val TX_ADDRESS_ERROR_HEX_FORMAT = "54890"
@@ -212,15 +197,6 @@ object AllureTestIds {
     /** Test Result 54889: [In-Wallet browser] Send transaction - injected WebView (testCaseId: 1297) */
     const val TX_SEND_INJECTED_WEBVIEW = "55968"
 
-    /** Test Result 54876: [Desktop browser] Send transaction (testCaseId: 1291) */
-    const val TX_SEND_HTTP_BRIDGE = "54876"
-
-    /** Test Result 54905: [Mobile Chrome] Send transaction (testCaseId: 1290) */
-    const val TX_SEND_MOBILE_CHROME = "54905"
-
-    /** Test Result 54885: [TMA dApp] Send transaction (testCaseId: 1293) */
-    const val TX_SEND_TMA = "54885"
-
     /** Test Result 54913: User declined the transaction (testCaseId: 1122) */
     const val TX_USER_DECLINED = "54913"
 
@@ -255,11 +231,4 @@ object AllureTestIds {
 
     /** Test Result 54914: Check ExtraCurrency feature (testCaseId: 1119) */
     const val EXTRA_CURRENCY = "54914"
-
-    // =====================================================================
-    // BACKWARD COMPATIBILITY (aliases for existing tests)
-    // =====================================================================
-
-    /** Alias for CONNECT_IN_WALLET_BROWSER for existing tests */
-    const val CONNECT_SUCCESS = CONNECT_IN_WALLET_BROWSER
 }

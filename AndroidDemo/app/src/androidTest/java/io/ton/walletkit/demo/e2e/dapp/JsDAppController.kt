@@ -78,11 +78,15 @@ class JsDAppController {
         const val SEND_TX_EXPECTED_RESULT = "[data-testid='sendTxExpectedResult']"
         const val SEND_TX_BUTTON = "[data-testid='send-transaction-button']"
         const val SEND_TX_VALIDATION = "[data-testid='sendTransactionValidation']"
+        const val SEND_TX_ERRORS_CONTAINER = "sendTransactionValidation-errors-container"
 
         const val SIGN_DATA_PRECONDITION = "[data-testid='signDataPrecondition']"
         const val SIGN_DATA_EXPECTED_RESULT = "[data-testid='signDataExpectedResult']"
         const val SIGN_DATA_BUTTON = "[data-testid='sign-data-button']"
         const val SIGN_DATA_VALIDATION = "[data-testid='signDataValidation']"
+        const val SIGN_DATA_ERRORS_CONTAINER = "signDataValidation-errors-container"
+
+        const val CONNECT_ERRORS_CONTAINER = "connectValidation-errors-container"
     }
 
     private lateinit var composeTestRule: AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>
@@ -189,6 +193,39 @@ class JsDAppController {
         )
 
         android.util.Log.d("JsDAppController", "Clear dApp storage result: $result")
+    }
+
+    /**
+     * Ensure the dApp is in a disconnected state before starting a connect test.
+     * This clears storage and reloads the page to reset TonConnect state.
+     * Must be called when the browser is open and the dApp is loaded.
+     */
+    @Step("Ensure dApp is disconnected")
+    fun ensureDisconnected() {
+        android.util.Log.d("JsDAppController", "Ensuring dApp is disconnected...")
+
+        // Clear storage to remove any existing sessions
+        clearDAppStorage()
+
+        // Reload the page to reset TonConnect state
+        val reloadResult = jsBridge.evaluateJs(
+            """
+            (function() {
+                try {
+                    location.reload();
+                    return 'reloading';
+                } catch(e) {
+                    return 'error: ' + e.message;
+                }
+            })()
+            """.trimIndent(),
+        )
+        android.util.Log.d("JsDAppController", "Reload result: $reloadResult")
+
+        // Wait for page to reload and TonConnect to reinitialize
+        waitForDAppPage(timeoutMs = 15000)
+
+        android.util.Log.d("JsDAppController", "dApp disconnected and reloaded")
     }
 
     /**
@@ -315,6 +352,42 @@ class JsDAppController {
     // ===========================================
 
     /**
+     * Wait for the Connect button to be available and clickable.
+     * This waits for TonConnect SDK to be fully initialized.
+     */
+    @Step("Wait for Connect button to be available")
+    fun waitForConnectButton(timeoutMs: Long = 15000): Boolean {
+        android.util.Log.d("JsDAppController", "Waiting for Connect button to be available and TonConnect ready...")
+
+        // Wait for TonConnect SDK to be fully initialized and button to be ready
+        val buttonAvailable = jsBridge.waitForCondition(
+            """
+            (function() {
+                // Check if TonConnect SDK is initialized
+                var tcReady = typeof window.tonConnectUI !== 'undefined' || 
+                              typeof window.tonConnect !== 'undefined' ||
+                              document.querySelector('[data-tc-connect-button="true"]') !== null;
+                
+                // Check if any loading indicators are gone
+                var notLoading = document.querySelector('[data-tc-connect-button-loading="true"]') === null;
+                
+                // Check if the e2e connect button exists and is not disabled
+                var btn = document.querySelector('#e2e-connect-button');
+                if (!btn) btn = document.querySelector('[data-testid="connect-button"]');
+                
+                var btnReady = btn !== null && !btn.disabled && btn.offsetParent !== null;
+                
+                return tcReady && notLoading && btnReady;
+            })()
+            """.trimIndent(),
+            timeoutMs = timeoutMs,
+        )
+
+        android.util.Log.d("JsDAppController", "Connect button available: $buttonAvailable")
+        return buttonAvailable
+    }
+
+    /**
      * Click the Connect button in the dApp's e2e test block.
      * This scrolls to the e2e-connect-block and clicks the connect-button,
      * which opens the TonConnect modal.
@@ -322,6 +395,12 @@ class JsDAppController {
     @Step("Click Connect Wallet button")
     fun clickConnectButton() {
         android.util.Log.d("JsDAppController", "Clicking Connect button in e2e block...")
+
+        // Wait for the connect button to be available first
+        val buttonReady = waitForConnectButton(timeoutMs = 40000)
+        if (!buttonReady) {
+            throw IllegalStateException("Connect button not available after waiting")
+        }
 
         // Scroll to and click the e2e test connect button (not the TonConnect SDK button at top)
         val scrollAndClick = jsBridge.evaluateJs(
@@ -1034,7 +1113,14 @@ class JsDAppController {
      */
     @Step("Fill send transaction precondition")
     fun fillSendTxPrecondition(value: String) {
-        jsBridge.fillInput(SEND_TX_PRECONDITION, value)
+        android.util.Log.d("JsDAppController", "Filling sendTx precondition, value length: ${value.length}")
+        val success = jsBridge.fillInput(SEND_TX_PRECONDITION, value)
+        if (success) {
+            val actualValue = jsBridge.getInputValue(SEND_TX_PRECONDITION)
+            android.util.Log.d("JsDAppController", "SendTx precondition filled, actual length: ${actualValue?.length ?: 0}")
+        } else {
+            android.util.Log.e("JsDAppController", "Failed to fill sendTx precondition")
+        }
     }
 
     /**
@@ -1042,7 +1128,14 @@ class JsDAppController {
      */
     @Step("Fill send transaction expected result")
     fun fillSendTxExpectedResult(value: String) {
-        jsBridge.fillInput(SEND_TX_EXPECTED_RESULT, value)
+        android.util.Log.d("JsDAppController", "Filling sendTx expectedResult, value length: ${value.length}")
+        val success = jsBridge.fillInput(SEND_TX_EXPECTED_RESULT, value)
+        if (success) {
+            val actualValue = jsBridge.getInputValue(SEND_TX_EXPECTED_RESULT)
+            android.util.Log.d("JsDAppController", "SendTx expectedResult filled, actual length: ${actualValue?.length ?: 0}")
+        } else {
+            android.util.Log.e("JsDAppController", "Failed to fill sendTx expectedResult")
+        }
     }
 
     /**
@@ -1060,43 +1153,167 @@ class JsDAppController {
     }
 
     /**
+     * Wait for send transaction response from wallet.
+     * This waits until the "Confirm the transaction in your wallet" message disappears
+     * and the validation result appears.
+     *
+     * @param timeoutMs Maximum time to wait for the response
+     * @return true if the response was received (validation result appeared), false if timed out
+     */
+    @Step("Wait for send transaction response")
+    fun waitForSendTxResponse(timeoutMs: Long = 15000): Boolean {
+        android.util.Log.d("JsDAppController", "Waiting for send transaction response...")
+        val startTime = System.currentTimeMillis()
+
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            val result = jsBridge.evaluateJs(
+                """
+                (function() {
+                    var validation = document.querySelector('[data-testid="sendTransactionValidation"]');
+                    if (!validation) return 'no_validation_element';
+                    var text = validation.textContent || validation.innerText || '';
+                    text = text.toLowerCase().trim();
+                    
+                    // Still waiting for wallet response
+                    if (text.includes('confirm') && text.includes('wallet')) {
+                        return 'waiting';
+                    }
+                    if (text.includes('pending') || text.includes('loading')) {
+                        return 'waiting';
+                    }
+                    if (text === '' || text === 'validation result') {
+                        return 'waiting';
+                    }
+                    
+                    // Response received (validation passed, failed, error, or result)
+                    return 'response_received';
+                })()
+                """.trimIndent(),
+            ) ?: "error"
+
+            android.util.Log.d("JsDAppController", "waitForSendTxResponse: $result")
+
+            if (result.contains("response_received")) {
+                android.util.Log.d("JsDAppController", "Send transaction response received")
+                return true
+            }
+
+            Thread.sleep(500)
+        }
+
+        android.util.Log.w("JsDAppController", "Timed out waiting for send transaction response")
+        return false
+    }
+
+    /**
      * Wait for send transaction validation.
      */
     @Step("Wait for send transaction validation")
     fun waitForSendTxValidationPassed(timeoutMs: Long = 30000): Boolean = jsBridge.waitForElementText(SEND_TX_VALIDATION, "Validation Passed", timeoutMs)
 
     /**
+     * Check if there are validation errors displayed in the errors container.
+     * The dApp shows errors in a container with id="sendTransactionValidation-errors-container"
+     * with <li> items for each error.
+     *
+     * @return true if there are errors, false otherwise
+     */
+    @Step("Check for send transaction validation errors")
+    fun hasSendTxValidationErrors(): Boolean = hasValidationErrors(SEND_TX_ERRORS_CONTAINER)
+
+    /**
+     * Get the validation errors from the errors container.
+     *
+     * @return List of error messages, or empty list if no errors
+     */
+    @Step("Get send transaction validation errors")
+    fun getSendTxValidationErrors(): List<String> = getValidationErrors(SEND_TX_ERRORS_CONTAINER)
+
+    /**
      * Verify send transaction validation passed or contains expected result.
+     * Now also checks for errors in the errors container.
      */
     @Step("Verify send transaction validation")
     fun verifySendTxValidation(): Boolean {
-        Thread.sleep(1000)
+        // Wait for validation element to appear (up to 10 seconds)
+        val maxWaitMs = 10000L
+        val startTime = System.currentTimeMillis()
+
+        while (System.currentTimeMillis() - startTime < maxWaitMs) {
+            val elementExists = jsBridge.evaluateJs(
+                "document.querySelector('[data-testid=\"sendTransactionValidation\"]') !== null",
+            )?.toBoolean() ?: false
+
+            if (elementExists) {
+                android.util.Log.d("JsDAppController", "Validation element found after ${System.currentTimeMillis() - startTime}ms")
+                break
+            }
+            Thread.sleep(500)
+        }
+
+        Thread.sleep(500) // Additional delay for element to fully render
+
+        // Check the border color of the parent alert element
+        // The alert has border-green-500 when validation passed, border-red-500 when failed
+        val result = jsBridge.evaluateJs(
+            """
+            (function() {
+                // Find the validation element
+                var validation = document.querySelector('[data-testid="sendTransactionValidation"]');
+                if (!validation) {
+                    console.log('sendTransactionValidation element not found');
+                    return 'element_not_found';
+                }
+                
+                // Get the parent alert element (has border color class)
+                var alert = validation.closest('[data-slot="alert"]');
+                if (!alert) {
+                    // Try parent's parent
+                    alert = validation.parentElement?.parentElement;
+                }
+                
+                if (alert) {
+                    var classes = alert.className || '';
+                    console.log('Alert classes: ' + classes);
+                    
+                    if (classes.includes('border-green')) {
+                        return 'passed';
+                    } else if (classes.includes('border-red')) {
+                        return 'failed';
+                    }
+                }
+                
+                // Fallback: check the validation text
+                var text = validation.textContent || validation.innerText || '';
+                if (text.toLowerCase().includes('validation passed')) {
+                    return 'passed';
+                }
+                
+                return 'unknown:' + text.substring(0, 100);
+            })()
+            """.trimIndent(),
+        ) ?: "error"
+
+        android.util.Log.d("JsDAppController", "verifySendTxValidation result: $result")
+
+        if (result == "passed") {
+            android.util.Log.d("JsDAppController", "SendTx validation PASSED (green border)")
+            return true
+        }
+
+        if (result == "failed") {
+            val validationText = getSendTxValidationResult()
+            android.util.Log.e("JsDAppController", "SendTx validation FAILED (red border): $validationText")
+            return false
+        }
+
+        // Fallback for unknown result
         val validationText = getSendTxValidationResult()
+        android.util.Log.w("JsDAppController", "SendTx validation unknown result: $result, text: $validationText")
 
-        // Check for "Validation Passed"
-        if (validationText.contains("Validation Passed", ignoreCase = true)) {
-            return true
-        }
-
-        // Check for transaction result (boc in response)
-        if (validationText.contains("\"result\"") && !validationText.contains("\"error\"")) {
-            return true
-        }
-
-        // Check for valid boc string
-        if (validationText.contains("te6c", ignoreCase = true)) {
-            return true
-        }
-
-        // For reject tests - user rejection errors are expected
-        if (validationText.contains("USER_REJECTS", ignoreCase = true) ||
-            validationText.contains("user rejected", ignoreCase = true) ||
-            validationText.contains("cancelled", ignoreCase = true)
-        ) {
-            return true
-        }
-
-        return false
+        // Check text content as last resort
+        return validationText.contains("Validation Passed", ignoreCase = true) ||
+            validationText.contains("Passed", ignoreCase = true)
     }
 
     // ===========================================
@@ -1224,17 +1441,95 @@ class JsDAppController {
     }
 
     /**
+     * Wait for sign data response from wallet.
+     * This waits until the "Confirm in your wallet" message disappears
+     * and the validation result appears.
+     *
+     * @param timeoutMs Maximum time to wait for the response
+     * @return true if the response was received (validation result appeared), false if timed out
+     */
+    @Step("Wait for sign data response")
+    fun waitForSignDataResponse(timeoutMs: Long = 15000): Boolean {
+        android.util.Log.d("JsDAppController", "Waiting for sign data response...")
+        val startTime = System.currentTimeMillis()
+
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            val result = jsBridge.evaluateJs(
+                """
+                (function() {
+                    var validation = document.querySelector('[data-testid="signDataValidation"]');
+                    if (!validation) return 'no_validation_element';
+                    var text = validation.textContent || validation.innerText || '';
+                    text = text.toLowerCase().trim();
+                    
+                    // Still waiting for wallet response
+                    if (text.includes('confirm') && text.includes('wallet')) {
+                        return 'waiting';
+                    }
+                    if (text.includes('pending') || text.includes('loading')) {
+                        return 'waiting';
+                    }
+                    if (text === '' || text === 'validation result') {
+                        return 'waiting';
+                    }
+                    
+                    // Response received (validation passed, failed, error, or result)
+                    return 'response_received';
+                })()
+                """.trimIndent(),
+            ) ?: "error"
+
+            android.util.Log.d("JsDAppController", "waitForSignDataResponse: $result")
+
+            if (result.contains("response_received")) {
+                android.util.Log.d("JsDAppController", "Sign data response received")
+                return true
+            }
+
+            Thread.sleep(500)
+        }
+
+        android.util.Log.w("JsDAppController", "Timed out waiting for sign data response")
+        return false
+    }
+
+    /**
      * Wait for sign data validation.
      */
     @Step("Wait for sign data validation")
     fun waitForSignDataValidationPassed(timeoutMs: Long = 30000): Boolean = jsBridge.waitForElementText(SIGN_DATA_VALIDATION, "Validation Passed", timeoutMs)
 
     /**
+     * Check if there are sign data validation errors displayed in the errors container.
+     *
+     * @return true if there are errors, false otherwise
+     */
+    @Step("Check for sign data validation errors")
+    fun hasSignDataValidationErrors(): Boolean = hasValidationErrors(SIGN_DATA_ERRORS_CONTAINER)
+
+    /**
+     * Get the sign data validation errors from the errors container.
+     *
+     * @return List of error messages, or empty list if no errors
+     */
+    @Step("Get sign data validation errors")
+    fun getSignDataValidationErrors(): List<String> = getValidationErrors(SIGN_DATA_ERRORS_CONTAINER)
+
+    /**
      * Verify sign data validation passed or contains expected result.
+     * Now also checks for errors in the errors container.
      */
     @Step("Verify sign data validation")
     fun verifySignDataValidation(): Boolean {
         Thread.sleep(1000)
+
+        // First check for errors in the errors container
+        if (hasSignDataValidationErrors()) {
+            val errors = getSignDataValidationErrors()
+            android.util.Log.e("JsDAppController", "Sign Data Validation FAILED - errors found: $errors")
+            return false
+        }
+
         val validationText = getSignDataValidationResult()
 
         // Check for "Validation Passed"
@@ -1256,5 +1551,93 @@ class JsDAppController {
         }
 
         return false
+    }
+
+    // ===========================================
+    // Generic Validation Error Helpers
+    // ===========================================
+
+    /**
+     * Check if there are validation errors in the specified errors container.
+     *
+     * @param containerId The ID of the errors container (without # prefix)
+     * @return true if there are errors, false otherwise
+     */
+    private fun hasValidationErrors(containerId: String): Boolean {
+        val result = jsBridge.evaluateJs(
+            """
+            (function() {
+                // Check for errors container
+                var errorsContainer = document.getElementById('$containerId');
+                if (errorsContainer) {
+                    var errorItems = errorsContainer.querySelectorAll('li');
+                    if (errorItems && errorItems.length > 0) {
+                        // Check if any li has actual error text (not empty)
+                        for (var i = 0; i < errorItems.length; i++) {
+                            var text = errorItems[i].textContent || errorItems[i].innerText || '';
+                            if (text.trim().length > 0) {
+                                return 'has_errors:' + text.trim();
+                            }
+                        }
+                    }
+                }
+                
+                // Also check for alert with destructive variant (error styling) near this container
+                var alert = document.querySelector('[data-slot="alert"][class*="destructive"]');
+                if (alert) {
+                    // Check if this alert is related to our container
+                    var alertContainer = alert.querySelector('#$containerId');
+                    if (alertContainer || alert.id === '$containerId' || 
+                        (alert.textContent && alert.textContent.length > 0)) {
+                        var alertText = alert.textContent || alert.innerText || '';
+                        if (alertText.trim().length > 0 && !alertText.includes('Validation Passed')) {
+                            return 'has_alert_error:' + alertText.trim().substring(0, 200);
+                        }
+                    }
+                }
+                
+                return 'no_errors';
+            })()
+            """.trimIndent(),
+        ) ?: "error"
+
+        android.util.Log.d("JsDAppController", "hasValidationErrors($containerId): $result")
+        return result.startsWith("has_errors") || result.startsWith("has_alert_error")
+    }
+
+    /**
+     * Get the validation errors from the specified errors container.
+     *
+     * @param containerId The ID of the errors container (without # prefix)
+     * @return List of error messages, or empty list if no errors
+     */
+    private fun getValidationErrors(containerId: String): List<String> {
+        val result = jsBridge.evaluateJs(
+            """
+            (function() {
+                var errors = [];
+                var errorsContainer = document.getElementById('$containerId');
+                if (errorsContainer) {
+                    var errorItems = errorsContainer.querySelectorAll('li');
+                    for (var i = 0; i < errorItems.length; i++) {
+                        var text = errorItems[i].textContent || errorItems[i].innerText || '';
+                        if (text.trim().length > 0) {
+                            errors.push(text.trim());
+                        }
+                    }
+                }
+                return JSON.stringify(errors);
+            })()
+            """.trimIndent(),
+        ) ?: "[]"
+
+        return try {
+            org.json.JSONArray(result).let { arr ->
+                (0 until arr.length()).map { arr.getString(it) }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("JsDAppController", "Failed to parse validation errors: $result", e)
+            emptyList()
+        }
     }
 }

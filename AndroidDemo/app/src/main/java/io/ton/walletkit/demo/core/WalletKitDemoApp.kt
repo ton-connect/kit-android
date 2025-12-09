@@ -224,6 +224,26 @@ object TONWalletKitHelper {
     @Volatile
     var disableNetworkSend: Boolean = false
 
+    /**
+     * Check if we're running under instrumentation tests and if disableNetworkSend is requested.
+     * Uses reflection to avoid compile-time dependency on test libraries.
+     */
+    private fun checkInstrumentationDisableNetworkSend(): Boolean = try {
+        // Use reflection to access InstrumentationRegistry without compile-time dependency
+        val registryClass = Class.forName("androidx.test.platform.app.InstrumentationRegistry")
+        val getArgumentsMethod = registryClass.getMethod("getArguments")
+        val arguments = getArgumentsMethod.invoke(null) as? android.os.Bundle
+        val value = arguments?.getString("disableNetworkSend")
+        val result = value?.equals("true", ignoreCase = true) == true
+        if (result) {
+            Log.w("TONWalletKitHelper", "🧪 Detected disableNetworkSend=true from instrumentation arguments")
+        }
+        result
+    } catch (e: Exception) {
+        // Not running under instrumentation or class not found, ignore
+        false
+    }
+
     suspend fun mainnet(application: Application): ITONWalletKit {
         // Fast path: already initialized
         mainnetInstance?.let { return it }
@@ -238,7 +258,10 @@ object TONWalletKitHelper {
 
             Log.w("TONWalletKitHelper", "🔶🔶🔶 Creating NEW ITONWalletKit instance...")
 
-            val devOptions = if (disableNetworkSend) {
+            // Check both the flag and instrumentation arguments
+            val shouldDisableNetwork = disableNetworkSend || checkInstrumentationDisableNetworkSend()
+
+            val devOptions = if (shouldDisableNetwork) {
                 Log.w("TONWalletKitHelper", "⚠️ Network send is DISABLED - transactions will be simulated only")
                 TONWalletKitConfiguration.DevOptions(disableNetworkSend = true)
             } else {

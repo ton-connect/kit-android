@@ -31,7 +31,6 @@ import io.qameta.allure.kotlin.Feature
 import io.qameta.allure.kotlin.Step
 import io.ton.walletkit.demo.e2e.dapp.JsDAppController
 import io.ton.walletkit.demo.e2e.wallet.WalletController
-import org.junit.After
 import org.junit.Before
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -176,11 +175,6 @@ abstract class BaseE2ETest {
         dAppController = JsDAppController()
     }
 
-    @After
-    open fun tearDown() {
-        // Override in subclasses if needed
-    }
-
     /**
      * Ensure wallet is ready for testing.
      * This handles all authentication states: setup password, unlock, or already on home.
@@ -193,137 +187,6 @@ abstract class BaseE2ETest {
         walletController.setupWallet(TEST_MNEMONIC, TEST_PASSWORD)
         walletController.waitForWalletHome()
         android.util.Log.d("BaseE2ETest", "Wallet is ready on home screen")
-    }
-
-    /**
-     * Ensure wallet is ready with a forced clean state.
-     * This clears app data first to ensure the test mnemonic wallet is imported fresh.
-     * Use this for tests that require a specific wallet (SendTransaction, SignData).
-     */
-    protected fun ensureWalletReadyClean() {
-        android.util.Log.d("BaseE2ETest", "ensureWalletReadyClean - clearing app data first")
-        clearAppData()
-        // Note: After clearing data, the app needs to restart to pick up the changes
-        // The walletController.setupWallet will handle the fresh setup
-        android.util.Log.d("BaseE2ETest", "App data cleared, setting up wallet...")
-        walletController.setupWallet(TEST_MNEMONIC, TEST_PASSWORD)
-        walletController.waitForWalletHome()
-        android.util.Log.d("BaseE2ETest", "Wallet is ready on home screen (clean state)")
-    }
-
-    /**
-     * Clear app data to ensure clean state.
-     * Uses UiAutomator to execute shell command for complete data wipe.
-     * This also restarts the app process.
-     */
-    protected fun clearAppDataAndRestart() {
-        val packageName = context.packageName
-        val uiDevice = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
-            .let { androidx.test.uiautomator.UiDevice.getInstance(it) }
-
-        // Clear app data via shell - this will kill the app process
-        uiDevice.executeShellCommand("pm clear $packageName")
-
-        // Give the system time to clear data
-        Thread.sleep(1000)
-    }
-
-    /**
-     * Clear app data to ensure clean state.
-     * This clears the EncryptedSharedPreferences files used by the demo app.
-     */
-    protected fun clearAppData() {
-        // Clear the encrypted shared preferences files
-        // These are the actual names used by SecureDemoAppStorage
-        val prefsToDelete = listOf(
-            "walletkit_demo_wallets",
-            "walletkit_demo_prefs",
-        )
-
-        for (prefName in prefsToDelete) {
-            try {
-                // Clear the SharedPreferences
-                context.getSharedPreferences(prefName, Context.MODE_PRIVATE)
-                    .edit()
-                    .clear()
-                    .commit()
-
-                // Also delete the file itself (for EncryptedSharedPreferences)
-                val prefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
-                val prefsFile = File(prefsDir, "$prefName.xml")
-                if (prefsFile.exists()) {
-                    prefsFile.delete()
-                }
-            } catch (e: Exception) {
-                // Ignore errors - file might not exist or be inaccessible
-            }
-        }
-
-        // Also clear any files/cache
-        context.filesDir?.deleteRecursively()
-        context.cacheDir?.deleteRecursively()
-
-        // Clear datastore if present
-        val datastoreDir = File(context.filesDir, "datastore")
-        if (datastoreDir.exists()) {
-            datastoreDir.deleteRecursively()
-        }
-    }
-
-    /**
-     * Get test case data from Allure TestOps.
-     */
-    protected fun getTestCaseData(allureId: String): TestCaseData? = allureClient?.getTestCaseData(allureId)
-
-    /**
-     * Setup wallet and connect to dApp.
-     * This is a common flow used by SendTransaction and SignData tests.
-     *
-     * @return true if connection was established successfully
-     */
-    protected fun setupWalletAndConnect(): Boolean {
-        step("Set up wallet") {
-            walletController.setupWallet(TEST_MNEMONIC, TEST_PASSWORD)
-        }
-
-        step("Wait for wallet home screen") {
-            walletController.waitForWalletHome()
-        }
-
-        step("Get TonConnect URL from dApp") {
-            // Open browser
-            dAppController.openBrowser()
-            dAppController.waitForDAppPage()
-
-            // Click Connect and get URL
-            dAppController.clickConnectButton()
-            val connectUrl = dAppController.clickCopyLinkInModal()
-
-            // Close browser
-            dAppController.closeBrowserFully()
-
-            step("Paste TonConnect URL into wallet") {
-                walletController.connectByUrl(connectUrl)
-            }
-        }
-
-        step("Wait for connect request sheet") {
-            waitFor(timeoutMs = 10000) {
-                walletController.isConnectRequestVisible()
-            }
-        }
-
-        step("Approve connection") {
-            walletController.approveConnect()
-        }
-
-        step("Verify connection established") {
-            waitFor(timeoutMs = 5000) {
-                !walletController.isConnectRequestVisible()
-            }
-        }
-
-        return true
     }
 
     /**
@@ -368,6 +231,261 @@ abstract class BaseE2ETest {
             Allure.attachment(name, ByteArrayInputStream(bytes), "image/png", "png")
         }
         rootView.isDrawingCacheEnabled = false
+    }
+
+    // =========================================================================
+    // Shared Test Runners (reduces boilerplate in test subclasses)
+    // =========================================================================
+
+    /**
+     * Shared runner for send transaction tests.
+     *
+     * @param allureId The Allure test case ID
+     * @param expectWalletPrompt Whether the wallet should show a transaction prompt (false for validation errors)
+     * @param approve Whether to approve or reject the transaction (when expectWalletPrompt is true)
+     * @param ensureConnected Callback to ensure wallet is connected before running the test
+     */
+    protected fun runSendTxTest(
+        allureId: String,
+        expectWalletPrompt: Boolean = true,
+        approve: Boolean = true,
+        ensureConnected: () -> Unit,
+    ) {
+        val testData = TestCaseDataProvider.getTestCaseData(allureId, allureClient)
+        val precondition = testData?.precondition ?: ""
+        val expectedResult = testData?.expectedResult ?: ""
+
+        android.util.Log.d("SendTxTest", "Test data for $allureId:")
+        android.util.Log.d("SendTxTest", "  precondition length: ${precondition.length}")
+        android.util.Log.d("SendTxTest", "  expectedResult length: ${expectedResult.length}")
+
+        step("Ensure wallet is connected to dApp") { ensureConnected() }
+
+        step("Open browser and fill sendTx test data") {
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+            if (precondition.isNotBlank()) {
+                android.util.Log.d("SendTxTest", "Filling precondition...")
+                dAppController.fillSendTxPrecondition(precondition)
+            }
+            if (expectedResult.isNotBlank()) {
+                android.util.Log.d("SendTxTest", "Filling expectedResult...")
+                dAppController.fillSendTxExpectedResult(expectedResult)
+            }
+        }
+
+        step("Click Send Transaction button") {
+            dAppController.clickSendTransaction()
+        }
+
+        if (expectWalletPrompt) {
+            step("Wait for transaction request") {
+                waitFor(15000L) { walletController.isTransactionRequestVisible() }
+            }
+
+            step(if (approve) "Approve transaction" else "Reject transaction") {
+                if (approve) walletController.approveTransaction() else walletController.rejectTransaction()
+            }
+
+            step("Wait for wallet to close transaction sheet") {
+                waitFor(5000L) { !walletController.isTransactionRequestVisible() }
+            }
+
+            step("Wait for dApp to receive transaction response") {
+                dAppController.openBrowser()
+                dAppController.waitForDAppPage()
+                dAppController.waitForSendTxResponse(timeoutMs = 15000)
+            }
+        } else {
+            step("Wait for error response in dApp") {
+                Thread.sleep(2000)
+                dAppController.scrollToSendTxValidation()
+            }
+        }
+
+        step("Verify result in browser") {
+            dAppController.scrollToSendTxValidation()
+            val isValid = dAppController.verifySendTxValidation()
+            val validationText = dAppController.getSendTxValidationResult()
+            dAppController.closeBrowserFully()
+            assert(isValid) { "Validation failed - got: $validationText" }
+        }
+    }
+
+    /**
+     * Shared runner for connect tests via HTTP bridge (copy link flow).
+     *
+     * @param allureId The Allure test case ID
+     * @param approve Whether to approve or reject the connection
+     * @param expectConnectSheet Whether the connect sheet should appear (false for error cases)
+     */
+    protected fun runHttpBridgeConnectTest(
+        allureId: String,
+        approve: Boolean = true,
+        expectConnectSheet: Boolean = true,
+    ) {
+        val testData = TestCaseDataProvider.getTestCaseData(allureId, allureClient)
+        val precondition = testData?.precondition ?: ""
+        val expectedResult = testData?.expectedResult ?: ""
+        android.util.Log.d("ConnectTest", "Test $allureId - precondition: ${precondition.take(100)}")
+
+        step("Get TonConnect URL from dApp") {
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+
+            if (precondition.isNotBlank()) {
+                dAppController.fillConnectPrecondition(precondition)
+            }
+            if (expectedResult.isNotBlank()) {
+                dAppController.fillConnectExpectedResult(expectedResult)
+            }
+
+            dAppController.clickConnectButton()
+            val connectUrl = dAppController.clickCopyLinkInModal()
+            dAppController.closeBrowserFully()
+
+            walletController.connectByUrl(connectUrl)
+        }
+
+        if (expectConnectSheet) {
+            step("Wait for connect request sheet") {
+                waitFor(10000L) { walletController.isConnectRequestVisible() }
+            }
+
+            step(if (approve) "Approve connection" else "Reject connection") {
+                if (approve) walletController.approveConnect() else walletController.rejectConnect()
+            }
+
+            step("Wait for connect sheet to close") {
+                waitFor(5000L) { !walletController.isConnectRequestVisible() }
+            }
+        } else {
+            step("Verify no connect sheet shown (SDK auto-rejects)") {
+                Thread.sleep(2000)
+                val connectSheetVisible = walletController.isConnectRequestVisible()
+                android.util.Log.d("ConnectTest", "Connect sheet visible: $connectSheetVisible")
+                assert(!connectSheetVisible) { "Connect sheet should NOT be visible - SDK should auto-reject" }
+            }
+        }
+
+        step("Verify dApp validation") {
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+            dAppController.closeTonConnectModal()
+            dAppController.scrollToConnectValidation()
+
+            val validationPassed = dAppController.verifyConnectionValidation()
+            val validationText = dAppController.getConnectValidationResult()
+            android.util.Log.d("ConnectTest", "Validation result: $validationText")
+
+            dAppController.closeBrowserFully()
+            assert(validationPassed) { "Validation failed - got: $validationText" }
+        }
+    }
+
+    /**
+     * Shared runner for connect tests via injected WebView (in-wallet browser).
+     *
+     * @param allureId The Allure test case ID
+     */
+    protected fun runInjectedConnectTest(allureId: String) {
+        val testData = TestCaseDataProvider.getTestCaseData(allureId, allureClient)
+        val precondition = testData?.precondition ?: ""
+        val expectedResult = testData?.expectedResult ?: ""
+        android.util.Log.d("ConnectTest", "Test $allureId - precondition: ${precondition.take(100)}")
+
+        step("Open dApp with TonConnect injection") {
+            dAppController.openBrowser(injectTonConnect = true)
+            dAppController.waitForDAppPage()
+        }
+
+        step("Fill test data and click Connect") {
+            if (expectedResult.isNotBlank()) {
+                dAppController.fillConnectExpectedResult(expectedResult)
+            }
+            if (precondition.isNotBlank()) {
+                dAppController.fillConnectPrecondition(precondition)
+            }
+            dAppController.clickConnectButton()
+        }
+
+        step("Wait for and approve connection") {
+            waitFor(10000L) { walletController.isConnectRequestVisible() }
+            walletController.approveConnect()
+        }
+
+        step("Wait for connect sheet to close") {
+            waitFor(5000L) { !walletController.isConnectRequestVisible() }
+        }
+
+        step("Verify dApp validation") {
+            dAppController.openBrowser(injectTonConnect = true)
+            dAppController.waitForDAppPage()
+            dAppController.scrollToConnectValidation()
+
+            val validationPassed = dAppController.verifyConnectionValidation()
+            val validationText = dAppController.getConnectValidationResult()
+            android.util.Log.d("ConnectTest", "Injected validation result: $validationText")
+
+            dAppController.closeBrowserFully()
+            assert(validationPassed) { "Validation failed - got: $validationText" }
+        }
+    }
+
+    /**
+     * Shared runner for sign data tests.
+     *
+     * @param allureId The Allure test case ID
+     * @param approve Whether to approve or reject sign data
+     * @param ensureConnected Callback to ensure wallet is connected before running the test
+     */
+    protected fun runSignDataTest(
+        allureId: String,
+        approve: Boolean = true,
+        ensureConnected: () -> Unit,
+    ) {
+        val testData = TestCaseDataProvider.getTestCaseData(allureId, allureClient)
+        val precondition = testData?.precondition ?: ""
+        val expectedResult = testData?.expectedResult ?: ""
+
+        step("Ensure wallet is connected to dApp") { ensureConnected() }
+
+        step("Open browser and fill signData test data") {
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+            if (precondition.isNotBlank()) dAppController.fillSignDataPrecondition(precondition)
+            if (expectedResult.isNotBlank()) dAppController.fillSignDataExpectedResult(expectedResult)
+        }
+
+        step("Click Sign Data button") {
+            dAppController.clickSignData()
+        }
+
+        step("Wait for sign data request") {
+            waitFor(15000L) { walletController.isSignDataRequestVisible() }
+        }
+
+        step(if (approve) "Approve sign data" else "Reject sign data") {
+            if (approve) walletController.approveSignData() else walletController.rejectSignData()
+        }
+
+        step("Wait for wallet to close sign data sheet") {
+            waitFor(5000L) { !walletController.isSignDataRequestVisible() }
+        }
+
+        step("Wait for dApp to receive sign data response") {
+            dAppController.openBrowser()
+            dAppController.waitForDAppPage()
+            dAppController.waitForSignDataResponse(timeoutMs = 15000)
+        }
+
+        step("Verify result in browser") {
+            dAppController.scrollToSignDataValidation()
+            val isValid = dAppController.verifySignDataValidation()
+            val validationText = dAppController.getSignDataValidationResult()
+            dAppController.closeBrowserFully()
+            assert(isValid) { "Sign Data validation failed - got: $validationText" }
+        }
     }
 }
 

@@ -22,21 +22,32 @@
 package io.ton.walletkit.demo.e2e
 
 import io.ton.walletkit.demo.e2e.tests.ConnectE2ETest
-import io.ton.walletkit.demo.e2e.tests.SendTransactionE2ETest
-import io.ton.walletkit.demo.e2e.tests.SignDataE2ETest
+import io.ton.walletkit.demo.e2e.tests.MerkleJettonSignDataE2ETest
+import io.ton.walletkit.demo.e2e.tests.TransactionAddressAmountE2ETest
+import io.ton.walletkit.demo.e2e.tests.TransactionFromMessagesNetworkE2ETest
+import io.ton.walletkit.demo.e2e.tests.TransactionPayloadStateInitValidUntilE2ETest
 import org.junit.runner.RunWith
 import org.junit.runners.Suite
 
 /**
- * Test suite for all TonConnect E2E tests.
+ * Main test suite for all TonConnect E2E tests.
  *
  * Run this suite to execute all E2E tests:
  * ./gradlew :app:connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=io.ton.walletkit.demo.e2e.E2ETestSuite
+ *
+ * Tests are organized into 5 suites for parallel CI execution:
+ * - ConnectE2ETest: Wallet connection tests
+ * - TransactionAddressAmountE2ETest: Transaction address & amount validation
+ * - TransactionFromMessagesNetworkE2ETest: Transaction from, messages & network validation
+ * - TransactionPayloadStateInitValidUntilE2ETest: Transaction payload, stateInit, validUntil validation
+ * - MerkleJettonSignDataE2ETest: Merkle, Jetton & Sign Data tests
  */
 @RunWith(Suite::class)
 @Suite.SuiteClasses(
     ConnectE2ETest::class,
-    SendTransactionE2ETest::class,
-    SignDataE2ETest::class,
+    TransactionAddressAmountE2ETest::class,
+    TransactionFromMessagesNetworkE2ETest::class,
+    TransactionPayloadStateInitValidUntilE2ETest::class,
+    MerkleJettonSignDataE2ETest::class,
 )
 class E2ETestSuite

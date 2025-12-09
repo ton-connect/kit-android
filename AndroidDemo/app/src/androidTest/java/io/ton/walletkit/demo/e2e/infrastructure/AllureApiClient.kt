@@ -131,17 +131,6 @@ class AllureApiClient(private val config: AllureConfig) {
             isPositiveCase = isPositiveCase,
         )
     }
-
-    companion object {
-        /**
-         * Extract Allure ID from test title.
-         * Example: "Successful Connect @allureId(2294)" -> "2294"
-         */
-        fun extractAllureId(title: String): String? {
-            val regex = Regex("@allureId\\((\\d+)\\)")
-            return regex.find(title)?.groupValues?.getOrNull(1)
-        }
-    }
 }
 
 /**
