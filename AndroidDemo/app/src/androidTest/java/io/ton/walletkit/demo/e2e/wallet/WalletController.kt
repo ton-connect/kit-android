@@ -67,58 +67,6 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     // ===========================================
 
     /**
-     * Set up password for the wallet (first time user).
-     */
-    @Step("Set up password")
-    fun setupPassword(password: String = "testpass123") {
-        // Wait for setup password screen
-        composeTestRule.waitUntil(5000) {
-            composeTestRule.onAllNodesWithTag(TestTags.PASSWORD_FIELD)
-                .fetchSemanticsNodes().isNotEmpty()
-        }
-
-        // Enter password
-        composeTestRule.onNodeWithTag(TestTags.PASSWORD_FIELD)
-            .performTextInput(password)
-
-        // Enter confirmation
-        composeTestRule.onNodeWithTag(TestTags.PASSWORD_CONFIRM_FIELD)
-            .performTextInput(password)
-
-        // Submit
-        composeTestRule.onNodeWithTag(TestTags.PASSWORD_SUBMIT_BUTTON)
-            .performClick()
-
-        // Wait for transition
-        composeTestRule.waitForIdle()
-    }
-
-    /**
-     * Unlock the wallet with existing password.
-     */
-    @Step("Unlock wallet")
-    fun unlockWallet(password: String = "testpass123") {
-        // Wait for unlock screen
-        composeTestRule.waitUntil(5000) {
-            composeTestRule.onAllNodesWithTag(TestTags.UNLOCK_PASSWORD_FIELD)
-                .fetchSemanticsNodes().isNotEmpty()
-        }
-
-        // Enter password
-        composeTestRule.onNodeWithTag(TestTags.UNLOCK_PASSWORD_FIELD)
-            .performTextInput(password)
-
-        // Submit
-        composeTestRule.onNodeWithTag(TestTags.UNLOCK_SUBMIT_BUTTON)
-            .performClick()
-
-        // Wait for transition to complete
-        composeTestRule.waitForIdle()
-        // Give extra time for app to finish state transition
-        Log.d("WalletController", "Unlock completed, waiting for app to stabilize...")
-    }
-
-    /**
      * Check if we're on the home screen with a wallet ready (not showing AddWalletSheet).
      * Returns true only if the browser button is visible AND the AddWalletSheet is NOT showing.
      */

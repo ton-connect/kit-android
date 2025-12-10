@@ -338,7 +338,8 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun rejectConnect(
         event: ConnectRequestEvent,
         reason: String?,
-    ) = tonConnectOperations.rejectConnect(event, reason)
+        errorCode: Int?,
+    ) = tonConnectOperations.rejectConnect(event, reason, errorCode)
 
     override suspend fun approveTransaction(event: TransactionRequestEvent) =
         tonConnectOperations.approveTransaction(event)

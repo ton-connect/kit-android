@@ -29,6 +29,7 @@ import io.qameta.allure.kotlin.Allure
 import io.qameta.allure.kotlin.Epic
 import io.qameta.allure.kotlin.Feature
 import io.qameta.allure.kotlin.Step
+import io.ton.walletkit.demo.core.RequestErrorTracker
 import io.ton.walletkit.demo.e2e.dapp.JsDAppController
 import io.ton.walletkit.demo.e2e.wallet.WalletController
 import org.junit.Before
@@ -259,6 +260,11 @@ abstract class BaseE2ETest {
         android.util.Log.d("SendTxTest", "  precondition length: ${precondition.length}")
         android.util.Log.d("SendTxTest", "  expectedResult length: ${expectedResult.length}")
 
+        // Clear error tracker before test if expecting SDK to auto-reject
+        if (!expectWalletPrompt) {
+            RequestErrorTracker.clear()
+        }
+
         step("Ensure wallet is connected to dApp") { ensureConnected() }
 
         step("Open browser and fill sendTx test data") {
@@ -297,8 +303,15 @@ abstract class BaseE2ETest {
                 dAppController.waitForSendTxResponse(timeoutMs = 15000)
             }
         } else {
+            step("Verify SDK received RequestError event for sendTransaction") {
+                val error = RequestErrorTracker.waitForError(timeoutMs = 5000, method = "sendTransaction")
+                android.util.Log.d("SendTxTest", "RequestError received: $error")
+                assert(error != null) { "Expected SDK to receive RequestError event for sendTransaction, but none received" }
+                assert(error!!.method == "sendTransaction") { "Expected method 'sendTransaction', got '${error.method}'" }
+            }
+
             step("Wait for error response in dApp") {
-                Thread.sleep(2000)
+                Thread.sleep(1000)
                 dAppController.scrollToSendTxValidation()
             }
         }
@@ -328,6 +341,11 @@ abstract class BaseE2ETest {
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
         android.util.Log.d("ConnectTest", "Test $allureId - precondition: ${precondition.take(100)}")
+
+        // Clear error tracker before test if expecting SDK to auto-reject
+        if (!expectConnectSheet) {
+            RequestErrorTracker.clear()
+        }
 
         step("Get TonConnect URL from dApp") {
             dAppController.openBrowser()
@@ -360,11 +378,10 @@ abstract class BaseE2ETest {
                 waitFor(5000L) { !walletController.isConnectRequestVisible() }
             }
         } else {
-            step("Verify no connect sheet shown (SDK auto-rejects)") {
-                Thread.sleep(2000)
+            step("Verify no connect sheet shown (wallet app auto-rejected)") {
                 val connectSheetVisible = walletController.isConnectRequestVisible()
                 android.util.Log.d("ConnectTest", "Connect sheet visible: $connectSheetVisible")
-                assert(!connectSheetVisible) { "Connect sheet should NOT be visible - SDK should auto-reject" }
+                assert(!connectSheetVisible) { "Connect sheet should NOT be visible - wallet should auto-reject manifest error" }
             }
         }
 

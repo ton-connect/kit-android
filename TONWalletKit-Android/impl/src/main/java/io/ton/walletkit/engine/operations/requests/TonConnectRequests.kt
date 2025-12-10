@@ -58,6 +58,7 @@ internal data class ApproveConnectRequest(
 internal data class RejectConnectRequest(
     val event: ConnectRequestEvent,
     val reason: String? = null,
+    val errorCode: Int? = null,
 )
 
 @Serializable

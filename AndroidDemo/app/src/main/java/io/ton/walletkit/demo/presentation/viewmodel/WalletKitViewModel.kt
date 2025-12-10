@@ -269,6 +269,16 @@ class WalletKitViewModel @Inject constructor(
                 Log.d(LOG_TAG, "Session disconnected: ${event.event.sessionId}")
                 viewModelScope.launch { sessionsViewModel.refresh() }
             }
+            is TONWalletKitEvent.RequestError -> {
+                // Request failed - SDK auto-rejected (connect, transaction, or signData)
+                Log.d(LOG_TAG, "Request error: method=${event.method}, code=${event.errorCode}, message=${event.errorMessage}")
+                // Track for E2E testing
+                io.ton.walletkit.demo.core.RequestErrorTracker.recordError(
+                    method = event.method,
+                    errorCode = event.errorCode,
+                    errorMessage = event.errorMessage,
+                )
+            }
             // Browser events - logged but not handled here as BrowserSheet manages WebView directly
             is TONWalletKitEvent.BrowserPageStarted,
             is TONWalletKitEvent.BrowserPageFinished,
@@ -1178,6 +1188,28 @@ class WalletKitViewModel @Inject constructor(
      * This provides type-safe, exhaustive when() expressions.
      */
     private fun onConnectRequest(request: TONWalletConnectionRequest) {
+        Log.d(LOG_TAG, "onConnectRequest called - manifestFetchErrorCode: ${request.manifestFetchErrorCode}, dAppInfo: ${request.dAppInfo?.name}, dAppUrl: ${request.dAppInfo?.url}")
+        // Auto-reject if manifest fetch failed or manifest content is invalid (same behavior as web demo wallet)
+        // The SDK sets manifestFetchErrorCode for:
+        // - 2: MANIFEST_NOT_FOUND_ERROR - manifest URL fetch failed
+        // - 3: MANIFEST_CONTENT_ERROR - manifest content is invalid (including invalid dApp URL)
+        if (request.manifestFetchErrorCode != null) {
+            Log.w(LOG_TAG, "Auto-rejecting connect request due to manifest error: ${request.manifestFetchErrorCode}")
+            viewModelScope.launch {
+                try {
+                    val reason = when (request.manifestFetchErrorCode) {
+                        2 -> "App manifest not found"
+                        3 -> "App manifest content error"
+                        else -> "Manifest error"
+                    }
+                    request.reject(reason, request.manifestFetchErrorCode)
+                } catch (e: Exception) {
+                    Log.e(LOG_TAG, "Failed to auto-reject connect request", e)
+                }
+            }
+            return
+        }
+
         // Convert to UI model for existing sheets
         val dAppInfo = request.dAppInfo
         val fallbackDAppName = uiString(R.string.wallet_event_unknown_dapp)

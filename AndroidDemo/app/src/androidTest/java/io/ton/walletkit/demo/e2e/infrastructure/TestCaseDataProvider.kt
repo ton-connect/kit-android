@@ -96,7 +96,7 @@ object TestCaseDataProvider {
             isPositiveCase = false,
         )
         "54857", "54865" -> TestCaseData( // CONNECT_FAKE_URL_IN_MANIFEST (Universal/Custom QR)
-            precondition = CONNECT_FAKE_MANIFEST_PRECONDITION,
+            precondition = CONNECT_FAKE_URL_IN_MANIFEST_PRECONDITION,
             expectedResult = CONNECT_FAKE_URL_IN_MANIFEST_EXPECTED_RESULT,
             isPositiveCase = false,
         )
@@ -281,6 +281,17 @@ object TestCaseDataProvider {
         "message": "App manifest not found"
     },
     "id": isNonNegativeInt
+}
+```
+    """.trimIndent()
+
+    // Precondition for fake URL IN manifest (manifest fetches OK but dApp URL is invalid)
+    private val CONNECT_FAKE_URL_IN_MANIFEST_PRECONDITION = """
+```json
+{
+  "__meta": {
+    "manifestUrl": "https://allure-test-runner.vercel.app/manifest-with-invalid-url.json"
+  }
 }
 ```
     """.trimIndent()

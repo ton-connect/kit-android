@@ -134,10 +134,10 @@ internal class TonConnectOperations(
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_CONNECT_REQUEST, json.toJSONObject(request))
     }
 
-    suspend fun rejectConnect(event: ConnectRequestEvent, reason: String?) {
+    suspend fun rejectConnect(event: ConnectRequestEvent, reason: String?, errorCode: Int? = null) {
         ensureInitialized()
 
-        val request = RejectConnectRequest(event = event, reason = reason)
+        val request = RejectConnectRequest(event = event, reason = reason, errorCode = errorCode)
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_CONNECT_REQUEST, json.toJSONObject(request))
     }
 

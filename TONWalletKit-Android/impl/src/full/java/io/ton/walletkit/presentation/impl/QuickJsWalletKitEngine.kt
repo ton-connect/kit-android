@@ -1032,9 +1032,11 @@ internal class QuickJsWalletKitEngine(
                     val event = json.decodeFromString<ConnectRequestEvent>(data.toString())
                     val dAppInfo = parseDAppInfo(data)
                     val permissions = event.preview?.permissions ?: emptyList()
+                    val manifestFetchErrorCode = event.preview?.manifestFetchErrorCode
                     val request = TONWalletConnectionRequest(
                         dAppInfo = dAppInfo,
                         permissions = permissions,
+                        manifestFetchErrorCode = manifestFetchErrorCode,
                         event = event,
                         handler = this,
                     )

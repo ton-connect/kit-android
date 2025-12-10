@@ -61,10 +61,13 @@ internal class EventParser(
                     val normalizedEvent = normalizeManifestUrl(event)
                     val dAppInfo = parseDAppInfo(data)
                     val permissions = normalizedEvent.preview?.permissions ?: emptyList()
+                    val manifestFetchErrorCode = normalizedEvent.preview?.manifestFetchErrorCode
+                    Logger.d(TAG, "Parsing connect request - preview: ${normalizedEvent.preview}, manifestFetchErrorCode: $manifestFetchErrorCode")
                     val request =
                         TONWalletConnectionRequest(
                             dAppInfo = dAppInfo,
                             permissions = permissions,
+                            manifestFetchErrorCode = manifestFetchErrorCode,
                             event = normalizedEvent,
                             handler = engine,
                         )
@@ -167,6 +170,19 @@ internal class EventParser(
                 val method = data.optString("method", "")
                 val request = data.optString("request", "")
                 TONWalletKitEvent.BrowserBridgeRequest(messageId, method, request)
+            }
+
+            EventTypeConstants.EVENT_REQUEST_ERROR -> {
+                // EventRequestError structure: { incomingEvent: { method }, result: { error: { code, message } } }
+                val incomingEvent = data.optJSONObject("incomingEvent")
+                val result = data.optJSONObject("result")
+                val error = result?.optJSONObject("error")
+
+                val method = incomingEvent?.optString("method", "unknown") ?: "unknown"
+                val errorCode = error?.optInt("code", 0) ?: 0
+                val errorMessage = error?.optString("message", "Unknown error") ?: "Unknown error"
+
+                TONWalletKitEvent.RequestError(method, errorCode, errorMessage)
             }
 
             EventTypeConstants.EVENT_STATE_CHANGED,

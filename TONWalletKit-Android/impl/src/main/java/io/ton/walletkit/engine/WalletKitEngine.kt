@@ -317,11 +317,13 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @param event Typed event from the connect request
      * @param reason Optional reason for rejection
+     * @param errorCode Optional error code for TON Connect protocol
      * @throws WalletKitBridgeException if rejection fails
      */
     override suspend fun rejectConnect(
         event: ConnectRequestEvent,
         reason: String?,
+        errorCode: Int?,
     )
 
     /**

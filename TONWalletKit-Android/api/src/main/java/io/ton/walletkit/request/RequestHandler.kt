@@ -32,7 +32,7 @@ import io.ton.walletkit.event.TransactionRequestEvent
  */
 interface RequestHandler {
     suspend fun approveConnect(event: ConnectRequestEvent)
-    suspend fun rejectConnect(event: ConnectRequestEvent, reason: String?)
+    suspend fun rejectConnect(event: ConnectRequestEvent, reason: String?, errorCode: Int? = null)
 
     suspend fun approveTransaction(event: TransactionRequestEvent)
     suspend fun rejectTransaction(event: TransactionRequestEvent, reason: String?)

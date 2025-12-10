@@ -87,14 +87,6 @@ class ConnectE2ETest : BaseE2ETest() {
     }
 
     // =========================================================================
-    // Unified test runners
-    // =========================================================================
-
-    private fun runConnectTest(allureId: String, approve: Boolean = true, expectConnectSheet: Boolean = true) = runHttpBridgeConnectTest(allureId, approve, expectConnectSheet)
-
-    private fun runInjectedTest(allureId: String) = runInjectedConnectTest(allureId)
-
-    // =========================================================================
     // Basic Connect Tests
     // =========================================================================
 

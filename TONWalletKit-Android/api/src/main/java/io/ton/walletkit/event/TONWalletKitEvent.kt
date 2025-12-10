@@ -46,6 +46,27 @@ sealed class TONWalletKitEvent {
     ) : TONWalletKitEvent()
 
     /**
+     * A request failed validation or processing.
+     *
+     * This is informational - the error has already been sent to the dApp.
+     * Use this to inform the user why the request failed.
+     *
+     * The [method] field indicates the type of request that failed:
+     * - "connect" - Connection request (e.g., invalid manifest URL)
+     * - "sendTransaction" - Transaction request (e.g., invalid address/amount)
+     * - "signData" - Sign data request (e.g., invalid payload)
+     *
+     * @property method The method that failed ("connect", "sendTransaction", "signData")
+     * @property errorCode Error code from the protocol
+     * @property errorMessage Human-readable error message
+     */
+    data class RequestError(
+        val method: String,
+        val errorCode: Int,
+        val errorMessage: String,
+    ) : TONWalletKitEvent()
+
+    /**
      * A dApp is requesting to execute a transaction.
      *
      * Handle by calling [TONWalletTransactionRequest.approve] to execute

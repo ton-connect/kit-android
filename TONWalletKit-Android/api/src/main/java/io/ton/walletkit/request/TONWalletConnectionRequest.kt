@@ -34,10 +34,14 @@ import io.ton.walletkit.model.DAppInfo
  *
  * @property dAppInfo Information about the requesting dApp
  * @property permissions List of requested permissions
+ * @property manifestFetchErrorCode Error code if manifest fetch failed (null if successful).
+ *           When set, the wallet app should auto-reject the request.
+ *           Values: 2 = MANIFEST_NOT_FOUND_ERROR, 3 = MANIFEST_CONTENT_ERROR
  */
 class TONWalletConnectionRequest(
     val dAppInfo: DAppInfo?,
     val permissions: List<ConnectRequestEvent.ConnectPermission>,
+    val manifestFetchErrorCode: Int?,
     private val event: ConnectRequestEvent,
     private val handler: RequestHandler,
 ) {
@@ -56,9 +60,10 @@ class TONWalletConnectionRequest(
      * Reject this connection request.
      *
      * @param reason Optional reason for rejection
+     * @param errorCode Optional TON Connect error code (e.g., 3 for MANIFEST_CONTENT_ERROR)
      * @throws io.ton.walletkit.WalletKitBridgeException if rejection fails
      */
-    suspend fun reject(reason: String? = null) {
-        handler.rejectConnect(event, reason)
+    suspend fun reject(reason: String? = null, errorCode: Int? = null) {
+        handler.rejectConnect(event, reason, errorCode)
     }
 }
