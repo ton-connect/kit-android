@@ -24,6 +24,7 @@ package io.ton.walletkit.request
 import io.ton.walletkit.event.SignDataRequestEvent
 import io.ton.walletkit.event.SignDataType
 import io.ton.walletkit.model.DAppInfo
+import io.ton.walletkit.model.TONNetwork
 
 /**
  * Represents a data signing request from a dApp.
@@ -42,6 +43,7 @@ import io.ton.walletkit.model.DAppInfo
 class TONWalletSignDataRequest(
     val dAppInfo: DAppInfo?,
     val walletAddress: String?,
+    val tonNetwork: TONNetwork,
     private val event: SignDataRequestEvent,
     private val handler: RequestHandler,
 ) {
@@ -77,7 +79,7 @@ class TONWalletSignDataRequest(
      * @throws io.ton.walletkit.WalletKitBridgeException if approval or signing fails
      */
     suspend fun approve() {
-        handler.approveSignData(event)
+        handler.approveSignData(event, tonNetwork)
     }
 
     /**

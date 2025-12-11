@@ -23,6 +23,7 @@ package io.ton.walletkit.request
 
 import io.ton.walletkit.event.TransactionRequestEvent
 import io.ton.walletkit.model.DAppInfo
+import io.ton.walletkit.model.TONNetwork
 
 /**
  * Represents a transaction request from a dApp.
@@ -39,6 +40,7 @@ import io.ton.walletkit.model.DAppInfo
  */
 class TONWalletTransactionRequest(
     val dAppInfo: DAppInfo?,
+    val tonNetwork: TONNetwork,
     private val event: TransactionRequestEvent,
     private val handler: RequestHandler,
 ) {
@@ -94,17 +96,19 @@ class TONWalletTransactionRequest(
      * @throws io.ton.walletkit.WalletKitBridgeException if approval fails
      */
     suspend fun approve() {
-        handler.approveTransaction(event)
+        handler.approveTransaction(event, tonNetwork)
     }
 
     /**
      * Reject this transaction request.
      *
      * @param reason Optional reason for rejection
+     * @param errorCode Optional error code (defaults to USER_REJECTS_ERROR=300 if not provided)
+     *                  Use BAD_REQUEST_ERROR=1 for validation errors like insufficient balance
      * @throws io.ton.walletkit.WalletKitBridgeException if rejection fails
      */
-    suspend fun reject(reason: String? = null) {
-        handler.rejectTransaction(event, reason)
+    suspend fun reject(reason: String? = null, errorCode: Int? = null) {
+        handler.rejectTransaction(event, reason, errorCode)
     }
 }
 

@@ -37,6 +37,7 @@ data class ConnectRequestEvent(
     val request: List<Request>? = null,
     val dAppInfo: DAppInfo? = null,
     var walletAddress: String? = null,
+    var walletId: String? = null,
 
     // JS Bridge fields for internal browser
     val isJsBridge: Boolean? = null,

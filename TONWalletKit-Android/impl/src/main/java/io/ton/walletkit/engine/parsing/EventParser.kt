@@ -33,6 +33,7 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.DAppInfo
+import io.ton.walletkit.model.TONNetwork
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
@@ -68,6 +69,7 @@ internal class EventParser(
                             dAppInfo = dAppInfo,
                             permissions = permissions,
                             manifestFetchErrorCode = manifestFetchErrorCode,
+                            tonNetwork = resolveNetwork(),
                             event = normalizedEvent,
                             handler = engine,
                         )
@@ -95,6 +97,7 @@ internal class EventParser(
                     val request =
                         TONWalletTransactionRequest(
                             dAppInfo = dAppInfo,
+                            tonNetwork = resolveNetwork(),
                             event = event,
                             handler = engine,
                         )
@@ -122,6 +125,7 @@ internal class EventParser(
                         TONWalletSignDataRequest(
                             dAppInfo = dAppInfo,
                             walletAddress = event.walletAddress,
+                            tonNetwork = resolveNetwork(),
                             event = event,
                             handler = engine,
                         )
@@ -192,6 +196,15 @@ internal class EventParser(
 
             else -> null
         }
+
+    private fun resolveNetwork(): TONNetwork {
+        val configNetwork = engine.getConfiguration()?.network
+        if (configNetwork == null) {
+            Logger.w(TAG, "WalletKit configuration missing network, defaulting to TESTNET")
+            return TONNetwork.TESTNET
+        }
+        return configNetwork
+    }
 
     private fun parseDAppInfo(data: JSONObject): DAppInfo? {
         // Try to get dApp name from multiple sources

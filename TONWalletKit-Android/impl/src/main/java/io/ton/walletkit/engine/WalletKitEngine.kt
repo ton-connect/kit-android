@@ -27,6 +27,7 @@ import io.ton.walletkit.event.ConnectRequestEvent
 import io.ton.walletkit.event.SignDataRequestEvent
 import io.ton.walletkit.event.TransactionRequestEvent
 import io.ton.walletkit.model.KeyPair
+import io.ton.walletkit.model.TONNetwork
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSession
@@ -206,29 +207,29 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun getWallets(): List<WalletAccount>
 
     /**
-     * Get a single wallet by address using RPC call.
+     * Get a single wallet by walletId using RPC call.
      *
-     * @param address Wallet address to find
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @return Wallet account or null if not found
      */
-    suspend fun getWallet(address: String): WalletAccount?
+    suspend fun getWallet(walletId: String): WalletAccount?
 
     /**
-     * Remove a wallet by address.
+     * Remove a wallet by walletId.
      *
-     * @param address Wallet address to remove
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @throws WalletKitBridgeException if removal fails
      */
-    suspend fun removeWallet(address: String)
+    suspend fun removeWallet(walletId: String)
 
     /**
      * Get the current state of a wallet.
      *
-     * @param address Wallet address
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @return Current wallet balance in nanoTON as a string
      * @throws WalletKitBridgeException if balance retrieval fails
      */
-    suspend fun getBalance(address: String): String
+    suspend fun getBalance(walletId: String): String
 
     /**
      * Handle a TON Connect URL (e.g., from QR code scan or deep link).
@@ -263,13 +264,13 @@ internal interface WalletKitEngine : RequestHandler {
      * This method creates transaction content matching the JS WalletKit API wallet.createTransferTonTransaction().
      * The returned transaction content can be passed to handleNewTransaction() to trigger the approval flow.
      *
-     * @param walletAddress Source wallet address
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @param params Transfer parameters (recipient, amount, optional comment/body/stateInit)
      * @return Transaction with optional preview
      * @throws WalletKitBridgeException if transaction creation fails
      */
     suspend fun createTransferTonTransaction(
-        walletAddress: String,
+        walletId: String,
         params: io.ton.walletkit.model.TONTransferParams,
     ): io.ton.walletkit.model.TONTransactionWithPreview
 
@@ -279,12 +280,12 @@ internal interface WalletKitEngine : RequestHandler {
      * This method matches the JS WalletKit API kit.handleNewTransaction() and triggers
      * a transaction request event that can be approved or rejected via the event handler.
      *
-     * @param walletAddress Wallet address that will sign the transaction
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @param transactionContent Transaction content as JSON (from createTransferTonTransaction, etc.)
      * @throws WalletKitBridgeException if transaction handling fails
      */
     suspend fun handleNewTransaction(
-        walletAddress: String,
+        walletId: String,
         transactionContent: String,
     )
 
@@ -294,13 +295,13 @@ internal interface WalletKitEngine : RequestHandler {
      * This method takes transaction content (as JSON) and sends it to the blockchain,
      * returning the transaction hash. This matches the iOS wallet.sendTransaction() behavior.
      *
-     * @param walletAddress Wallet address that will sign and send the transaction
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @param transactionContent Transaction content as JSON (from transferNFT, createTransferJettonTransaction, etc.)
      * @return Transaction hash (signedBoc) after successful broadcast
      * @throws WalletKitBridgeException if sending fails
      */
     suspend fun sendTransaction(
-        walletAddress: String,
+        walletId: String,
         transactionContent: String,
     ): String
 
@@ -310,7 +311,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @param event Typed event from the connect request
      * @throws WalletKitBridgeException if approval fails
      */
-    override suspend fun approveConnect(event: ConnectRequestEvent)
+    override suspend fun approveConnect(event: ConnectRequestEvent, network: TONNetwork)
 
     /**
      * Reject a connection request from a dApp.
@@ -332,18 +333,20 @@ internal interface WalletKitEngine : RequestHandler {
      * @param event Typed event from the transaction request
      * @throws WalletKitBridgeException if approval or signing fails
      */
-    override suspend fun approveTransaction(event: TransactionRequestEvent)
+    override suspend fun approveTransaction(event: TransactionRequestEvent, network: TONNetwork)
 
     /**
      * Reject a transaction request.
      *
      * @param event Typed event from the transaction request
      * @param reason Optional reason for rejection
+     * @param errorCode Optional error code (defaults to USER_REJECTS_ERROR=300)
      * @throws WalletKitBridgeException if rejection fails
      */
     override suspend fun rejectTransaction(
         event: TransactionRequestEvent,
         reason: String?,
+        errorCode: Int?,
     )
 
     /**
@@ -352,7 +355,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @param event Typed event from the sign data request
      * @throws WalletKitBridgeException if approval or signing fails
      */
-    override suspend fun approveSignData(event: SignDataRequestEvent)
+    override suspend fun approveSignData(event: SignDataRequestEvent, network: TONNetwork)
 
     /**
      * Reject a data signing request.
@@ -390,7 +393,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @return NFT items with pagination info
      * @throws WalletKitBridgeException if the request fails
      */
-    suspend fun getNfts(walletAddress: String, limit: Int = 100, offset: Int = 0): io.ton.walletkit.model.TONNFTItems
+    suspend fun getNfts(walletId: String, limit: Int = 100, offset: Int = 0): io.ton.walletkit.model.TONNFTItems
 
     /**
      * Get a single NFT by its address.
@@ -404,98 +407,98 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Create an NFT transfer transaction with human-friendly parameters.
      *
-     * @param walletAddress Wallet address to transfer from
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @param params Transfer parameters
      * @return Transaction content as JSON string
      * @throws WalletKitBridgeException if transaction creation fails
      */
     suspend fun createTransferNftTransaction(
-        walletAddress: String,
+        walletId: String,
         params: io.ton.walletkit.model.TONNFTTransferParamsHuman,
     ): String
 
     /**
      * Create an NFT transfer transaction with raw parameters.
      *
-     * @param walletAddress Wallet address to transfer from
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @param params Raw transfer parameters
      * @return Transaction content as JSON string
      * @throws WalletKitBridgeException if transaction creation fails
      */
     suspend fun createTransferNftRawTransaction(
-        walletAddress: String,
+        walletId: String,
         params: io.ton.walletkit.model.TONNFTTransferParamsRaw,
     ): String
 
     /**
      * Get jetton wallets owned by a wallet with pagination.
      *
-     * @param walletAddress Wallet address to get jettons for
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @param limit Maximum number of jetton wallets to return
      * @param offset Offset for pagination
      * @return Jetton wallets with pagination info
      * @throws WalletKitBridgeException if the request fails
      */
-    suspend fun getJettons(walletAddress: String, limit: Int = 100, offset: Int = 0): io.ton.walletkit.model.TONJettonWallets
+    suspend fun getJettons(walletId: String, limit: Int = 100, offset: Int = 0): io.ton.walletkit.model.TONJettonWallets
 
     /**
      * Create a jetton transfer transaction.
      *
-     * @param walletAddress Wallet address to transfer from
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @param params Transfer parameters
      * @return Transaction content as JSON string
      * @throws WalletKitBridgeException if transaction creation fails
      */
     suspend fun createTransferJettonTransaction(
-        walletAddress: String,
+        walletId: String,
         params: io.ton.walletkit.model.TONJettonTransferParams,
     ): String
 
     /**
      * Create a multi-recipient TON transfer transaction.
      *
-     * @param walletAddress Wallet address to transfer from
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @param messages List of transfer parameters for each recipient
      * @return Transaction with optional preview
      * @throws WalletKitBridgeException if transaction creation fails
      */
     suspend fun createTransferMultiTonTransaction(
-        walletAddress: String,
+        walletId: String,
         messages: List<io.ton.walletkit.model.TONTransferParams>,
     ): io.ton.walletkit.model.TONTransactionWithPreview
 
     /**
      * Get a preview of a transaction including estimated fees.
      *
-     * @param walletAddress Wallet address
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @param transactionContent Transaction content as JSON string
      * @return Transaction preview with fee estimation
      * @throws WalletKitBridgeException if preview generation fails
      */
     suspend fun getTransactionPreview(
-        walletAddress: String,
+        walletId: String,
         transactionContent: String,
     ): io.ton.walletkit.model.TONTransactionPreview
 
     /**
      * Get the balance of a specific jetton for a wallet.
      *
-     * @param walletAddress Wallet address
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @param jettonAddress Jetton master contract address
      * @return Balance as a string (in jetton units)
      * @throws WalletKitBridgeException if balance retrieval fails
      */
-    suspend fun getJettonBalance(walletAddress: String, jettonAddress: String): String
+    suspend fun getJettonBalance(walletId: String, jettonAddress: String): String
 
     /**
      * Get the jetton wallet address for a specific jetton master contract.
      *
-     * @param walletAddress User's main wallet address
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      * @param jettonAddress Jetton master contract address
      * @return Jetton wallet contract address
      * @throws WalletKitBridgeException if address retrieval fails
      */
-    suspend fun getJettonWalletAddress(walletAddress: String, jettonAddress: String): String
+    suspend fun getJettonWalletAddress(walletId: String, jettonAddress: String): String
 
     /**
      * Call a bridge method directly.

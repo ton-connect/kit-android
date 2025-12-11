@@ -129,8 +129,8 @@ internal class TONWallet internal constructor(
      * @throws io.ton.walletkit.WalletKitBridgeException if balance retrieval fails
      */
     override suspend fun getBalance(): String {
-        val addr = address?.value ?: return "0"
-        return engine.getBalance(addr)
+        val walletId = account?.walletId ?: return "0"
+        return engine.getBalance(walletId)
     }
 
     /**
@@ -169,8 +169,8 @@ internal class TONWallet internal constructor(
      * @throws io.ton.walletkit.WalletKitBridgeException if removal fails
      */
     override suspend fun remove() {
-        val addr = address?.value ?: return
-        engine.removeWallet(addr)
+        val walletId = account?.walletId ?: return
+        engine.removeWallet(walletId)
     }
 
     /**
@@ -183,7 +183,7 @@ internal class TONWallet internal constructor(
      * @throws io.ton.walletkit.WalletKitBridgeException if session retrieval fails
      */
     override suspend fun sessions(): List<WalletSession> {
-        val addr = address?.value ?: return emptyList()
+        val addr = account?.address?.value ?: return emptyList()
         // Get all sessions and filter by wallet address
         return engine.listSessions().filter { session ->
             session.walletAddress == addr
@@ -206,8 +206,8 @@ internal class TONWallet internal constructor(
      * @throws io.ton.walletkit.WalletKitBridgeException if transaction creation fails
      */
     override suspend fun createTransferTonTransaction(params: TONTransferParams): io.ton.walletkit.model.TONTransactionWithPreview {
-        val addr = address?.value ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.createTransferTonTransaction(addr, params)
+        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
+        return engine.createTransferTonTransaction(walletId, params)
     }
 
     /**
@@ -221,8 +221,8 @@ internal class TONWallet internal constructor(
      * @throws WalletKitBridgeException if transaction creation fails
      */
     override suspend fun createTransferMultiTonTransaction(messages: List<TONTransferParams>): io.ton.walletkit.model.TONTransactionWithPreview {
-        val addr = address?.value ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.createTransferMultiTonTransaction(addr, messages)
+        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
+        return engine.createTransferMultiTonTransaction(walletId, messages)
     }
 
     /**
@@ -234,8 +234,8 @@ internal class TONWallet internal constructor(
      * @throws WalletKitBridgeException if preview generation fails
      */
     override suspend fun getTransactionPreview(transactionContent: String): TONTransactionPreview {
-        val addr = address?.value ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.getTransactionPreview(addr, transactionContent)
+        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
+        return engine.getTransactionPreview(walletId, transactionContent)
     }
 
     /**
@@ -254,8 +254,8 @@ internal class TONWallet internal constructor(
         collectionAddress: String?,
         indirectOwnership: Boolean?,
     ): List<TONNFTItem> {
-        val addr = address?.value ?: throw WalletKitBridgeException("Wallet address is null")
-        val nftItems = engine.getNfts(addr, limit ?: 100, offset ?: 0)
+        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
+        val nftItems = engine.getNfts(walletId, limit ?: 100, offset ?: 0)
         return nftItems.items
     }
 
@@ -281,8 +281,8 @@ internal class TONWallet internal constructor(
      * @throws WalletKitBridgeException if transaction creation fails
      */
     override suspend fun createTransferNFTTransaction(params: TONNFTTransferParamsHuman): String {
-        val addr = address?.value ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.createTransferNftTransaction(addr, params)
+        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
+        return engine.createTransferNftTransaction(walletId, params)
     }
 
     /**
@@ -294,8 +294,8 @@ internal class TONWallet internal constructor(
      * @throws WalletKitBridgeException if transaction creation fails
      */
     override suspend fun createTransferNftRawTransaction(params: TONNFTTransferParamsRaw): String {
-        val addr = address?.value ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.createTransferNftRawTransaction(addr, params)
+        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
+        return engine.createTransferNftRawTransaction(walletId, params)
     }
 
     /**
@@ -319,8 +319,8 @@ internal class TONWallet internal constructor(
      * @throws WalletKitBridgeException if sending fails
      */
     override suspend fun sendTransaction(transactionContent: String): String {
-        val addr = address?.value ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.sendTransaction(addr, transactionContent)
+        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
+        return engine.sendTransaction(walletId, transactionContent)
     }
 
     /**
@@ -336,8 +336,8 @@ internal class TONWallet internal constructor(
         limit: Int?,
         offset: Int?,
     ): TONJettonWallets {
-        val addr = address?.value ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.getJettons(addr, limit ?: 100, offset ?: 0)
+        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
+        return engine.getJettons(walletId, limit ?: 100, offset ?: 0)
     }
 
     /**
@@ -349,8 +349,8 @@ internal class TONWallet internal constructor(
      * @throws WalletKitBridgeException if transaction creation fails
      */
     override suspend fun createTransferJettonTransaction(params: TONJettonTransferParams): String {
-        val addr = address?.value ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.createTransferJettonTransaction(addr, params)
+        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
+        return engine.createTransferJettonTransaction(walletId, params)
     }
 
     /**
@@ -363,8 +363,8 @@ internal class TONWallet internal constructor(
      * @throws WalletKitBridgeException if balance retrieval fails
      */
     override suspend fun getJettonBalance(jettonAddress: String): String {
-        val addr = address?.value ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.getJettonBalance(addr, jettonAddress)
+        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
+        return engine.getJettonBalance(walletId, jettonAddress)
     }
 
     /**
@@ -380,8 +380,8 @@ internal class TONWallet internal constructor(
      * @throws WalletKitBridgeException if address retrieval fails
      */
     override suspend fun getJettonWalletAddress(jettonAddress: String): String {
-        val addr = address?.value ?: throw WalletKitBridgeException("Wallet address is null")
-        return engine.getJettonWalletAddress(addr, jettonAddress)
+        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
+        return engine.getJettonWalletAddress(walletId, jettonAddress)
     }
 
     override suspend fun signData(

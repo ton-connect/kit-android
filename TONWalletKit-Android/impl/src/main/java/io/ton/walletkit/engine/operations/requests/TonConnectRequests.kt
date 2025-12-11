@@ -51,7 +51,7 @@ internal data class ProcessInternalBrowserRequest(
 @Serializable
 internal data class ApproveConnectRequest(
     val event: ConnectRequestEvent,
-    val walletAddress: String,
+    val walletId: String,
 )
 
 @Serializable
@@ -70,6 +70,7 @@ internal data class ApproveTransactionRequest(
 internal data class RejectTransactionRequest(
     val event: TransactionRequestEvent,
     val reason: String? = null,
+    val errorCode: Int? = null,
 )
 
 @Serializable

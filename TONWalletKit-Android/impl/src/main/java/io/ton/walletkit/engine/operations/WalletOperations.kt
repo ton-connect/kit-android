@@ -26,9 +26,9 @@ import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.operations.requests.AddWalletRequest
-import io.ton.walletkit.engine.operations.requests.AddressRequest
 import io.ton.walletkit.engine.operations.requests.CreateAdapterRequest
 import io.ton.walletkit.engine.operations.requests.CreateSignerRequest
+import io.ton.walletkit.engine.operations.requests.WalletIdRequest
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.JsonConstants
@@ -369,12 +369,14 @@ internal class WalletOperations(
     }
 
     /**
-     * Get a single wallet by address using RPC call.
+     * Get a single wallet by walletId using RPC call.
+     *
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      */
-    suspend fun getWallet(address: String): WalletAccount? {
+    suspend fun getWallet(walletId: String): WalletAccount? {
         ensureInitialized()
 
-        val request = AddressRequest(address = address)
+        val request = WalletIdRequest(walletId = walletId)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_WALLET, json.toJSONObject(request))
 
         // JS now returns raw wallet object or null
@@ -407,11 +409,13 @@ internal class WalletOperations(
 
     /**
      * Remove a wallet from the bridge layer.
+     *
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      */
-    suspend fun removeWallet(address: String) {
+    suspend fun removeWallet(walletId: String) {
         ensureInitialized()
 
-        val request = AddressRequest(address = address)
+        val request = WalletIdRequest(walletId = walletId)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_REMOVE_WALLET, json.toJSONObject(request))
         Logger.d(TAG, "removeWallet result: $result")
 
@@ -424,17 +428,19 @@ internal class WalletOperations(
             }
 
         if (!removed) {
-            throw WalletKitBridgeException(ERROR_FAILED_REMOVE_WALLET + address)
+            throw WalletKitBridgeException(ERROR_FAILED_REMOVE_WALLET + walletId)
         }
     }
 
     /**
      * Retrieve wallet balance in nanoTON.
+     *
+     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
      */
-    suspend fun getBalance(address: String): String {
+    suspend fun getBalance(walletId: String): String {
         ensureInitialized()
 
-        val request = AddressRequest(address = address)
+        val request = WalletIdRequest(walletId = walletId)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_BALANCE, json.toJSONObject(request))
 
         // JS now returns raw balance value (bigint/number) directly

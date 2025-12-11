@@ -1251,44 +1251,68 @@ class WalletKitViewModel @Inject constructor(
 
         Log.d(LOG_TAG, "Transaction request - walletAddress: $walletAddress, dAppName: ${dAppInfo?.name}")
 
-        // Map actual transaction messages from request
-        val messages = request.messages.map { msg ->
-            // Try to decode comment from payload if it's a simple text comment
-            val comment = try {
-                msg.payload?.let { payload ->
-                    // Simple text comments are base64 encoded with opcode 0
-                    // For now, we'll just show null - full decoding can be added later
-                    null
+        // Check balance before showing transaction UI (like web demo-wallet does)
+        viewModelScope.launch {
+            val wallet = lifecycleManager.tonWallets[walletAddress]
+            if (wallet != null) {
+                try {
+                    val balance = wallet.getBalance()
+                    val totalAmount = request.messages.sumOf { msg ->
+                        msg.amount.toBigIntegerOrNull() ?: java.math.BigInteger.ZERO
+                    }
+                    Log.d(LOG_TAG, "Balance check: balance=$balance, totalAmount=$totalAmount")
+
+                    if (balance.toBigInteger() < totalAmount) {
+                        Log.d(LOG_TAG, "Insufficient balance - auto-rejecting transaction")
+                        // Use BAD_REQUEST_ERROR (1) for insufficient balance, matching web demo-wallet
+                        request.reject("Insufficient balance", BAD_REQUEST_ERROR_CODE)
+                        return@launch
+                    }
+                } catch (e: Exception) {
+                    Log.e(LOG_TAG, "Failed to check balance, proceeding with transaction UI", e)
+                    // Continue to show the UI even if balance check fails
                 }
-            } catch (_: Exception) {
-                null
             }
 
-            TransactionMessageUi(
-                to = msg.address,
-                amount = msg.amount,
-                comment = comment,
-                payload = msg.payload,
-                stateInit = msg.stateInit,
+            // Map actual transaction messages from request
+            val messages = request.messages.map { msg ->
+                // Try to decode comment from payload if it's a simple text comment
+                val comment = try {
+                    msg.payload?.let { payload ->
+                        // Simple text comments are base64 encoded with opcode 0
+                        // For now, we'll just show null - full decoding can be added later
+                        null
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+
+                TransactionMessageUi(
+                    to = msg.address,
+                    amount = msg.amount,
+                    comment = comment,
+                    payload = msg.payload,
+                    stateInit = msg.stateInit,
+                )
+            }
+
+            val uiRequest = TransactionRequestUi(
+                id = request.hashCode().toString(),
+                walletAddress = walletAddress,
+                dAppName = dAppInfo?.name ?: fallbackDAppName,
+                validUntil = request.validUntil,
+                messages = messages,
+                preview = null,
+                raw = org.json.JSONObject(),
+                transactionRequest = request,
             )
+
+            Log.d(LOG_TAG, "Setting sheet to Transaction state with ${messages.size} messages")
+            uiCoordinator.setSheet(SheetState.Transaction(uiRequest))
+            Log.d(LOG_TAG, "Sheet state updated: ${state.value.sheetState}")
+            val eventDAppName = dAppInfo?.name ?: fallbackDAppName
+            eventLogger.log(R.string.wallet_event_transaction_request, eventDAppName)
         }
-
-        val uiRequest = TransactionRequestUi(
-            id = request.hashCode().toString(),
-            walletAddress = walletAddress,
-            dAppName = dAppInfo?.name ?: fallbackDAppName,
-            validUntil = request.validUntil,
-            messages = messages,
-            preview = null,
-            raw = org.json.JSONObject(),
-            transactionRequest = request,
-        )
-
-        Log.d(LOG_TAG, "Setting sheet to Transaction state with ${messages.size} messages")
-        uiCoordinator.setSheet(SheetState.Transaction(uiRequest))
-        Log.d(LOG_TAG, "Sheet state updated: ${state.value.sheetState}")
-        val eventDAppName = dAppInfo?.name ?: fallbackDAppName
-        eventLogger.log(R.string.wallet_event_transaction_request, eventDAppName)
     }
 
     private fun onSignDataRequest(request: TONWalletSignDataRequest) {
@@ -1523,5 +1547,8 @@ class WalletKitViewModel @Inject constructor(
         private const val DEFAULT_REJECTION_REASON = "User declined the connection"
         private const val SIGNER_CONFIRMATION_CANCEL_REASON = "User cancelled signer confirmation"
         private const val ERROR_DIRECT_SIGNING_UNSUPPORTED = "Direct signing not supported - use SDK's transaction/signData methods"
+
+        // TonConnect error codes (from @tonconnect/protocol)
+        private const val BAD_REQUEST_ERROR_CODE = 1 // Used for validation errors like insufficient balance
     }
 }

@@ -300,11 +300,11 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun getWallets(): List<WalletAccount> = walletOperations.getWallets()
 
-    override suspend fun getWallet(address: String): WalletAccount? = walletOperations.getWallet(address)
+    override suspend fun getWallet(walletId: String): WalletAccount? = walletOperations.getWallet(walletId)
 
-    override suspend fun removeWallet(address: String) = walletOperations.removeWallet(address)
+    override suspend fun removeWallet(walletId: String) = walletOperations.removeWallet(walletId)
 
-    override suspend fun getBalance(address: String): String = walletOperations.getBalance(address)
+    override suspend fun getBalance(walletId: String): String = walletOperations.getBalance(walletId)
 
     override suspend fun handleTonConnectUrl(url: String) = tonConnectOperations.handleTonConnectUrl(url)
 
@@ -317,22 +317,22 @@ internal class WebViewWalletKitEngine private constructor(
     ) = tonConnectOperations.handleTonConnectRequest(messageId, method, paramsJson, url, responseCallback)
 
     override suspend fun createTransferTonTransaction(
-        walletAddress: String,
+        walletId: String,
         params: TONTransferParams,
-    ): io.ton.walletkit.model.TONTransactionWithPreview = transactionOperations.createTransferTonTransaction(walletAddress, params)
+    ): io.ton.walletkit.model.TONTransactionWithPreview = transactionOperations.createTransferTonTransaction(walletId, params)
 
     override suspend fun handleNewTransaction(
-        walletAddress: String,
+        walletId: String,
         transactionContent: String,
-    ) = transactionOperations.handleNewTransaction(walletAddress, transactionContent)
+    ) = transactionOperations.handleNewTransaction(walletId, transactionContent)
 
     override suspend fun sendTransaction(
-        walletAddress: String,
+        walletId: String,
         transactionContent: String,
-    ): String = transactionOperations.sendTransaction(walletAddress, transactionContent)
+    ): String = transactionOperations.sendTransaction(walletId, transactionContent)
 
-    override suspend fun approveConnect(event: ConnectRequestEvent) {
-        tonConnectOperations.approveConnect(event)
+    override suspend fun approveConnect(event: ConnectRequestEvent, network: TONNetwork) {
+        tonConnectOperations.approveConnect(event, network)
     }
 
     override suspend fun rejectConnect(
@@ -341,16 +341,17 @@ internal class WebViewWalletKitEngine private constructor(
         errorCode: Int?,
     ) = tonConnectOperations.rejectConnect(event, reason, errorCode)
 
-    override suspend fun approveTransaction(event: TransactionRequestEvent) =
-        tonConnectOperations.approveTransaction(event)
+    override suspend fun approveTransaction(event: TransactionRequestEvent, network: TONNetwork) =
+        tonConnectOperations.approveTransaction(event, network)
 
     override suspend fun rejectTransaction(
         event: TransactionRequestEvent,
         reason: String?,
-    ) = tonConnectOperations.rejectTransaction(event, reason)
+        errorCode: Int?,
+    ) = tonConnectOperations.rejectTransaction(event, reason, errorCode)
 
-    override suspend fun approveSignData(event: SignDataRequestEvent) =
-        tonConnectOperations.approveSignData(event)
+    override suspend fun approveSignData(event: SignDataRequestEvent, network: TONNetwork) =
+        tonConnectOperations.approveSignData(event, network)
 
     override suspend fun rejectSignData(
         event: SignDataRequestEvent,
@@ -363,52 +364,52 @@ internal class WebViewWalletKitEngine private constructor(
         tonConnectOperations.disconnectSession(sessionId)
 
     override suspend fun getNfts(
-        walletAddress: String,
+        walletId: String,
         limit: Int,
         offset: Int,
-    ): TONNFTItems = assetOperations.getNfts(walletAddress, limit, offset)
+    ): TONNFTItems = assetOperations.getNfts(walletId, limit, offset)
 
     override suspend fun getNft(
         nftAddress: String,
     ): TONNFTItem? = assetOperations.getNft(nftAddress)
 
     override suspend fun createTransferNftTransaction(
-        walletAddress: String,
+        walletId: String,
         params: TONNFTTransferParamsHuman,
-    ): String = assetOperations.createTransferNftTransaction(walletAddress, params)
+    ): String = assetOperations.createTransferNftTransaction(walletId, params)
 
     override suspend fun createTransferNftRawTransaction(
-        walletAddress: String,
+        walletId: String,
         params: TONNFTTransferParamsRaw,
-    ): String = assetOperations.createTransferNftRawTransaction(walletAddress, params)
+    ): String = assetOperations.createTransferNftRawTransaction(walletId, params)
 
     override suspend fun getJettons(
-        walletAddress: String,
+        walletId: String,
         limit: Int,
         offset: Int,
-    ): TONJettonWallets = assetOperations.getJettons(walletAddress, limit, offset)
+    ): TONJettonWallets = assetOperations.getJettons(walletId, limit, offset)
 
     override suspend fun createTransferJettonTransaction(
-        walletAddress: String,
+        walletId: String,
         params: TONJettonTransferParams,
-    ): String = assetOperations.createTransferJettonTransaction(walletAddress, params)
+    ): String = assetOperations.createTransferJettonTransaction(walletId, params)
 
     override suspend fun createTransferMultiTonTransaction(
-        walletAddress: String,
+        walletId: String,
         messages: List<TONTransferParams>,
-    ): io.ton.walletkit.model.TONTransactionWithPreview = transactionOperations.createTransferMultiTonTransaction(walletAddress, messages)
+    ): io.ton.walletkit.model.TONTransactionWithPreview = transactionOperations.createTransferMultiTonTransaction(walletId, messages)
 
     override suspend fun getTransactionPreview(
-        walletAddress: String,
+        walletId: String,
         transactionContent: String,
     ): TONTransactionPreview =
-        transactionOperations.getTransactionPreview(walletAddress, transactionContent)
+        transactionOperations.getTransactionPreview(walletId, transactionContent)
 
-    override suspend fun getJettonBalance(walletAddress: String, jettonAddress: String): String =
-        assetOperations.getJettonBalance(walletAddress, jettonAddress)
+    override suspend fun getJettonBalance(walletId: String, jettonAddress: String): String =
+        assetOperations.getJettonBalance(walletId, jettonAddress)
 
-    override suspend fun getJettonWalletAddress(walletAddress: String, jettonAddress: String): String =
-        assetOperations.getJettonWalletAddress(walletAddress, jettonAddress)
+    override suspend fun getJettonWalletAddress(walletId: String, jettonAddress: String): String =
+        assetOperations.getJettonWalletAddress(walletId, jettonAddress)
 
     override suspend fun callBridgeMethod(method: String, params: JSONObject?): JSONObject {
         return call(method, params)

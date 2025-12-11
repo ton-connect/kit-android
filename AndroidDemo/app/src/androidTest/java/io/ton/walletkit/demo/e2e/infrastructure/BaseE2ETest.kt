@@ -244,12 +244,15 @@ abstract class BaseE2ETest {
      * @param allureId The Allure test case ID
      * @param expectWalletPrompt Whether the wallet should show a transaction prompt (false for validation errors)
      * @param approve Whether to approve or reject the transaction (when expectWalletPrompt is true)
+     * @param expectSdkError Whether to expect SDK to emit RequestError event (true for SDK validation errors like invalid validUntil).
+     *                       When false and expectWalletPrompt is also false, the wallet app auto-rejects (e.g., insufficient balance).
      * @param ensureConnected Callback to ensure wallet is connected before running the test
      */
     protected fun runSendTxTest(
         allureId: String,
         expectWalletPrompt: Boolean = true,
         approve: Boolean = true,
+        expectSdkError: Boolean = !expectWalletPrompt,
         ensureConnected: () -> Unit,
     ) {
         val testData = TestCaseDataProvider.getTestCaseData(allureId, allureClient)
@@ -303,11 +306,19 @@ abstract class BaseE2ETest {
                 dAppController.waitForSendTxResponse(timeoutMs = 15000)
             }
         } else {
-            step("Verify SDK received RequestError event for sendTransaction") {
-                val error = RequestErrorTracker.waitForError(timeoutMs = 5000, method = "sendTransaction")
-                android.util.Log.d("SendTxTest", "RequestError received: $error")
-                assert(error != null) { "Expected SDK to receive RequestError event for sendTransaction, but none received" }
-                assert(error!!.method == "sendTransaction") { "Expected method 'sendTransaction', got '${error.method}'" }
+            if (expectSdkError) {
+                step("Verify SDK received RequestError event for sendTransaction") {
+                    val error = RequestErrorTracker.waitForError(timeoutMs = 5000, method = "sendTransaction")
+                    android.util.Log.d("SendTxTest", "RequestError received: $error")
+                    assert(error != null) { "Expected SDK to receive RequestError event for sendTransaction, but none received" }
+                    assert(error!!.method == "sendTransaction") { "Expected method 'sendTransaction', got '${error.method}'" }
+                }
+            } else {
+                step("Wait for wallet app to auto-reject transaction") {
+                    // Wallet app receives the request but rejects it without showing UI (e.g., insufficient balance)
+                    // Give it time to process and send rejection to dApp
+                    Thread.sleep(2000)
+                }
             }
 
             step("Wait for error response in dApp") {

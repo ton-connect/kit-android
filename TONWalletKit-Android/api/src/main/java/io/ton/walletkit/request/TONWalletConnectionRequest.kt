@@ -23,6 +23,7 @@ package io.ton.walletkit.request
 
 import io.ton.walletkit.event.ConnectRequestEvent
 import io.ton.walletkit.model.DAppInfo
+import io.ton.walletkit.model.TONNetwork
 
 /**
  * Represents a connection request from a dApp.
@@ -42,6 +43,7 @@ class TONWalletConnectionRequest(
     val dAppInfo: DAppInfo?,
     val permissions: List<ConnectRequestEvent.ConnectPermission>,
     val manifestFetchErrorCode: Int?,
+    val tonNetwork: TONNetwork,
     private val event: ConnectRequestEvent,
     private val handler: RequestHandler,
 ) {
@@ -53,7 +55,7 @@ class TONWalletConnectionRequest(
      */
     suspend fun approve(walletAddress: String) {
         val eventWithWallet = event.copy(walletAddress = walletAddress)
-        handler.approveConnect(eventWithWallet)
+        handler.approveConnect(eventWithWallet, tonNetwork)
     }
 
     /**

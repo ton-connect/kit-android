@@ -38,4 +38,30 @@ data class WalletAccount(
     val version: String,
     val network: String,
     val index: Int,
-)
+) {
+    /**
+     * Get the walletId in format "{chainId}:{address}" as used by the SDK.
+     * This is the unique identifier format expected by the JavaScript bridge.
+     *
+     * @return walletId string in format "chainId:address" (e.g., "-239:UQDtFp...")
+     */
+    val walletId: String
+        get() {
+            val chainId = TONNetwork.fromString(network)?.value ?: network
+            return "$chainId:${address.value}"
+        }
+
+    companion object {
+        /**
+         * Create a walletId from network and address components.
+         *
+         * @param network Network string (e.g., "mainnet", "testnet") or chain ID
+         * @param address Wallet address string
+         * @return walletId string in format "chainId:address"
+         */
+        fun createWalletId(network: String, address: String): String {
+            val chainId = TONNetwork.fromString(network)?.value ?: network
+            return "$chainId:$address"
+        }
+    }
+}

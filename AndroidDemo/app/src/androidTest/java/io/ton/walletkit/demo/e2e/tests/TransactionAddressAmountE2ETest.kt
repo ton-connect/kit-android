@@ -169,7 +169,9 @@ class TransactionAddressAmountE2ETest : BaseE2ETest() {
     @Severity(SeverityLevel.NORMAL)
     @Description("[amount] Error if insufficient balance")
     fun test08_AmountErrorInsufficientBalance() {
-        runSendTxTest(AllureTestIds.TX_AMOUNT_ERROR_INSUFFICIENT_BALANCE, expectWalletPrompt = true, approve = true, ensureConnected = ::ensureConnected)
+        // Insufficient balance is auto-rejected by demo app (wallet UI should NOT appear)
+        // expectSdkError=false because this is a wallet-app rejection, not SDK validation error
+        runSendTxTest(AllureTestIds.TX_AMOUNT_ERROR_INSUFFICIENT_BALANCE, expectWalletPrompt = false, expectSdkError = false, ensureConnected = ::ensureConnected)
     }
 
     @Test

@@ -24,6 +24,7 @@ package io.ton.walletkit.engine.operations
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.event.ConnectRequestEvent
 import io.ton.walletkit.event.TransactionRequestEvent
+import io.ton.walletkit.model.TONNetwork
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -49,6 +50,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
         const val TEST_ADDRESS = "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N"
         const val TEST_SESSION_ID = "session-123"
         const val TEST_DAPP_URL = "https://example.com"
+        val TEST_NETWORK: TONNetwork = TONNetwork.TESTNET
     }
 
     @Before
@@ -219,7 +221,8 @@ class TonConnectOperationsTest : OperationsTestBase() {
         )
 
         // Should not throw
-        tonConnectOperations.approveConnect(event)
+        tonConnectOperations.approveConnect(event, TEST_NETWORK)
+        assertEquals("${TEST_NETWORK.value}:$TEST_ADDRESS", event.walletId)
     }
 
     @Test(expected = WalletKitBridgeException::class)
@@ -232,7 +235,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
             walletAddress = null,
         )
 
-        tonConnectOperations.approveConnect(event)
+        tonConnectOperations.approveConnect(event, TEST_NETWORK)
     }
 
     // --- rejectConnect tests ---
@@ -273,7 +276,8 @@ class TonConnectOperationsTest : OperationsTestBase() {
         )
 
         // Should not throw
-        tonConnectOperations.approveTransaction(event)
+        tonConnectOperations.approveTransaction(event, TEST_NETWORK)
+        assertEquals("${TEST_NETWORK.value}:$TEST_ADDRESS", event.walletId)
     }
 
     // --- rejectTransaction tests ---

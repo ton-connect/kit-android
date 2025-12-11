@@ -58,10 +58,10 @@ internal class AssetOperations(
     private val json: Json,
 ) {
 
-    suspend fun getNfts(walletAddress: String, limit: Int, offset: Int): TONNFTItems {
+    suspend fun getNfts(walletId: String, limit: Int, offset: Int): TONNFTItems {
         ensureInitialized()
 
-        val request = GetNftsRequest(address = walletAddress, limit = limit, offset = offset)
+        val request = GetNftsRequest(walletId = walletId, limit = limit, offset = offset)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_NFTS, json.toJSONObject(request))
         return try {
             json.decodeFromString(result.toString())
@@ -93,13 +93,13 @@ internal class AssetOperations(
     }
 
     suspend fun createTransferNftTransaction(
-        walletAddress: String,
+        walletId: String,
         params: TONNFTTransferParamsHuman,
     ): String {
         ensureInitialized()
 
         val request = CreateTransferNftRequest(
-            address = walletAddress,
+            walletId = walletId,
             nftAddress = params.nftAddress,
             transferAmount = params.transferAmount,
             toAddress = params.toAddress,
@@ -110,13 +110,13 @@ internal class AssetOperations(
     }
 
     suspend fun createTransferNftRawTransaction(
-        walletAddress: String,
+        walletId: String,
         params: TONNFTTransferParamsRaw,
     ): String {
         ensureInitialized()
 
         val request = CreateTransferNftRawRequest(
-            address = walletAddress,
+            walletId = walletId,
             nftAddress = params.nftAddress,
             transferAmount = params.transferAmount,
             transferMessage = params.transferMessage,
@@ -125,10 +125,10 @@ internal class AssetOperations(
         return result.toString()
     }
 
-    suspend fun getJettons(walletAddress: String, limit: Int, offset: Int): TONJettonWallets {
+    suspend fun getJettons(walletId: String, limit: Int, offset: Int): TONJettonWallets {
         ensureInitialized()
 
-        val request = GetJettonsRequest(address = walletAddress, limit = limit, offset = offset)
+        val request = GetJettonsRequest(walletId = walletId, limit = limit, offset = offset)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_JETTONS, json.toJSONObject(request))
         return try {
             json.decodeFromString(result.toString())
@@ -141,13 +141,13 @@ internal class AssetOperations(
     }
 
     suspend fun createTransferJettonTransaction(
-        walletAddress: String,
+        walletId: String,
         params: TONJettonTransferParams,
     ): String {
         ensureInitialized()
 
         val request = CreateTransferJettonRequest(
-            address = walletAddress,
+            walletId = walletId,
             toAddress = params.toAddress,
             jettonAddress = params.jettonAddress,
             amount = params.amount,
@@ -157,18 +157,18 @@ internal class AssetOperations(
         return result.toString()
     }
 
-    suspend fun getJettonBalance(walletAddress: String, jettonAddress: String): String {
+    suspend fun getJettonBalance(walletId: String, jettonAddress: String): String {
         ensureInitialized()
 
-        val request = GetJettonBalanceRequest(address = walletAddress, jettonAddress = jettonAddress)
+        val request = GetJettonBalanceRequest(walletId = walletId, jettonAddress = jettonAddress)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_JETTON_BALANCE, json.toJSONObject(request))
         return result.optString("balance", "0")
     }
 
-    suspend fun getJettonWalletAddress(walletAddress: String, jettonAddress: String): String {
+    suspend fun getJettonWalletAddress(walletId: String, jettonAddress: String): String {
         ensureInitialized()
 
-        val request = GetJettonWalletAddressRequest(address = walletAddress, jettonAddress = jettonAddress)
+        val request = GetJettonWalletAddressRequest(walletId = walletId, jettonAddress = jettonAddress)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_JETTON_WALLET_ADDRESS, json.toJSONObject(request))
         return result.optString("jettonWalletAddress", "")
     }

@@ -177,15 +177,16 @@ class TransactionPayloadStateInitValidUntilE2ETest : BaseE2ETest() {
         runSendTxTest(AllureTestIds.TX_VALIDUNTIL_ERROR_EXPIRED, expectWalletPrompt = false, ensureConnected = ::ensureConnected)
     }
 
-    @Test
-    @SendTransactionTest
-    @AllureId(AllureTestIds.TX_VALIDUNTIL_ERROR_EXPIRED_DURING_CONFIRM)
-    @Severity(SeverityLevel.NORMAL)
-    @Description("[validUntil] Error if has expired during confirmation")
-    fun test09_ValidUntilErrorExpiredDuringConfirm() {
-        // This test requires a delay before approving to let it expire
-        runSendTxTest(AllureTestIds.TX_VALIDUNTIL_ERROR_EXPIRED_DURING_CONFIRM, expectWalletPrompt = true, ensureConnected = ::ensureConnected)
-    }
+    // Commented out - waiting for TONTECH-829 (same as web tests)
+    // @Test
+    // @SendTransactionTest
+    // @AllureId(AllureTestIds.TX_VALIDUNTIL_ERROR_EXPIRED_DURING_CONFIRM)
+    // @Severity(SeverityLevel.NORMAL)
+    // @Description("[validUntil] Error if has expired during confirmation")
+    // fun test09_ValidUntilErrorExpiredDuringConfirm() {
+    //     // This test requires a delay before approving to let it expire
+    //     runSendTxTest(AllureTestIds.TX_VALIDUNTIL_ERROR_EXPIRED_DURING_CONFIRM, expectWalletPrompt = true, ensureConnected = ::ensureConnected)
+    // }
 
     @Test
     @SendTransactionTest
@@ -202,7 +203,8 @@ class TransactionPayloadStateInitValidUntilE2ETest : BaseE2ETest() {
     @Severity(SeverityLevel.NORMAL)
     @Description("[validUntil] if NULL")
     fun test11_ValidUntilNull() {
-        runSendTxTest(AllureTestIds.TX_VALIDUNTIL_NULL, ensureConnected = ::ensureConnected)
+        // validUntil=NULL is validated by SDK and auto-rejected (wallet UI should NOT appear)
+        runSendTxTest(AllureTestIds.TX_VALIDUNTIL_NULL, expectWalletPrompt = false, ensureConnected = ::ensureConnected)
     }
 
     @Test

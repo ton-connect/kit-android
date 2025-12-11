@@ -22,6 +22,7 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.operations.requests.ApproveConnectRequest
@@ -41,6 +42,7 @@ import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.model.TONNetwork
 import io.ton.walletkit.model.WalletSession
 import kotlinx.serialization.json.Json
 import org.json.JSONArray
@@ -124,12 +126,16 @@ internal class TonConnectOperations(
         }
     }
 
-    suspend fun approveConnect(event: ConnectRequestEvent) {
+    suspend fun approveConnect(event: ConnectRequestEvent, network: TONNetwork) {
         ensureInitialized()
+
+        val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+        val walletId = WalletKitUtils.createWalletId(network, walletAddress)
+        event.walletId = walletId
 
         val request = ApproveConnectRequest(
             event = event,
-            walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED),
+            walletId = walletId,
         )
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_CONNECT_REQUEST, json.toJSONObject(request))
     }
@@ -141,22 +147,28 @@ internal class TonConnectOperations(
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_CONNECT_REQUEST, json.toJSONObject(request))
     }
 
-    suspend fun approveTransaction(event: TransactionRequestEvent) {
+    suspend fun approveTransaction(event: TransactionRequestEvent, network: TONNetwork) {
         ensureInitialized()
+
+        val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+        event.walletId = WalletKitUtils.createWalletId(network, walletAddress)
 
         val request = ApproveTransactionRequest(event = event)
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_TRANSACTION_REQUEST, json.toJSONObject(request))
     }
 
-    suspend fun rejectTransaction(event: TransactionRequestEvent, reason: String?) {
+    suspend fun rejectTransaction(event: TransactionRequestEvent, reason: String?, errorCode: Int? = null) {
         ensureInitialized()
 
-        val request = RejectTransactionRequest(event = event, reason = reason)
+        val request = RejectTransactionRequest(event = event, reason = reason, errorCode = errorCode)
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_TRANSACTION_REQUEST, json.toJSONObject(request))
     }
 
-    suspend fun approveSignData(event: SignDataRequestEvent) {
+    suspend fun approveSignData(event: SignDataRequestEvent, network: TONNetwork) {
         ensureInitialized()
+
+        val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+        event.walletId = WalletKitUtils.createWalletId(network, walletAddress)
 
         val request = ApproveSignDataRequest(event = event)
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_SIGN_DATA_REQUEST, json.toJSONObject(request))
@@ -218,6 +230,6 @@ internal class TonConnectOperations(
         private const val TAG = "${LogConstants.TAG_WEBVIEW_ENGINE}:TonConnectOps"
 
         internal const val ERROR_FAILED_PROCESS_REQUEST = "Failed to process request"
-        internal const val ERROR_WALLET_ADDRESS_REQUIRED = "walletAddress is required for connect approval"
+        internal const val ERROR_WALLET_ADDRESS_REQUIRED = "walletAddress is required for TonConnect approval"
     }
 }

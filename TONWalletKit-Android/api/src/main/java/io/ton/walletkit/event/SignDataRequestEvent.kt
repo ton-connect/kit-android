@@ -36,6 +36,7 @@ data class SignDataRequestEvent(
     val id: String? = null,
     val from: String? = null,
     val walletAddress: String? = null,
+    var walletId: String? = null,
     val domain: String? = null,
     val sessionId: String? = null,
     val messageId: String? = null,

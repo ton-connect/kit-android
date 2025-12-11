@@ -58,3 +58,8 @@ internal data class AddWalletRequest(
 internal data class AddressRequest(
     val address: String,
 )
+
+@Serializable
+internal data class WalletIdRequest(
+    val walletId: String,
+)
