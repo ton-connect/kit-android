@@ -587,12 +587,14 @@ internal class QuickJsWalletKitEngine(
     override suspend fun rejectSignData(
         event: io.ton.walletkit.event.SignDataRequestEvent,
         reason: String?,
+        errorCode: Int?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", event.id)
                 reason?.let { put("reason", it) }
+                errorCode?.let { put("errorCode", it) }
             }
         call("rejectSignDataRequest", params)
     }

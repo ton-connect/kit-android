@@ -86,9 +86,10 @@ class TONWalletSignDataRequest(
      * Reject this data signing request.
      *
      * @param reason Optional reason for rejection
+     * @param errorCode Optional error code for rejection
      * @throws io.ton.walletkit.WalletKitBridgeException if rejection fails
      */
-    suspend fun reject(reason: String? = null) {
-        handler.rejectSignData(event, reason)
+    suspend fun reject(reason: String? = null, errorCode: Int? = null) {
+        handler.rejectSignData(event, reason, errorCode)
     }
 }

@@ -39,5 +39,5 @@ interface RequestHandler {
     suspend fun rejectTransaction(event: TransactionRequestEvent, reason: String?, errorCode: Int? = null)
 
     suspend fun approveSignData(event: SignDataRequestEvent, network: TONNetwork)
-    suspend fun rejectSignData(event: SignDataRequestEvent, reason: String?)
+    suspend fun rejectSignData(event: SignDataRequestEvent, reason: String?, errorCode: Int? = null)
 }

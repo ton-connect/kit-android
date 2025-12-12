@@ -82,6 +82,7 @@ internal data class ApproveSignDataRequest(
 internal data class RejectSignDataRequest(
     val event: SignDataRequestEvent,
     val reason: String? = null,
+    val errorCode: Int? = null,
 )
 
 @Serializable

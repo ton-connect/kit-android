@@ -55,6 +55,9 @@ object AllureTestIds {
     /** Test Result 55098: User declined the connection (testCaseId: 1095) */
     const val CONNECT_USER_DECLINED = "55098"
 
+    /** Test Result 58447: User declined the connection (testCaseId: 1889) */
+    const val CONNECT_USER_DECLINED_1889 = "58447"
+
     /** Test Result 54888: Connect without ton_proof (testCaseId: 1117) */
     const val CONNECT_WITHOUT_TON_PROOF = "54888"
 
@@ -200,6 +203,9 @@ object AllureTestIds {
     /** Test Result 54913: User declined the transaction (testCaseId: 1122) */
     const val TX_USER_DECLINED = "54913"
 
+    /** Test Result 58417: User declined the transaction (testCaseId: 1908) */
+    const val TX_USER_DECLINED_1908 = "58417"
+
     /** Test Result 54904: Minting Jetton with Deployed Contract (testCaseId: 1109) */
     const val TX_MINTING_JETTON_DEPLOYED = "54904"
 
@@ -224,6 +230,21 @@ object AllureTestIds {
 
     /** Test Result 54901: Sign cell (testCaseId: 1150) */
     const val SIGN_DATA_CELL = "54901"
+
+    // TODO: Replace with actual test result ID for testCaseId: 8612
+
+    /** Test Case 8612: User declined to sign data binary */
+    const val SIGN_DATA_BINARY_USER_DECLINED = "8612"
+
+    // TODO: Replace with actual test result ID for testCaseId: 8645
+
+    /** Test Case 8645: User declined to sign data cell */
+    const val SIGN_DATA_CELL_USER_DECLINED = "8645"
+
+    // TODO: Replace with actual test result ID for testCaseId: 8646
+
+    /** Test Case 8646: User declined to sign data text */
+    const val SIGN_DATA_TEXT_USER_DECLINED = "8646"
 
     // =====================================================================
     // EXTRA CURRENCY

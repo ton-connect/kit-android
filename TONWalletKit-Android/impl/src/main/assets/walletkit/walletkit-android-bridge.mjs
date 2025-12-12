@@ -27439,6 +27439,14 @@ class BasicHandler {
     return Promise.resolve();
   }
 }
+function isValidHost(host) {
+  if (host.indexOf(".") === -1)
+    return false;
+  if (host.startsWith(".") || host.endsWith("."))
+    return false;
+  const parts = host.split(".");
+  return parts.every((part) => part.length > 0);
+}
 const log$g = globalLogger.createChild("ConnectHandler");
 class ConnectHandler extends BasicHandler {
   analyticsApi;
@@ -27526,8 +27534,8 @@ class ConnectHandler extends BasicHandler {
     if (!finalManifestFetchErrorCode && dAppUrl) {
       try {
         const parsedDAppUrl = new URL(dAppUrl);
-        if (parsedDAppUrl.host.indexOf(".") === -1) {
-          log$g.warn("Invalid dApp URL in manifest - host has no dot", { dAppUrl, host: parsedDAppUrl.host });
+        if (!isValidHost(parsedDAppUrl.host)) {
+          log$g.warn("Invalid dApp URL in manifest - invalid host format", { dAppUrl, host: parsedDAppUrl.host });
           finalManifestFetchErrorCode = CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR;
         }
       } catch (_) {
@@ -27573,7 +27581,7 @@ class ConnectHandler extends BasicHandler {
   async fetchManifest(manifestUrl) {
     try {
       const parsedUrl = new URL(manifestUrl);
-      if (parsedUrl.host.indexOf(".") === -1) {
+      if (!isValidHost(parsedUrl.host)) {
         return {
           manifest: null,
           manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_NOT_FOUND_ERROR
@@ -51192,6 +51200,22 @@ async function CreateTonProofMessageBytes(message) {
   const res = distExports$1.sha256_sync(fullMes);
   return Buffer.from(res);
 }
+function ConvertTonProofMessage(walletInfo, tp) {
+  const address = distExports$3.Address.parse(walletInfo.account.address);
+  const res = {
+    workchain: address.workChain,
+    address: Uint8ArrayToHex(address.hash),
+    domain: {
+      lengthBytes: tp.proof.domain.lengthBytes,
+      value: tp.proof.domain.value
+    },
+    signature: Base64ToHex(tp.proof.signature),
+    payload: tp.proof.payload,
+    stateInit: walletInfo.account.walletStateInit,
+    timstamp: tp.proof.timestamp
+  };
+  return res;
+}
 function createTonProofMessage({ address, domain, payload, stateInit, timestamp }) {
   const res = {
     workchain: address.workChain,
@@ -51799,9 +51823,15 @@ class RequestProcessor {
    */
   async rejectSignDataRequest(event, reason) {
     try {
-      const response = {
-        error: "USER_REJECTED",
-        reason: reason || "User rejected data signing"
+      const response = typeof reason === "string" || typeof reason === "undefined" ? {
+        error: {
+          code: SIGN_DATA_ERROR_CODES.USER_REJECTS_ERROR,
+          message: reason || "User rejected transaction"
+        },
+        id: event.id
+      } : {
+        error: reason,
+        id: event.id
       };
       await this.bridgeManager.sendResponse(event, response);
       const wallet = this.getWalletFromEvent(event);
@@ -74925,7 +74955,7 @@ class TonWalletKit {
     await this.ensureInitialized();
     return this.requestProcessor.rejectTransactionRequest(event, reason);
   }
-  async signDataRequest(event) {
+  async approveSignDataRequest(event) {
     await this.ensureInitialized();
     return this.requestProcessor.approveSignDataRequest(event);
   }
@@ -75025,7 +75055,12 @@ class TonWalletKit {
 const WalletV5R1CodeBoc = "b5ee9c7201021401000281000114ff00f4a413f4bcf2c80b01020120020302014804050102f20e02dcd020d749c120915b8f6320d70b1f2082106578746ebd21821073696e74bdb0925f03e082106578746eba8eb48020d72101d074d721fa4030fa44f828fa443058bd915be0ed44d0810141d721f4058307f40e6fa1319130e18040d721707fdb3ce03120d749810280b99130e070e2100f020120060702012008090019be5f0f6a2684080a0eb90fa02c02016e0a0b0201480c0d0019adce76a2684020eb90eb85ffc00019af1df6a2684010eb90eb858fc00017b325fb51341c75c875c2c7e00011b262fb513435c28020011e20d70b1f82107369676ebaf2e08a7f0f01e68ef0eda2edfb218308d722028308d723208020d721d31fd31fd31fed44d0d200d31f20d31fd3ffd70a000af90140ccf9109a28945f0adb31e1f2c087df02b35007b0f2d0845125baf2e0855036baf2e086f823bbf2d0882292f800de01a47fc8ca00cb1f01cf16c9ed542092f80fde70db3cd81003f6eda2edfb02f404216e926c218e4c0221d73930709421c700b38e2d01d72820761e436c20d749c008f2e09320d74ac002f2e09320d71d06c712c2005230b0f2d089d74cd7393001a4e86c128407bbf2e093d74ac000f2e093ed55e2d20001c000915be0ebd72c08142091709601d72c081c12e25210b1e30f20d74a111213009601fa4001fa44f828fa443058baf2e091ed44d0810141d718f405049d7fc8ca0040048307f453f2e08b8e14038307f45bf2e08c22d70a00216e01b3b0f2d090e2c85003cf1612f400c9ed54007230d72c08248e2d21f2e092d200ed44d0d2005113baf2d08f54503091319c01810140d721d70a00f2e08ee2c8ca0058cf16c9ed5493f2c08de20010935bdb31e1d74cd0";
 const WalletV5R1CodeCell = distExports$3.Cell.fromBoc(Buffer.from(WalletV5R1CodeBoc, "hex"))[0];
 function DefaultSignature(data, privateKey) {
-  return Uint8ArrayToHex(distExports$1.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(privateKey)));
+  let fullKey = privateKey;
+  if (fullKey.length === 32) {
+    const keyPair = distExports$1.keyPairFromSeed(Buffer.from(fullKey));
+    fullKey = keyPair.secretKey;
+  }
+  return Uint8ArrayToHex(distExports$1.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(fullKey)));
 }
 function createWalletSigner(privateKey) {
   return async (data) => {
@@ -77256,7 +77291,9 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   },
   CallForSuccess,
   ConnectHandler,
+  ConvertTonProofMessage,
   CreateTonMnemonic,
+  CreateTonProofMessageBytes,
   DEFAULT_DURABLE_EVENTS_CONFIG,
   DEFAULT_REQUEST_TIMEOUT,
   DefaultSignature,
@@ -78300,7 +78337,7 @@ function approveSignDataRequest(args) {
       if (!args.event) {
         throw new Error("Sign data request event is required");
       }
-      return yield walletKit.signDataRequest(args.event);
+      return yield walletKit.approveSignDataRequest(args.event);
     }));
   });
 }
@@ -78310,7 +78347,8 @@ function rejectSignDataRequest(args) {
       if (!args.event) {
         throw new Error("Sign data request event is required");
       }
-      const result = yield walletKit.rejectSignDataRequest(args.event, args.reason);
+      const reason = args.errorCode !== void 0 ? { code: args.errorCode, message: args.reason || "Sign data rejected" } : args.reason;
+      const result = yield walletKit.rejectSignDataRequest(args.event, reason);
       if (result == null) {
         return { success: true };
       }

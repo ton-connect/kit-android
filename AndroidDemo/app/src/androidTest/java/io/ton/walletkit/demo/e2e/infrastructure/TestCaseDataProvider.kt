@@ -80,7 +80,7 @@ object TestCaseDataProvider {
             expectedResult = CONNECT_SUCCESS_EXPECTED_RESULT,
             isPositiveCase = true,
         )
-        "55098" -> TestCaseData( // CONNECT_USER_DECLINED
+        "55098", "58447" -> TestCaseData( // CONNECT_USER_DECLINED, CONNECT_USER_DECLINED_1889
             precondition = CONNECT_SUCCESS_PRECONDITION,
             expectedResult = CONNECT_REJECT_EXPECTED_RESULT,
             isPositiveCase = false,
@@ -119,7 +119,7 @@ object TestCaseDataProvider {
             expectedResult = SEND_TX_EXPECTED_RESULT,
             isPositiveCase = true,
         )
-        "54913" -> TestCaseData( // TX_USER_DECLINED
+        "54913", "58417" -> TestCaseData( // TX_USER_DECLINED, TX_USER_DECLINED_1908
             precondition = SEND_TX_PRECONDITION,
             expectedResult = SEND_TX_REJECT_EXPECTED_RESULT,
             isPositiveCase = false,

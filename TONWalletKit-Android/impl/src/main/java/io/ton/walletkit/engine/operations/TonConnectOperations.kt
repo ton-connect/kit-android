@@ -174,10 +174,10 @@ internal class TonConnectOperations(
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_SIGN_DATA_REQUEST, json.toJSONObject(request))
     }
 
-    suspend fun rejectSignData(event: SignDataRequestEvent, reason: String?) {
+    suspend fun rejectSignData(event: SignDataRequestEvent, reason: String?, errorCode: Int? = null) {
         ensureInitialized()
 
-        val request = RejectSignDataRequest(event = event, reason = reason)
+        val request = RejectSignDataRequest(event = event, reason = reason, errorCode = errorCode)
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_SIGN_DATA_REQUEST, json.toJSONObject(request))
     }
 

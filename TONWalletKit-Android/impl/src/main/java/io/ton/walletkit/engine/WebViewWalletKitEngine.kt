@@ -356,7 +356,8 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun rejectSignData(
         event: SignDataRequestEvent,
         reason: String?,
-    ) = tonConnectOperations.rejectSignData(event, reason)
+        errorCode: Int?,
+    ) = tonConnectOperations.rejectSignData(event, reason, errorCode)
 
     override suspend fun listSessions(): List<WalletSession> = tonConnectOperations.listSessions()
 

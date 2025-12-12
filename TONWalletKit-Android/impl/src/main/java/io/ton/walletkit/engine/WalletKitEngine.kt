@@ -362,11 +362,13 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @param event Typed event from the sign data request
      * @param reason Optional reason for rejection
+     * @param errorCode Optional error code for rejection
      * @throws WalletKitBridgeException if rejection fails
      */
     override suspend fun rejectSignData(
         event: SignDataRequestEvent,
         reason: String?,
+        errorCode: Int?,
     )
 
     /**

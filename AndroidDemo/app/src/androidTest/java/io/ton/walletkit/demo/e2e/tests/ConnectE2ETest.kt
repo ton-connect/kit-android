@@ -106,6 +106,13 @@ class ConnectE2ETest : BaseE2ETest() {
 
     @Test
     @ConnectTest
+    @AllureId(AllureTestIds.CONNECT_USER_DECLINED_1889)
+    @Severity(SeverityLevel.NORMAL)
+    @Description("User declined the connection")
+    fun test01_ConnectUserDeclined() = runHttpBridgeConnectTest(AllureTestIds.CONNECT_USER_DECLINED_1889, approve = false)
+
+    @Test
+    @ConnectTest
     @AllureId(AllureTestIds.CONNECT_INJECTED_WEBVIEW)
     @Severity(SeverityLevel.CRITICAL)
     @Description("[In-Wallet browser][Mobile wallet] Connect wallet to dApp via injected WebView")

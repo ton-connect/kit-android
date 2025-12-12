@@ -136,6 +136,15 @@ class MerkleJettonSignDataE2ETest : BaseE2ETest() {
 
     @Test
     @SendTransactionTest
+    @AllureId(AllureTestIds.TX_USER_DECLINED_1908)
+    @Severity(SeverityLevel.CRITICAL)
+    @Description("User declined the transaction")
+    fun test02a_UserDeclinedTransaction() {
+        runSendTxTest(AllureTestIds.TX_USER_DECLINED_1908, approve = false, ensureConnected = ::ensureConnectedForSendTx)
+    }
+
+    @Test
+    @SendTransactionTest
     @AllureId(AllureTestIds.TX_MINTING_JETTON_DEPLOYED)
     @Severity(SeverityLevel.NORMAL)
     @Description("Minting Jetton with Deployed Contract")
@@ -199,6 +208,33 @@ class MerkleJettonSignDataE2ETest : BaseE2ETest() {
     @Description("Sign cell")
     fun test09_SignDataCell() {
         runSignDataTest(AllureTestIds.SIGN_DATA_CELL, ensureConnected = ::ensureConnectedForSignData)
+    }
+
+    @Test
+    @SignDataTest
+    @AllureId(AllureTestIds.SIGN_DATA_BINARY_USER_DECLINED)
+    @Severity(SeverityLevel.NORMAL)
+    @Description("User declined to sign data binary")
+    fun test10_SignDataBinaryUserDeclined() {
+        runSignDataTest(AllureTestIds.SIGN_DATA_BINARY_USER_DECLINED, approve = false, ensureConnected = ::ensureConnectedForSignData)
+    }
+
+    @Test
+    @SignDataTest
+    @AllureId(AllureTestIds.SIGN_DATA_CELL_USER_DECLINED)
+    @Severity(SeverityLevel.NORMAL)
+    @Description("User declined to sign data cell")
+    fun test11_SignDataCellUserDeclined() {
+        runSignDataTest(AllureTestIds.SIGN_DATA_CELL_USER_DECLINED, approve = false, ensureConnected = ::ensureConnectedForSignData)
+    }
+
+    @Test
+    @SignDataTest
+    @AllureId(AllureTestIds.SIGN_DATA_TEXT_USER_DECLINED)
+    @Severity(SeverityLevel.NORMAL)
+    @Description("User declined to sign data text")
+    fun test12_SignDataTextUserDeclined() {
+        runSignDataTest(AllureTestIds.SIGN_DATA_TEXT_USER_DECLINED, approve = false, ensureConnected = ::ensureConnectedForSignData)
     }
 
     // =====================================================================
