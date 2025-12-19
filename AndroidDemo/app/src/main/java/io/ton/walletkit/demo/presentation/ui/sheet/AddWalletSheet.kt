@@ -65,10 +65,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.util.TestTags
-import io.ton.walletkit.model.TONNetwork
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -81,7 +83,8 @@ fun AddWalletSheet(
     var selectedTab by remember { mutableStateOf(AddWalletTab.Import) }
     val defaultName = stringResource(R.string.wallet_default_name, walletCount + 1)
     var walletName by rememberSaveable(walletCount) { mutableStateOf(defaultName) }
-    var network by rememberSaveable { mutableStateOf(TONNetwork.MAINNET) }
+    // Use remember instead of rememberSaveable - TONNetwork is a data class that can't be saved in Bundle
+    var network by remember { mutableStateOf(TONNetwork.MAINNET) }
     var walletVersion by rememberSaveable { mutableStateOf(DEFAULT_WALLET_VERSION) }
     var interfaceType by rememberSaveable { mutableStateOf(WalletInterfaceType.MNEMONIC) }
     val mnemonicWords = remember { mutableStateListOf(*Array(24) { "" }) }
@@ -148,15 +151,16 @@ fun AddWalletSheet(
 
         Text(stringResource(R.string.label_network), style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TONNetwork.entries.forEach { option ->
+            listOf(TONNetwork.MAINNET, TONNetwork.TESTNET).forEach { option ->
                 FilterChip(
                     selected = network == option,
                     onClick = { network = option },
                     label = {
                         Text(
-                            when (option) {
-                                TONNetwork.MAINNET -> stringResource(R.string.network_mainnet)
-                                TONNetwork.TESTNET -> stringResource(R.string.network_testnet)
+                            when (option.chainId) {
+                                "-239" -> stringResource(R.string.network_mainnet)
+                                "-3" -> stringResource(R.string.network_testnet)
+                                else -> "Unknown"
                             },
                         )
                     },

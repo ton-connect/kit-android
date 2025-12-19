@@ -46,7 +46,7 @@ internal data class GetNftRequest(
 internal data class CreateTransferNftRequest(
     val walletId: String,
     val nftAddress: String,
-    val transferAmount: String,
+    val transferAmount: String? = null,
     val toAddress: String,
     val comment: String? = null,
 )
@@ -56,11 +56,9 @@ internal data class CreateTransferNftRawRequest(
     val walletId: String,
     val nftAddress: String,
     val transferAmount: String,
-    val transferMessage: TONNFTTransferMessageDTO,
+    /** Serialized JSON of TONNFTRawTransferRequestMessage */
+    val transferMessage: String,
 )
-
-// Re-use public model
-typealias TONNFTTransferMessageDTO = io.ton.walletkit.model.TONNFTTransferMessageDTO
 
 @Serializable
 internal data class GetJettonsRequest(

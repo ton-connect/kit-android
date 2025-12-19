@@ -21,23 +21,10 @@
  */
 package io.ton.walletkit.model
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-
 /**
- * Jetton wallets list with metadata.
+ * Type alias for balance values in nano units.
  *
- * Response from fetching jettons by owner address.
- *
- * @property items List of jetton wallets
- * @property addressBook Address book for user-friendly addresses
- * @property metadata Additional metadata for addresses
+ * This mirrors the iOS SDK's TONBalance which is a typealias for TONTokenAmount.
+ * Use this when specifically referring to wallet/account balances.
  */
-@Serializable
-data class TONJettonWallets(
-    @SerialName("jettons")
-    val items: List<TONJettonWallet>,
-    @SerialName("address_book")
-    val addressBook: Map<String, TONEmulationAddressBookEntry>? = null,
-    val metadata: Map<String, TONEmulationAddressMetadata>? = null,
-)
+typealias TONBalance = TONTokenAmount

@@ -22,10 +22,57 @@
 package io.ton.walletkit.model
 
 /**
- * Represents an Ed25519 key pair consisting of a public and secret key.
+ * Custom wallet signer interface for hardware wallet integration.
  *
- * @property publicKey The public key as a byte array (32 bytes)
- * @property secretKey The secret (private) key as a byte array (64 bytes for Ed25519)
+ * Implement this interface to provide custom signing logic for hardware wallets
+ * or other external signers.
+ *
+ * Mirrors iOS TONWalletSignerProtocol for cross-platform consistency.
+ */
+interface WalletSigner {
+    /**
+     * Sign data bytes.
+     *
+     * @param data Data to sign
+     * @return Signature as hex string
+     */
+    suspend fun sign(data: ByteArray): TONHex
+
+    /**
+     * Get public key.
+     *
+     * @return Public key as hex string
+     */
+    fun publicKey(): TONHex
+}
+
+/**
+ * Result of creating a signer.
+ *
+ * @property signerId Internal signer identifier
+ * @property publicKey Public key as hex string
+ */
+data class WalletSignerInfo(
+    val signerId: String,
+    val publicKey: TONHex,
+)
+
+/**
+ * Result of creating a wallet adapter.
+ *
+ * @property adapterId Internal adapter identifier
+ * @property address Wallet address
+ */
+data class WalletAdapterInfo(
+    val adapterId: String,
+    val address: TONUserFriendlyAddress,
+)
+
+/**
+ * Ed25519 key pair.
+ *
+ * @property publicKey Public key (32 bytes)
+ * @property secretKey Secret key (64 bytes, includes public key)
  */
 data class KeyPair(
     val publicKey: ByteArray,
@@ -34,17 +81,15 @@ data class KeyPair(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-
         other as KeyPair
-
         if (!publicKey.contentEquals(other.publicKey)) return false
         if (!secretKey.contentEquals(other.secretKey)) return false
-
         return true
     }
 
     override fun hashCode(): Int {
-        // SECURITY: Only hash public key to prevent information leakage.
-        return publicKey.contentHashCode()
+        var result = publicKey.contentHashCode()
+        result = 31 * result + secretKey.contentHashCode()
+        return result
     }
 }

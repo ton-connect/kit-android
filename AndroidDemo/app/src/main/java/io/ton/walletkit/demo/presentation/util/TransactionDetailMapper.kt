@@ -21,17 +21,41 @@
  */
 package io.ton.walletkit.demo.presentation.util
 
+import io.ton.walletkit.api.generated.TONTransaction
 import io.ton.walletkit.demo.presentation.model.TransactionDetailUi
-import io.ton.walletkit.model.Transaction
-import io.ton.walletkit.model.TransactionType
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * Mapper for converting domain Transaction objects to UI models.
+ * Mapper for converting domain TONTransaction objects to UI models.
+ *
+ * Note: The new TONTransaction structure is significantly different from the old Transaction model.
+ * Fields like sender, recipient, amount, type are now embedded in inMessage/outMessages.
+ * This mapper provides basic functionality with the available fields.
  */
 object TransactionDetailMapper {
 
     /**
-     * Parse a domain Transaction into a TransactionDetailUi for display.
+     * Attempts to extract text content from a decoded JsonObject.
+     * Looks for common fields like "text", "comment", or "message".
+     */
+    private fun extractDecodedText(decoded: JsonObject?): String? {
+        if (decoded == null) return null
+
+        // Try common field names for text content
+        val textFields = listOf("text", "comment", "message")
+        for (field in textFields) {
+            val value = decoded[field]
+            if (value is JsonPrimitive && value.isString) {
+                return value.content
+            }
+        }
+        return null
+    }
+
+    /**
+     * Parse a domain TONTransaction into a TransactionDetailUi for display.
      *
      * @param tx The transaction to parse
      * @param walletAddress The wallet address (used for inferring sender/recipient)
@@ -42,25 +66,61 @@ object TransactionDetailMapper {
      * @return TransactionDetailUi ready for display
      */
     fun toDetailUi(
-        tx: Transaction,
+        tx: TONTransaction,
         walletAddress: String,
         unknownAddressLabel: String,
         defaultFeeLabel: String,
         successStatusLabel: String,
     ): TransactionDetailUi {
-        val isOutgoing = tx.type == TransactionType.OUTGOING
+        // Extract hash as string
+        val hashStr = tx.hash?.toString() ?: tx.logicalTime
+
+        // Determine direction based on account (wallet is the main account)
+        // If in message exists, it's likely incoming; if out messages exist, likely outgoing
+        val hasInMessage = tx.inMessage != null
+        val hasOutMessages = tx.outMessages.isNotEmpty()
+        val isOutgoing = hasOutMessages && !hasInMessage
+
+        // Try to extract amount and addresses from messages
+        val inMessageValue = tx.inMessage?.value
+        val outMessageValue = tx.outMessages.firstOrNull()?.value
+
+        // Primary amount comes from the most relevant message
+        val amount = if (isOutgoing) {
+            outMessageValue ?: "0"
+        } else {
+            inMessageValue ?: "0"
+        }
+
+        // Get sender and recipient from messages
+        val fromAddress = if (isOutgoing) {
+            walletAddress
+        } else {
+            tx.inMessage?.source?.value ?: unknownAddressLabel
+        }
+
+        val toAddress = if (isOutgoing) {
+            tx.outMessages.firstOrNull()?.destination?.value ?: unknownAddressLabel
+        } else {
+            walletAddress
+        }
+
+        // Extract comment from message content decoded field if available
+        // The decoded field is a JsonObject that may contain a "text" field
+        val comment = extractDecodedText(tx.inMessage?.messageContent?.decoded)
+            ?: extractDecodedText(tx.outMessages.firstOrNull()?.messageContent?.decoded)
 
         return TransactionDetailUi(
-            hash = tx.hash,
-            timestamp = tx.timestamp,
-            amount = TonFormatter.formatNanoTon(tx.amount),
-            fee = tx.fee?.let { TonFormatter.formatNanoTon(it) } ?: defaultFeeLabel,
-            fromAddress = tx.sender ?: (if (isOutgoing) walletAddress else unknownAddressLabel),
-            toAddress = tx.recipient ?: (if (!isOutgoing) walletAddress else unknownAddressLabel),
-            comment = tx.comment,
+            hash = hashStr,
+            timestamp = tx.now.toLong(),
+            amount = TonFormatter.formatNanoTon(amount),
+            fee = tx.totalFees?.let { TonFormatter.formatNanoTon(it) } ?: defaultFeeLabel,
+            fromAddress = fromAddress,
+            toAddress = toAddress,
+            comment = comment,
             status = successStatusLabel, // Transactions from bridge are already filtered/successful
-            lt = tx.lt ?: "0",
-            blockSeqno = tx.blockSeqno ?: 0,
+            lt = tx.logicalTime,
+            blockSeqno = tx.mcBlockSeqno,
             isOutgoing = isOutgoing,
         )
     }

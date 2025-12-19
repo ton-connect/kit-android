@@ -21,20 +21,45 @@
  */
 package io.ton.walletkit.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Human-friendly NFT transfer parameters.
+ * Represents the type of data to be signed.
  *
- * @property nftAddress NFT contract address to transfer
- * @property transferAmount Amount of TON to attach to the transfer (for gas fees)
- * @property toAddress Recipient wallet address
- * @property comment Optional comment/memo for the transfer
+ * Used in sign data requests to indicate how the data should be interpreted
+ * and processed before signing.
  */
 @Serializable
-data class TONNFTTransferParamsHuman(
-    val nftAddress: TONUserFriendlyAddress,
-    val transferAmount: String,
-    val toAddress: TONUserFriendlyAddress,
-    val comment: String? = null,
-)
+enum class TONSignDataType {
+    /**
+     * Plain text data that will be prefixed with a specific marker before signing.
+     */
+    @SerialName("text")
+    TEXT,
+
+    /**
+     * Binary data (usually hex-encoded) to be signed directly.
+     */
+    @SerialName("binary")
+    BINARY,
+
+    /**
+     * A BOC (Bag of Cells) encoded cell to be signed.
+     */
+    @SerialName("cell")
+    CELL,
+
+    ;
+
+    companion object {
+        /**
+         * Gets the TONSignDataType from a string value.
+         *
+         * @param value The string value ("text", "binary", or "cell")
+         * @return The corresponding TONSignDataType, or null if invalid
+         */
+        fun fromValue(value: String): TONSignDataType? =
+            entries.find { it.name.equals(value, ignoreCase = true) }
+    }
+}

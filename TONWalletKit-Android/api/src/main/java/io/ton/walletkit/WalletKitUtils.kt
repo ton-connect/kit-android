@@ -22,7 +22,7 @@
 package io.ton.walletkit
 
 import android.util.Base64
-import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.api.generated.TONNetwork
 
 /**
  * Utility functions for TON Wallet Kit.
@@ -37,7 +37,7 @@ object WalletKitUtils {
      * Format: "{chainId}:{address}" e.g., "-3:UQA..."
      */
     fun createWalletId(network: TONNetwork, address: String): String {
-        return "${network.value}:$address"
+        return "${network.chainId}:$address"
     }
 
     /**

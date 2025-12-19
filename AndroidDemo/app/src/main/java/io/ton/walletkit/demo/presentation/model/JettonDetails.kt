@@ -21,20 +21,20 @@
  */
 package io.ton.walletkit.demo.presentation.model
 
-import io.ton.walletkit.model.TONJettonWallet
+import io.ton.walletkit.api.generated.TONJetton
 import java.math.BigDecimal
 import java.math.RoundingMode
 
 /**
  * UI-friendly detailed jetton information model.
  *
- * Maps from [TONJettonWallet] SDK model to presentation layer for detail view.
+ * Maps from [TONJetton] SDK model to presentation layer for detail view.
  */
 data class JettonDetails(
     val name: String,
     val symbol: String,
     val description: String?,
-    val jettonAddress: String?,
+    val jettonAddress: String,
     val walletAddress: String,
     val balance: String,
     val formattedBalance: String,
@@ -43,8 +43,6 @@ data class JettonDetails(
     val imageUrl: String?,
     val imageData: String?,
     val verified: Boolean,
-    val verificationSource: String?,
-    val warnings: List<String>?,
 ) {
     /**
      * Get the image source, preferring URL over base64 data.
@@ -54,21 +52,21 @@ data class JettonDetails(
 
     companion object {
         /**
-         * Create JettonDetails from SDK's TONJettonWallet.
+         * Create JettonDetails from SDK's TONJetton.
          *
-         * @param jettonWallet Jetton wallet from SDK
+         * @param jetton Jetton from SDK
          * @return UI-friendly jetton details
          */
-        fun from(jettonWallet: TONJettonWallet): JettonDetails {
-            val jetton = jettonWallet.jetton
+        fun from(jetton: TONJetton): JettonDetails {
+            val info = jetton.info
 
-            val name = jetton?.name ?: "Unknown Jetton"
-            val symbol = jetton?.symbol ?: "UNKNOWN"
-            val description = jetton?.description
-            val jettonAddress = jettonWallet.jettonAddress
-            val walletAddress = jettonWallet.walletAddress
-            val balance = jettonWallet.balance ?: "0"
-            val decimals = jetton?.decimals ?: 9
+            val name = info.name ?: "Unknown Jetton"
+            val symbol = info.symbol ?: "UNKNOWN"
+            val description = info.description
+            val jettonAddress = jetton.address.value
+            val walletAddress = jetton.walletAddress.value
+            val balance = jetton.balance
+            val decimals = jetton.decimalsNumber ?: 9
 
             // Format balance with decimals
             val formattedBalance = try {
@@ -80,14 +78,8 @@ data class JettonDetails(
                 balance
             }
 
-            val totalSupply = jetton?.totalSupply
-            val imageUrl = jetton?.image
-            val imageData = jetton?.imageData
-
-            val verification = jetton?.verification
-            val verified = verification?.verified ?: false
-            val verificationSource = verification?.source?.name?.lowercase()
-            val warnings = verification?.warnings
+            val imageUrl = info.image?.mediumUrl ?: info.image?.url
+            val imageData = info.image?.data?.let { String(it, Charsets.UTF_8) }
 
             return JettonDetails(
                 name = name,
@@ -98,12 +90,10 @@ data class JettonDetails(
                 balance = balance,
                 formattedBalance = formattedBalance,
                 decimals = decimals,
-                totalSupply = totalSupply,
+                totalSupply = null, // Not available in new API
                 imageUrl = imageUrl,
                 imageData = imageData,
-                verified = verified,
-                verificationSource = verificationSource,
-                warnings = warnings,
+                verified = jetton.isVerified,
             )
         }
     }

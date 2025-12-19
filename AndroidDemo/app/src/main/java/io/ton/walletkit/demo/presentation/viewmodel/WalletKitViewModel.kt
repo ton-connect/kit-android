@@ -31,6 +31,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.WalletKitUtils
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.WalletRecord
@@ -50,10 +53,7 @@ import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.util.TransactionDetailMapper
 import io.ton.walletkit.event.TONWalletKitEvent
-import io.ton.walletkit.extensions.disconnect
-import io.ton.walletkit.model.TONNetwork
 import io.ton.walletkit.model.TONUserFriendlyAddress
-import io.ton.walletkit.model.TONWalletData
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
@@ -122,6 +122,7 @@ class WalletKitViewModel @Inject constructor(
     val isUnlocked: StateFlow<Boolean> = securityController.isUnlocked
 
     private val tonConnectViewModel = TonConnectViewModel(
+        walletKit = { walletKit ?: error("ITONWalletKit not initialized") },
         getWalletByAddress = { address -> lifecycleManager.tonWallets[address] },
         onRequestApproved = { onTonConnectRequestApproved() },
         onRequestRejected = { onTonConnectRequestRejected() },
@@ -268,25 +269,6 @@ class WalletKitViewModel @Inject constructor(
             is TONWalletKitEvent.Disconnect -> {
                 Log.d(LOG_TAG, "Session disconnected: ${event.event.sessionId}")
                 viewModelScope.launch { sessionsViewModel.refresh() }
-            }
-            is TONWalletKitEvent.RequestError -> {
-                // Request failed - SDK auto-rejected (connect, transaction, or signData)
-                Log.d(LOG_TAG, "Request error: method=${event.method}, code=${event.errorCode}, message=${event.errorMessage}")
-                // Track for E2E testing
-                io.ton.walletkit.demo.core.RequestErrorTracker.recordError(
-                    method = event.method,
-                    errorCode = event.errorCode,
-                    errorMessage = event.errorMessage,
-                )
-            }
-            // Browser events - logged but not handled here as BrowserSheet manages WebView directly
-            is TONWalletKitEvent.BrowserPageStarted,
-            is TONWalletKitEvent.BrowserPageFinished,
-            is TONWalletKitEvent.BrowserError,
-            is TONWalletKitEvent.BrowserBridgeRequest,
-            -> {
-                // These events are informational only - BrowserSheet manages the WebView lifecycle
-                Log.d(LOG_TAG, "Browser event: ${event::class.simpleName}")
             }
         }
     }
@@ -1068,8 +1050,8 @@ class WalletKitViewModel @Inject constructor(
         val wallet = state.value.wallets.firstOrNull { it.address == walletAddress } ?: return
         val transactions = wallet.transactions ?: return
 
-        // Find the transaction by hash
-        val tx = transactions.firstOrNull { it.hash == transactionHash } ?: return
+        // Find the transaction by hash (hash is a JsonObject, so convert to string for comparison)
+        val tx = transactions.firstOrNull { it.hash?.toString() == transactionHash } ?: return
 
         // Parse transaction details
         val detail = TransactionDetailMapper.toDetailUi(
@@ -1188,21 +1170,24 @@ class WalletKitViewModel @Inject constructor(
      * This provides type-safe, exhaustive when() expressions.
      */
     private fun onConnectRequest(request: TONWalletConnectionRequest) {
-        Log.d(LOG_TAG, "onConnectRequest called - manifestFetchErrorCode: ${request.manifestFetchErrorCode}, dAppInfo: ${request.dAppInfo?.name}, dAppUrl: ${request.dAppInfo?.url}")
+        val preview = request.event.preview
+        val dAppInfo = preview.dAppInfo ?: request.event.dAppInfo
+
+        Log.d(LOG_TAG, "onConnectRequest called - manifestFetchErrorCode: ${preview.manifestFetchErrorCode}, dAppInfo: ${dAppInfo?.name}, dAppUrl: ${dAppInfo?.url}")
         // Auto-reject if manifest fetch failed or manifest content is invalid (same behavior as web demo wallet)
         // The SDK sets manifestFetchErrorCode for:
         // - 2: MANIFEST_NOT_FOUND_ERROR - manifest URL fetch failed
         // - 3: MANIFEST_CONTENT_ERROR - manifest content is invalid (including invalid dApp URL)
-        if (request.manifestFetchErrorCode != null) {
-            Log.w(LOG_TAG, "Auto-rejecting connect request due to manifest error: ${request.manifestFetchErrorCode}")
+        if (preview.manifestFetchErrorCode != null) {
+            Log.w(LOG_TAG, "Auto-rejecting connect request due to manifest error: ${preview.manifestFetchErrorCode}")
             viewModelScope.launch {
                 try {
-                    val reason = when (request.manifestFetchErrorCode) {
+                    val reason = when (preview.manifestFetchErrorCode) {
                         2 -> "App manifest not found"
                         3 -> "App manifest content error"
                         else -> "Manifest error"
                     }
-                    request.reject(reason, request.manifestFetchErrorCode)
+                    request.reject(reason, preview.manifestFetchErrorCode)
                 } catch (e: Exception) {
                     Log.e(LOG_TAG, "Failed to auto-reject connect request", e)
                 }
@@ -1211,7 +1196,6 @@ class WalletKitViewModel @Inject constructor(
         }
 
         // Convert to UI model for existing sheets
-        val dAppInfo = request.dAppInfo
         val fallbackDAppName = uiString(R.string.wallet_event_unknown_dapp)
         val permissionUnknownName = uiString(R.string.wallet_permission_unknown_name)
         val permissionDefaultTitle = uiString(R.string.wallet_permission_default_title)
@@ -1221,14 +1205,14 @@ class WalletKitViewModel @Inject constructor(
             dAppUrl = dAppInfo?.url ?: "",
             manifestUrl = dAppInfo?.manifestUrl ?: "",
             iconUrl = dAppInfo?.iconUrl,
-            permissions = request.permissions.map { perm ->
+            permissions = preview.permissions.map { perm ->
                 ConnectPermissionUi(
                     name = perm.name ?: permissionUnknownName,
                     title = perm.title ?: permissionDefaultTitle,
                     description = perm.description ?: "",
                 )
             },
-            requestedItems = request.permissions.mapNotNull { it.name },
+            requestedItems = preview.permissions.mapNotNull { it.name },
             raw = org.json.JSONObject(), // Not needed with this API
             connectRequest = request, // Store for direct approve/reject
         )
@@ -1246,8 +1230,9 @@ class WalletKitViewModel @Inject constructor(
         Log.d(LOG_TAG, "=== onTransactionRequest called ===")
         // Extract wallet address from active wallet
         val walletAddress = state.value.activeWalletAddress ?: ""
-        val dAppInfo = request.dAppInfo
+        val dAppInfo = request.event.preview.dAppInfo ?: request.event.dAppInfo
         val fallbackDAppName = uiString(R.string.wallet_event_generic_dapp)
+        val txRequest = request.event.request
 
         Log.d(LOG_TAG, "Transaction request - walletAddress: $walletAddress, dAppName: ${dAppInfo?.name}")
 
@@ -1256,13 +1241,13 @@ class WalletKitViewModel @Inject constructor(
             val wallet = lifecycleManager.tonWallets[walletAddress]
             if (wallet != null) {
                 try {
-                    val balance = wallet.getBalance()
-                    val totalAmount = request.messages.sumOf { msg ->
+                    val balance = wallet.balance()
+                    val totalAmount = txRequest.messages.sumOf { msg ->
                         msg.amount.toBigIntegerOrNull() ?: java.math.BigInteger.ZERO
                     }
-                    Log.d(LOG_TAG, "Balance check: balance=$balance, totalAmount=$totalAmount")
+                    Log.d(LOG_TAG, "Balance check: balance=${balance.value}, totalAmount=$totalAmount")
 
-                    if (balance.toBigInteger() < totalAmount) {
+                    if (balance.value.toBigInteger() < totalAmount) {
                         Log.d(LOG_TAG, "Insufficient balance - auto-rejecting transaction")
                         // Use BAD_REQUEST_ERROR (1) for insufficient balance, matching web demo-wallet
                         request.reject("Insufficient balance", BAD_REQUEST_ERROR_CODE)
@@ -1275,7 +1260,7 @@ class WalletKitViewModel @Inject constructor(
             }
 
             // Map actual transaction messages from request
-            val messages = request.messages.map { msg ->
+            val messages = txRequest.messages.map { msg ->
                 // Try to decode comment from payload if it's a simple text comment
                 val comment = try {
                     msg.payload?.let { payload ->
@@ -1288,11 +1273,11 @@ class WalletKitViewModel @Inject constructor(
                 }
 
                 TransactionMessageUi(
-                    to = msg.address,
+                    to = msg.address.value,
                     amount = msg.amount,
                     comment = comment,
-                    payload = msg.payload,
-                    stateInit = msg.stateInit,
+                    payload = msg.payload?.value,
+                    stateInit = msg.stateInit?.value,
                 )
             }
 
@@ -1300,7 +1285,7 @@ class WalletKitViewModel @Inject constructor(
                 id = request.hashCode().toString(),
                 walletAddress = walletAddress,
                 dAppName = dAppInfo?.name ?: fallbackDAppName,
-                validUntil = request.validUntil,
+                validUntil = txRequest.validUntil?.toLong(),
                 messages = messages,
                 preview = null,
                 raw = org.json.JSONObject(),
@@ -1316,17 +1301,34 @@ class WalletKitViewModel @Inject constructor(
     }
 
     private fun onSignDataRequest(request: TONWalletSignDataRequest) {
-        val dAppInfo = request.dAppInfo
+        val dAppInfo = request.event.preview.dAppInfo ?: request.event.dAppInfo
         val fallbackDAppName = uiString(R.string.wallet_event_generic_dapp)
+
+        // Extract payload type and content from the event
+        val payloadData = request.event.payload.data
+        val payloadType = payloadData.type.replaceFirstChar { it.uppercase() }
+        val payloadContent = when (payloadData) {
+            is io.ton.walletkit.api.generated.TONSignData.Text -> payloadData.value.content
+            is io.ton.walletkit.api.generated.TONSignData.Binary -> payloadData.value.content.value
+            is io.ton.walletkit.api.generated.TONSignData.Cell -> payloadData.value.content.value
+        }
+
+        // Extract preview content
+        val previewData = request.event.preview.data
+        val previewContent = when (previewData) {
+            is io.ton.walletkit.api.generated.TONSignDataPreview.Text -> previewData.value.content
+            is io.ton.walletkit.api.generated.TONSignDataPreview.Binary -> previewData.value.content.value
+            is io.ton.walletkit.api.generated.TONSignDataPreview.Cell -> previewData.value.content.value
+        }
 
         // Convert to UI model with actual payload data from request
         val uiRequest = SignDataRequestUi(
             id = request.hashCode().toString(),
-            walletAddress = request.walletAddress ?: state.value.activeWalletAddress ?: "",
+            walletAddress = request.event.walletAddress?.value ?: state.value.activeWalletAddress ?: "",
             dAppName = dAppInfo?.name,
-            payloadType = request.payloadType.name.lowercase().replaceFirstChar { it.uppercase() },
-            payloadContent = request.payloadContent,
-            preview = request.preview ?: request.payloadContent,
+            payloadType = payloadType,
+            payloadContent = payloadContent,
+            preview = previewContent,
             raw = org.json.JSONObject(),
             signDataRequest = request,
         )
@@ -1387,9 +1389,9 @@ class WalletKitViewModel @Inject constructor(
         // Create and return custom signer backed by the provided mnemonic
         // so the demo app can satisfy TonProof/transaction signatures.
         return object : WalletSigner {
-            override val publicKey: String = publicKey
+            override fun publicKey(): io.ton.walletkit.model.TONHex = io.ton.walletkit.model.TONHex(publicKey)
 
-            override suspend fun sign(data: ByteArray): ByteArray {
+            override suspend fun sign(data: ByteArray): io.ton.walletkit.model.TONHex {
                 Log.d(
                     LOG_TAG,
                     "Demo signer signing ${data.size} bytes for wallet=$walletName (used for TonProof/transactions)",
@@ -1398,7 +1400,8 @@ class WalletKitViewModel @Inject constructor(
                 // Get the secret key from mnemonic
                 val keyPair = kit.mnemonicToKeyPair(signerMnemonic, "ton")
                 // Sign the data with the secret key
-                return kit.sign(data, keyPair.secretKey)
+                val signature = kit.sign(data, keyPair.secretKey)
+                return io.ton.walletkit.model.TONHex.fromData(signature)
             }
         }
     }
@@ -1448,9 +1451,10 @@ class WalletKitViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Remove all wallets from SDK first
-                val allWallets = lifecycleManager.tonWallets.values.toList()
-                allWallets.forEach { wallet ->
-                    runCatching { wallet.remove() }.onFailure {
+                val kit = getKit()
+                val allWalletAddresses = lifecycleManager.tonWallets.keys.toList()
+                allWalletAddresses.forEach { walletAddress ->
+                    runCatching { kit.removeWallet(TONUserFriendlyAddress(walletAddress)) }.onFailure {
                         Log.w(LOG_TAG, "Failed to remove wallet during reset", it)
                     }
                 }
@@ -1511,7 +1515,7 @@ class WalletKitViewModel @Inject constructor(
      * Show jetton details sheet.
      */
     fun showJettonDetails(jettonSummary: JettonSummary) {
-        val jettonDetails = JettonDetails.from(jettonSummary.jettonWallet)
+        val jettonDetails = JettonDetails.from(jettonSummary.jetton)
         uiCoordinator.showJettonDetails(jettonDetails)
     }
 

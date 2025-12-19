@@ -25,6 +25,7 @@ import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
+import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.engine.operations.requests.AddWalletRequest
 import io.ton.walletkit.engine.operations.requests.CreateAdapterRequest
 import io.ton.walletkit.engine.operations.requests.CreateSignerRequest
@@ -36,8 +37,8 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.IDGenerator
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
-import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
@@ -105,7 +106,7 @@ internal class WalletOperations(
 
         // Extract publicKey from signer object
         val rawPublicKey = signerObj.optString("publicKey")
-        val publicKey = WalletKitUtils.stripHexPrefix(rawPublicKey)
+        val publicKey = TONHex(WalletKitUtils.stripHexPrefix(rawPublicKey))
 
         return WalletSignerInfo(
             signerId = signerId,
@@ -139,7 +140,7 @@ internal class WalletOperations(
 
         // Extract publicKey from signer object
         val rawPublicKey = signerObj.optString("publicKey")
-        val publicKey = WalletKitUtils.stripHexPrefix(rawPublicKey)
+        val publicKey = TONHex(WalletKitUtils.stripHexPrefix(rawPublicKey))
 
         return WalletSignerInfo(
             signerId = signerId,
@@ -171,7 +172,7 @@ internal class WalletOperations(
         // Return signer info with the registered ID and public key from the custom signer
         return WalletSignerInfo(
             signerId = signerId,
-            publicKey = signer.publicKey,
+            publicKey = signer.publicKey(),
         )
     }
 
@@ -229,7 +230,7 @@ internal class WalletOperations(
 
         return WalletAdapterInfo(
             adapterId = adapterId,
-            address = address,
+            address = TONUserFriendlyAddress(address),
         )
     }
 
@@ -287,7 +288,7 @@ internal class WalletOperations(
 
         return WalletAdapterInfo(
             adapterId = adapterId,
-            address = address,
+            address = TONUserFriendlyAddress(address),
         )
     }
 

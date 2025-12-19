@@ -319,9 +319,9 @@ internal class WebViewManager(
                     val bytesArray = org.json.JSONArray(bytesJson)
                     val bytes = ByteArray(bytesArray.length()) { i -> bytesArray.getInt(i).toByte() }
 
-                    val signatureBytes = signer.sign(bytes)
-                    // Convert to hex string with 0x prefix as expected by JavaScript
-                    io.ton.walletkit.WalletKitUtils.byteArrayToHex(signatureBytes)
+                    val signatureHex = signer.sign(bytes)
+                    // Return hex string with 0x prefix as expected by JavaScript
+                    signatureHex.value
                 } catch (e: Exception) {
                     Logger.e(TAG, "Failed to sign with custom signer: $signerId", e)
                     throw e

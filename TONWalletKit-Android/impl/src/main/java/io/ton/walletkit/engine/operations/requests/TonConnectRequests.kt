@@ -21,9 +21,9 @@
  */
 package io.ton.walletkit.engine.operations.requests
 
-import io.ton.walletkit.event.ConnectRequestEvent
-import io.ton.walletkit.event.SignDataRequestEvent
-import io.ton.walletkit.event.TransactionRequestEvent
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONTransactionRequestEvent
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -50,37 +50,39 @@ internal data class ProcessInternalBrowserRequest(
 
 @Serializable
 internal data class ApproveConnectRequest(
-    val event: ConnectRequestEvent,
+    val event: TONConnectionRequestEvent,
     val walletId: String,
 )
 
 @Serializable
 internal data class RejectConnectRequest(
-    val event: ConnectRequestEvent,
+    val event: TONConnectionRequestEvent,
     val reason: String? = null,
     val errorCode: Int? = null,
 )
 
 @Serializable
 internal data class ApproveTransactionRequest(
-    val event: TransactionRequestEvent,
+    val event: TONTransactionRequestEvent,
+    val walletId: String,
 )
 
 @Serializable
 internal data class RejectTransactionRequest(
-    val event: TransactionRequestEvent,
+    val event: TONTransactionRequestEvent,
     val reason: String? = null,
     val errorCode: Int? = null,
 )
 
 @Serializable
 internal data class ApproveSignDataRequest(
-    val event: SignDataRequestEvent,
+    val event: TONSignDataRequestEvent,
+    val walletId: String,
 )
 
 @Serializable
 internal data class RejectSignDataRequest(
-    val event: SignDataRequestEvent,
+    val event: TONSignDataRequestEvent,
     val reason: String? = null,
     val errorCode: Int? = null,
 )

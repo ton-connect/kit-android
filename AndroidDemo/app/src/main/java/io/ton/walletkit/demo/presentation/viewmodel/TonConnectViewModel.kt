@@ -25,6 +25,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
+import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
@@ -38,6 +41,7 @@ import kotlinx.coroutines.launch
  * Manages connect, transaction, and sign data approval/rejection flows.
  */
 class TonConnectViewModel(
+    private val walletKit: () -> ITONWalletKit,
     private val getWalletByAddress: (String) -> ITONWallet?,
     private val onRequestApproved: () -> Unit = {},
     private val onRequestRejected: () -> Unit = {},
@@ -70,7 +74,7 @@ class TonConnectViewModel(
             }
 
             runCatching {
-                wallet.connect(url.trim())
+                walletKit().connect(url.trim())
             }.onSuccess {
                 _state.value = _state.value.copy(
                     isProcessing = false,
@@ -95,7 +99,8 @@ class TonConnectViewModel(
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
             runCatching {
-                request.connectRequest?.approve(walletAddress)
+                // Use MAINNET as default - event.walletAddress should already have correct network context
+                request.connectRequest?.approve(TONNetwork.MAINNET)
                     ?: error("Connect request not available")
             }.onSuccess {
                 _state.value = _state.value.copy(
@@ -147,7 +152,7 @@ class TonConnectViewModel(
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
             runCatching {
-                request.transactionRequest?.approve()
+                request.transactionRequest?.approve(TONNetwork.MAINNET)
                     ?: error("Transaction request not available")
             }.onSuccess {
                 _state.value = _state.value.copy(
@@ -199,7 +204,7 @@ class TonConnectViewModel(
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
             runCatching {
-                request.signDataRequest?.approve()
+                request.signDataRequest?.approve(TONNetwork.MAINNET)
                     ?: error("Sign data request not available")
             }.onSuccess {
                 _state.value = _state.value.copy(

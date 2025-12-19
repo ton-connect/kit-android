@@ -21,16 +21,25 @@
  */
 package io.ton.walletkit.engine
 
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONJettonsResponse
+import io.ton.walletkit.api.generated.TONJettonsTransferRequest
+import io.ton.walletkit.api.generated.TONNFT
+import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
+import io.ton.walletkit.api.generated.TONNFTTransferRequest
+import io.ton.walletkit.api.generated.TONNFTsResponse
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
+import io.ton.walletkit.api.generated.TONTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
-import io.ton.walletkit.event.ConnectRequestEvent
-import io.ton.walletkit.event.SignDataRequestEvent
-import io.ton.walletkit.event.TransactionRequestEvent
+import io.ton.walletkit.engine.model.TONTransactionWithPreview
+import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.engine.model.WalletSession
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.TONNetwork
-import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
-import io.ton.walletkit.model.WalletSession
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.RequestHandler
@@ -271,8 +280,8 @@ internal interface WalletKitEngine : RequestHandler {
      */
     suspend fun createTransferTonTransaction(
         walletId: String,
-        params: io.ton.walletkit.model.TONTransferParams,
-    ): io.ton.walletkit.model.TONTransactionWithPreview
+        params: TONTransferRequest,
+    ): TONTransactionWithPreview
 
     /**
      * Handle a new transaction initiated from the wallet app.
@@ -311,7 +320,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @param event Typed event from the connect request
      * @throws WalletKitBridgeException if approval fails
      */
-    override suspend fun approveConnect(event: ConnectRequestEvent, network: TONNetwork)
+    override suspend fun approveConnect(event: TONConnectionRequestEvent, network: TONNetwork)
 
     /**
      * Reject a connection request from a dApp.
@@ -322,7 +331,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @throws WalletKitBridgeException if rejection fails
      */
     override suspend fun rejectConnect(
-        event: ConnectRequestEvent,
+        event: TONConnectionRequestEvent,
         reason: String?,
         errorCode: Int?,
     )
@@ -333,7 +342,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @param event Typed event from the transaction request
      * @throws WalletKitBridgeException if approval or signing fails
      */
-    override suspend fun approveTransaction(event: TransactionRequestEvent, network: TONNetwork)
+    override suspend fun approveTransaction(event: TONTransactionRequestEvent, network: TONNetwork)
 
     /**
      * Reject a transaction request.
@@ -344,7 +353,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @throws WalletKitBridgeException if rejection fails
      */
     override suspend fun rejectTransaction(
-        event: TransactionRequestEvent,
+        event: TONTransactionRequestEvent,
         reason: String?,
         errorCode: Int?,
     )
@@ -355,7 +364,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @param event Typed event from the sign data request
      * @throws WalletKitBridgeException if approval or signing fails
      */
-    override suspend fun approveSignData(event: SignDataRequestEvent, network: TONNetwork)
+    override suspend fun approveSignData(event: TONSignDataRequestEvent, network: TONNetwork)
 
     /**
      * Reject a data signing request.
@@ -366,7 +375,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @throws WalletKitBridgeException if rejection fails
      */
     override suspend fun rejectSignData(
-        event: SignDataRequestEvent,
+        event: TONSignDataRequestEvent,
         reason: String?,
         errorCode: Int?,
     )
@@ -395,7 +404,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @return NFT items with pagination info
      * @throws WalletKitBridgeException if the request fails
      */
-    suspend fun getNfts(walletId: String, limit: Int = 100, offset: Int = 0): io.ton.walletkit.model.TONNFTItems
+    suspend fun getNfts(walletId: String, limit: Int = 100, offset: Int = 0): TONNFTsResponse
 
     /**
      * Get a single NFT by its address.
@@ -404,7 +413,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @return NFT item or null if not found
      * @throws WalletKitBridgeException if the request fails
      */
-    suspend fun getNft(nftAddress: String): io.ton.walletkit.model.TONNFTItem?
+    suspend fun getNft(nftAddress: String): TONNFT?
 
     /**
      * Create an NFT transfer transaction with human-friendly parameters.
@@ -416,7 +425,7 @@ internal interface WalletKitEngine : RequestHandler {
      */
     suspend fun createTransferNftTransaction(
         walletId: String,
-        params: io.ton.walletkit.model.TONNFTTransferParamsHuman,
+        params: TONNFTTransferRequest,
     ): String
 
     /**
@@ -429,7 +438,7 @@ internal interface WalletKitEngine : RequestHandler {
      */
     suspend fun createTransferNftRawTransaction(
         walletId: String,
-        params: io.ton.walletkit.model.TONNFTTransferParamsRaw,
+        params: TONNFTRawTransferRequest,
     ): String
 
     /**
@@ -441,7 +450,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @return Jetton wallets with pagination info
      * @throws WalletKitBridgeException if the request fails
      */
-    suspend fun getJettons(walletId: String, limit: Int = 100, offset: Int = 0): io.ton.walletkit.model.TONJettonWallets
+    suspend fun getJettons(walletId: String, limit: Int = 100, offset: Int = 0): TONJettonsResponse
 
     /**
      * Create a jetton transfer transaction.
@@ -453,7 +462,7 @@ internal interface WalletKitEngine : RequestHandler {
      */
     suspend fun createTransferJettonTransaction(
         walletId: String,
-        params: io.ton.walletkit.model.TONJettonTransferParams,
+        params: TONJettonsTransferRequest,
     ): String
 
     /**
@@ -466,8 +475,8 @@ internal interface WalletKitEngine : RequestHandler {
      */
     suspend fun createTransferMultiTonTransaction(
         walletId: String,
-        messages: List<io.ton.walletkit.model.TONTransferParams>,
-    ): io.ton.walletkit.model.TONTransactionWithPreview
+        messages: List<TONTransferRequest>,
+    ): TONTransactionWithPreview
 
     /**
      * Get a preview of a transaction including estimated fees.
@@ -480,7 +489,7 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun getTransactionPreview(
         walletId: String,
         transactionContent: String,
-    ): io.ton.walletkit.model.TONTransactionPreview
+    ): TONTransactionEmulatedPreview
 
     /**
      * Get the balance of a specific jetton for a wallet.

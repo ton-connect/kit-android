@@ -23,20 +23,14 @@ package io.ton.walletkit.core
 
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.WalletKitBridgeException
-import io.ton.walletkit.config.SignDataType
+import io.ton.walletkit.api.generated.*
 import io.ton.walletkit.engine.WalletKitEngine
+import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.engine.model.WalletSession
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.SignDataResult
-import io.ton.walletkit.model.TONJettonTransferParams
-import io.ton.walletkit.model.TONJettonWallets
-import io.ton.walletkit.model.TONNFTItem
-import io.ton.walletkit.model.TONNFTTransferParamsHuman
-import io.ton.walletkit.model.TONNFTTransferParamsRaw
-import io.ton.walletkit.model.TONTransactionPreview
-import io.ton.walletkit.model.TONTransferParams
+import io.ton.walletkit.model.TONBalance
 import io.ton.walletkit.model.TONUserFriendlyAddress
-import io.ton.walletkit.model.WalletAccount
-import io.ton.walletkit.model.WalletSession
+import kotlinx.serialization.json.Json
 
 /**
  * Represents a TON wallet with balance and state management.
@@ -59,18 +53,17 @@ import io.ton.walletkit.model.WalletSession
  * wallet.remove()
  * ```
  *
- * @property address Wallet address (null if not yet created)
- * @property publicKey Public key of the wallet (null if not available)
+ * @property id Unique wallet identifier in format "chainId:address"
+ * @property address Wallet address in user-friendly format
  */
 internal class TONWallet internal constructor(
-    override val address: TONUserFriendlyAddress?,
+    override val id: String,
+    override val address: TONUserFriendlyAddress,
     private val engine: WalletKitEngine,
-    private val account: WalletAccount?,
+    private val account: WalletAccount,
 ) : ITONWallet {
-    /**
-     * Public key of the wallet.
-     */
-    override val publicKey: String? get() = account?.publicKey
+
+    private val json = Json { ignoreUnknownKeys = true }
     companion object {
         /**
          * Convert a mnemonic phrase to a key pair.
@@ -122,16 +115,169 @@ internal class TONWallet internal constructor(
         }
     }
 
+    // ========================================================================
+    // ITONWallet interface implementation
+    // ========================================================================
+
     /**
-     * Get wallet balance in nanoTON.
+     * Get wallet balance.
      *
-     * @return Balance in nanoTON as a string, or "0" if not available
+     * @return Balance as TONBalance (wraps nanoTON value)
      * @throws io.ton.walletkit.WalletKitBridgeException if balance retrieval fails
      */
-    override suspend fun getBalance(): String {
-        val walletId = account?.walletId ?: return "0"
-        return engine.getBalance(walletId)
+    override suspend fun balance(): TONBalance {
+        val balanceString = engine.getBalance(id)
+        return TONBalance(balanceString)
     }
+
+    /**
+     * Create a TON transfer transaction.
+     *
+     * @param request Transfer request with recipient, amount, and optional comment
+     * @return Transaction request ready for sending or preview
+     * @throws WalletKitBridgeException if transaction creation fails
+     */
+    override suspend fun transferTONTransaction(request: TONTransferRequest): TONTransactionRequest {
+        val result = engine.createTransferTonTransaction(id, request)
+        return json.decodeFromString<TONTransactionRequest>(result.transaction)
+    }
+
+    /**
+     * Create a multi-recipient TON transfer transaction.
+     *
+     * @param requests List of transfer requests
+     * @return Transaction request ready for sending or preview
+     * @throws WalletKitBridgeException if transaction creation fails
+     */
+    override suspend fun transferTONTransaction(requests: List<TONTransferRequest>): TONTransactionRequest {
+        val result = engine.createTransferMultiTonTransaction(id, requests)
+        return json.decodeFromString<TONTransactionRequest>(result.transaction)
+    }
+
+    /**
+     * Send a transaction to the blockchain.
+     *
+     * @param transactionRequest Transaction request from transferTON/NFT/Jetton methods
+     * @throws WalletKitBridgeException if sending fails
+     */
+    override suspend fun send(transactionRequest: TONTransactionRequest) {
+        val transactionContent = json.encodeToString(TONTransactionRequest.serializer(), transactionRequest)
+        engine.sendTransaction(id, transactionContent)
+    }
+
+    /**
+     * Get transaction preview with fee estimation.
+     *
+     * @param transactionRequest Transaction request to preview
+     * @return Preview with estimated fees and trace
+     * @throws WalletKitBridgeException if preview generation fails
+     */
+    override suspend fun preview(transactionRequest: TONTransactionRequest): TONTransactionEmulatedPreview {
+        val transactionContent = json.encodeToString(TONTransactionRequest.serializer(), transactionRequest)
+        return engine.getTransactionPreview(id, transactionContent)
+    }
+
+    /**
+     * Create an NFT transfer transaction.
+     *
+     * @param request NFT transfer request with recipient and optional comment
+     * @return Transaction request ready for sending or preview
+     * @throws WalletKitBridgeException if transaction creation fails
+     */
+    override suspend fun transferNFTTransaction(request: TONNFTTransferRequest): TONTransactionRequest {
+        val transactionContent = engine.createTransferNftTransaction(id, request)
+        return json.decodeFromString<TONTransactionRequest>(transactionContent)
+    }
+
+    /**
+     * Create an NFT transfer transaction with raw parameters.
+     *
+     * @param request Raw NFT transfer request with full control
+     * @return Transaction request ready for sending or preview
+     * @throws WalletKitBridgeException if transaction creation fails
+     */
+    override suspend fun transferNFTTransaction(request: TONNFTRawTransferRequest): TONTransactionRequest {
+        val transactionContent = engine.createTransferNftRawTransaction(id, request)
+        return json.decodeFromString<TONTransactionRequest>(transactionContent)
+    }
+
+    /**
+     * Get NFTs owned by this wallet.
+     *
+     * @param request Request with pagination and optional filters
+     * @return Response with NFTs and address book
+     * @throws WalletKitBridgeException if NFT retrieval fails
+     */
+    override suspend fun nfts(request: TONNFTsRequest): TONNFTsResponse {
+        val limit = request.pagination?.limit ?: 100
+        val offset = request.pagination?.offset ?: 0
+        return engine.getNfts(id, limit, offset)
+    }
+
+    /**
+     * Get a single NFT by address.
+     *
+     * @param address NFT contract address
+     * @return NFT details
+     * @throws WalletKitBridgeException if NFT retrieval fails
+     */
+    override suspend fun nft(address: TONUserFriendlyAddress): TONNFT {
+        return engine.getNft(address.value)
+            ?: throw WalletKitBridgeException("NFT not found: ${address.value}")
+    }
+
+    /**
+     * Get balance of a specific jetton.
+     *
+     * @param jettonAddress Jetton master contract address
+     * @return Balance in jetton units
+     * @throws WalletKitBridgeException if balance retrieval fails
+     */
+    override suspend fun jettonBalance(jettonAddress: TONUserFriendlyAddress): TONBalance {
+        val balanceString = engine.getJettonBalance(id, jettonAddress.value)
+        return TONBalance(balanceString)
+    }
+
+    /**
+     * Get jetton wallet address for a specific jetton.
+     *
+     * @param jettonAddress Jetton master contract address
+     * @return Jetton wallet contract address
+     * @throws WalletKitBridgeException if address retrieval fails
+     */
+    override suspend fun jettonWalletAddress(jettonAddress: TONUserFriendlyAddress): TONUserFriendlyAddress {
+        val addressString = engine.getJettonWalletAddress(id, jettonAddress.value)
+        return TONUserFriendlyAddress(addressString)
+    }
+
+    /**
+     * Create a jetton transfer transaction.
+     *
+     * @param request Jetton transfer request
+     * @return Transaction request ready for sending or preview
+     * @throws WalletKitBridgeException if transaction creation fails
+     */
+    override suspend fun transferJettonTransaction(request: TONJettonsTransferRequest): TONTransactionRequest {
+        val transactionContent = engine.createTransferJettonTransaction(id, request)
+        return json.decodeFromString<TONTransactionRequest>(transactionContent)
+    }
+
+    /**
+     * Get jettons owned by this wallet.
+     *
+     * @param request Request with pagination
+     * @return Response with jettons and address book
+     * @throws WalletKitBridgeException if jetton retrieval fails
+     */
+    override suspend fun jettons(request: TONJettonsRequest): TONJettonsResponse {
+        val limit = request.pagination?.limit ?: 100
+        val offset = request.pagination?.offset ?: 0
+        return engine.getJettons(id, limit, offset)
+    }
+
+    // ========================================================================
+    // Additional methods (not in ITONWallet interface)
+    // ========================================================================
 
     /**
      * Get the state init BOC for this wallet.
@@ -156,7 +302,7 @@ internal class TONWallet internal constructor(
      * @param url TON Connect URL to handle
      * @throws io.ton.walletkit.WalletKitBridgeException if URL handling fails
      */
-    override suspend fun connect(url: String) {
+    suspend fun connect(url: String) {
         engine.handleTonConnectUrl(url)
     }
 
@@ -168,233 +314,28 @@ internal class TONWallet internal constructor(
      *
      * @throws io.ton.walletkit.WalletKitBridgeException if removal fails
      */
-    override suspend fun remove() {
-        val walletId = account?.walletId ?: return
-        engine.removeWallet(walletId)
+    suspend fun remove() {
+        engine.removeWallet(id)
     }
 
     /**
      * Get active TON Connect sessions for this wallet.
      *
-     * This is an Android-specific convenience method for viewing which dApps
-     * are connected to this specific wallet.
-     *
      * @return List of active sessions associated with this wallet
      * @throws io.ton.walletkit.WalletKitBridgeException if session retrieval fails
      */
-    override suspend fun sessions(): List<WalletSession> {
-        val addr = account?.address?.value ?: return emptyList()
-        // Get all sessions and filter by wallet address
+    suspend fun sessions(): List<WalletSession> {
         return engine.listSessions().filter { session ->
-            session.walletAddress == addr
+            session.walletAddress == address.value
         }
     }
 
     /**
-     * Create a TON transfer transaction.
+     * Disconnect all TON Connect sessions for this wallet.
      *
-     * This method creates transaction content that can be passed to `kit.handleNewTransaction()`
-     * to trigger the approval flow. This matches the JS WalletKit API:
-     *
-     * ```typescript
-     * const tx = await wallet.createTransferTonTransaction(params);
-     * await kit.handleNewTransaction(wallet, tx);
-     * ```
-     *
-     * @param params Transfer parameters (recipient address, amount, optional comment/body/stateInit)
-     * @return Transaction with optional preview
-     * @throws io.ton.walletkit.WalletKitBridgeException if transaction creation fails
+     * @throws WalletKitBridgeException if disconnection fails
      */
-    override suspend fun createTransferTonTransaction(params: TONTransferParams): io.ton.walletkit.model.TONTransactionWithPreview {
-        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
-        return engine.createTransferTonTransaction(walletId, params)
-    }
-
-    /**
-     * Create a multi-recipient TON transfer transaction.
-     * Matches the JS API `wallet.createTransferMultiTonTransaction()` function.
-     *
-     * Allows sending TON to multiple recipients in a single transaction.
-     *
-     * @param messages List of transfer messages (each with recipient address, amount, optional comment)
-     * @return Transaction with optional preview
-     * @throws WalletKitBridgeException if transaction creation fails
-     */
-    override suspend fun createTransferMultiTonTransaction(messages: List<TONTransferParams>): io.ton.walletkit.model.TONTransactionWithPreview {
-        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
-        return engine.createTransferMultiTonTransaction(walletId, messages)
-    }
-
-    /**
-     * Get transaction preview with fee estimation.
-     * Matches the JS API `wallet.getTransactionPreview()` function.
-     *
-     * @param transactionContent Transaction content (from createTransfer* methods)
-     * @return Transaction preview with fee information
-     * @throws WalletKitBridgeException if preview generation fails
-     */
-    override suspend fun getTransactionPreview(transactionContent: String): TONTransactionPreview {
-        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
-        return engine.getTransactionPreview(walletId, transactionContent)
-    }
-
-    /**
-     * Get NFT items owned by this wallet.
-     *
-     * Matches the shared API surface for cross-platform consistency.
-     *
-     * @param limit Maximum number of NFTs to return (default: 100)
-     * @param offset Offset for pagination (default: 0)
-     * @return List of NFT items
-     * @throws WalletKitBridgeException if NFT retrieval fails
-     */
-    override suspend fun getNFTItems(
-        limit: Int?,
-        offset: Int?,
-        collectionAddress: String?,
-        indirectOwnership: Boolean?,
-    ): List<TONNFTItem> {
-        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
-        val nftItems = engine.getNfts(walletId, limit ?: 100, offset ?: 0)
-        return nftItems.items
-    }
-
-    /**
-     * Get a single NFT by its address.
-     *
-     * Matches the shared API surface for cross-platform consistency.
-     *
-     * @param nftAddress NFT contract address
-     * @return NFT item or null if not found
-     * @throws WalletKitBridgeException if NFT retrieval fails
-     */
-    override suspend fun getNFT(nftAddress: String): TONNFTItem? {
-        return engine.getNft(nftAddress)
-    }
-
-    /**
-     * Create an NFT transfer transaction with human-friendly parameters.
-     * Matches the JS API `wallet.createTransferNftTransaction()` function.
-     *
-     * @param params Transfer parameters (NFT address, recipient, amount, optional comment)
-     * @return Transaction content that can be sent via sendTransaction()
-     * @throws WalletKitBridgeException if transaction creation fails
-     */
-    override suspend fun createTransferNFTTransaction(params: TONNFTTransferParamsHuman): String {
-        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
-        return engine.createTransferNftTransaction(walletId, params)
-    }
-
-    /**
-     * Create an NFT transfer transaction with raw parameters.
-     * Matches the JS API `wallet.createTransferNftRawTransaction()` function.
-     *
-     * @param params Raw transfer parameters with full control over transfer message
-     * @return Transaction content that can be sent via sendTransaction()
-     * @throws WalletKitBridgeException if transaction creation fails
-     */
-    override suspend fun createTransferNftRawTransaction(params: TONNFTTransferParamsRaw): String {
-        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
-        return engine.createTransferNftRawTransaction(walletId, params)
-    }
-
-    /**
-     * Send a transaction to the blockchain.
-     * Matches the JS API `wallet.sendTransaction()` function.
-     *
-     * This method takes transaction content (usually created by createTransferNftTransaction,
-     * createTransferTonTransaction, createTransferJettonTransaction, etc.) and actually sends
-     * it to the blockchain, returning the transaction hash.
-     *
-     * Example:
-     * ```kotlin
-     * // Create NFT transfer transaction
-     * val txContent = wallet.createTransferNftTransaction(params)
-     * // Send it to blockchain
-     * val txHash = wallet.sendTransaction(txContent)
-     * ```
-     *
-     * @param transactionContent Transaction content JSON (from createTransfer* methods)
-     * @return Transaction hash (boc) after successful broadcast
-     * @throws WalletKitBridgeException if sending fails
-     */
-    override suspend fun sendTransaction(transactionContent: String): String {
-        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
-        return engine.sendTransaction(walletId, transactionContent)
-    }
-
-    /**
-     * Get jetton wallets owned by this wallet.
-     * Matches the JS API `wallet.getJettons()` function.
-     *
-     * @param limit Maximum number of jetton wallets to return (default: 100)
-     * @param offset Offset for pagination (default: 0)
-     * @return Jetton wallets with metadata wrapper
-     * @throws WalletKitBridgeException if jetton retrieval fails
-     */
-    override suspend fun getJettons(
-        limit: Int?,
-        offset: Int?,
-    ): TONJettonWallets {
-        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
-        return engine.getJettons(walletId, limit ?: 100, offset ?: 0)
-    }
-
-    /**
-     * Create a jetton transfer transaction.
-     * Matches the JS API `wallet.createTransferJettonTransaction()` function.
-     *
-     * @param params Transfer parameters (recipient address, jetton address, amount, optional comment)
-     * @return Transaction content that can be sent via sendTransaction()
-     * @throws WalletKitBridgeException if transaction creation fails
-     */
-    override suspend fun createTransferJettonTransaction(params: TONJettonTransferParams): String {
-        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
-        return engine.createTransferJettonTransaction(walletId, params)
-    }
-
-    /**
-     * Get the balance of a specific jetton for this wallet.
-     *
-     * Matches the shared API surface for cross-platform consistency.
-     *
-     * @param jettonAddress Jetton master contract address
-     * @return Balance as a string (in jetton units, not considering decimals)
-     * @throws WalletKitBridgeException if balance retrieval fails
-     */
-    override suspend fun getJettonBalance(jettonAddress: String): String {
-        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
-        return engine.getJettonBalance(walletId, jettonAddress)
-    }
-
-    /**
-     * Get the jetton wallet address for a specific jetton master contract.
-     *
-     * Each user has a unique jetton wallet contract for each jetton they hold.
-     * This method returns the address of this wallet's jetton wallet for the given jetton.
-     *
-     * Matches the shared API surface for cross-platform consistency.
-     *
-     * @param jettonAddress Jetton master contract address
-     * @return Jetton wallet contract address
-     * @throws WalletKitBridgeException if address retrieval fails
-     */
-    override suspend fun getJettonWalletAddress(jettonAddress: String): String {
-        val walletId = account?.walletId ?: throw WalletKitBridgeException("Wallet account is null")
-        return engine.getJettonWalletAddress(walletId, jettonAddress)
-    }
-
-    override suspend fun signData(
-        data: ByteArray,
-        type: SignDataType,
-    ): SignDataResult {
-        // Sign data is handled via request/response flow, not direct signing
-        // Use TONWallet.mnemonicToKeyPair and TONWallet.sign for low-level signing
-        throw UnsupportedOperationException("Direct signing not supported. Use request/response flow via events.")
-    }
-
-    override suspend fun disconnect() {
-        val addr = address?.value ?: return
-        engine.disconnectSession(null) // Disconnect all sessions for this wallet
+    suspend fun disconnect() {
+        engine.disconnectSession(null)
     }
 }

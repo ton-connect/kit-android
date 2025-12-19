@@ -23195,20 +23195,17 @@ var JettonErrorCode;
   JettonErrorCode2["INVALID_AMOUNT"] = "INVALID_AMOUNT";
   JettonErrorCode2["PREPARATION_FAILED"] = "PREPARATION_FAILED";
 })(JettonErrorCode || (JettonErrorCode = {}));
-function asHex(data) {
-  if (!/^0x[0-9a-fA-F]+$/.test(data) || data.length % 2 !== 0) {
-    throw new Error("Not a valid hex");
-  }
-  return data;
-}
 function asMaybeAddressFriendly(data) {
   try {
     return asAddressFriendly(data);
   } catch {
+    return null;
   }
-  return null;
 }
 function asAddressFriendly(data) {
+  if (data instanceof distExports$3.Address) {
+    return data.toString();
+  }
   try {
     if (data)
       return distExports$3.Address.parse(data).toString();
@@ -23216,11 +23213,105 @@ function asAddressFriendly(data) {
   }
   throw new Error(`Can not convert to AddressFriendly from "${data}"`);
 }
-function limitString(data, limit) {
-  return data.length > limit ? data.substring(0, limit) : data;
+function formatWalletAddress(address, isTestnet = false) {
+  if (typeof address === "string") {
+    return distExports$3.Address.parse(address).toString({ bounceable: false, testOnly: isTestnet });
+  }
+  return address.toString({ bounceable: false, testOnly: isTestnet });
 }
-function toStringTail(data) {
-  return distExports$3.beginCell().storeStringTail(limitString(data, 127)).endCell();
+function isValidAddress(address) {
+  if (typeof address !== "string") {
+    return false;
+  }
+  try {
+    distExports$3.Address.parse(address);
+  } catch (_) {
+    return false;
+  }
+  return true;
+}
+function isFriendlyTonAddress(address) {
+  try {
+    distExports$3.Address.parseFriendly(address);
+  } catch (_) {
+    return false;
+  }
+  return true;
+}
+var AssetType;
+(function(AssetType2) {
+  AssetType2["ton"] = "ton";
+  AssetType2["jetton"] = "jetton";
+  AssetType2["nft"] = "nft";
+})(AssetType || (AssetType = {}));
+const Network = {
+  /**
+   * TON Mainnet (chain ID: -239)
+   */
+  mainnet: () => ({ chainId: "-239" }),
+  /**
+   * TON Testnet (chain ID: -3)
+   */
+  testnet: () => ({ chainId: "-3" }),
+  /**
+   * Custom network with specified chain ID
+   */
+  custom: (chainId) => ({ chainId })
+};
+var Result$1;
+(function(Result2) {
+  Result2["success"] = "success";
+  Result2["failure"] = "failure";
+})(Result$1 || (Result$1 = {}));
+function asHex(data) {
+  if (!/^0x[0-9a-fA-F]+$/.test(data) || data.length % 2 !== 0) {
+    throw new Error("Not a valid hex");
+  }
+  return data;
+}
+var SendModeBase;
+(function(SendModeBase2) {
+  SendModeBase2[SendModeBase2["ORDINARY"] = 0] = "ORDINARY";
+  SendModeBase2[SendModeBase2["CARRY_ALL_REMAINING_INCOMING_VALUE"] = 64] = "CARRY_ALL_REMAINING_INCOMING_VALUE";
+  SendModeBase2[SendModeBase2["CARRY_ALL_REMAINING_BALANCE"] = 128] = "CARRY_ALL_REMAINING_BALANCE";
+})(SendModeBase || (SendModeBase = {}));
+var SendModeFlag;
+(function(SendModeFlag2) {
+  SendModeFlag2[SendModeFlag2["DESTROY_ACCOUNT_IF_ZERO"] = 32] = "DESTROY_ACCOUNT_IF_ZERO";
+  SendModeFlag2[SendModeFlag2["BOUNCE_IF_FAILURE"] = 16] = "BOUNCE_IF_FAILURE";
+  SendModeFlag2[SendModeFlag2["IGNORE_ERRORS"] = 2] = "IGNORE_ERRORS";
+  SendModeFlag2[SendModeFlag2["PAY_GAS_SEPARATELY"] = 1] = "PAY_GAS_SEPARATELY";
+})(SendModeFlag || (SendModeFlag = {}));
+function SendModeFromValue(value) {
+  let base;
+  if (value & SendModeBase.CARRY_ALL_REMAINING_BALANCE) {
+    base = SendModeBase.CARRY_ALL_REMAINING_BALANCE;
+  } else if (value & SendModeBase.CARRY_ALL_REMAINING_INCOMING_VALUE) {
+    base = SendModeBase.CARRY_ALL_REMAINING_INCOMING_VALUE;
+  } else {
+    base = SendModeBase.ORDINARY;
+  }
+  const flags = [];
+  if (value & SendModeFlag.DESTROY_ACCOUNT_IF_ZERO) {
+    flags.push(SendModeFlag.DESTROY_ACCOUNT_IF_ZERO);
+  }
+  if (value & SendModeFlag.BOUNCE_IF_FAILURE) {
+    flags.push(SendModeFlag.BOUNCE_IF_FAILURE);
+  }
+  if (value & SendModeFlag.IGNORE_ERRORS) {
+    flags.push(SendModeFlag.IGNORE_ERRORS);
+  }
+  if (value & SendModeFlag.PAY_GAS_SEPARATELY) {
+    flags.push(SendModeFlag.PAY_GAS_SEPARATELY);
+  }
+  return { base, flags };
+}
+function SendModeToValue(sendMode) {
+  let value = sendMode.base ?? SendModeBase.ORDINARY;
+  for (const flag of sendMode.flags) {
+    value |= flag;
+  }
+  return value;
 }
 const ERROR_CODES = {
   // Bridge Manager Errors (7000-7099)
@@ -24110,8 +24201,8 @@ function getTxType(tx) {
 function buildJettonInfo(item, walletFriendly, addressBook) {
   const walletInfo = addressBook[walletFriendly];
   if (walletInfo?.jettonWallet?.jettonMaster) {
-    const masterAddress = walletInfo.jettonWallet.jettonMaster;
-    const masterInfo = addressBook[masterAddress];
+    const masterAddress = asMaybeAddressFriendly(walletInfo.jettonWallet.jettonMaster);
+    const masterInfo = masterAddress ? addressBook[masterAddress] : void 0;
     if (masterInfo?.jetton) {
       return masterInfo.jetton;
     }
@@ -24383,7 +24474,7 @@ function isRecord(v2) {
 function getProp$1(obj, key2) {
   return isRecord(obj) ? obj[key2] : void 0;
 }
-function toAddressBook(data) {
+function toAddressBook$1(data) {
   const out = {};
   for (const [address, bookRow] of Object.entries(data.address_book)) {
     const friendly = asAddressFriendly(address);
@@ -24508,7 +24599,7 @@ function emulationEvent(data, account) {
   if (!inferredAccount) {
     inferredAccount = "";
   }
-  const addressBook = toAddressBook(data);
+  const addressBook = toAddressBook$1(data);
   return toEvent(traceItem, inferredAccount, addressBook);
 }
 function toAccount(address, addressBook) {
@@ -24968,31 +25059,6 @@ function isValidEventMethod(method) {
   ];
   return supportedMethods.includes(method);
 }
-function formatWalletAddress(address, isTestnet = false) {
-  if (typeof address === "string") {
-    return distExports$3.Address.parse(address).toString({ bounceable: false, testOnly: isTestnet });
-  }
-  return address.toString({ bounceable: false, testOnly: isTestnet });
-}
-function isValidAddress(address) {
-  if (typeof address !== "string") {
-    return false;
-  }
-  try {
-    distExports$3.Address.parse(address);
-  } catch (_) {
-    return false;
-  }
-  return true;
-}
-function isFriendlyTonAddress(address) {
-  try {
-    distExports$3.Address.parseFriendly(address);
-  } catch (_) {
-    return false;
-  }
-  return true;
-}
 function validateTransactionMessages(messages, isTonConnect = true) {
   const errors2 = [];
   if (!Array.isArray(messages)) {
@@ -25088,7 +25154,7 @@ function isValidBOC(bocString) {
   }
 }
 function createWalletId(network, address) {
-  return `${network}:${address}`;
+  return `${network.chainId}:${address}`;
 }
 function parseWalletId(walletId) {
   const colonIndex = walletId.indexOf(":");
@@ -25096,7 +25162,7 @@ function parseWalletId(walletId) {
     return void 0;
   }
   const networkStr = walletId.substring(0, colonIndex);
-  const address = walletId.substring(colonIndex + 1);
+  const address = asMaybeAddressFriendly(walletId.substring(colonIndex + 1));
   if (networkStr !== CHAIN.MAINNET && networkStr !== CHAIN.TESTNET) {
     return void 0;
   }
@@ -25104,13 +25170,13 @@ function parseWalletId(walletId) {
     return void 0;
   }
   return {
-    network: networkStr,
+    network: { chainId: networkStr },
     address
   };
 }
 function getAddressFromWalletId(walletId) {
   const parsed = parseWalletId(walletId);
-  return parsed?.address ?? walletId;
+  return parsed?.address;
 }
 function getNetworkFromWalletId(walletId) {
   const parsed = parseWalletId(walletId);
@@ -27476,14 +27542,9 @@ class ConnectHandler extends BasicHandler {
     const connectEvent = {
       ...event,
       id: event.id,
-      request: event.params?.items || [],
+      requestedItems: event.params.items ? this.toConnectionRequestEventRequestedItems(event.params.items) : [],
       preview,
-      dAppInfo: {
-        name: preview?.manifest?.name,
-        description: preview?.manifest?.description,
-        url: preview?.manifest?.url,
-        iconUrl: preview?.manifest?.iconUrl
-      },
+      dAppInfo: preview.dAppInfo,
       isJsBridge: event.isJsBridge,
       tabId: event.tabId
     };
@@ -27494,7 +27555,7 @@ class ConnectHandler extends BasicHandler {
         client_environment: "wallet",
         subsystem: getEventsSubsystem(),
         client_id: event.from,
-        manifest_json_url: manifestUrl || preview?.manifest?.url,
+        manifest_json_url: manifestUrl || preview?.dAppInfo?.manifestUrl,
         is_ton_addr: event.params?.items?.some((item) => item.name === "ton_addr") || false,
         is_ton_proof: event.params?.items?.some((item) => item.name === "ton_proof") || false,
         client_timestamp: getUnixtime(),
@@ -27506,6 +27567,22 @@ class ConnectHandler extends BasicHandler {
       }
     ]);
     return connectEvent;
+  }
+  toConnectionRequestEventRequestedItems(items) {
+    return items.map((item) => {
+      if (item.name === "ton_addr") {
+        return { type: "ton_addr" };
+      } else if (item.name === "ton_proof") {
+        return {
+          type: "ton_proof",
+          value: {
+            payload: item.payload
+          }
+        };
+      } else {
+        return { type: "unknown", value: item };
+      }
+    });
   }
   /**
    * Extract dApp name from bridge event or manifest
@@ -27535,7 +27612,10 @@ class ConnectHandler extends BasicHandler {
       try {
         const parsedDAppUrl = new URL(dAppUrl);
         if (!isValidHost(parsedDAppUrl.host)) {
-          log$g.warn("Invalid dApp URL in manifest - invalid host format", { dAppUrl, host: parsedDAppUrl.host });
+          log$g.warn("Invalid dApp URL in manifest - invalid host format", {
+            dAppUrl,
+            host: parsedDAppUrl.host
+          });
           finalManifestFetchErrorCode = CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR;
         }
       } catch (_) {
@@ -27546,9 +27626,7 @@ class ConnectHandler extends BasicHandler {
     const sanitizedManifest = manifest && {
       name: manifest.name?.toString()?.trim() || "",
       description: manifest.description?.toString()?.trim() || "",
-      url: dAppUrl,
-      iconUrl: manifest.iconUrl?.toString()?.trim() || "",
-      manifestUrl: manifestUrl || ""
+      iconUrl: manifest.iconUrl?.toString()?.trim() || ""
     };
     const requestedItems = event.params?.items || [];
     const permissions = [];
@@ -27569,10 +27647,15 @@ class ConnectHandler extends BasicHandler {
       });
     }
     return {
-      manifest: sanitizedManifest,
-      requestedItems: event.params?.items || [],
       permissions,
-      manifestFetchErrorCode: finalManifestFetchErrorCode ?? void 0
+      dAppInfo: {
+        url: dAppUrl,
+        name: sanitizedManifest.name,
+        description: sanitizedManifest.description,
+        iconUrl: sanitizedManifest.iconUrl,
+        manifestUrl
+      },
+      manifestFetchErrorCode: manifestFetchErrorCode ?? void 0
     };
   }
   /**
@@ -27613,6 +27696,48 @@ class ConnectHandler extends BasicHandler {
       };
     }
   }
+}
+function toExtraCurrencies(extraCurrency) {
+  if (!extraCurrency) {
+    return void 0;
+  }
+  return extraCurrency;
+}
+function toTransactionRequestMessage(msg) {
+  return {
+    address: asAddressFriendly(msg.address),
+    amount: msg.amount,
+    payload: msg.payload ? msg.payload : void 0,
+    stateInit: msg.stateInit ? msg.stateInit : void 0,
+    extraCurrency: toExtraCurrencies(msg.extraCurrency),
+    mode: msg.mode ? SendModeFromValue(msg.mode) : void 0
+  };
+}
+function toConnectTransactionParamMessage(message) {
+  return {
+    address: message.address,
+    amount: message.amount,
+    payload: message.payload,
+    stateInit: message.stateInit,
+    extraCurrency: message.extraCurrency,
+    mode: message.mode ? SendModeToValue(message.mode) : void 0
+  };
+}
+function toTransactionRequest(params) {
+  return {
+    messages: params.messages.map(toTransactionRequestMessage),
+    network: params.network ? { chainId: params.network } : void 0,
+    validUntil: params.valid_until,
+    fromAddress: asMaybeAddressFriendly(params.from) || void 0
+  };
+}
+function toConnectTransactionParamContent(request) {
+  return {
+    messages: request.messages.map(toConnectTransactionParamMessage),
+    network: request.network?.chainId,
+    valid_until: request.validUntil,
+    from: request.fromAddress
+  };
 }
 function ot(t) {
   return t && t.__esModule && Object.prototype.hasOwnProperty.call(t, "default") ? t.default : t;
@@ -32623,6 +32748,261 @@ function Za(t) {
       }
     }
 }
+function toAddressBookEntry(row) {
+  return {
+    domain: row.domain ?? void 0,
+    address: asAddressFriendly(row.user_friendly),
+    interfaces: row.interfaces
+  };
+}
+function toAddressBook(addressBookV3) {
+  const addressBook = {};
+  for (const [_, row] of Object.entries(addressBookV3)) {
+    const userFriendlyAddress = asAddressFriendly(row.user_friendly);
+    addressBook[userFriendlyAddress] = toAddressBookEntry(row);
+  }
+  return addressBook;
+}
+function toTransactionEmulatedTrace(response) {
+  return {
+    mcBlockSeqno: response.mc_block_seqno,
+    trace: toTransactionTraceNode(response.trace),
+    transactions: Object.fromEntries(Object.entries(response.transactions ?? {}).map(([hash, tx]) => [Base64ToHex(hash), toTransaction(tx)])),
+    actions: response.actions.map(toTransactionTraceAction),
+    randSeed: Base64ToHex(response.rand_seed),
+    isIncomplete: response.is_incomplete,
+    codeCells: Object.fromEntries(Object.entries(response.code_cells ?? {}).map(([hash, cell]) => [Base64ToHex(hash), cell])),
+    dataCells: Object.fromEntries(Object.entries(response.data_cells ?? {}).map(([hash, cell]) => [Base64ToHex(hash), cell])),
+    metadata: {},
+    // to be filled later
+    addressBook: {}
+    // to be filled later
+  };
+}
+function toTransactionTraceNode(node) {
+  return {
+    txHash: node.tx_hash ? Base64ToHex(node.tx_hash) : void 0,
+    inMsgHash: node.in_msg_hash ? Base64ToHex(node.in_msg_hash) : void 0,
+    children: node.children?.map(toTransactionTraceNode) ?? []
+  };
+}
+function toTransactionsResponse(response) {
+  return {
+    transactions: response.transactions?.map(toTransaction) ?? [],
+    addressBook: toAddressBook(response.address_book)
+  };
+}
+function toTransaction(tx) {
+  return {
+    account: asAddressFriendly(tx.account),
+    accountStateBefore: toAccountState(tx.account_state_before),
+    accountStateAfter: toAccountState(tx.account_state_after),
+    description: toTransactionDescription(tx.description),
+    hash: Base64ToHex(tx.hash),
+    logicalTime: tx.lt,
+    now: tx.now,
+    mcBlockSeqno: tx.mc_block_seqno,
+    traceExternalHash: Base64ToHex(tx.trace_external_hash),
+    traceId: tx.trace_id ?? void 0,
+    previousTransactionHash: tx.prev_trans_hash ? Base64ToHex(tx.prev_trans_hash) : void 0,
+    previousTransactionLogicalTime: tx.prev_trans_lt ?? void 0,
+    origStatus: toAccountStatus(tx.orig_status),
+    endStatus: toAccountStatus(tx.end_status),
+    totalFees: tx.total_fees,
+    totalFeesExtraCurrencies: tx.total_fees_extra_currencies,
+    blockRef: toTransactionBlockRef(tx.block_ref),
+    inMessage: tx.in_msg ? toTransactionMessage(tx.in_msg) : void 0,
+    outMessages: tx.out_msgs?.map(toTransactionMessage) ?? [],
+    isEmulated: tx.emulated
+  };
+}
+function toAccountStatus(status) {
+  if (status === "active") {
+    return { type: "active" };
+  } else if (status === "frozen") {
+    return { type: "frozen" };
+  } else if (status === "uninit") {
+    return { type: "uninit" };
+  } else {
+    return { type: "unknown", value: status };
+  }
+}
+function toTransactionBlockRef(ref) {
+  return {
+    workchain: ref.workchain,
+    shard: ref.shard,
+    seqno: ref.seqno
+  };
+}
+function toTransactionDescription(desc) {
+  return {
+    type: desc.type,
+    isAborted: desc.aborted,
+    isDestroyed: desc.destroyed,
+    isCreditFirst: desc.credit_first,
+    isTock: desc.is_tock,
+    isInstalled: desc.installed,
+    storagePhase: {
+      storageFeesCollected: desc.storage_ph?.storage_fees_collected,
+      statusChange: desc.storage_ph?.status_change
+    },
+    creditPhase: desc.credit_ph ? {
+      credit: desc.credit_ph?.credit
+    } : void 0,
+    computePhase: {
+      isSkipped: desc.compute_ph?.skipped,
+      isSuccess: desc.compute_ph?.success,
+      isMessageStateUsed: desc.compute_ph?.msg_state_used,
+      isAccountActivated: desc.compute_ph?.account_activated,
+      gasFees: desc.compute_ph?.gas_fees,
+      gasUsed: desc.compute_ph?.gas_used,
+      gasLimit: desc.compute_ph?.gas_limit,
+      gasCredit: desc.compute_ph?.gas_credit,
+      mode: desc.compute_ph?.mode,
+      exitCode: desc.compute_ph?.exit_code,
+      vmStepsNumber: desc.compute_ph?.vm_steps,
+      vmInitStateHash: desc.compute_ph?.vm_init_state_hash ? Base64ToHex(desc.compute_ph.vm_init_state_hash) : void 0,
+      vmFinalStateHash: desc.compute_ph?.vm_final_state_hash ? Base64ToHex(desc.compute_ph.vm_final_state_hash) : void 0
+    },
+    action: {
+      isSuccess: desc.action?.success,
+      isValid: desc.action?.valid,
+      hasNoFunds: desc.action?.no_funds,
+      statusChange: desc.action?.status_change,
+      totalForwardingFees: desc.action?.total_fwd_fees,
+      totalActionFees: desc.action?.total_action_fees,
+      resultCode: desc.action?.result_code,
+      totalActionsNumber: desc.action?.tot_actions,
+      specActionsNumber: desc.action?.spec_actions,
+      skippedActionsNumber: desc.action?.skipped_actions,
+      messagesCreatedNumber: desc.action?.msgs_created,
+      actionListHash: desc.action?.action_list_hash ? Base64ToHex(desc.action.action_list_hash) : void 0,
+      totalMessagesSize: {
+        cells: desc.action?.tot_msg_size.cells,
+        bits: desc.action?.tot_msg_size.bits
+      }
+    }
+  };
+}
+function toTransactionMessage(msg) {
+  return {
+    hash: Base64ToHex(msg.hash),
+    normalizedHash: msg.hash_norm ? Base64ToHex(msg.hash_norm) : void 0,
+    source: asMaybeAddressFriendly(msg.source) ?? void 0,
+    destination: asMaybeAddressFriendly(msg.destination) ?? void 0,
+    value: msg.value ?? void 0,
+    valueExtraCurrencies: msg.value_extra_currencies,
+    fwdFee: msg.fwd_fee ?? void 0,
+    ihrFee: msg.ihr_fee ?? void 0,
+    creationLogicalTime: msg.created_lt ?? void 0,
+    createdAt: msg.created_at ? Number(msg.created_at) : void 0,
+    ihrDisabled: msg.ihr_disabled ?? void 0,
+    isBounce: msg.bounce ?? void 0,
+    isBounced: msg.bounced ?? void 0,
+    importFee: msg.import_fee ?? void 0,
+    opcode: msg.opcode ?? void 0,
+    messageContent: {
+      hash: msg.message_content?.hash ? Base64ToHex(msg.message_content.hash) : void 0,
+      body: msg.message_content?.body ? msg.message_content.body : void 0,
+      decoded: msg.message_content?.decoded ?? void 0
+    }
+  };
+}
+function toAccountState(state) {
+  return {
+    hash: Base64ToHex(state.hash),
+    balance: state.balance,
+    extraCurrencies: state.extra_currencies ?? void 0,
+    accountStatus: state.account_status ? toAccountStatus(state.account_status) : void 0,
+    frozenHash: state.frozen_hash ? Base64ToHex(state.frozen_hash) : void 0,
+    dataHash: state.data_hash ? Base64ToHex(state.data_hash) : void 0,
+    codeHash: state.code_hash ? Base64ToHex(state.code_hash) : void 0
+  };
+}
+function toTransactionTraceAction(action) {
+  return {
+    traceId: action.trace_id ?? void 0,
+    actionId: action.action_id,
+    startLt: action.start_lt,
+    endLt: action.end_lt,
+    startUtime: action.start_utime,
+    endUtime: action.end_utime,
+    traceEndLt: action.trace_end_lt,
+    traceEndUtime: action.trace_end_utime,
+    traceMcSeqnoEnd: action.trace_mc_seqno_end,
+    transactions: action.transactions.map(Base64ToHex),
+    isSuccess: action.success,
+    traceExternalHash: Base64ToHex(action.trace_external_hash),
+    // Filter out invalid addresses
+    accounts: (action.accounts ?? []).map(asMaybeAddressFriendly).filter((addr) => addr !== null),
+    details: toTransactionTraceActionDetails(action)
+  };
+}
+function toTransactionTraceActionDetails(action) {
+  if (action.type === "jetton_swap") {
+    return {
+      type: "jetton_swap",
+      value: toTransactionTraceActionJettonSwapDetails(action.details)
+    };
+  } else if (action.type === "call_contract") {
+    return {
+      type: "call_contract",
+      value: toTransactionTraceActionCallContractDetails(action.details)
+    };
+  } else if (action.type === "ton_transfer") {
+    return {
+      type: "ton_transfer",
+      value: toTransactionTraceActionTONTransferDetails(action.details)
+    };
+  } else {
+    return {
+      type: "unknown",
+      value: action.details
+    };
+  }
+}
+function toTransactionTraceActionJettonSwapDetails(details) {
+  return {
+    dex: details.dex,
+    sender: asMaybeAddressFriendly(details.sender) ?? void 0,
+    dexIncomingTransfer: {
+      asset: asMaybeAddressFriendly(details.dex_incoming_transfer?.asset) ?? void 0,
+      source: asMaybeAddressFriendly(details.dex_incoming_transfer?.source) ?? void 0,
+      destination: asMaybeAddressFriendly(details.dex_incoming_transfer?.destination) ?? void 0,
+      sourceJettonWallet: asMaybeAddressFriendly(details.dex_incoming_transfer?.source_jetton_wallet) ?? void 0,
+      destinationJettonWallet: asMaybeAddressFriendly(details.dex_incoming_transfer?.destination_jetton_wallet) ?? void 0,
+      amount: details.dex_incoming_transfer?.amount
+    },
+    dexOutgoingTransfer: {
+      asset: asMaybeAddressFriendly(details.dex_outgoing_transfer?.asset) ?? void 0,
+      source: asMaybeAddressFriendly(details.dex_outgoing_transfer?.source) ?? void 0,
+      destination: asMaybeAddressFriendly(details.dex_outgoing_transfer?.destination) ?? void 0,
+      sourceJettonWallet: asMaybeAddressFriendly(details.dex_outgoing_transfer?.source_jetton_wallet) ?? void 0,
+      destinationJettonWallet: asMaybeAddressFriendly(details.dex_outgoing_transfer?.destination_jetton_wallet) ?? void 0,
+      amount: details.dex_outgoing_transfer?.amount
+    },
+    peerSwaps: details.peer_swaps
+  };
+}
+function toTransactionTraceActionCallContractDetails(details) {
+  return {
+    opcode: details.opcode,
+    source: asMaybeAddressFriendly(details.source) ?? void 0,
+    destination: asMaybeAddressFriendly(details.destination) ?? void 0,
+    value: details.value,
+    valueExtraCurrencies: details.extra_currencies ?? void 0
+  };
+}
+function toTransactionTraceActionTONTransferDetails(details) {
+  return {
+    source: asMaybeAddressFriendly(details.source) ?? void 0,
+    destination: asMaybeAddressFriendly(details.destination) ?? void 0,
+    value: details.value,
+    valueExtraCurrencies: details.value_extra_currencies,
+    comment: details.comment ?? void 0,
+    isEncrypted: details.encrypted
+  };
+}
 const TON_PROXY_ADDRESSES = [
   "0:8CDC1D7640AD5EE326527FC1AD0514F468B30DC84B0173F0E155F451B4E11F7C",
   "0:671963027F7F85659AB55B821671688601CDCF1EE674FC7FBBB1A776A18D34A3"
@@ -32640,7 +33020,14 @@ function createToncenterMessage(walletAddress, messages) {
       include_address_book: true,
       include_metadata: true,
       with_actions: true,
-      messages
+      messages: messages.map((m2) => ({
+        address: m2.address,
+        amount: m2.amount,
+        payload: m2.payload,
+        stateInit: m2.stateInit,
+        extraCurrency: m2.extraCurrency,
+        mode: m2.mode ? SendModeToValue(m2.mode) : void 0
+      }))
     })
   };
 }
@@ -32681,7 +33068,7 @@ function processToncenterMoneyFlow(emulation) {
       inputs: "0",
       allJettonTransfers: [],
       ourTransfers: [],
-      ourAddress: null
+      ourAddress: void 0
     };
   }
   const firstTx = emulation.transactions[emulation.trace.tx_hash];
@@ -32709,7 +33096,7 @@ function processToncenterMoneyFlow(emulation) {
     if (parsed?.internal !== "jetton_transfer") {
       continue;
     }
-    const from = distExports$3.Address.parse(t.in_msg.source);
+    const from = asMaybeAddressFriendly(t.in_msg.source);
     const to2 = parsed.data.destination instanceof distExports$3.Address ? parsed.data.destination : null;
     if (!to2) {
       continue;
@@ -32723,22 +33110,22 @@ function processToncenterMoneyFlow(emulation) {
     if (!tokenInfo) {
       continue;
     }
-    const jettonAddress = distExports$3.Address.parse(tokenInfo.extra.jetton);
+    const jettonAddress = asMaybeAddressFriendly(tokenInfo.extra.jetton);
     jettonTransfers.push({
-      from: from.toRawString().toUpperCase(),
-      to: to2.toRawString().toUpperCase(),
-      jetton: jettonAddress.toRawString().toUpperCase(),
+      fromAddress: from ?? void 0,
+      toAddress: asMaybeAddressFriendly(to2.toString()) ?? void 0,
+      tokenAddress: jettonAddress ?? void 0,
       amount: jettonAmount.toString(),
-      type: "jetton"
+      assetType: AssetType.jetton
     });
   }
   const ourAddress = distExports$3.Address.parse(firstTx.account);
   const selfTransfers = [];
   const ourJettonTransfersByAddress = jettonTransfers.reduce((acc, transfer) => {
-    if (transfer.type !== "jetton") {
+    if (transfer.assetType !== AssetType.jetton) {
       return acc;
     }
-    const jettonKey = transfer.jetton?.toString() || "unknown";
+    const jettonKey = transfer.tokenAddress?.toString() || "unknown";
     if (TON_PROXY_ADDRESSES.includes(jettonKey)) {
       return acc;
     }
@@ -32746,21 +33133,21 @@ function processToncenterMoneyFlow(emulation) {
     if (!acc[rawKey]) {
       acc[rawKey] = 0n;
     }
-    if (ourAddress && transfer.to === ourAddress.toRawString().toUpperCase()) {
+    if (ourAddress && transfer.toAddress === ourAddress.toString()) {
       acc[rawKey] += BigInt(transfer.amount);
     }
-    if (ourAddress && transfer.from === ourAddress.toRawString().toUpperCase()) {
+    if (ourAddress && transfer.fromAddress === ourAddress.toString()) {
       acc[rawKey] -= BigInt(transfer.amount);
     }
     return acc;
   }, {});
   const ourJettonTransfers = Object.entries(ourJettonTransfersByAddress).map(([jettonKey, amount]) => ({
-    type: "jetton",
-    jetton: distExports$3.Address.parse(jettonKey).toRawString().toUpperCase(),
+    assetType: AssetType.jetton,
+    tokenAddress: asMaybeAddressFriendly(jettonKey) ?? void 0,
     amount: amount.toString()
   }));
   selfTransfers.push({
-    type: "ton",
+    assetType: AssetType.ton,
     amount: (BigInt(inputs) - BigInt(outputs)).toString()
   });
   selfTransfers.push(...ourJettonTransfers);
@@ -32769,7 +33156,7 @@ function processToncenterMoneyFlow(emulation) {
     inputs,
     allJettonTransfers: jettonTransfers,
     ourTransfers: selfTransfers,
-    ourAddress: ourAddress.toRawString().toUpperCase()
+    ourAddress: asAddressFriendly(ourAddress)
   };
 }
 async function createTransactionPreview(request, wallet) {
@@ -32780,12 +33167,18 @@ async function createTransactionPreview(request, wallet) {
     if (emulatedResult.result === "success") {
       emulationResult = emulatedResult.emulationResult;
     } else {
-      return emulatedResult;
+      return {
+        result: Result$1.failure,
+        error: {
+          code: emulatedResult.emulationError.code,
+          message: emulatedResult.emulationError.message
+        }
+      };
     }
   } catch (_error) {
     return {
-      result: "error",
-      emulationError: {
+      result: Result$1.failure,
+      error: {
         code: ERROR_CODES.UNKNOWN_EMULATION_ERROR,
         message: "Unknown emulation error"
       }
@@ -32793,8 +33186,8 @@ async function createTransactionPreview(request, wallet) {
   }
   const moneyFlow = processToncenterMoneyFlow(emulationResult);
   return {
-    result: "success",
-    emulationResult,
+    result: Result$1.success,
+    trace: toTransactionEmulatedTrace(emulationResult),
     moneyFlow
   };
 }
@@ -32854,9 +33247,9 @@ class TransactionHandler extends BasicHandler {
     let preview;
     try {
       preview = await CallForSuccess(() => createTransactionPreview(request, wallet));
-      if (preview.result === "success" && preview.emulationResult) {
+      if (preview.result === Result$1.success && preview.trace) {
         try {
-          this.eventEmitter.emit("emulation:result", preview.emulationResult);
+          this.eventEmitter.emit("emulation:result", preview.trace);
         } catch (error2) {
           log$f.warn("Error emitting emulation result event", { error: error2 });
         }
@@ -32864,17 +33257,20 @@ class TransactionHandler extends BasicHandler {
     } catch (error2) {
       log$f.error("Failed to create transaction preview", { error: error2 });
       preview = {
-        emulationError: {
+        error: {
           code: ERROR_CODES.UNKNOWN_EMULATION_ERROR,
           message: "Unknown emulation error"
         },
-        result: "error"
+        result: Result$1.failure
       };
     }
     const txEvent = {
       ...event,
       request,
-      preview,
+      preview: {
+        dAppInfo: event.dAppInfo ?? {},
+        data: preview
+      },
       dAppInfo: event.dAppInfo ?? {},
       walletId: walletId ?? this.walletManager.getWalletId(wallet),
       walletAddress: walletAddress ?? wallet.getAddress()
@@ -32889,7 +33285,7 @@ class TransactionHandler extends BasicHandler {
         client_timestamp: getUnixtime(),
         dapp_name: event.dAppInfo?.name,
         version: getVersion(),
-        network_id: wallet.getNetwork(),
+        network_id: wallet.getNetwork().chainId,
         wallet_app_name: this.walletKitConfig.deviceInfo?.appName,
         wallet_app_version: this.walletKitConfig.deviceInfo?.appVersion,
         event_id: v7(),
@@ -32934,7 +33330,7 @@ class TransactionHandler extends BasicHandler {
         errors2 = errors2.concat(messagesValidation.errors);
       }
       return {
-        result: params,
+        result: toTransactionRequest(params),
         validation: { isValid: errors2.length === 0, errors: errors2 }
       };
     } catch (error2) {
@@ -32956,7 +33352,7 @@ class TransactionHandler extends BasicHandler {
       if (network === "-3" || network === "-239") {
         const chain = network === "-3" ? CHAIN.TESTNET : CHAIN.MAINNET;
         const walletNetwork = wallet.getNetwork();
-        if (chain !== walletNetwork) {
+        if (chain !== walletNetwork.chainId) {
           errors2.push("Invalid network not equal to wallet network");
         } else {
           return { result: chain, isValid: errors2.length === 0, errors: errors2 };
@@ -50869,25 +51265,28 @@ class SignDataHandler extends BasicHandler {
       });
     }
     const wallet = walletId ? this.walletManager.getWallet(walletId) : void 0;
-    const data = this.parseDataToSign(event);
-    if (!data) {
+    const payload = this.parseDataToSign(event);
+    if (!payload) {
       log$e.error("No data to sign found in request", { event });
       throw new WalletKitError(ERROR_CODES.INVALID_REQUEST_EVENT, "No data to sign found in request", void 0, {
         eventId: event.id
       });
     }
-    const preview = this.createDataPreview(data, event);
+    const preview = this.createDataPreview(payload.data, event);
     if (!preview) {
-      log$e.error("No preview found for data", { data });
-      throw new WalletKitError(ERROR_CODES.RESPONSE_CREATION_FAILED, "Failed to create preview for sign data request", void 0, { eventId: event.id, data });
+      log$e.error("No preview found for data", { data: payload });
+      throw new WalletKitError(ERROR_CODES.RESPONSE_CREATION_FAILED, "Failed to create preview for sign data request", void 0, { eventId: event.id, data: payload });
     }
     const signEvent = {
       ...event,
-      request: data,
-      preview,
+      payload,
+      preview: {
+        dAppInfo: event.dAppInfo ?? {},
+        data: preview
+      },
       dAppInfo: event.dAppInfo ?? {},
       walletId: walletId ?? (wallet ? this.walletManager.getWalletId(wallet) : ""),
-      walletAddress: walletAddress ?? wallet?.getAddress() ?? ""
+      walletAddress: walletAddress ?? wallet?.getAddress() ?? void 0
     };
     this.analyticsApi?.sendEvents([
       {
@@ -50900,7 +51299,7 @@ class SignDataHandler extends BasicHandler {
         client_timestamp: getUnixtime(),
         dapp_name: event.dAppInfo?.name,
         version: getVersion(),
-        network_id: wallet?.getNetwork(),
+        network_id: wallet?.getNetwork().chainId,
         wallet_app_name: this.walletKitConfig.deviceInfo?.appName,
         wallet_app_version: this.walletKitConfig.deviceInfo?.appVersion,
         event_id: v7(),
@@ -50921,7 +51320,40 @@ class SignDataHandler extends BasicHandler {
         log$e.error("Invalid data to sign found in request", { validationResult });
         return void 0;
       }
-      return parsed;
+      if (parsed === void 0) {
+        return void 0;
+      }
+      let signData;
+      if (parsed.type === "text") {
+        signData = {
+          type: "text",
+          value: {
+            content: parsed.text
+          }
+        };
+      } else if (parsed.type === "binary") {
+        signData = {
+          type: "binary",
+          value: {
+            content: parsed.bytes
+          }
+        };
+      } else if (parsed.type === "cell") {
+        signData = {
+          type: "cell",
+          value: {
+            schema: parsed.schema,
+            content: parsed.cell
+          }
+        };
+      } else {
+        return void 0;
+      }
+      return {
+        network: parsed.network ? Network.custom(parsed.network) : void 0,
+        fromAddress: asMaybeAddressFriendly(parsed.from) ?? void 0,
+        data: signData
+      };
     } catch (error2) {
       log$e.error("Invalid data to sign found in request", { error: error2 });
       return void 0;
@@ -50933,36 +51365,39 @@ class SignDataHandler extends BasicHandler {
   createDataPreview(data, _event) {
     if (data.type === "text") {
       return {
-        kind: "text",
-        content: data.text
+        type: "text",
+        value: {
+          content: data.value.content
+        }
       };
     }
     if (data.type === "binary") {
       return {
-        kind: "binary",
-        content: data.bytes
+        type: "binary",
+        value: {
+          content: data.value.content
+        }
       };
     }
     if (data.type === "cell") {
-      if (!data.schema) {
-        return {
-          kind: "cell",
-          content: data.cell
-        };
-      }
       try {
-        const parsed = distExports$2.parseTLB(data.schema).deserialize(data.cell);
+        const parsed = distExports$2.parseTLB(data.value.schema).deserialize(data.value.content);
         return {
-          kind: "cell",
-          schema: data.schema,
-          content: data.cell,
-          parsed
+          type: "cell",
+          value: {
+            schema: data.value.schema,
+            content: data.value.content,
+            parsed
+          }
         };
       } catch (error2) {
         log$e.error("Error deserializing cell", { error: error2 });
         return {
-          kind: "cell",
-          content: data.cell
+          type: "cell",
+          value: {
+            schema: data.value.schema,
+            content: data.value.content
+          }
         };
       }
     }
@@ -50988,7 +51423,11 @@ class DisconnectHandler extends BasicHandler {
     }
     const reason = this.extractDisconnectReason(event);
     const disconnectEvent = {
-      reason,
+      id: event.id,
+      preview: {
+        reason,
+        dAppInfo: event.dAppInfo ?? {}
+      },
       walletId: walletId ?? "",
       walletAddress,
       dAppInfo: event.dAppInfo ?? {}
@@ -51049,7 +51488,7 @@ class EventRouter {
         if (handler.canHandle(event)) {
           const result = await handler.handle(event);
           if ("error" in result) {
-            this.notifyErrorCallback({ incomingEvent: event, result });
+            this.notifyErrorCallback({ id: result.id, data: { ...event }, error: result.error });
             try {
               await this.bridgeManager.sendResponse(event, result);
             } catch (error2) {
@@ -51127,9 +51566,6 @@ class EventRouter {
    * Notify connect request callbacks
    */
   async notifyConnectRequestCallbacks(event) {
-    if ("error" in event) {
-      return;
-    }
     return await this.connectRequestCallback?.(event);
   }
   /**
@@ -51183,13 +51619,13 @@ async function CreateTonProofMessageBytes(message) {
   const wc = Buffer.alloc(4);
   wc.writeUInt32BE(message.workchain);
   const ts = Buffer.alloc(8);
-  ts.writeBigUInt64LE(BigInt(message.timstamp));
+  ts.writeBigUInt64LE(BigInt(message.timestamp));
   const dl = Buffer.alloc(4);
   dl.writeUInt32LE(message.domain.lengthBytes);
   const m2 = Buffer.concat([
     Buffer.from(tonProofPrefix),
     wc,
-    HexToUint8Array(message.address),
+    HexToUint8Array(message.addressHash),
     dl,
     Buffer.from(message.domain.value),
     ts,
@@ -51200,33 +51636,17 @@ async function CreateTonProofMessageBytes(message) {
   const res = distExports$1.sha256_sync(fullMes);
   return Buffer.from(res);
 }
-function ConvertTonProofMessage(walletInfo, tp) {
-  const address = distExports$3.Address.parse(walletInfo.account.address);
+function CreateTonProofMessage({ address, domain, payload, stateInit, timestamp }) {
   const res = {
     workchain: address.workChain,
-    address: Uint8ArrayToHex(address.hash),
-    domain: {
-      lengthBytes: tp.proof.domain.lengthBytes,
-      value: tp.proof.domain.value
-    },
-    signature: Base64ToHex(tp.proof.signature),
-    payload: tp.proof.payload,
-    stateInit: walletInfo.account.walletStateInit,
-    timstamp: tp.proof.timestamp
-  };
-  return res;
-}
-function createTonProofMessage({ address, domain, payload, stateInit, timestamp }) {
-  const res = {
-    workchain: address.workChain,
-    address: Uint8ArrayToHex(address.hash),
+    addressHash: Uint8ArrayToHex(address.hash),
     domain: {
       lengthBytes: domain.lengthBytes,
       value: domain.value
     },
     payload,
     stateInit,
-    timstamp: timestamp
+    timestamp
   };
   return res;
 }
@@ -51275,7 +51695,7 @@ function crc32_buf(B2, seed) {
   return ~C2;
 }
 const buf = crc32_buf;
-function createTextBinaryHash(payload, parsedAddr, domain, timestamp) {
+function createTextBinaryHash(data, parsedAddr, domain, timestamp) {
   const wcBuffer = Buffer.alloc(4);
   wcBuffer.writeInt32BE(parsedAddr.workChain);
   const domainBuffer = Buffer.from(domain, "utf8");
@@ -51283,9 +51703,9 @@ function createTextBinaryHash(payload, parsedAddr, domain, timestamp) {
   domainLenBuffer.writeUInt32BE(domainBuffer.length);
   const tsBuffer = Buffer.alloc(8);
   tsBuffer.writeBigUInt64BE(BigInt(timestamp));
-  const typePrefix = payload.type === "text" ? "txt" : "bin";
-  const content2 = payload.type === "text" ? payload.text : payload.bytes;
-  const encoding = payload.type === "text" ? "utf8" : "base64";
+  const typePrefix = data.type === "text" ? "txt" : "bin";
+  const content2 = data.value.content;
+  const encoding = data.type === "text" ? "utf8" : "base64";
   const payloadPrefix = Buffer.from(typePrefix);
   const payloadBuffer = Buffer.from(content2, encoding);
   const payloadLenBuffer = Buffer.alloc(4);
@@ -51305,17 +51725,17 @@ function createTextBinaryHash(payload, parsedAddr, domain, timestamp) {
   return distExports$1.sha256_sync(message);
 }
 function createCellHash(payload, parsedAddr, domain, timestamp) {
-  const cell = distExports$3.Cell.fromBase64(payload.cell);
+  const cell = distExports$3.Cell.fromBase64(payload.content);
   const schemaHash = buf(Buffer.from(payload.schema, "utf8"), void 0) >>> 0;
   const tep81Domain = domain.split(".").reverse().join("\0") + "\0";
   const message = distExports$3.beginCell().storeUint(1968607266, 32).storeUint(schemaHash, 32).storeUint(timestamp, 64).storeAddress(parsedAddr).storeStringRefTail(tep81Domain).storeRef(cell).endCell();
   return Buffer.from(message.hash());
 }
-function PrepareTonConnectData(params) {
-  const { payload, domain, address } = params;
+function PrepareSignData(data) {
+  const { payload, domain, address } = data;
   const timestamp = Math.floor(Date.now() / 1e3);
   const parsedAddr = distExports$3.Address.parse(address);
-  const finalHash = payload.type === "cell" ? createCellHash(payload, parsedAddr, domain, timestamp) : createTextBinaryHash(payload, parsedAddr, domain, timestamp);
+  const finalHash = payload.data?.type === "cell" ? createCellHash(payload.data.value, parsedAddr, domain, timestamp) : createTextBinaryHash(payload.data, parsedAddr, domain, timestamp);
   return {
     address,
     timestamp,
@@ -51364,7 +51784,7 @@ class RequestProcessor {
    */
   async approveConnectRequest(event) {
     try {
-      if ("preview" in event && "request" in event) {
+      if ("preview" in event) {
         const walletId = event.walletId;
         if (!walletId) {
           const error2 = new WalletKitError(ERROR_CODES.WALLET_REQUIRED, "Wallet is required for connect request approval", void 0, { eventId: event.id });
@@ -51375,9 +51795,9 @@ class RequestProcessor {
           const error2 = new WalletKitError(ERROR_CODES.WALLET_NOT_FOUND, "Wallet not found for connect request", void 0, { walletId, eventId: event.id });
           throw error2;
         }
-        const url = new URL(event.preview.manifest?.url || "");
+        const url = new URL(event.preview.dAppInfo?.url || "");
         const domain = url.host;
-        const newSession = await this.sessionManager.createSession(event.from || (await distExports$1.getSecureRandomBytes(32)).toString("hex"), event.preview.manifest?.name || "", domain, event.preview.manifest?.iconUrl || "", event.preview.manifest?.description || "", wallet, {
+        const newSession = await this.sessionManager.createSession(event.from || (await distExports$1.getSecureRandomBytes(32)).toString("hex"), event.preview.dAppInfo?.name || "", domain, event.preview.dAppInfo?.iconUrl || "", event.preview.dAppInfo?.description || "", wallet, {
           isJsBridge: event.isJsBridge
         });
         await this.bridgeManager.createSession(newSession.sessionId);
@@ -51389,17 +51809,17 @@ class RequestProcessor {
             trace_id: event.traceId,
             client_environment: "wallet",
             subsystem: getEventsSubsystem(),
-            network_id: wallet.getNetwork(),
+            network_id: wallet.getNetwork().chainId,
             wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
             wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
             event_id: v7(),
             origin_url: event.dAppInfo?.url,
             dapp_name: event.dAppInfo?.name,
             client_id: event.from,
-            is_ton_addr: event.request.some((item) => item.name === "ton_addr"),
-            is_ton_proof: event.request.some((item) => item.name === "ton_proof"),
-            manifest_json_url: event.preview.manifest?.url,
-            proof_payload_size: event.request.find((item) => item.name === "ton_proof")?.payload?.length,
+            is_ton_addr: event.requestedItems.some((item) => item.type === "ton_addr"),
+            is_ton_proof: event.requestedItems.some((item) => item.type === "ton_proof"),
+            manifest_json_url: event.dAppInfo?.manifestUrl,
+            proof_payload_size: event.requestedItems.find((item) => item.type === "ton_proof")?.value?.payload?.length,
             client_timestamp: getUnixtime(),
             version: getVersion()
           },
@@ -51413,12 +51833,12 @@ class RequestProcessor {
             version: getVersion(),
             dapp_name: event.dAppInfo?.name,
             origin_url: event.dAppInfo?.url,
-            is_ton_addr: event.request.some((item) => item.name === "ton_addr"),
-            is_ton_proof: event.request.some((item) => item.name === "ton_proof"),
-            manifest_json_url: event.preview.manifest?.url,
-            proof_payload_size: event.request.find((item) => item.name === "ton_proof")?.payload?.length,
+            is_ton_addr: event.requestedItems.some((item) => item.type === "ton_addr"),
+            is_ton_proof: event.requestedItems.some((item) => item.type === "ton_proof"),
+            manifest_json_url: event.preview.dAppInfo?.manifestUrl,
+            proof_payload_size: event.requestedItems.find((item) => item.type === "ton_proof")?.value.payload?.length,
             event_id: v7(),
-            network_id: wallet.getNetwork(),
+            network_id: wallet.getNetwork().chainId,
             wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
             wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion
           }
@@ -51444,7 +51864,7 @@ class RequestProcessor {
             trace_id: event.traceId,
             client_environment: "wallet",
             subsystem: getEventsSubsystem(),
-            network_id: wallet.getNetwork(),
+            network_id: wallet.getNetwork().chainId,
             wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
             wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
             event_id: v7(),
@@ -51473,7 +51893,7 @@ class RequestProcessor {
             manifest_json_url: event.result.dAppUrl,
             proof_payload_size: event.result.response.payload.items.find((item) => item.name === "ton_proof")?.proof?.payload?.length,
             event_id: v7(),
-            network_id: wallet.getNetwork(),
+            network_id: wallet.getNetwork().chainId,
             wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
             wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion
           }
@@ -51496,7 +51916,7 @@ class RequestProcessor {
     try {
       log$c.info("Connect request rejected", {
         id: event.id,
-        dAppName: event.preview.manifest?.name || "",
+        dAppName: event.preview.dAppInfo?.name || "",
         reason: reason || "User rejected connection"
       });
       const response = {
@@ -51508,7 +51928,7 @@ class RequestProcessor {
           message: reason || "User rejected connection"
         }
       };
-      const newSession = await this.sessionManager.createSession(event.from || "", event.preview.manifest?.name || "", "", "", "", void 0, {
+      const newSession = await this.sessionManager.createSession(event.from || "", event.preview.dAppInfo?.name || "", "", "", "", void 0, {
         disablePersist: true
       });
       try {
@@ -51522,17 +51942,17 @@ class RequestProcessor {
           trace_id: event.traceId,
           client_environment: "wallet",
           subsystem: getEventsSubsystem(),
-          dapp_name: event.preview.manifest?.name || "",
-          origin_url: event.preview.manifest?.url || "",
-          manifest_json_url: event.preview.manifest?.url || "",
+          dapp_name: event.preview.dAppInfo?.name || "",
+          origin_url: event.preview.dAppInfo?.url || "",
+          manifest_json_url: event.preview.dAppInfo?.manifestUrl || "",
           event_id: v7(),
           client_timestamp: getUnixtime(),
           version: getVersion(),
           wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
           wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
-          is_ton_addr: event.request.some((item) => item.name === "ton_addr"),
-          is_ton_proof: event.request.some((item) => item.name === "ton_proof"),
-          proof_payload_size: event.request.find((item) => item.name === "ton_proof")?.payload?.length,
+          is_ton_addr: event.requestedItems.some((item) => item.type === "ton_addr"),
+          is_ton_proof: event.requestedItems.some((item) => item.type === "ton_proof"),
+          proof_payload_size: event.requestedItems.find((item) => item.type === "ton_proof")?.value.payload?.length,
           client_id: event.from
         },
         {
@@ -51540,17 +51960,17 @@ class RequestProcessor {
           trace_id: event.traceId,
           client_environment: "wallet",
           subsystem: getEventsSubsystem(),
-          dapp_name: event.preview.manifest?.name || "",
-          origin_url: event.preview.manifest?.url || "",
-          manifest_json_url: event.preview.manifest?.url || "",
+          dapp_name: event.preview.dAppInfo?.name || "",
+          origin_url: event.preview.dAppInfo?.url || "",
+          manifest_json_url: event.preview.dAppInfo?.manifestUrl || "",
           event_id: v7(),
           client_timestamp: getUnixtime(),
           version: getVersion(),
           wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
           wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
-          is_ton_addr: event.request.some((item) => item.name === "ton_addr"),
-          is_ton_proof: event.request.some((item) => item.name === "ton_proof"),
-          proof_payload_size: event.request.find((item) => item.name === "ton_proof")?.payload?.length,
+          is_ton_addr: event.requestedItems.some((item) => item.type === "ton_addr"),
+          is_ton_proof: event.requestedItems.some((item) => item.type === "ton_proof"),
+          proof_payload_size: event.requestedItems.find((item) => item.type === "ton_proof")?.value.payload?.length,
           client_id: event.from
         }
       ]);
@@ -51568,7 +51988,7 @@ class RequestProcessor {
       if ("result" in event) {
         if (!this.walletKitOptions.dev?.disableNetworkSend) {
           const client = this.getClientForWallet(event.walletId);
-          await CallForSuccess(() => client.sendBoc(Buffer.from(event.result.signedBoc, "base64")));
+          await CallForSuccess(() => client.sendBoc(event.result.signedBoc));
         }
         const response = {
           result: event.result.signedBoc,
@@ -51581,7 +52001,7 @@ class RequestProcessor {
         const signedBoc = await this.signTransaction(event);
         if (!this.walletKitOptions.dev?.disableNetworkSend) {
           const client = this.getClientForWallet(event.walletId);
-          await CallForSuccess(() => client.sendBoc(Buffer.from(signedBoc, "base64")));
+          await CallForSuccess(() => client.sendBoc(signedBoc));
         }
         const response = {
           result: signedBoc,
@@ -51617,13 +52037,13 @@ class RequestProcessor {
         event_id: v7(),
         client_timestamp: getUnixtime(),
         version: getVersion(),
-        network_id: wallet?.getNetwork(),
+        network_id: wallet?.getNetwork().chainId,
         wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
         wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
         client_id: event.from,
         wallet_id: walletAddress ? Base64Normalize(walletAddress) : void 0,
-        dapp_name: "dAppInfo" in event ? event.dAppInfo?.name : void 0,
-        origin_url: "dAppInfo" in event ? event.dAppInfo?.url : void 0
+        dapp_name: "preview" in event ? event.preview.dAppInfo?.name : void 0,
+        origin_url: "preview" in event ? event.preview.dAppInfo?.url : void 0
       },
       {
         event_name: "wallet-transaction-sent",
@@ -51631,7 +52051,7 @@ class RequestProcessor {
         client_environment: "wallet",
         subsystem: getEventsSubsystem(),
         event_id: v7(),
-        network_id: wallet?.getNetwork(),
+        network_id: wallet?.getNetwork().chainId,
         wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
         wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
         version: getVersion(),
@@ -51665,10 +52085,10 @@ class RequestProcessor {
           trace_id: event.traceId,
           client_environment: "wallet",
           subsystem: getEventsSubsystem(),
-          dapp_name: event.dAppInfo?.name,
-          origin_url: event.dAppInfo?.url,
+          dapp_name: event.preview.dAppInfo?.name,
+          origin_url: event.preview.dAppInfo?.url,
           event_id: v7(),
-          network_id: wallet?.getNetwork(),
+          network_id: wallet?.getNetwork().chainId,
           wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
           wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
           wallet_id: walletAddress ? Base64Normalize(walletAddress) : void 0,
@@ -51696,7 +52116,7 @@ class RequestProcessor {
             address: event.result.address,
             timestamp: event.result.timestamp,
             domain: event.result.domain,
-            payload: event.result.payload
+            payload: toTonConnectSignDataPayload(event.result.payload)
           }
         };
         await this.bridgeManager.sendResponse(event, response);
@@ -51709,7 +52129,7 @@ class RequestProcessor {
             client_environment: "wallet",
             subsystem: getEventsSubsystem(),
             event_id: v7(),
-            network_id: wallet?.getNetwork(),
+            network_id: wallet?.getNetwork().chainId,
             wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
             wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
             wallet_id: walletAddress ? Base64Normalize(walletAddress) : void 0,
@@ -51723,7 +52143,7 @@ class RequestProcessor {
             client_environment: "wallet",
             subsystem: getEventsSubsystem(),
             event_id: v7(),
-            network_id: wallet?.getNetwork(),
+            network_id: wallet?.getNetwork().chainId,
             wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
             wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
             wallet_id: walletAddress ? Base64Normalize(walletAddress) : void 0,
@@ -51732,7 +52152,7 @@ class RequestProcessor {
             client_id: event.from
           }
         ]);
-        return { signature: asHex(event.result.signature) };
+        return { signature: Base64ToHex(event.result.signature) };
       } else {
         if (!event.domain) {
           const error2 = new WalletKitError(ERROR_CODES.SESSION_DOMAIN_REQUIRED, "Domain is required for sign data request", void 0, { eventId: event.id });
@@ -51754,13 +52174,13 @@ class RequestProcessor {
           domainUrl = new URL(event.domain).host;
         } catch {
         }
-        const signData = PrepareTonConnectData({
-          payload: event.request,
+        const signData = PrepareSignData({
+          payload: event.payload,
           domain: domainUrl,
-          address: walletAddress ?? wallet.getAddress()
+          address: wallet.getAddress()
         });
         const signature = await wallet.getSignedSignData(signData);
-        const signatureBase64 = Buffer.from(signature.slice(2), "hex").toString("base64");
+        const signatureBase64 = HexToBase64(signature);
         const response = {
           id: event.id,
           result: {
@@ -51768,7 +52188,7 @@ class RequestProcessor {
             address: distExports$3.Address.parse(signData.address).toRawString(),
             timestamp: signData.timestamp,
             domain: signData.domain,
-            payload: signData.payload
+            payload: toTonConnectSignDataPayload(signData.payload)
           }
         };
         await this.bridgeManager.sendResponse(event, response);
@@ -51781,7 +52201,7 @@ class RequestProcessor {
             dapp_name: event.dAppInfo?.name,
             origin_url: event.dAppInfo?.url,
             event_id: v7(),
-            network_id: wallet.getNetwork(),
+            network_id: wallet.getNetwork().chainId,
             wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
             wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
             wallet_id: walletAddress ? Base64Normalize(walletAddress) : void 0,
@@ -51797,7 +52217,7 @@ class RequestProcessor {
             dapp_name: event.dAppInfo?.name,
             origin_url: event.dAppInfo?.url,
             event_id: v7(),
-            network_id: wallet.getNetwork(),
+            network_id: wallet.getNetwork().chainId,
             wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
             wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
             wallet_id: walletAddress ? Base64Normalize(walletAddress) : void 0,
@@ -51806,7 +52226,7 @@ class RequestProcessor {
             client_id: event.from
           }
         ]);
-        return { signature: asHex(signature) };
+        return { signature };
       }
     } catch (error2) {
       log$c.error("Failed to approve sign data request", {
@@ -51845,7 +52265,7 @@ class RequestProcessor {
           dapp_name: event.dAppInfo?.name,
           origin_url: event.dAppInfo?.url,
           event_id: v7(),
-          network_id: wallet?.getNetwork(),
+          network_id: wallet?.getNetwork().chainId,
           wallet_app_name: this.walletKitOptions.deviceInfo?.appName,
           wallet_app_version: this.walletKitOptions.deviceInfo?.appVersion,
           wallet_id: walletAddress ? Base64Normalize(walletAddress) : void 0,
@@ -51886,21 +52306,22 @@ class RequestProcessor {
           {
             name: "ton_addr",
             address: distExports$3.Address.parse(address).toRawString(),
-            network: walletNetwork,
+            // TODO: Support multiple networks
+            network: walletNetwork.chainId === CHAIN.MAINNET ? CHAIN.MAINNET : CHAIN.TESTNET,
             walletStateInit,
             publicKey
           }
         ]
       }
     };
-    const proofItem = event.request.find((item) => item.name === "ton_proof");
+    const proofItem = event.requestedItems.find((item) => item.type === "ton_proof");
     if (proofItem) {
       let domain = {
         lengthBytes: 0,
         value: ""
       };
       try {
-        const dAppUrl = new URL(event.preview.manifest?.url || "");
+        const dAppUrl = new URL(event.preview.dAppInfo?.url || "");
         domain = {
           lengthBytes: Buffer.from(dAppUrl.host).length,
           value: dAppUrl.host
@@ -51909,10 +52330,10 @@ class RequestProcessor {
         log$c.error("Failed to parse domain", { error: error2 });
       }
       const timestamp = Math.floor(Date.now() / 1e3);
-      const signMessage = createTonProofMessage({
+      const signMessage = CreateTonProofMessage({
         address: distExports$3.Address.parse(address),
         domain,
-        payload: proofItem.payload,
+        payload: proofItem.value.payload,
         stateInit: walletStateInit,
         timestamp
       });
@@ -51926,7 +52347,7 @@ class RequestProcessor {
             lengthBytes: domain.lengthBytes,
             value: domain.value
           },
-          payload: proofItem.payload,
+          payload: proofItem.value.payload,
           signature: signatureBase64
         }
       });
@@ -51970,11 +52391,44 @@ async function signTransactionInternal(wallet, request) {
     fakeSignature: false
   });
   log$c.debug("Signing transaction", {
-    messagesCount: request.messages.length,
-    from: request.from,
-    validUntil: request.valid_until
+    messagesNumber: request.messages.length,
+    fromAddress: request.fromAddress,
+    validUntil: request.validUntil
   });
   return signedBoc;
+}
+function toTonConnectSignDataPayload(payload) {
+  let network;
+  if (payload.network?.chainId === CHAIN.MAINNET) {
+    network = CHAIN.MAINNET;
+  } else if (payload.network?.chainId === CHAIN.TESTNET) {
+    network = CHAIN.TESTNET;
+  } else {
+    network = void 0;
+  }
+  if (payload.data.type === "text") {
+    return {
+      network,
+      from: payload.fromAddress,
+      type: "text",
+      text: payload.data.value.content
+    };
+  } else if (payload.data.type === "cell") {
+    return {
+      network,
+      from: payload.fromAddress,
+      type: "cell",
+      schema: payload.data.value.schema,
+      cell: payload.data.value.content
+    };
+  } else {
+    return {
+      network,
+      from: payload.fromAddress,
+      type: "binary",
+      bytes: payload.data.value.content
+    };
+  }
 }
 const getEventUUID = () => {
   return crypto.randomUUID();
@@ -52047,7 +52501,7 @@ class StorageEventStore {
   /**
    * Attempt to acquire exclusive lock on an event for processing
    */
-  async acquireLock(eventId, walletAddress) {
+  async acquireLock(eventId, walletId) {
     return this.withLock("storage", async () => {
       const allEvents = await this.getAllEventsFromStorage();
       const event = allEvents[eventId];
@@ -52067,11 +52521,11 @@ class StorageEventStore {
         ...event,
         status: "processing",
         processingStartedAt: Date.now(),
-        lockedBy: walletAddress
+        lockedBy: walletId
       };
       allEvents[eventId] = updatedEvent;
       await this.storage.set(this.storageKey, allEvents);
-      log$b.debug("Event lock acquired", { eventId, walletAddress });
+      log$b.debug("Event lock acquired", { eventId, walletAddress: walletId });
       return updatedEvent;
     });
   }
@@ -52578,22 +53032,21 @@ class WalletTonClass {
     this.client = client;
   }
   async createTransferTonTransaction(param) {
-    let messages = [];
-    if (!isValidAddress(param.toAddress)) {
-      throw new Error(`Invalid to address: ${param.toAddress}`);
+    if (!isValidAddress(param.recipientAddress)) {
+      throw new Error(`Invalid to address: ${param.recipientAddress}`);
     }
-    if (!isValidNanotonAmount(param.amount)) {
-      throw new Error(`Invalid amount: ${param.amount}`);
+    if (!isValidNanotonAmount(param.transferAmount)) {
+      throw new Error(`Invalid amount: ${param.transferAmount}`);
     }
     let body;
-    if (param.body) {
-      body = param.body;
+    if (param.payload) {
+      body = param.payload;
     } else if (param.comment) {
       body = distExports$3.beginCell().storeUint(0, 32).storeStringTail(param.comment).endCell().toBoc().toString("base64");
     }
     const message = {
-      address: param.toAddress,
-      amount: param.amount,
+      address: param.recipientAddress,
+      amount: param.transferAmount,
       payload: body,
       stateInit: param.stateInit,
       extraCurrency: param.extraCurrency,
@@ -52602,30 +53055,29 @@ class WalletTonClass {
     if (!validateTransactionMessage(message, false).isValid) {
       throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
     }
-    messages.push(message);
     return {
-      messages,
-      from: this.getAddress()
+      messages: [message],
+      fromAddress: this.getAddress()
     };
   }
-  async createTransferMultiTonTransaction({ messages: params }) {
+  async createTransferMultiTonTransaction(params) {
     let messages = [];
     for (const param of params) {
-      if (!isValidAddress(param.toAddress)) {
-        throw new Error(`Invalid to address: ${param.toAddress}`);
+      if (!isValidAddress(param.recipientAddress)) {
+        throw new Error(`Invalid to address: ${param.recipientAddress}`);
       }
-      if (!isValidNanotonAmount(param.amount)) {
-        throw new Error(`Invalid amount: ${param.amount}`);
+      if (!isValidNanotonAmount(param.transferAmount)) {
+        throw new Error(`Invalid amount: ${param.transferAmount}`);
       }
       let body;
-      if (param.body) {
-        body = param.body;
+      if (param.payload) {
+        body = param.payload;
       } else if (param.comment) {
         body = distExports$3.beginCell().storeUint(0, 32).storeStringTail(param.comment).endCell().toBoc().toString("base64");
       }
       const message = {
-        address: param.toAddress,
-        amount: param.amount,
+        address: param.recipientAddress,
+        amount: param.transferAmount,
         payload: body,
         stateInit: param.stateInit,
         extraCurrency: param.extraCurrency,
@@ -52638,21 +53090,19 @@ class WalletTonClass {
     }
     return {
       messages,
-      from: this.getAddress()
+      fromAddress: this.getAddress()
     };
   }
   async getTransactionPreview(param) {
     const transaction = await param;
     const preview = await CallForSuccess(() => createTransactionPreview(transaction, this));
-    return {
-      preview
-    };
+    return preview;
   }
   async sendTransaction(request) {
     try {
-      const signedBoc = await this.getSignedSendTransaction(request);
-      await CallForSuccess(() => this.getClient().sendBoc(Buffer.from(signedBoc, "base64")));
-      return { signedBoc };
+      const boc = await this.getSignedSendTransaction(request);
+      await CallForSuccess(() => this.getClient().sendBoc(boc));
+      return { boc };
     } catch (error2) {
       log$9.error("Failed to send transaction", { error: error2 });
       if (error2 instanceof WalletKitError) {
@@ -52665,7 +53115,7 @@ class WalletTonClass {
     }
   }
   async getBalance() {
-    return await CallForSuccess(async () => this.getClient().getBalance(distExports$3.Address.parse(this.getAddress())));
+    return await CallForSuccess(async () => this.getClient().getBalance(this.getAddress()));
   }
 }
 var dist$1 = {};
@@ -71604,21 +72054,21 @@ function SerializeStack(list) {
 }
 class WalletJettonClass {
   async createTransferJettonTransaction(jettonTransferParams) {
-    if (!isValidAddress(jettonTransferParams.toAddress)) {
-      throw new Error(`Invalid to address: ${jettonTransferParams.toAddress}`);
+    if (!isValidAddress(jettonTransferParams.recipientAddress)) {
+      throw new Error(`Invalid to address: ${jettonTransferParams.recipientAddress}`);
     }
     if (!isValidAddress(jettonTransferParams.jettonAddress)) {
       throw new Error(`Invalid jetton address: ${jettonTransferParams.jettonAddress}`);
     }
-    if (!jettonTransferParams.amount || BigInt(jettonTransferParams.amount) <= 0n) {
-      throw new Error(`Invalid amount: ${jettonTransferParams.amount}`);
+    if (!jettonTransferParams.transferAmount || BigInt(jettonTransferParams.transferAmount) <= 0n) {
+      throw new Error(`Invalid amount: ${jettonTransferParams.transferAmount}`);
     }
     const jettonWalletAddress = await CallForSuccess(() => this.getJettonWalletAddress(jettonTransferParams.jettonAddress));
     const forwardPayload = jettonTransferParams.comment ? distExports$3.beginCell().storeUint(0, 32).storeStringTail(jettonTransferParams.comment).endCell() : null;
     const jettonPayload = distExports$3.beginCell().store(distExports.storeJettonTransferMessage({
       queryId: 0n,
-      amount: BigInt(jettonTransferParams.amount),
-      destination: distExports$3.Address.parse(jettonTransferParams.toAddress),
+      amount: BigInt(jettonTransferParams.transferAmount),
+      destination: distExports$3.Address.parse(jettonTransferParams.recipientAddress),
       responseDestination: distExports$3.Address.parse(this.getAddress()),
       customPayload: null,
       forwardAmount: 1n,
@@ -71632,20 +72082,22 @@ class WalletJettonClass {
       payload: jettonPayload.toBoc().toString("base64"),
       stateInit: void 0,
       extraCurrency: void 0,
-      mode: distExports$3.SendMode.PAY_GAS_SEPARATELY | distExports$3.SendMode.IGNORE_ERRORS
+      mode: {
+        flags: [SendModeFlag.IGNORE_ERRORS, SendModeFlag.PAY_GAS_SEPARATELY]
+      }
     };
     if (!validateTransactionMessage(message, false).isValid) {
       throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
     }
     return {
       messages: [message],
-      from: this.getAddress()
+      fromAddress: this.getAddress()
     };
   }
   async getJettonBalance(jettonAddress) {
     const jettonWalletAddress = await this.getJettonWalletAddress(jettonAddress);
     try {
-      const result = await this.getClient().runGetMethod(distExports$3.Address.parse(jettonWalletAddress), "get_wallet_data");
+      const result = await this.getClient().runGetMethod(jettonWalletAddress, "get_wallet_data");
       const parsedStack = ParseStack(result.stack);
       const balance = parsedStack[0].type === "int" ? parsedStack[0].value : 0n;
       return balance.toString();
@@ -71658,7 +72110,7 @@ class WalletJettonClass {
       throw new Error(`Invalid jetton address: ${jettonAddress}`);
     }
     try {
-      const result = await this.getClient().runGetMethod(distExports$3.Address.parse(jettonAddress), "get_wallet_address", SerializeStack([
+      const result = await this.getClient().runGetMethod(jettonAddress, "get_wallet_address", SerializeStack([
         { type: "slice", cell: distExports$3.beginCell().storeAddress(distExports$3.Address.parse(this.getAddress())).endCell() }
       ]));
       const parsedStack = ParseStack(result.stack);
@@ -71666,36 +72118,33 @@ class WalletJettonClass {
       if (!jettonWalletAddress) {
         throw new Error("Failed to get jetton wallet address");
       }
-      return jettonWalletAddress.toString();
+      return asAddressFriendly(jettonWalletAddress.toString());
     } catch (error2) {
       throw new Error(`Failed to get jetton wallet address for ${jettonAddress}: ${error2 instanceof Error ? error2.message : "Unknown error"}`);
     }
   }
   async getJettons(params) {
     return this.getClient().jettonsByOwnerAddress({
-      ...params,
-      ownerAddress: this.getAddress()
+      ownerAddress: this.getAddress(),
+      offset: params?.pagination.offset,
+      limit: params?.pagination.limit
     });
   }
 }
 class WalletNftClass {
   async getNfts(params) {
     const out = await this.getClient().nftItemsByOwner({
-      ownerAddress: [this.getAddress()],
-      offset: params.offset ?? 0,
-      limit: params.limit ?? 100
+      ownerAddress: this.getAddress(),
+      pagination: params.pagination
     });
-    return {
-      items: out.items,
-      pagination: out.pagination
-    };
+    return out;
   }
   async getNft(address) {
     const result = await this.getClient().nftItemsByAddress({
-      address: [address]
+      address
     });
-    if (result.items.length > 0) {
-      return result.items[0];
+    if (result.nfts.length > 0) {
+      return result.nfts[0];
     }
     return null;
   }
@@ -71705,34 +72154,37 @@ class WalletNftClass {
       customPayload: null,
       forwardAmount: 1n,
       forwardPayload,
-      newOwner: distExports$3.Address.parse(nftTransferMessage.toAddress),
+      newOwner: distExports$3.Address.parse(nftTransferMessage.recipientAddress),
       queryId: 0n,
       responseDestination: distExports$3.Address.parse(this.getAddress())
     })).endCell();
     const message = {
       address: nftTransferMessage.nftAddress,
-      amount: nftTransferMessage.transferAmount.toString(),
+      amount: nftTransferMessage.transferAmount?.toString() ?? "100000000",
+      // Default 0.1 TON
       payload: nftPayload.toBoc().toString("base64"),
       stateInit: void 0,
       extraCurrency: void 0,
-      mode: distExports$3.SendMode.PAY_GAS_SEPARATELY | distExports$3.SendMode.IGNORE_ERRORS
+      mode: {
+        flags: [SendModeFlag.IGNORE_ERRORS, SendModeFlag.PAY_GAS_SEPARATELY]
+      }
     };
     if (!validateTransactionMessage(message, false).isValid) {
       throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
     }
     return {
       messages: [message],
-      from: this.getAddress()
+      fromAddress: this.getAddress()
     };
   }
   async createTransferNftRawTransaction(params) {
     const transferMessage = {
-      queryId: BigInt(params.transferMessage.queryId),
-      newOwner: typeof params.transferMessage.newOwner === "string" ? distExports$3.Address.parse(params.transferMessage.newOwner) : params.transferMessage.newOwner,
-      responseDestination: params.transferMessage.responseDestination ? typeof params.transferMessage.responseDestination === "string" ? distExports$3.Address.parse(params.transferMessage.responseDestination) : params.transferMessage.responseDestination : null,
-      customPayload: params.transferMessage.customPayload ? typeof params.transferMessage.customPayload === "string" ? distExports$3.Cell.fromBase64(params.transferMessage.customPayload) : params.transferMessage.customPayload : null,
-      forwardAmount: BigInt(params.transferMessage.forwardAmount),
-      forwardPayload: params.transferMessage.forwardPayload ? typeof params.transferMessage.forwardPayload === "string" ? distExports$3.Cell.fromBase64(params.transferMessage.forwardPayload) : params.transferMessage.forwardPayload : null
+      queryId: BigInt(params.message.queryId),
+      newOwner: typeof params.message.newOwner === "string" ? distExports$3.Address.parse(params.message.newOwner) : params.message.newOwner,
+      responseDestination: params.message.responseDestination ? typeof params.message.responseDestination === "string" ? distExports$3.Address.parse(params.message.responseDestination) : params.message.responseDestination : null,
+      customPayload: params.message.customPayload ? typeof params.message.customPayload === "string" ? distExports$3.Cell.fromBase64(params.message.customPayload) : params.message.customPayload : null,
+      forwardAmount: BigInt(params.message.forwardAmount),
+      forwardPayload: params.message.forwardPayload ? typeof params.message.forwardPayload === "string" ? distExports$3.Cell.fromBase64(params.message.forwardPayload) : params.message.forwardPayload : null
     };
     const nftPayload = distExports$3.beginCell().store(distExports.storeNftTransferMessage(transferMessage)).endCell();
     const message = {
@@ -71741,14 +72193,16 @@ class WalletNftClass {
       payload: nftPayload.toBoc().toString("base64"),
       stateInit: void 0,
       extraCurrency: void 0,
-      mode: distExports$3.SendMode.PAY_GAS_SEPARATELY | distExports$3.SendMode.IGNORE_ERRORS
+      mode: {
+        flags: [SendModeFlag.IGNORE_ERRORS, SendModeFlag.PAY_GAS_SEPARATELY]
+      }
     };
     if (!validateTransactionMessage(message, false).isValid) {
       throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
     }
     return {
       messages: [message],
-      from: this.getAddress()
+      fromAddress: this.getAddress()
     };
   }
 }
@@ -73276,2519 +73730,6 @@ class LRUCache {
     }
   }
 }
-const log$7 = globalLogger.createChild("JettonsManager");
-function createCacheKey(network, address) {
-  return `${network}:${address}`;
-}
-class JettonsManager {
-  eventEmitter;
-  networkManager;
-  cache;
-  DEFAULT_TIMEOUT = 1e4;
-  // 10 seconds
-  constructor(cacheSize = 1e4, eventEmitter, networkManager) {
-    this.eventEmitter = eventEmitter;
-    this.networkManager = networkManager;
-    this.cache = new LRUCache({
-      max: cacheSize,
-      ttl: 1e3 * 60 * 10
-      // 10 minutes TTL
-    });
-    for (const network of this.networkManager.getConfiguredNetworks()) {
-      this.addTonToCache(network);
-    }
-    log$7.info("JettonsManager initialized", { cacheSize });
-    this.eventEmitter.on("emulation:result", (emulationResult) => {
-      if (emulationResult && typeof emulationResult === "object" && "metadata" in emulationResult && "network" in emulationResult) {
-        const network = emulationResult.network;
-        this.addJettonsFromEmulationMetadata(network, emulationResult.metadata);
-      }
-    });
-  }
-  /**
-   * Add TON native token to cache for a specific network
-   */
-  addTonToCache(network) {
-    const cacheKey = createCacheKey(network, "TON");
-    this.cache.set(cacheKey, {
-      address: "TON",
-      name: "TON",
-      symbol: "TON",
-      description: "The Open Network native token",
-      decimals: 9,
-      totalSupply: "5000000000000000000",
-      image: "https://asset.ston.fi/img/EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c/ee9fb21d17bc8d75c2a5f7b5f5f62d2bacec6b128f58b63cb841e98f7b74c4fc",
-      verification: {
-        verified: true,
-        source: "manual"
-      }
-    });
-  }
-  /**
-   * Get jetton information by address for a specific network
-   * @param jettonAddress - The jetton master address
-   * @param network - The network to query (required)
-   */
-  async getJettonInfo(jettonAddress, network) {
-    const targetNetwork = network;
-    try {
-      const normalizedAddress = this.normalizeAddress(jettonAddress);
-      const cacheKey = createCacheKey(targetNetwork, normalizedAddress);
-      const cachedInfo = this.cache.get(cacheKey);
-      if (cachedInfo) {
-        log$7.debug("Jetton info found in cache", { jettonAddress: normalizedAddress, network: targetNetwork });
-        return cachedInfo;
-      }
-      log$7.debug("Jetton info not found in cache", { jettonAddress: normalizedAddress, network: targetNetwork });
-      const apiClient = this.networkManager.getClient(targetNetwork);
-      const jettonFromApi = await apiClient.jettonsByAddress({
-        address: normalizedAddress,
-        offset: 0,
-        limit: 1
-      });
-      if (jettonFromApi && jettonFromApi?.jetton_masters?.length > 0 && jettonFromApi?.jetton_masters?.[0]) {
-        const jetton = jettonFromApi?.jetton_masters?.[0];
-        const metadata = jettonFromApi?.metadata?.[jetton.address];
-        const tokenInfo = metadata?.token_info?.find((t) => t.valid && t.type === "jetton_masters");
-        let decimals;
-        try {
-          decimals = parseInt(tokenInfo?.extra.decimals, 10);
-        } catch {
-          decimals = 9;
-        }
-        const result = {
-          address: jetton.jetton,
-          name: tokenInfo?.name ?? "",
-          symbol: tokenInfo?.symbol ?? "",
-          description: tokenInfo?.description ?? "",
-          decimals,
-          image: tokenInfo?.image,
-          uri: tokenInfo?.extra?.uri,
-          totalSupply: "0"
-        };
-        this.cache.set(cacheKey, result);
-        return result;
-      }
-      return null;
-    } catch (error2) {
-      log$7.error("Error getting jetton info", { error: error2, jettonAddress, network: targetNetwork });
-      return null;
-    }
-  }
-  /**
-   * Get jettons for a specific address on a specific network
-   * @param userAddress - The user's wallet address
-   * @param network - The network to query (required)
-   * @param offset - Pagination offset
-   * @param limit - Pagination limit
-   */
-  async getAddressJettons(userAddress, network, offset = 0, limit = 50) {
-    const targetNetwork = network;
-    try {
-      const apiClient = this.networkManager.getClient(targetNetwork);
-      const normalizedAddress = this.normalizeAddress(userAddress);
-      log$7.debug("Getting address jettons", {
-        userAddress: normalizedAddress,
-        network: targetNetwork,
-        offset,
-        limit
-      });
-      const response = await apiClient.jettonsByOwnerAddress({
-        ownerAddress: normalizedAddress,
-        offset,
-        limit
-      });
-      if (!response.jettons) {
-        return [];
-      }
-      const addressJettons = [];
-      for (const item of response.jettons) {
-        addressJettons.push(item);
-      }
-      log$7.debug("Retrieved address jettons", { count: addressJettons.length, network: targetNetwork });
-      return addressJettons;
-    } catch (error2) {
-      log$7.error("Failed to get address jettons", { error: error2, userAddress, network: targetNetwork });
-      throw new JettonError(`Failed to get jettons for address: ${error2 instanceof Error ? error2.message : "Unknown error"}`, JettonErrorCode.NETWORK_ERROR, error2);
-    }
-  }
-  /**
-   * Add jetton info to cache from emulation data for a specific network
-   */
-  addJettonFromEmulation(network, jettonAddress, emulationInfo) {
-    try {
-      const normalizedAddress = this.normalizeAddress(jettonAddress);
-      const cacheKey = createCacheKey(network, normalizedAddress);
-      const jettonInfo = {
-        address: normalizedAddress,
-        name: emulationInfo.name,
-        symbol: emulationInfo.symbol,
-        description: emulationInfo.description,
-        image: emulationInfo.image,
-        decimals: typeof emulationInfo.extra.decimals === "string" ? parseInt(emulationInfo.extra.decimals, 10) : emulationInfo.extra.decimals,
-        uri: emulationInfo.extra.uri
-      };
-      this.cache.set(cacheKey, jettonInfo);
-      log$7.debug("Added jetton info from emulation to cache", {
-        jettonAddress: normalizedAddress,
-        network,
-        name: jettonInfo.name,
-        symbol: jettonInfo.symbol
-      });
-    } catch (error2) {
-      log$7.error("Error adding jetton from emulation", { error: error2, jettonAddress, network });
-    }
-  }
-  /**
-   * Add multiple jettons from emulation metadata for a specific network
-   */
-  addJettonsFromEmulationMetadata(network, metadata) {
-    try {
-      let addedCount = 0;
-      for (const [jettonAddress, addressMetadata] of Object.entries(metadata)) {
-        if (!addressMetadata.is_indexed || !addressMetadata.token_info) {
-          continue;
-        }
-        const jettonMasterInfo = addressMetadata.token_info.find((info) => typeof info === "object" && info !== null && "type" in info && info.type === "jetton_masters");
-        if (jettonMasterInfo) {
-          log$7.debug("Adding jetton from emulation metadata", { jettonAddress, network });
-          this.addJettonFromEmulation(network, jettonAddress, jettonMasterInfo);
-          addedCount++;
-        }
-      }
-      if (addedCount > 0) {
-        log$7.info("Added jettons from emulation metadata", { addedCount, network });
-      }
-    } catch (error2) {
-      log$7.error("Error adding jettons from emulation metadata", { error: error2, network });
-    }
-  }
-  /**
-   * Normalize jetton address for consistent caching
-   */
-  normalizeAddress(address) {
-    if (address === "TON") {
-      return "TON";
-    }
-    return distExports$3.Address.parse(address).toRawString().toUpperCase();
-  }
-  /**
-   * Get cache statistics
-   */
-  getCacheStats() {
-    return {
-      size: this.cache.size,
-      capacity: this.cache.max
-    };
-  }
-  /**
-   * Validate jetton address format
-   */
-  validateJettonAddress(address) {
-    try {
-      if (address === "TON") {
-        return true;
-      }
-      distExports$3.Address.parse(address);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  /**
-   * Clear the jetton cache for all networks or a specific network
-   */
-  clearCache(network) {
-    if (network) {
-      for (const key2 of this.cache.keys()) {
-        if (key2.startsWith(`${network}:`)) {
-          this.cache.delete(key2);
-        }
-      }
-      this.addTonToCache(network);
-      log$7.info("Jetton cache cleared for network", { network });
-    } else {
-      this.cache.clear();
-      for (const net of this.networkManager.getConfiguredNetworks()) {
-        this.addTonToCache(net);
-      }
-      log$7.info("Jetton cache cleared for all networks");
-    }
-  }
-}
-const log$6 = globalLogger.createChild("EventEmitter");
-class EventEmitter {
-  listeners = /* @__PURE__ */ new Map();
-  /**
-   * Subscribe to an event
-   */
-  on(eventName, listener) {
-    if (!this.listeners.has(eventName)) {
-      this.listeners.set(eventName, /* @__PURE__ */ new Set());
-    }
-    this.listeners.get(eventName).add(listener);
-    log$6.debug("Event listener added", { eventName, totalListeners: this.listeners.get(eventName).size });
-  }
-  /**
-   * Subscribe to an event once (automatically removes after first emission)
-   */
-  once(eventName, listener) {
-    const onceListener = (data) => {
-      this.off(eventName, onceListener);
-      listener(data);
-    };
-    this.on(eventName, onceListener);
-  }
-  /**
-   * Unsubscribe from an event
-   */
-  off(eventName, listener) {
-    const eventListeners2 = this.listeners.get(eventName);
-    if (eventListeners2) {
-      eventListeners2.delete(listener);
-      log$6.debug("Event listener removed", { eventName, totalListeners: eventListeners2.size });
-      if (eventListeners2.size === 0) {
-        this.listeners.delete(eventName);
-      }
-    }
-  }
-  /**
-   * Emit an event to all subscribers
-   */
-  emit(eventName, data) {
-    const eventListeners2 = this.listeners.get(eventName);
-    if (eventListeners2) {
-      log$6.debug("Emitting event", { eventName, listenerCount: eventListeners2.size });
-      eventListeners2.forEach((listener) => {
-        try {
-          listener(data);
-        } catch (error2) {
-          log$6.error("Error in event listener", { eventName, error: error2 });
-        }
-      });
-    }
-  }
-  /**
-   * Remove all listeners for a specific event
-   */
-  removeAllListeners(eventName) {
-    if (eventName) {
-      this.listeners.delete(eventName);
-      log$6.debug("All listeners removed for event", { eventName });
-    } else {
-      this.listeners.clear();
-      log$6.debug("All event listeners cleared");
-    }
-  }
-  /**
-   * Get the number of listeners for an event
-   */
-  listenerCount(eventName) {
-    return this.listeners.get(eventName)?.size || 0;
-  }
-  /**
-   * Get all event names that have listeners
-   */
-  eventNames() {
-    return Array.from(this.listeners.keys());
-  }
-}
-var ContentType;
-(function(ContentType2) {
-  ContentType2["Json"] = "application/json";
-  ContentType2["JsonApi"] = "application/vnd.api+json";
-  ContentType2["FormData"] = "multipart/form-data";
-  ContentType2["UrlEncoded"] = "application/x-www-form-urlencoded";
-  ContentType2["Text"] = "text/plain";
-})(ContentType || (ContentType = {}));
-class HttpClient {
-  baseUrl = "";
-  securityData = null;
-  securityWorker;
-  abortControllers = /* @__PURE__ */ new Map();
-  customFetch = (...fetchParams) => fetch(...fetchParams);
-  baseApiParams = {
-    credentials: "same-origin",
-    headers: {},
-    redirect: "follow",
-    referrerPolicy: "no-referrer"
-  };
-  constructor(apiConfig = {}) {
-    Object.assign(this, apiConfig);
-  }
-  setSecurityData = (data) => {
-    this.securityData = data;
-  };
-  encodeQueryParam(key2, value) {
-    const encodedKey = encodeURIComponent(key2);
-    return `${encodedKey}=${encodeURIComponent(typeof value === "number" ? value : `${value}`)}`;
-  }
-  addQueryParam(query, key2) {
-    return this.encodeQueryParam(key2, query[key2]);
-  }
-  addArrayQueryParam(query, key2) {
-    const value = query[key2];
-    return value.map((v2) => this.encodeQueryParam(key2, v2)).join("&");
-  }
-  toQueryString(rawQuery) {
-    const query = rawQuery || {};
-    const keys = Object.keys(query).filter((key2) => "undefined" !== typeof query[key2]);
-    return keys.map((key2) => Array.isArray(query[key2]) ? this.addArrayQueryParam(query, key2) : this.addQueryParam(query, key2)).join("&");
-  }
-  addQueryParams(rawQuery) {
-    const queryString = this.toQueryString(rawQuery);
-    return queryString ? `?${queryString}` : "";
-  }
-  contentFormatters = {
-    [ContentType.Json]: (input) => input !== null && (typeof input === "object" || typeof input === "string") ? JSON.stringify(input) : input,
-    [ContentType.JsonApi]: (input) => input !== null && (typeof input === "object" || typeof input === "string") ? JSON.stringify(input) : input,
-    [ContentType.Text]: (input) => input !== null && typeof input !== "string" ? JSON.stringify(input) : input,
-    [ContentType.FormData]: (input) => {
-      if (input instanceof FormData) {
-        return input;
-      }
-      return Object.keys(input || {}).reduce((formData, key2) => {
-        const property = input[key2];
-        formData.append(key2, property instanceof Blob ? property : typeof property === "object" && property !== null ? JSON.stringify(property) : `${property}`);
-        return formData;
-      }, new FormData());
-    },
-    [ContentType.UrlEncoded]: (input) => this.toQueryString(input)
-  };
-  mergeRequestParams(params1, params2) {
-    return {
-      ...this.baseApiParams,
-      ...params1,
-      ...params2 || {},
-      headers: {
-        ...this.baseApiParams.headers || {},
-        ...params1.headers || {},
-        ...params2 && params2.headers || {}
-      }
-    };
-  }
-  createAbortSignal = (cancelToken) => {
-    if (this.abortControllers.has(cancelToken)) {
-      const abortController2 = this.abortControllers.get(cancelToken);
-      if (abortController2) {
-        return abortController2.signal;
-      }
-      return void 0;
-    }
-    const abortController = new AbortController();
-    this.abortControllers.set(cancelToken, abortController);
-    return abortController.signal;
-  };
-  abortRequest = (cancelToken) => {
-    const abortController = this.abortControllers.get(cancelToken);
-    if (abortController) {
-      abortController.abort();
-      this.abortControllers.delete(cancelToken);
-    }
-  };
-  request = async ({ body, secure, path, type, query, format, baseUrl, cancelToken, ...params }) => {
-    const secureParams = (typeof secure === "boolean" ? secure : this.baseApiParams.secure) && this.securityWorker && await this.securityWorker(this.securityData) || {};
-    const requestParams = this.mergeRequestParams(params, secureParams);
-    const queryString = query && this.toQueryString(query);
-    const payloadFormatter = this.contentFormatters[type || ContentType.Json];
-    const responseFormat = format || requestParams.format;
-    return this.customFetch(`${baseUrl || this.baseUrl || ""}${path}${queryString ? `?${queryString}` : ""}`, {
-      ...requestParams,
-      headers: {
-        ...requestParams.headers || {}
-        // ...(type && type !== ContentType.FormData
-        //   ? { "Content-Type": type }
-        //   : {}),
-      },
-      signal: (cancelToken ? this.createAbortSignal(cancelToken) : requestParams.signal) || null,
-      body: typeof body === "undefined" || body === null ? null : payloadFormatter(body)
-    }).then(async (response) => {
-      const r = response;
-      r.data = null;
-      r.error = null;
-      const responseToParse = responseFormat ? response.clone() : response;
-      const data = !responseFormat ? r : await responseToParse[responseFormat]().then((data2) => {
-        if (r.ok) {
-          r.data = data2;
-        } else {
-          r.error = data2;
-        }
-        return r;
-      }).catch((e) => {
-        r.error = e;
-        return r;
-      });
-      if (cancelToken) {
-        this.abortControllers.delete(cancelToken);
-      }
-      if (!response.ok)
-        throw data;
-      return data;
-    });
-  };
-}
-class Api extends HttpClient {
-  events = {
-    /**
-     * No description
-     *
-     * @name EventsCreate
-     * @request POST:/events
-     */
-    eventsCreate: (events, params = {}) => this.request({
-      path: `/events`,
-      method: "POST",
-      body: events,
-      type: ContentType.Json,
-      ...params,
-      credentials: "include"
-    })
-  };
-}
-const log$5 = globalLogger.createChild("AnalyticsApi");
-class AnalyticsApi {
-  api;
-  constructor(config) {
-    if (config?.enabled) {
-      this.api = new Api({
-        baseUrl: config?.endpoint ?? "https://analytics.ton.org"
-      });
-    }
-  }
-  async sendEvents(events) {
-    await this.api?.events.eventsCreate(events).catch(() => {
-    });
-  }
-  async sendEventsWithErrors(events) {
-    await this.api?.events.eventsCreate(events).catch((error2) => {
-      log$5.info("Failed to send events", { error: error2 });
-    });
-  }
-}
-function toNftCollection(data) {
-  if (!data)
-    return null;
-  const out = {
-    address: asAddressFriendly(data.address),
-    codeHash: data.code_hash ? Base64ToHex(data.code_hash) : null,
-    dataHash: data.data_hash ? Base64ToHex(data.data_hash) : null,
-    nextItemIndex: data.next_item_index.toString(),
-    ownerAddress: asMaybeAddressFriendly(data.owner_address)
-  };
-  if (data.last_transaction_lt)
-    out.lastTransactionLt = data.last_transaction_lt.toString();
-  if (data.collection_content)
-    out.collectionContent = data.collection_content;
-  return out;
-}
-function tokenMetaToNftCollection(address, data) {
-  if (!data)
-    return null;
-  const image = data?.extra?._image_medium ?? data?.image;
-  const out = {
-    address: asAddressFriendly(address),
-    name: data.name,
-    description: data.description,
-    image,
-    extra: data.extra
-  };
-  return out;
-}
-function toNftItem(data) {
-  const out = {
-    address: asAddressFriendly(data.address),
-    auctionContractAddress: asMaybeAddressFriendly(data.auction_contract_address),
-    codeHash: data.code_hash ? Base64ToHex(data.code_hash) : null,
-    dataHash: data.data_hash ? Base64ToHex(data.data_hash) : null,
-    collection: toNftCollection(data.collection),
-    collectionAddress: asMaybeAddressFriendly(data.collection_address),
-    index: data.index.toString(),
-    init: data.init,
-    onSale: data.on_sale,
-    ownerAddress: asMaybeAddressFriendly(data.owner_address),
-    realOwner: asMaybeAddressFriendly(data.real_owner),
-    saleContractAddress: asMaybeAddressFriendly(data.sale_contract_address)
-  };
-  if (data.last_transaction_lt)
-    out.lastTransactionLt = data.last_transaction_lt;
-  if (data.content)
-    out.content = data.content;
-  if (data.is_sbt !== void 0)
-    out.isSbt = data.is_sbt;
-  return out;
-}
-function toTokenInfo(data) {
-  const result = {
-    valid: data.valid,
-    type: data.type,
-    name: data.name,
-    description: data.description,
-    image: data.image,
-    extra: data.extra,
-    animation: data?.extra?.animation_url
-  };
-  if (data.lottie) {
-    result.lottie = data.lottie;
-  } else if (data.extra && typeof data.extra === "object" && "lottie" in data.extra) {
-    const lottieValue = data.extra.lottie;
-    if (typeof lottieValue === "string") {
-      result.lottie = lottieValue;
-    }
-  }
-  if (data?.extra?.animation_url) {
-    result.animation = data.extra.animation_url;
-  } else if (data?.extra?.content_url && data.extra.content_url.includes("mp4")) {
-    result.animation = data.extra.content_url;
-  }
-  return result;
-}
-function toNftItemsResponse(data, pagination) {
-  const metadata = {};
-  const collections = {};
-  if (data.metadata) {
-    for (const address of Object.keys(data.metadata)) {
-      if (!data.metadata[address].token_info || data.metadata[address].token_info.length === 0) {
-        continue;
-      }
-      const tokenInfo = data.metadata[address].token_info[0];
-      if (tokenInfo.type === "nft_items") {
-        metadata[asAddressFriendly(address)] = {
-          isIndexed: data.metadata[address].is_indexed,
-          tokenInfo: [toTokenInfo(tokenInfo)]
-        };
-      } else if (tokenInfo.type === "nft_collections") {
-        const collection = tokenMetaToNftCollection(address, tokenInfo);
-        if (collection) {
-          collections[asAddressFriendly(address)] = collection;
-        }
-      }
-    }
-  }
-  const out = {
-    addressBook: {},
-    metadata,
-    items: (data.nft_items ?? []).map((data2) => {
-      const item = toNftItem(data2);
-      const meta = metadata[item.address];
-      if (meta) {
-        const tokenInfo = meta.tokenInfo.filter((it2) => it2.valid);
-        if (tokenInfo.length > 0) {
-          item.metadata = tokenInfo[0];
-        }
-      }
-      const itemCollection = item.collection;
-      const itemCollectionMeta = item.collectionAddress ? collections[asAddressFriendly(item.collectionAddress)] : void 0;
-      if (itemCollection || itemCollectionMeta) {
-        item.collection = {
-          ...itemCollection,
-          ...itemCollectionMeta
-        };
-      }
-      return item;
-    }),
-    pagination
-  };
-  if (out.items.length === 0) {
-    out.pagination.pages = 0;
-  }
-  if (data.address_book) {
-    for (const address of Object.keys(data.address_book)) {
-      out.addressBook[asAddressFriendly(address)] = {
-        domain: data.address_book[address].domain
-      };
-    }
-  }
-  return out;
-}
-function toDnsRecord(data) {
-  return {
-    dnsNextResolver: data.dns_next_resolver,
-    dnsSiteAdnl: data.dns_site_adnl,
-    dnsStorageBagId: data.dns_storage_bag_id,
-    dnsWallet: data.dns_wallet,
-    domain: data.domain,
-    nftItemAddress: asAddressFriendly(data.nft_item_address),
-    nftItemOwner: asAddressFriendly(data.nft_item_owner)
-  };
-}
-function toDnsRecords(data) {
-  const out = {
-    addressBook: {},
-    records: data.records ? data.records.map(toDnsRecord) : []
-  };
-  for (const key2 of Object.keys(data.address_book)) {
-    out.addressBook[asAddressFriendly(key2)] = {
-      domain: data.address_book[key2].domain
-    };
-  }
-  return out;
-}
-const ROOT_DNS_RESOLVER_MAINNET = "Ef_lZ1T4NCb2mwkme9h2rJfESCE0W34ma9lWp7-_uY3zXDvq";
-const ROOT_DNS_RESOLVER_TESTNET = "kf_v5x0Thgr6pq6ur2NvkWhIf4DxAxsL-Nk5rknT6n99oEkd";
-var DnsCategory;
-(function(DnsCategory2) {
-  DnsCategory2["DnsNextResolver"] = "dns_next_resolver";
-  DnsCategory2["Wallet"] = "wallet";
-  DnsCategory2["Site"] = "site";
-  DnsCategory2["BagId"] = "storage";
-  DnsCategory2[DnsCategory2["All"] = 0] = "All";
-})(DnsCategory || (DnsCategory = {}));
-var DnsRecord;
-(function(DnsRecord2) {
-  DnsRecord2[DnsRecord2["SmcAddress"] = 40915] = "SmcAddress";
-  DnsRecord2[DnsRecord2["NextResolver"] = 47763] = "NextResolver";
-  DnsRecord2[DnsRecord2["AdnlAddress"] = 44289] = "AdnlAddress";
-  DnsRecord2[DnsRecord2["StorageAddress"] = 29811] = "StorageAddress";
-})(DnsRecord || (DnsRecord = {}));
-function toDnsInternal(domain) {
-  domain = domain.toLowerCase().normalize("NFC");
-  return domain.split(".").filter(Boolean).reverse().join("\0") + "\0";
-}
-function toTonDnsCategory(category) {
-  category = category ?? DnsCategory.All;
-  if (typeof category === "number") {
-    return BigInt(category);
-  }
-  return BigInt("0x" + distExports$1.sha256_sync(category).toString("hex"));
-}
-async function dnsResolve(client, domain, category, resolver) {
-  let currentResolver = resolver ?? ROOT_DNS_RESOLVER_MAINNET;
-  let unresolved = domain;
-  let maxResolveDepth = 100;
-  while (maxResolveDepth > 0) {
-    maxResolveDepth--;
-    const step = await dnsLookup(client, unresolved, DnsCategory.DnsNextResolver, currentResolver);
-    if (step == null) {
-      return null;
-    }
-    if (step.unresolved) {
-      if (!step.value) {
-        return null;
-      }
-      currentResolver = step.value;
-      unresolved = step.unresolved;
-      continue;
-    }
-    if (step.record === "NextResolver" && step.value) {
-      if (category !== void 0) {
-        return dnsLookup(client, ".", category, step.value);
-      }
-      currentResolver = step.value;
-      unresolved = ".";
-      continue;
-    }
-    if (category !== void 0) {
-      return dnsLookup(client, ".", category, currentResolver);
-    }
-    return step;
-  }
-  return null;
-}
-async function dnsLookup(client, domain, category, resolver) {
-  category = category ?? DnsCategory.DnsNextResolver;
-  resolver = resolver ?? ROOT_DNS_RESOLVER_MAINNET;
-  const result = {
-    resolved: "",
-    unresolved: ""
-  };
-  const isSelf = domain === "." || domain === "";
-  const internal = toDnsInternal(domain);
-  const param = [
-    { type: "slice", cell: toStringTail(internal) },
-    { type: "int", value: toTonDnsCategory(category) }
-  ];
-  const { stack, exitCode } = await client.runGetMethod(resolver, "dnsresolve", SerializeStack(param));
-  if (stack?.length !== 2) {
-    return null;
-  }
-  const parsedStack = ParseStack(stack);
-  if (exitCode !== 0) {
-    return null;
-  }
-  const resolvedBit = parsedStack[0].type === "int" ? Number(parsedStack[0].value) : 0;
-  if (resolvedBit === 0 || resolvedBit % 8 !== 0) {
-    return null;
-  }
-  const resolvedByte = resolvedBit / 8;
-  const part = isSelf ? [] : domain.split(".").filter(Boolean);
-  const level = internal.slice(0, Number(resolvedByte)).split(".").filter(Boolean).length;
-  result.unresolved = part.slice(0, part.length - level).join(".");
-  result.resolved = part.slice(part.length - level).join(".");
-  if (category === DnsCategory.All) {
-    throw new Error("not implemented all categories are requested");
-  }
-  const cell = parsedStack[1].type === "cell" ? parsedStack[1].cell : null;
-  if (!cell) {
-    return result;
-  }
-  const slice = cell.asSlice();
-  const tag = slice.loadUint(16);
-  if (tag == DnsRecord.NextResolver || tag == DnsRecord.SmcAddress) {
-    result.value = slice.loadAddress().toString();
-  } else if (tag == DnsRecord.AdnlAddress || tag == DnsRecord.StorageAddress) {
-    result.value = toHexString(slice.loadBuffer(32));
-  } else {
-    result.value = cell.toBoc().toString("base64");
-  }
-  if (result.value) {
-    result.record = DnsRecord[tag];
-  }
-  return result;
-}
-const log$4 = globalLogger.createChild("ApiClientToncenter");
-class TonClientError extends Error {
-  status;
-  details;
-  constructor(message, status, details) {
-    super(message);
-    this.name = "TonClientError";
-    this.status = status;
-    this.details = details;
-  }
-}
-class ApiClientToncenter {
-  dnsResolver;
-  endpoint;
-  apiKey;
-  timeout;
-  fetchApi;
-  network;
-  disableNetworkSend;
-  constructor(config = {}) {
-    this.network = config.network;
-    const dnsResolver = this.network === CHAIN.MAINNET ? ROOT_DNS_RESOLVER_MAINNET : ROOT_DNS_RESOLVER_TESTNET;
-    const defaultEndpoint = this.network === CHAIN.MAINNET ? "https://toncenter.com" : "https://testnet.toncenter.com";
-    this.dnsResolver = config.dnsResolver ?? dnsResolver;
-    this.endpoint = config.endpoint ?? defaultEndpoint;
-    this.apiKey = config.apiKey;
-    this.timeout = config.timeout ?? 3e4;
-    this.fetchApi = config.fetchApi ?? fetch;
-    this.disableNetworkSend = config.disableNetworkSend ?? false;
-  }
-  async nftItemsByAddress(request) {
-    const props = {
-      address: (request.address ?? []).map(prepareAddress)
-    };
-    const response = await this.getJson("/api/v3/nft/items", props);
-    return toNftItemsResponse(response, {
-      limit: 0,
-      offset: 0
-    });
-  }
-  async nftItemsByOwner(request) {
-    const pagination = {
-      limit: request.limit ?? 10,
-      offset: request.offset ?? 0
-    };
-    const props = {
-      owner_address: (request.ownerAddress ?? []).map(prepareAddress),
-      sort_by_last_transaction_lt: request.sortByLastTransactionLt ?? false,
-      limit: pagination.limit,
-      offset: pagination.offset
-    };
-    const response = await this.getJson("/api/v3/nft/items", props);
-    const formattedResponse = toNftItemsResponse(response, pagination);
-    return formattedResponse;
-  }
-  async fetchEmulation(address, messages, seqno) {
-    if (address instanceof distExports$3.Address) {
-      address = address.toString();
-    }
-    const props = {
-      from: address,
-      valid_until: Math.floor(Date.now() / 1e3) + 60,
-      include_code_data: true,
-      include_address_book: true,
-      include_metadata: true,
-      with_actions: true,
-      messages
-    };
-    if (typeof seqno === "number")
-      props.mc_block_seqno = seqno;
-    return this.postJson("/api/emulate/v1/emulateTonConnect", props);
-  }
-  async sendBoc(boc) {
-    if (this.disableNetworkSend) {
-      return "";
-    }
-    if (typeof boc !== "string") {
-      boc = Uint8ArrayToBase64(boc);
-    }
-    const response = await this.postJson("/api/v3/message", { boc });
-    return Base64ToBigInt(response.message_hash_norm).toString(16);
-  }
-  async runGetMethod(address, method, stack = [], seqno) {
-    if (address instanceof distExports$3.Address) {
-      address = address.toString();
-    }
-    const props = {
-      address,
-      method,
-      stack
-      //serializeStack(stack),
-    };
-    if (typeof seqno === "number")
-      props.seqno = seqno;
-    const raw = await this.postJson("/api/v3/runGetMethod", props);
-    return {
-      gasUsed: raw.gas_used,
-      stack: raw.stack,
-      exitCode: raw.exit_code
-    };
-  }
-  async getAccountState(address, seqno) {
-    if (address instanceof distExports$3.Address) {
-      address = address.toString();
-    }
-    const query = { include_boc: true, address: [address] };
-    if (typeof seqno === "number")
-      query.seqno = seqno.toString();
-    const raw = await this.getJson("/api/v3/addressInformation", query);
-    const balance = BigInt(raw.balance);
-    const extraCurrencies = {};
-    for (const currency of raw.extra_currencies || []) {
-      extraCurrencies[currency.id] = BigInt(currency.amount);
-    }
-    const out = {
-      status: raw.status,
-      balance: balance.toString(),
-      extraCurrencies,
-      code: raw.code,
-      data: raw.data,
-      lastTransaction: parseInternalTransactionId({
-        hash: raw.last_transaction_hash,
-        lt: raw.last_transaction_lt
-      })
-    };
-    if (raw.frozen_hash) {
-      out.frozenHash = Base64ToHex(raw.frozen_hash) ?? void 0;
-    }
-    return out;
-  }
-  async getBalance(address, seqno) {
-    return (await this.getAccountState(address, seqno)).balance;
-  }
-  async doRequest(url, init2 = {}) {
-    const fetchFn = this.fetchApi;
-    if (!this.timeout || this.timeout <= 0) {
-      return fetchFn(url, init2);
-    }
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-    try {
-      return await fetchFn(url, { ...init2, signal: controller.signal });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  }
-  async fetch(url, props = {}) {
-    const headers = new Headers(props.headers);
-    headers.set("accept", "application/json");
-    if (this.apiKey)
-      headers.set("x-api-key", this.apiKey);
-    props = { ...props, headers };
-    const response = await this.doRequest(url, props);
-    if (!response.ok) {
-      throw await this.buildError(response);
-    }
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
-      const text = await response.text();
-      throw new TonClientError("Unexpected non-JSON response", response.status, text.slice(0, 200));
-    }
-    const json = await response.json();
-    return json;
-  }
-  async getJson(path, query) {
-    return this.fetch(this.buildUrl(path, query), { method: "GET" });
-  }
-  async postJson(path, props) {
-    return this.fetch(this.buildUrl(path), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(props)
-    });
-  }
-  buildUrl(path, query = {}) {
-    const url = new URL(path.replace(/^\/*/, "/"), this.endpoint);
-    for (const [key2, value] of Object.entries(query)) {
-      if (typeof value === "string")
-        url.searchParams.set(key2, value);
-      else if (Array.isArray(value)) {
-        for (const item of value) {
-          if (typeof item === "string")
-            url.searchParams.set(key2, item);
-          else if (item != null && typeof item.toString === "function") {
-            url.searchParams.set(key2, item.toString());
-          }
-        }
-      } else if (value != null && typeof value.toString === "function") {
-        url.searchParams.set(key2, value.toString());
-      }
-    }
-    return url;
-  }
-  async buildError(response) {
-    const message = response.statusText || "HTTP Error";
-    const code = response.status ?? 500;
-    let detail;
-    try {
-      detail = await response.json();
-    } catch {
-    }
-    return new TonClientError(`HTTP ${response.status}: ${message}`, code, detail);
-  }
-  async getAccountTransactions(request) {
-    const accounts = request.address?.map(prepareAddress);
-    let offset = request.offset ?? 0;
-    let limit = request.limit ?? 10;
-    if (limit > 100) {
-      limit = 100;
-    } else if (limit < 0) {
-      limit = 0;
-    }
-    if (offset < 0) {
-      offset = 0;
-    }
-    const response = await this.getJson("/api/v3/transactions", {
-      account: accounts,
-      limit,
-      offset
-    });
-    return response;
-  }
-  async getTransactionsByHash(request) {
-    const msgHash = "msgHash" in request ? padBase64(request.msgHash) : void 0;
-    const bodyHash = "bodyHash" in request ? padBase64(request.bodyHash) : void 0;
-    const response = await this.getJson("/api/v3/transactionsByMessage", {
-      msg_hash: msgHash ? [msgHash] : void 0,
-      body_hash: bodyHash ? [bodyHash] : void 0
-    });
-    return response;
-  }
-  async getPendingTransactions(request) {
-    const accounts = "accounts" in request ? request.accounts?.map(prepareAddress) : void 0;
-    const traceId = "traceId" in request ? request.traceId : void 0;
-    const response = await this.getJson("/api/v3/pendingTransactions", {
-      account: accounts,
-      trace_id: traceId
-    });
-    return response;
-  }
-  async getTrace(request) {
-    const inTraceId = request.traceId ? request.traceId[0] : void 0;
-    const traceId = padBase64(Base64Normalize(inTraceId || "").replace(/=/g, ""));
-    try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
-        tx_hash: traceId
-      }));
-      if (response.traces.length > 0) {
-        return response;
-      }
-    } catch (error2) {
-      log$4.error("Error fetching trace", { error: error2 });
-    }
-    try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
-        trace_id: traceId
-      }));
-      if (response.traces.length > 0) {
-        return response;
-      }
-    } catch (error2) {
-      log$4.error("Error fetching trace", { error: error2 });
-    }
-    try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
-        msg_hash: traceId
-      }));
-      if (response.traces.length > 0) {
-        return response;
-      }
-    } catch (error2) {
-      log$4.error("Error fetching pending trace", { error: error2 });
-    }
-    throw new Error("Failed to fetch trace");
-  }
-  async getPendingTrace(request) {
-    try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/pendingTraces", {
-        ext_msg_hash: request.externalMessageHash
-      }));
-      if (response.traces.length > 0) {
-        return response;
-      }
-    } catch (error2) {
-      log$4.error("Error fetching pending trace", { error: error2 });
-    }
-    throw new Error("Failed to fetch pending trace");
-  }
-  async resolveDnsWallet(domain) {
-    const result = await dnsResolve(this, domain, DnsCategory.Wallet, this.dnsResolver);
-    if (result && result.value) {
-      return result.value;
-    }
-    return null;
-  }
-  async backResolveDnsWallet(wallet) {
-    if (wallet instanceof distExports$3.Address) {
-      wallet = wallet.toString();
-    }
-    const response = toDnsRecords(await this.getJson("/api/v3/dns/records", {
-      wallet,
-      limit: 1,
-      offset: 0
-    }));
-    if (response.records.length > 0) {
-      return response.records[0].domain;
-    }
-    return null;
-  }
-  async jettonsByAddress(request) {
-    return this.getJson("/api/v3/jetton/masters", {
-      address: request.address,
-      offset: request.offset,
-      limit: request.limit
-    });
-  }
-  async jettonsByOwnerAddress(request) {
-    const offset = request.offset ?? 0;
-    const limit = request.limit ?? 50;
-    const rawResponse = await this.getJson("/api/v3/jetton/wallets", {
-      owner_address: request.ownerAddress,
-      offset,
-      limit
-    });
-    return this.mapToResponseUserJettons(rawResponse, offset, limit);
-  }
-  mapToResponseUserJettons(rawResponse, offset, limit) {
-    const userJettons = rawResponse.jetton_wallets.map((wallet) => {
-      const jettonInfo = this.extractJettonInfoFromMetadata(wallet.jetton, rawResponse.metadata);
-      return {
-        address: wallet.jetton,
-        balance: wallet.balance,
-        jettonWalletAddress: wallet.address,
-        usdValue: "0",
-        name: jettonInfo.name,
-        symbol: jettonInfo.symbol,
-        description: jettonInfo.description,
-        decimals: jettonInfo.decimals,
-        image: jettonInfo.image,
-        verification: jettonInfo.verification,
-        metadata: jettonInfo.metadata,
-        totalSupply: jettonInfo.totalSupply,
-        uri: jettonInfo.uri,
-        image_data: jettonInfo.image_data,
-        lastActivity: wallet.last_transaction_lt
-      };
-    });
-    return {
-      jettons: userJettons,
-      address_book: rawResponse.address_book,
-      pagination: {
-        offset,
-        limit
-      }
-    };
-  }
-  extractJettonInfoFromMetadata(jettonAddress, metadata) {
-    const jettonMetadata = metadata[jettonAddress];
-    const metadataJettonInfo = jettonMetadata?.token_info?.find((info) => typeof info === "object" && info !== null && "type" in info && info.type === "jetton_masters");
-    if (metadataJettonInfo) {
-      const decimals = typeof metadataJettonInfo.extra.decimals === "string" ? parseInt(metadataJettonInfo.extra.decimals, 10) : metadataJettonInfo.extra.decimals ?? 9;
-      return {
-        address: jettonAddress,
-        name: metadataJettonInfo.name ?? "",
-        symbol: metadataJettonInfo.symbol ?? "",
-        description: metadataJettonInfo.description ?? "",
-        decimals,
-        image: metadataJettonInfo.image,
-        image_data: metadataJettonInfo.extra.image_data,
-        uri: metadataJettonInfo.extra.uri
-      };
-    }
-    return {
-      address: jettonAddress,
-      name: "",
-      symbol: "",
-      description: "",
-      decimals: 9
-    };
-  }
-  async getEvents(request) {
-    const account = request.account instanceof distExports$3.Address ? request.account.toString() : request.account;
-    const limit = request.limit ?? 20;
-    const offset = request.offset ?? 0;
-    const query = {
-      account,
-      limit,
-      offset
-    };
-    const list = await this.getJson("/api/v3/traces", query);
-    const out = { events: [], limit, offset, hasNext: list.traces.length >= limit };
-    const addressBook = toAddressBook(list);
-    for (const trace of list.traces) {
-      out.events.push(toEvent(trace, account, addressBook));
-    }
-    return out;
-  }
-}
-const padBase64 = (data) => {
-  return data.padEnd(data.length + (4 - data.length % 4), "=");
-};
-function prepareAddress(address) {
-  if (address instanceof distExports$3.Address) {
-    address = address.toString();
-  }
-  return address;
-}
-function parseInternalTransactionId(data) {
-  if (data.hash !== "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=") {
-    return {
-      lt: data.lt,
-      hash: Base64ToHex(data.hash)
-    };
-  }
-  return null;
-}
-const log$3 = globalLogger.createChild("NetworkManager");
-class NetworkManager {
-  clients = /* @__PURE__ */ new Map();
-  constructor(options) {
-    this.initializeClients(options);
-    const configuredNetworks = this.getConfiguredNetworks();
-    if (configuredNetworks.length === 0) {
-      throw new WalletKitError(ERROR_CODES.CONFIGURATION_ERROR, "At least one network must be configured in TonWalletKitOptions.networks");
-    }
-  }
-  /**
-   * Initialize API clients from configuration
-   */
-  initializeClients(options) {
-    const networks = options.networks;
-    if (!networks) {
-      log$3.warn("No networks configured in TonWalletKitOptions");
-      return;
-    }
-    for (const [chainIdStr, networkConfig] of Object.entries(networks)) {
-      const chainId = chainIdStr;
-      if (!networkConfig)
-        continue;
-      const client = this.createClient(chainId, networkConfig.apiClient, options);
-      this.clients.set(chainId, client);
-      log$3.info("Initialized network client", { chainId });
-    }
-  }
-  /**
-   * Create an API client for a specific network
-   */
-  createClient(network, apiClientConfig, options) {
-    if (this.isApiClient(apiClientConfig)) {
-      return apiClientConfig;
-    }
-    const defaultEndpoint = network === CHAIN.MAINNET ? "https://toncenter.com" : "https://testnet.toncenter.com";
-    const endpoint = apiClientConfig?.url || defaultEndpoint;
-    return new ApiClientToncenter({
-      endpoint,
-      apiKey: apiClientConfig?.key,
-      network,
-      disableNetworkSend: options.dev?.disableNetworkSend
-    });
-  }
-  /**
-   * Type guard to check if value is a full ApiClient instance
-   */
-  isApiClient(value) {
-    return !!value && "nftItemsByAddress" in value && "nftItemsByOwner" in value && "fetchEmulation" in value && "sendBoc" in value && "runGetMethod" in value && "getAccountState" in value && "getBalance" in value;
-  }
-  /**
-   * Get API client for a specific network
-   * @param chainId - The chain ID (CHAIN.MAINNET or CHAIN.TESTNET)
-   * @returns The API client for the specified network
-   * @throws WalletKitError if no client is configured for the network
-   */
-  getClient(chainId) {
-    const client = this.clients.get(chainId);
-    if (!client) {
-      throw new WalletKitError(ERROR_CODES.NETWORK_NOT_CONFIGURED, `No API client configured for network ${chainId}`, void 0, {
-        chainId,
-        configuredNetworks: Array.from(this.clients.keys())
-      });
-    }
-    return client;
-  }
-  /**
-   * Check if a network is configured
-   */
-  hasNetwork(chainId) {
-    return this.clients.has(chainId);
-  }
-  /**
-   * Get all configured networks
-   */
-  getConfiguredNetworks() {
-    return Array.from(this.clients.keys());
-  }
-  /**
-   * Add or update a network client dynamically
-   */
-  setClient(chainId, client) {
-    this.clients.set(chainId, client);
-    log$3.info("Added/updated network client", { chainId });
-  }
-}
-const log$2 = globalLogger.createChild("TonWalletKit");
-class TonWalletKit {
-  // Component references
-  walletManager;
-  sessionManager;
-  eventRouter;
-  requestProcessor;
-  // private responseHandler!: ResponseHandler;
-  networkManager;
-  jettonsManager;
-  initializer;
-  eventProcessor;
-  bridgeManager;
-  config;
-  // Event emitter for this kit instance
-  eventEmitter;
-  // State
-  isInitialized = false;
-  initializationPromise;
-  analyticsApi;
-  constructor(options) {
-    this.config = options;
-    if (options?.analytics?.enabled) {
-      this.analyticsApi = new AnalyticsApi(options?.analytics);
-    }
-    this.networkManager = new NetworkManager(options);
-    this.eventEmitter = new EventEmitter();
-    this.initializer = new Initializer(options, this.eventEmitter, this.analyticsApi);
-    this.initializationPromise = this.initialize();
-    this.jettonsManager = new JettonsManager(1e4, this.eventEmitter, this.networkManager);
-    this.eventEmitter.on("restoreConnection", async (event) => {
-      if (!event.domain) {
-        log$2.error("Domain is required for restore connection");
-        return;
-      }
-      const session = await this.sessionManager.getSessionByDomain(event.domain);
-      if (!session) {
-        log$2.error("Session not found for domain", { domain: event.domain });
-        return;
-      }
-      const wallet = session.walletId ? this.walletManager?.getWallet(session.walletId) : void 0;
-      if (!wallet) {
-        log$2.error("Wallet not found for session", { walletId: session.walletId });
-        return;
-      }
-      const walletAddress = wallet.getAddress();
-      const deviceInfo = getDeviceInfoWithDefaults(this.config.deviceInfo);
-      const connectResponse = {
-        event: "connect",
-        id: Date.now(),
-        payload: {
-          device: deviceInfo,
-          items: [
-            {
-              name: "ton_addr",
-              address: distExports$3.Address.parse(walletAddress).toRawString(),
-              network: wallet.getNetwork(),
-              walletStateInit: "",
-              publicKey: ""
-            }
-          ]
-        }
-      };
-      this.bridgeManager.sendJsBridgeResponse(event?.tabId?.toString() || "", true, event?.id ?? event?.messageId, connectResponse);
-    });
-  }
-  // === Initialization ===
-  /**
-   * Initialize all components
-   */
-  async initialize() {
-    if (this.isInitialized)
-      return;
-    try {
-      const components = await this.initializer.initialize(this.config, this.networkManager);
-      this.assignComponents(components);
-      await this.setupEventRouting();
-      this.eventProcessor.startRecoveryLoop();
-      await this.eventProcessor.startProcessing();
-      this.isInitialized = true;
-    } catch (error2) {
-      log$2.error("TonWalletKit initialization failed", { error: error2?.toString() });
-      throw error2;
-    }
-  }
-  /**
-   * Assign initialized components
-   */
-  assignComponents(components) {
-    this.walletManager = components.walletManager;
-    this.sessionManager = components.sessionManager;
-    this.eventRouter = components.eventRouter;
-    this.requestProcessor = components.requestProcessor;
-    this.eventProcessor = components.eventProcessor;
-    this.bridgeManager = components.bridgeManager;
-  }
-  /**
-   * Setup event routing from bridge to handlers
-   */
-  async setupEventRouting() {
-    await this.startProcessingForExistingWallets();
-  }
-  /**
-   * Start event processing for all existing wallets
-   */
-  async startProcessingForExistingWallets() {
-    const wallets2 = this.walletManager.getWallets();
-    for (const wallet of wallets2) {
-      try {
-        const walletId = createWalletId(wallet.getNetwork(), wallet.getAddress());
-        await this.eventProcessor.startProcessing(walletId);
-      } catch (error2) {
-        log$2.error("Failed to start event processing for wallet", {
-          walletAddress: wallet.getAddress(),
-          error: error2
-        });
-      }
-    }
-  }
-  /**
-   * Ensure initialization is complete
-   */
-  async ensureInitialized() {
-    if (this.initializationPromise) {
-      await this.initializationPromise;
-    }
-  }
-  /**
-   * Get all configured networks
-   */
-  getConfiguredNetworks() {
-    return this.networkManager.getConfiguredNetworks();
-  }
-  // === Wallet Management API (Delegated) ===
-  getWallets() {
-    if (!this.isInitialized) {
-      log$2.warn("TonWalletKit not yet initialized, returning empty array");
-      return [];
-    }
-    return this.walletManager.getWallets();
-  }
-  /**
-   * Get wallet by wallet ID (network:address format)
-   */
-  getWallet(walletId) {
-    if (!this.isInitialized) {
-      log$2.warn("TonWalletKit not yet initialized, returning undefined");
-      return void 0;
-    }
-    return this.walletManager.getWallet(walletId);
-  }
-  /**
-   * Get wallet by address and network
-   */
-  getWalletByAddressAndNetwork(address, network) {
-    if (!this.isInitialized) {
-      log$2.warn("TonWalletKit not yet initialized, returning undefined");
-      return void 0;
-    }
-    return this.walletManager.getWalletByAddressAndNetwork(address, network);
-  }
-  async addWallet(adapter) {
-    await this.ensureInitialized();
-    const walletNetwork = adapter.getNetwork();
-    if (!this.networkManager.hasNetwork(walletNetwork)) {
-      throw new WalletKitError(ERROR_CODES.NETWORK_NOT_CONFIGURED, `No API client configured for wallet network ${walletNetwork}`, void 0, { walletNetwork, configuredNetworks: this.networkManager.getConfiguredNetworks() });
-    }
-    const wallet = await wrapWalletInterface(adapter);
-    const walletId = await this.walletManager.addWallet(wallet);
-    await this.eventProcessor.startProcessing(walletId);
-    return wallet;
-  }
-  async removeWallet(walletIdOrAdapter) {
-    await this.ensureInitialized();
-    let wallet;
-    let walletId;
-    if (typeof walletIdOrAdapter === "string") {
-      walletId = walletIdOrAdapter;
-      wallet = this.walletManager.getWallet(walletIdOrAdapter);
-    } else {
-      walletId = this.walletManager.getWalletId(walletIdOrAdapter);
-      wallet = this.walletManager.getWallet(walletId);
-    }
-    if (!wallet) {
-      throw new WalletKitError(ERROR_CODES.WALLET_NOT_FOUND, "Wallet not found for removal", void 0, {
-        walletId
-      });
-    }
-    await this.eventProcessor.stopProcessing(wallet.getAddress());
-    await this.walletManager.removeWallet(walletId);
-    await this.sessionManager.removeSessionsForWallet(walletId);
-  }
-  async clearWallets() {
-    await this.ensureInitialized();
-    const wallets2 = this.walletManager.getWallets();
-    for (const wallet of wallets2) {
-      await this.eventProcessor.stopProcessing(wallet.getAddress());
-    }
-    await this.walletManager.clearWallets();
-    await this.sessionManager.clearSessions();
-  }
-  // === Session Management API (Delegated) ===
-  async disconnect(sessionId) {
-    await this.ensureInitialized();
-    const removeSession = async (sessionId2) => {
-      const session = await this.sessionManager.getSession(sessionId2);
-      if (session) {
-        try {
-          await CallForSuccess(() => this.bridgeManager.sendResponse({
-            sessionId: sessionId2,
-            isJsBridge: session?.isJsBridge,
-            id: Date.now(),
-            from: sessionId2
-          }, {
-            event: "disconnect",
-            id: Date.now(),
-            payload: {}
-          }, session), 10, 100);
-        } catch (error2) {
-          log$2.error("Failed to send disconnect to bridge", { sessionId: sessionId2, error: error2 });
-        }
-      }
-      await this.sessionManager.removeSession(sessionId2);
-    };
-    if (sessionId) {
-      try {
-        await removeSession(sessionId);
-      } catch (error2) {
-        log$2.error("Failed to remove session", { sessionId, error: error2 });
-      }
-    } else {
-      const sessions = this.sessionManager.getSessions();
-      if (sessions.length > 0) {
-        for (const session of sessions) {
-          try {
-            await removeSession(session.sessionId);
-          } catch (error2) {
-            log$2.error("Failed to remove session", { sessionId: session.sessionId, error: error2 });
-          }
-        }
-      }
-    }
-  }
-  async listSessions() {
-    await this.ensureInitialized();
-    return this.sessionManager.getSessionsForAPI();
-  }
-  // === Event Handler Registration (Delegated) ===
-  onConnectRequest(cb) {
-    if (this.eventRouter) {
-      this.eventRouter.onConnectRequest(cb);
-    } else {
-      this.ensureInitialized().then(() => {
-        this.eventRouter.onConnectRequest(cb);
-      });
-    }
-  }
-  onTransactionRequest(cb) {
-    if (this.eventRouter) {
-      this.eventRouter.onTransactionRequest(cb);
-    } else {
-      this.ensureInitialized().then(() => {
-        this.eventRouter.onTransactionRequest(cb);
-      });
-    }
-  }
-  onSignDataRequest(cb) {
-    if (this.eventRouter) {
-      this.eventRouter.onSignDataRequest(cb);
-    } else {
-      this.ensureInitialized().then(() => {
-        this.eventRouter.onSignDataRequest(cb);
-      });
-    }
-  }
-  onDisconnect(cb) {
-    if (this.eventRouter) {
-      this.eventRouter.onDisconnect(cb);
-    } else {
-      this.ensureInitialized().then(() => {
-        this.eventRouter.onDisconnect(cb);
-      });
-    }
-  }
-  removeConnectRequestCallback() {
-    this.eventRouter.removeConnectRequestCallback();
-  }
-  removeTransactionRequestCallback() {
-    this.eventRouter.removeTransactionRequestCallback();
-  }
-  removeSignDataRequestCallback() {
-    this.eventRouter.removeSignDataRequestCallback();
-  }
-  removeDisconnectCallback() {
-    this.eventRouter.removeDisconnectCallback();
-  }
-  onRequestError(cb) {
-    if (this.eventRouter) {
-      this.eventRouter.onRequestError(cb);
-    } else {
-      this.ensureInitialized().then(() => {
-        this.eventRouter.onRequestError(cb);
-      });
-    }
-  }
-  removeErrorCallback() {
-    this.eventRouter.removeErrorCallback();
-  }
-  // === URL Processing API ===
-  /**
-   * Handle pasted TON Connect URL/link
-   * Parses the URL and creates a connect request event
-   */
-  async handleTonConnectUrl(url) {
-    await this.ensureInitialized();
-    try {
-      const parsedUrl = this.parseTonConnectUrl(url);
-      if (!parsedUrl) {
-        throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Invalid TON Connect URL format", void 0, {
-          url
-        });
-      }
-      const bridgeEvent = this.createConnectEventFromUrl(parsedUrl);
-      if (!bridgeEvent) {
-        throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Invalid TON Connect URL - unable to create bridge event", void 0, { parsedUrl });
-      }
-      await this.eventRouter.routeEvent(bridgeEvent);
-    } catch (error2) {
-      log$2.error("Failed to handle TON Connect URL", { error: error2, url });
-      throw error2;
-    }
-  }
-  async handleNewTransaction(wallet, data) {
-    await this.ensureInitialized();
-    data.valid_until ??= Math.floor(Date.now() / 1e3) + 300;
-    data.network ??= wallet.getNetwork();
-    const walletId = wallet.getWalletId();
-    const bridgeEvent = {
-      id: Date.now().toString(),
-      method: "sendTransaction",
-      params: [JSON.stringify(data)],
-      from: "",
-      domain: "",
-      isLocal: true,
-      walletId,
-      walletAddress: wallet.getAddress().toString()
-    };
-    await this.eventRouter.routeEvent(bridgeEvent);
-  }
-  /**
-   * Parse TON Connect URL to extract connection parameters
-   */
-  parseTonConnectUrl(url) {
-    try {
-      let parsedUrl;
-      parsedUrl = new URL(url);
-      const params = {};
-      for (const [key2, value] of parsedUrl.searchParams.entries()) {
-        params[key2] = value;
-      }
-      if (!params.v || !params.id || !params.r) {
-        log$2.warn("Missing required TON Connect URL parameters");
-        return null;
-      }
-      return {
-        version: params.v,
-        clientId: params.id,
-        requestId: params.id,
-        returnStrategy: params.ret || "back",
-        r: params.r,
-        ...params
-      };
-    } catch (error2) {
-      log$2.error("Failed to parse TON Connect URL", { error: error2, url });
-      return null;
-    }
-  }
-  /**
-   * Create bridge event from parsed URL parameters
-   */
-  createConnectEventFromUrl(params) {
-    const rString = params.r;
-    const r = rString ? JSON.parse(rString) : void 0;
-    if (!r?.manifestUrl || !params.clientId) {
-      return void 0;
-    }
-    return {
-      from: params.clientId,
-      id: params.requestId,
-      method: "connect",
-      params: {
-        manifest: {
-          url: r.manifestUrl
-        },
-        items: r.items,
-        returnStrategy: params.returnStrategy
-      },
-      timestamp: Date.now(),
-      domain: ""
-    };
-  }
-  // === Request Processing API (Delegated) ===
-  async approveConnectRequest(event) {
-    await this.ensureInitialized();
-    return this.requestProcessor.approveConnectRequest(event);
-  }
-  async rejectConnectRequest(event, reason, errorCode) {
-    await this.ensureInitialized();
-    return this.requestProcessor.rejectConnectRequest(event, reason, errorCode);
-  }
-  async approveTransactionRequest(event) {
-    await this.ensureInitialized();
-    return this.requestProcessor.approveTransactionRequest(event);
-  }
-  async rejectTransactionRequest(event, reason) {
-    await this.ensureInitialized();
-    return this.requestProcessor.rejectTransactionRequest(event, reason);
-  }
-  async approveSignDataRequest(event) {
-    await this.ensureInitialized();
-    return this.requestProcessor.approveSignDataRequest(event);
-  }
-  async rejectSignDataRequest(event, reason) {
-    await this.ensureInitialized();
-    return this.requestProcessor.rejectSignDataRequest(event, reason);
-  }
-  // === TON Client Access ===
-  /**
-   * Get API client for a specific network
-   * @param chainId - The chain ID (CHAIN.MAINNET or CHAIN.TESTNET)
-   * @returns The API client for the specified network
-   * @throws WalletKitError if no client is configured for the network
-   */
-  getApiClient(chainId) {
-    if (!this.isInitialized) {
-      throw new WalletKitError(ERROR_CODES.INITIALIZATION_ERROR, "TonWalletKit not yet initialized - call initialize() first");
-    }
-    return this.networkManager.getClient(chainId);
-  }
-  /**
-   * Get the NetworkManager instance
-   * Provides access to all configured network clients
-   */
-  getNetworkManager() {
-    return this.networkManager;
-  }
-  // === Lifecycle Management ===
-  /**
-   * Check if kit is ready for use
-   */
-  isReady() {
-    return this.isInitialized;
-  }
-  /**
-   * Wait for initialization to complete
-   */
-  async waitForReady() {
-    await this.ensureInitialized();
-  }
-  /**
-   * Get initialization status
-   */
-  getStatus() {
-    return {
-      initialized: this.isInitialized,
-      ready: this.isInitialized
-    };
-  }
-  /**
-   * Clean shutdown
-   */
-  async close() {
-    if (this.initializer) {
-      await this.initializer.cleanup({
-        walletManager: this.walletManager,
-        bridgeManager: this.bridgeManager,
-        sessionManager: this.sessionManager,
-        eventRouter: this.eventRouter,
-        requestProcessor: this.requestProcessor,
-        eventProcessor: this.eventProcessor
-      });
-    }
-    this.isInitialized = false;
-  }
-  // === Jettons API ===
-  /**
-   * Jettons API access
-   */
-  get jettons() {
-    return this.jettonsManager;
-  }
-  /**
-   * Get jettons manager for internal use
-   */
-  getJettonsManager() {
-    return this.jettonsManager;
-  }
-  /**
-   * Get the event emitter for this kit instance
-   * Allows external components to listen to and emit events
-   */
-  getEventEmitter() {
-    return this.eventEmitter;
-  }
-  /**
-   * Process a bridge request from injected JS Bridge
-   * This method is called by extension content scripts
-   * @param request - The bridge request to process
-   * @returns Promise resolving to the response data
-   */
-  async processInjectedBridgeRequest(messageInfo, request) {
-    await this.ensureInitialized();
-    return this.bridgeManager.queueJsBridgeEvent(messageInfo, request);
-  }
-}
-const WalletV5R1CodeBoc = "b5ee9c7201021401000281000114ff00f4a413f4bcf2c80b01020120020302014804050102f20e02dcd020d749c120915b8f6320d70b1f2082106578746ebd21821073696e74bdb0925f03e082106578746eba8eb48020d72101d074d721fa4030fa44f828fa443058bd915be0ed44d0810141d721f4058307f40e6fa1319130e18040d721707fdb3ce03120d749810280b99130e070e2100f020120060702012008090019be5f0f6a2684080a0eb90fa02c02016e0a0b0201480c0d0019adce76a2684020eb90eb85ffc00019af1df6a2684010eb90eb858fc00017b325fb51341c75c875c2c7e00011b262fb513435c28020011e20d70b1f82107369676ebaf2e08a7f0f01e68ef0eda2edfb218308d722028308d723208020d721d31fd31fd31fed44d0d200d31f20d31fd3ffd70a000af90140ccf9109a28945f0adb31e1f2c087df02b35007b0f2d0845125baf2e0855036baf2e086f823bbf2d0882292f800de01a47fc8ca00cb1f01cf16c9ed542092f80fde70db3cd81003f6eda2edfb02f404216e926c218e4c0221d73930709421c700b38e2d01d72820761e436c20d749c008f2e09320d74ac002f2e09320d71d06c712c2005230b0f2d089d74cd7393001a4e86c128407bbf2e093d74ac000f2e093ed55e2d20001c000915be0ebd72c08142091709601d72c081c12e25210b1e30f20d74a111213009601fa4001fa44f828fa443058baf2e091ed44d0810141d718f405049d7fc8ca0040048307f453f2e08b8e14038307f45bf2e08c22d70a00216e01b3b0f2d090e2c85003cf1612f400c9ed54007230d72c08248e2d21f2e092d200ed44d0d2005113baf2d08f54503091319c01810140d721d70a00f2e08ee2c8ca0058cf16c9ed5493f2c08de20010935bdb31e1d74cd0";
-const WalletV5R1CodeCell = distExports$3.Cell.fromBoc(Buffer.from(WalletV5R1CodeBoc, "hex"))[0];
-function DefaultSignature(data, privateKey) {
-  let fullKey = privateKey;
-  if (fullKey.length === 32) {
-    const keyPair = distExports$1.keyPairFromSeed(Buffer.from(fullKey));
-    fullKey = keyPair.secretKey;
-  }
-  return Uint8ArrayToHex(distExports$1.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(fullKey)));
-}
-function createWalletSigner(privateKey) {
-  return async (data) => {
-    return DefaultSignature(Uint8Array.from(data), privateKey);
-  };
-}
-const fakeKeyPair = distExports$1.keyPairFromSeed(Buffer.alloc(32, 0));
-function FakeSignature(data) {
-  return Uint8ArrayToHex([...distExports$1.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(fakeKeyPair.secretKey))]);
-}
-class ActionSendMsg {
-  mode;
-  outMsg;
-  static tag = 247711853;
-  tag = ActionSendMsg.tag;
-  constructor(mode, outMsg) {
-    this.mode = mode;
-    this.outMsg = outMsg;
-  }
-  serialize() {
-    return distExports$3.beginCell().storeUint(this.tag, 32).storeUint(this.mode | distExports$3.SendMode.IGNORE_ERRORS, 8).storeRef(distExports$3.beginCell().store(distExports$3.storeMessageRelaxed(this.outMsg)).endCell()).endCell();
-  }
-}
-class ActionAddExtension {
-  address;
-  static tag = 2;
-  tag = ActionAddExtension.tag;
-  constructor(address) {
-    this.address = address;
-  }
-  serialize() {
-    return distExports$3.beginCell().storeUint(this.tag, 8).storeAddress(this.address).endCell();
-  }
-}
-class ActionRemoveExtension {
-  address;
-  static tag = 3;
-  tag = ActionRemoveExtension.tag;
-  constructor(address) {
-    this.address = address;
-  }
-  serialize() {
-    return distExports$3.beginCell().storeUint(this.tag, 8).storeAddress(this.address).endCell();
-  }
-}
-class ActionSetSignatureAuthAllowed {
-  allowed;
-  static tag = 4;
-  tag = ActionSetSignatureAuthAllowed.tag;
-  constructor(allowed) {
-    this.allowed = allowed;
-  }
-  serialize() {
-    return distExports$3.beginCell().storeUint(this.tag, 8).storeUint(this.allowed ? 1 : 0, 1).endCell();
-  }
-}
-function isExtendedAction(action) {
-  return action.tag === ActionAddExtension.tag || action.tag === ActionRemoveExtension.tag || action.tag === ActionSetSignatureAuthAllowed.tag;
-}
-function packActionsListOut(actions) {
-  if (actions.length === 0) {
-    return distExports$3.beginCell().endCell();
-  }
-  const [action, ...rest] = actions;
-  if (isExtendedAction(action)) {
-    throw new Error("Actions bust be in an order: all extended actions, all out actions");
-  }
-  return distExports$3.beginCell().storeRef(packActionsListOut(rest)).storeSlice(action.serialize().beginParse()).endCell();
-}
-function packExtendedActions(extendedActions) {
-  const first = extendedActions[0];
-  const rest = extendedActions.slice(1);
-  let builder2 = distExports$3.beginCell().storeSlice(first.serialize().beginParse());
-  if (rest.length > 0) {
-    builder2 = builder2.storeRef(packExtendedActions(extendedActions.slice(1)));
-  }
-  return builder2.endCell();
-}
-function packActionsListExtended(actions) {
-  const extendedActions = [];
-  const outActions = [];
-  actions.forEach((action) => {
-    if (isExtendedAction(action)) {
-      extendedActions.push(action);
-    } else {
-      outActions.push(action);
-    }
-  });
-  let builder2 = distExports$3.beginCell();
-  if (outActions.length === 0) {
-    builder2 = builder2.storeUint(0, 1);
-  } else {
-    builder2 = builder2.storeMaybeRef(packActionsListOut(outActions.slice().reverse()));
-  }
-  if (extendedActions.length === 0) {
-    builder2 = builder2.storeUint(0, 1);
-  } else {
-    const first = extendedActions[0];
-    const rest = extendedActions.slice(1);
-    builder2 = builder2.storeUint(1, 1).storeSlice(first.serialize().beginParse());
-    if (rest.length > 0) {
-      builder2 = builder2.storeRef(packExtendedActions(rest));
-    }
-  }
-  return builder2.endCell();
-}
-function packActionsList(actions) {
-  return packActionsListExtended(actions);
-}
-const log$1 = globalLogger.createChild("WalletV5R1Adapter");
-const defaultWalletIdV5R1 = 2147483409;
-class WalletV5R1Adapter {
-  // private keyPair: { publicKey: Uint8Array; secretKey: Uint8Array };
-  signer;
-  config;
-  walletContract;
-  client;
-  publicKey;
-  version = "v5r1";
-  /**
-   * Static factory method to create a WalletV5R1Adapter
-   * @param signer - Signer function with publicKey property (from Signer utility)
-   * @param options - Configuration options for the wallet
-   */
-  static async create(signer, options) {
-    return new WalletV5R1Adapter({
-      signer,
-      publicKey: signer.publicKey,
-      tonClient: options.client,
-      network: options.network,
-      walletId: options.walletId,
-      workchain: options.workchain
-    });
-  }
-  constructor(config) {
-    this.config = config;
-    this.client = config.tonClient;
-    this.signer = config.signer;
-    this.publicKey = this.config.publicKey;
-    this.walletContract = WalletV5.createFromConfig({
-      publicKey: HexToBigInt(this.publicKey),
-      seqno: 0,
-      signatureAllowed: true,
-      walletId: typeof config.walletId === "bigint" ? Number(config.walletId) : config.walletId ?? defaultWalletIdV5R1,
-      extensions: distExports$3.Dictionary.empty()
-    }, {
-      code: WalletV5R1CodeCell,
-      workchain: config.workchain ?? 0,
-      client: this.client
-    });
-  }
-  getPublicKey() {
-    return this.publicKey;
-  }
-  getClient() {
-    return this.client;
-  }
-  /**
-   * Sign raw bytes with wallet's private key
-   */
-  async sign(bytes) {
-    return await this.signer.sign(bytes);
-  }
-  getNetwork() {
-    return this.config.network;
-  }
-  /**
-   * Get wallet's TON address
-   */
-  getAddress(options) {
-    return formatWalletAddress(this.walletContract.address, options?.testnet);
-  }
-  getWalletId() {
-    return createWalletId(this.getNetwork(), this.getAddress());
-  }
-  async getSignedSendTransaction(input, options) {
-    const actions = packActionsList(input.messages.map((m2) => {
-      let bounce = true;
-      const parsedAddress = distExports$3.Address.parseFriendly(m2.address);
-      if (parsedAddress.isBounceable === false) {
-        bounce = false;
-      }
-      const msg = distExports$3.internal({
-        to: m2.address,
-        value: BigInt(m2.amount),
-        bounce,
-        extracurrency: m2.extraCurrency ? Object.fromEntries(Object.entries(m2.extraCurrency).map(([k2, v2]) => [Number(k2), BigInt(v2)])) : void 0
-      });
-      if (m2.payload) {
-        try {
-          msg.body = distExports$3.Cell.fromBase64(m2.payload);
-        } catch (error2) {
-          log$1.warn("Failed to load payload", { error: error2 });
-          throw WalletKitError.fromError(ERROR_CODES.CONTRACT_VALIDATION_FAILED, "Failed to parse transaction payload", error2);
-        }
-      }
-      if (m2.stateInit) {
-        try {
-          msg.init = distExports$3.loadStateInit(distExports$3.Cell.fromBase64(m2.stateInit).asSlice());
-        } catch (error2) {
-          log$1.warn("Failed to load state init", { error: error2 });
-          throw WalletKitError.fromError(ERROR_CODES.CONTRACT_VALIDATION_FAILED, "Failed to parse state init", error2);
-        }
-      }
-      return new ActionSendMsg(distExports$3.SendMode.PAY_GAS_SEPARATELY + distExports$3.SendMode.IGNORE_ERRORS, msg);
-    }));
-    const createBodyOptions = {
-      ...options,
-      validUntil: void 0
-    };
-    if (input.valid_until) {
-      const now = Math.floor(Date.now() / 1e3);
-      const maxValidUntil = now + 600;
-      if (input.valid_until < now) {
-        throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Transaction valid_until timestamp is in the past", void 0, { validUntil: input.valid_until, currentTime: now });
-      } else if (input.valid_until > maxValidUntil) {
-        createBodyOptions.validUntil = maxValidUntil;
-      } else {
-        createBodyOptions.validUntil = input.valid_until;
-      }
-    }
-    let seqno = 0;
-    try {
-      seqno = await CallForSuccess(async () => this.getSeqno(), 5, 1e3);
-    } catch (_) {
-    }
-    const walletId = (await this.walletContract.walletId).serialized;
-    if (!walletId) {
-      throw new Error("Failed to get seqno or walletId");
-    }
-    const transfer = await this.createBodyV5(seqno, walletId, actions, createBodyOptions);
-    const ext = distExports$3.external({
-      to: this.walletContract.address,
-      init: this.walletContract.init,
-      body: transfer
-    });
-    return distExports$3.beginCell().store(distExports$3.storeMessage(ext)).endCell().toBoc().toString("base64");
-  }
-  /**
-   * Get state init for wallet deployment
-   */
-  async getStateInit() {
-    if (!this.walletContract.init) {
-      throw new Error("Wallet contract not properly initialized");
-    }
-    const stateInit = distExports$3.beginCell().store(distExports$3.storeStateInit(this.walletContract.init)).endCell();
-    return stateInit.toBoc().toString("base64");
-  }
-  /**
-   * Get the underlying WalletV5 contract
-   */
-  getContract() {
-    return this.walletContract;
-  }
-  /**
-   * Get current sequence number
-   */
-  async getSeqno() {
-    try {
-      return await this.walletContract.seqno;
-    } catch (error2) {
-      log$1.warn("Failed to get seqno", { error: error2 });
-      throw error2;
-    }
-  }
-  /**
-   * Get wallet ID
-   */
-  async getWalletV5R1Id() {
-    try {
-      return this.walletContract.walletId;
-    } catch (error2) {
-      log$1.warn("Failed to get wallet ID", { error: error2 });
-      const walletId = this.config.walletId;
-      const subwalletNumber = typeof walletId === "bigint" ? Number(walletId) : walletId || 0;
-      return new WalletV5R1Id({ subwalletNumber });
-    }
-  }
-  /**
-   * Check if wallet is deployed on the network
-   */
-  async isDeployed() {
-    try {
-      const state = await this.client.getAccountState(this.walletContract.address);
-      return state.status === "active";
-    } catch (error2) {
-      log$1.warn("Failed to check deployment status", { error: error2 });
-      return false;
-    }
-  }
-  async createBodyV5(seqno, walletId, actionsList, options) {
-    const Opcodes2 = {
-      auth_signed: 1936287598
-    };
-    const expireAt = options.validUntil ?? Math.floor(Date.now() / 1e3) + 300;
-    const payload = distExports$3.beginCell().storeUint(Opcodes2.auth_signed, 32).storeUint(walletId, 32).storeUint(expireAt, 32).storeUint(seqno, 32).storeSlice(actionsList.beginParse()).endCell();
-    const signingData = payload.hash();
-    const signature = options.fakeSignature ? FakeSignature(signingData) : await this.sign(signingData);
-    return distExports$3.beginCell().storeSlice(payload.beginParse()).storeBuffer(Buffer.from(HexToUint8Array(signature))).endCell();
-  }
-  async getSignedSignData(input) {
-    const signature = await this.sign(HexToUint8Array(input.hash));
-    return signature;
-  }
-  async getSignedTonProof(input) {
-    const message = await CreateTonProofMessageBytes(input);
-    const signature = await this.sign(message);
-    return signature;
-  }
-}
-function walletV5ConfigToCell(config) {
-  return distExports$3.beginCell().storeBit(config.signatureAllowed).storeUint(config.seqno, 32).storeUint(config.walletId, 32).storeUint(config.publicKey, 256).storeDict(config.extensions, distExports$3.Dictionary.Keys.BigUint(256), distExports$3.Dictionary.Values.BigInt(1)).endCell();
-}
-const Opcodes = {
-  action_send_msg: 247711853,
-  action_set_code: 2907562126,
-  action_extended_set_data: 536406539,
-  action_extended_add_extension: 2,
-  action_extended_remove_extension: 3,
-  action_extended_set_signature_auth_allowed: 4,
-  auth_extension: 1702392942,
-  auth_signed: 1936287598,
-  auth_signed_internal: 1936289396
-};
-class WalletV5R1Id {
-  static deserialize(walletId) {
-    return new WalletV5R1Id({
-      subwalletNumber: walletId
-    });
-  }
-  subwalletNumber;
-  serialized;
-  constructor(args) {
-    this.subwalletNumber = args?.subwalletNumber ?? 0;
-    this.serialized = BigInt(this.subwalletNumber);
-  }
-}
-class WalletV5 {
-  client;
-  address;
-  init;
-  subwalletId;
-  constructor(client, address, init2) {
-    this.client = client;
-    this.address = address;
-    this.init = init2;
-  }
-  static createFromAddress(client, address) {
-    return new WalletV5(client, address);
-  }
-  static createFromConfig(config, options) {
-    const data = walletV5ConfigToCell(config);
-    const init2 = { code: options.code, data };
-    const wallet = new WalletV5(options.client, distExports$3.contractAddress(options.workchain, init2), init2);
-    wallet.subwalletId = config.walletId;
-    return wallet;
-  }
-  async sendDeploy(provider, via, value) {
-    await provider.internal(via, {
-      value,
-      sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY,
-      body: distExports$3.beginCell().endCell()
-    });
-  }
-  async sendInternalSignedMessage(provider, via, opts) {
-    await provider.internal(via, {
-      value: opts.value,
-      sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY,
-      body: distExports$3.beginCell().storeSlice(opts.body.beginParse()).endCell()
-    });
-  }
-  async sendInternalMessageFromExtension(provider, via, opts) {
-    await provider.internal(via, {
-      value: opts.value,
-      sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY,
-      body: distExports$3.beginCell().storeUint(Opcodes.auth_extension, 32).storeUint(0, 64).storeSlice(opts.body.beginParse()).endCell()
-    });
-  }
-  async sendInternal(provider, via, opts) {
-    await provider.internal(via, opts);
-  }
-  async sendExternalSignedMessage(provider, body) {
-    await provider.external(body);
-  }
-  async sendExternal(provider, body) {
-    await provider.external(body);
-  }
-  get publicKey() {
-    return this.client.runGetMethod(this.address, "get_public_key").then((data) => {
-      if (data.exitCode === 0) {
-        const parsedStack = ParseStack(data.stack);
-        if (parsedStack[0]?.type === "int") {
-          return parsedStack[0].value;
-        } else {
-          throw new Error("Stack is not an int");
-        }
-      } else if (this.init) {
-        return this.init.data.asSlice().skip(1 + 32 + 32).loadUintBig(256);
-      } else {
-        return 0n;
-      }
-    });
-  }
-  get status() {
-    return this.client.getAccountState(this.address).then((state) => state.status);
-  }
-  get seqno() {
-    return this.client.runGetMethod(this.address, "seqno").then((data) => {
-      if (data.exitCode === 0) {
-        const parsedStack = ParseStack(data.stack);
-        if (parsedStack[0]?.type === "int") {
-          return Number(parsedStack[0].value);
-        } else {
-          throw new Error("Stack is not an int");
-        }
-      } else {
-        return 0;
-      }
-    });
-  }
-  get isSignatureAuthAllowed() {
-    return this.client.runGetMethod(this.address, "is_signature_allowed").then((data) => {
-      if (data.exitCode === 0) {
-        const parsedStack = ParseStack(data.stack);
-        if (parsedStack[0]?.type === "int") {
-          return Boolean(parsedStack[0].value);
-        } else {
-          throw new Error("Stack is not an int");
-        }
-      } else {
-        return false;
-      }
-    });
-  }
-  get walletId() {
-    if (this.subwalletId !== void 0) {
-      return new Promise((resolve) => {
-        resolve(WalletV5R1Id.deserialize(this.subwalletId));
-      });
-    } else {
-      return this.client.runGetMethod(this.address, "get_subwallet_id").then((data) => {
-        if (data.exitCode === 0) {
-          const parsedStack = ParseStack(data.stack);
-          if (parsedStack[0]?.type === "int") {
-            this.subwalletId = Number(parsedStack[0].value);
-          } else {
-            throw new Error("Stack is not an int");
-          }
-          return WalletV5R1Id.deserialize(this.subwalletId);
-        } else {
-          return WalletV5R1Id.deserialize(defaultWalletIdV5R1);
-        }
-      });
-    }
-  }
-}
-class WalletV4R2 {
-  address;
-  init;
-  workchain;
-  publicKey;
-  subwalletId;
-  client;
-  constructor(address, init2, options) {
-    this.address = address;
-    this.init = init2 ?? void 0;
-    this.workchain = options.workchain;
-    this.client = options.client;
-    if (init2) {
-      const dataSlice = init2.data.beginParse();
-      dataSlice.loadUint(32);
-      this.subwalletId = dataSlice.loadUint(32);
-      this.publicKey = dataSlice.loadUintBig(256);
-    } else {
-      this.subwalletId = 0;
-      this.publicKey = 0n;
-    }
-  }
-  static createFromConfig(config, options) {
-    const data = distExports$3.beginCell().storeUint(config.seqno, 32).storeUint(config.subwalletId, 32).storeUint(config.publicKey, 256).storeBit(0).endCell();
-    const init2 = { code: options.code, data };
-    const address = distExports$3.contractAddress(options.workchain, init2);
-    return new WalletV4R2(address, init2, options);
-  }
-  static createFromAddress(address, options) {
-    return new WalletV4R2(address, null, options);
-  }
-  async sendDeploy(provider, via, value) {
-    await provider.internal(via, {
-      value,
-      sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY,
-      body: distExports$3.beginCell().endCell()
-    });
-  }
-  /**
-   * Get wallet's current sequence number
-   */
-  async getSeqno() {
-    try {
-      const state = await this.client.runGetMethod(this.address, "seqno");
-      if (state.exitCode !== 0) {
-        return 0;
-      }
-      const parsedStack = ParseStack(state.stack);
-      if (parsedStack[0]?.type === "int") {
-        return Number(parsedStack[0].value);
-      } else {
-        throw new Error("Stack is not an int");
-      }
-    } catch (error2) {
-      return 0;
-    }
-  }
-  /**
-   * Get wallet's current sequence number (async getter)
-   */
-  get seqno() {
-    return this.getSeqno();
-  }
-  /**
-   * Get wallet's subwallet ID
-   */
-  async getSubwalletId() {
-    try {
-      const state = await this.client.runGetMethod(this.address, "get_subwallet_id");
-      if (state.exitCode !== 0) {
-        return this.subwalletId;
-      }
-      const parsedStack = ParseStack(state.stack);
-      if (parsedStack[0]?.type === "int") {
-        return Number(parsedStack[0].value);
-      } else {
-        throw new Error("Stack is not an int");
-      }
-    } catch (error2) {
-      return this.subwalletId;
-    }
-  }
-  /**
-   * Create transfer message body
-   */
-  createTransfer(args) {
-    const timeout = args.timeout ?? Math.floor(Date.now() / 1e3) + 60;
-    let body = distExports$3.beginCell().storeUint(this.subwalletId, 32).storeUint(timeout, 32).storeUint(args.seqno, 32).storeUint(0, 8).storeUint(args.sendMode, 8);
-    for (const message of args.messages) {
-      body = body.storeRef(distExports$3.beginCell().store(distExports$3.storeMessageRelaxed(message)));
-    }
-    return body.endCell();
-  }
-  /**
-   * Send internal transfer
-   */
-  async sendTransfer(provider, via, args) {
-    const transfer = this.createTransfer(args);
-    await provider.internal(via, {
-      sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY,
-      body: transfer,
-      value: 0n
-    });
-  }
-}
-const WalletV4R2CodeCell = distExports$3.Cell.fromBoc(Buffer.from("te6ccgECFAEAAtQAART/APSkE/S88sgLAQIBIAIDAgFIBAUE+PKDCNcYINMf0x/THwL4I7vyZO1E0NMf0x/T//QE0VFDuvKhUVG68qIF+QFUEGT5EPKj+AAkpMjLH1JAyx9SMMv/UhD0AMntVPgPAdMHIcAAn2xRkyDXSpbTB9QC+wDoMOAhwAHjACHAAuMAAcADkTDjDQOkyMsfEssfy/8QERITAubQAdDTAyFxsJJfBOAi10nBIJJfBOAC0x8hghBwbHVnvSKCEGRzdHK9sJJfBeAD+kAwIPpEAcjKB8v/ydDtRNCBAUDXIfQEMFyBAQj0Cm+hMbOSXwfgBdM/yCWCEHBsdWe6kjgw4w0DghBkc3RyupJfBuMNBgcCASAICQB4AfoA9AQw+CdvIjBQCqEhvvLgUIIQcGx1Z4MesXCAGFAEywUmzxZY+gIZ9ADLaRfLH1Jgyz8gyYBA+wAGAIpQBIEBCPRZMO1E0IEBQNcgyAHPFvQAye1UAXKwjiOCEGRzdHKDHrFwgBhQBcsFUAPPFiP6AhPLassfyz/JgED7AJJfA+ICASAKCwBZvSQrb2omhAgKBrkPoCGEcNQICEekk30pkQzmkD6f+YN4EoAbeBAUiYcVnzGEAgFYDA0AEbjJftRNDXCx+AA9sp37UTQgQFA1yH0BDACyMoHy//J0AGBAQj0Cm+hMYAIBIA4PABmtznaiaEAga5Drhf/AABmvHfaiaEAQa5DrhY/AAG7SB/oA1NQi+QAFyMoHFcv/ydB3dIAYyMsFywIizxZQBfoCFMtrEszMyXP7AMhAFIEBCPRR8qcCAHCBAQjXGPoA0z/IVCBHgQEI9FHyp4IQbm90ZXB0gBjIywXLAlAGzxZQBPoCFMtqEssfyz/Jc/sAAgBsgQEI1xj6ANM/MFIkgQEI9Fnyp4IQZHN0cnB0gBjIywXLAlAFzxZQA/oCE8tqyx8Syz/Jc/sAAAr0AMntVA==", "base64"))[0];
-const defaultWalletIdV4R2 = 698983191;
-const log = globalLogger.createChild("WalletV4R2Adapter");
-class WalletV4R2Adapter {
-  signer;
-  config;
-  walletContract;
-  client;
-  publicKey;
-  version = "v4r2";
-  /**
-   * Static factory method to create a WalletV4R2Adapter
-   * @param signer - Signer function with publicKey property (from Signer utility)
-   * @param options - Configuration options for the wallet
-   */
-  static async create(signer, options) {
-    return new WalletV4R2Adapter({
-      signer,
-      publicKey: signer.publicKey,
-      tonClient: options.client,
-      network: options.network,
-      walletId: typeof options.walletId === "bigint" ? Number(options.walletId) : options.walletId,
-      workchain: options.workchain
-    });
-  }
-  constructor(config) {
-    this.config = config;
-    this.client = config.tonClient;
-    this.signer = config.signer;
-    this.publicKey = this.config.publicKey;
-    const walletConfig = {
-      publicKey: HexToBigInt(this.publicKey),
-      workchain: config.workchain ?? 0,
-      seqno: 0,
-      subwalletId: config.walletId ?? defaultWalletIdV4R2
-    };
-    this.walletContract = WalletV4R2.createFromConfig(walletConfig, {
-      code: WalletV4R2CodeCell,
-      workchain: config.workchain ?? 0,
-      client: this.client
-    });
-  }
-  getPublicKey() {
-    return this.publicKey;
-  }
-  getClient() {
-    return this.client;
-  }
-  /**
-   * Sign raw bytes with wallet's private key
-   */
-  async sign(bytes) {
-    return await this.signer.sign(bytes);
-  }
-  getNetwork() {
-    return this.config.network;
-  }
-  /**
-   * Get wallet's TON address
-   */
-  getAddress(options) {
-    return formatWalletAddress(this.walletContract.address, options?.testnet);
-  }
-  getWalletId() {
-    return createWalletId(this.getNetwork(), this.getAddress());
-  }
-  async getSignedSendTransaction(input, _options) {
-    if (input.messages.length === 0) {
-      throw new Error("Ledger does not support empty messages");
-    }
-    if (input.messages.length > 4) {
-      throw new Error("WalletV4R2 does not support more than 4 messages");
-    }
-    let seqno = 0;
-    try {
-      seqno = await CallForSuccess(async () => this.getSeqno(), 5, 1e3);
-    } catch (_) {
-    }
-    const timeout = input.valid_until ? Math.min(input.valid_until, Math.floor(Date.now() / 1e3) + 600) : Math.floor(Date.now() / 1e3) + 60;
-    try {
-      const messages = input.messages.map((m2) => distExports$3.internal({
-        to: distExports$3.Address.parse(m2.address),
-        value: BigInt(m2.amount),
-        bounce: true,
-        extracurrency: m2.extraCurrency ? Object.fromEntries(Object.entries(m2.extraCurrency).map(([k2, v2]) => [Number(k2), BigInt(v2)])) : void 0,
-        body: m2.payload ? distExports$3.Cell.fromBase64(m2.payload) : void 0,
-        init: m2.stateInit ? distExports$3.loadStateInit(distExports$3.Cell.fromBase64(m2.stateInit).asSlice()) : void 0
-      }));
-      const data = this.walletContract.createTransfer({
-        seqno,
-        sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY + distExports$3.SendMode.IGNORE_ERRORS,
-        messages,
-        timeout
-      });
-      const signature = await this.sign(Uint8Array.from(data.hash()));
-      const signedCell = distExports$3.beginCell().storeBuffer(Buffer.from(HexToUint8Array(signature))).storeSlice(data.asSlice()).endCell();
-      const ext = distExports$3.external({
-        to: this.walletContract.address,
-        init: this.walletContract.init,
-        body: signedCell
-      });
-      return distExports$3.beginCell().store(distExports$3.storeMessage(ext)).endCell().toBoc().toString("base64");
-    } catch (error2) {
-      log.warn("Failed to get signed send transaction", { error: error2 });
-      throw error2;
-    }
-  }
-  /**
-   * Get state init for wallet deployment
-   */
-  async getStateInit() {
-    if (!this.walletContract.init) {
-      throw new Error("Wallet contract not properly initialized");
-    }
-    const stateInit = distExports$3.beginCell().store(distExports$3.storeStateInit(this.walletContract.init)).endCell();
-    return stateInit.toBoc().toString("base64");
-  }
-  /**
-   * Get the underlying WalletV4R2 contract
-   */
-  getContract() {
-    return this.walletContract;
-  }
-  /**
-   * Get current sequence number
-   */
-  async getSeqno() {
-    try {
-      return await this.walletContract.getSeqno();
-    } catch (error2) {
-      log.warn("Failed to get seqno", { error: error2 });
-      throw error2;
-    }
-  }
-  /**
-   * Get wallet's subwallet ID
-   */
-  async getSubwalletId() {
-    try {
-      return await this.walletContract.getSubwalletId();
-    } catch (error2) {
-      log.warn("Failed to get subwallet ID", { error: error2 });
-      return this.config.walletId ?? defaultWalletIdV4R2;
-    }
-  }
-  /**
-   * Check if wallet is deployed on the network
-   */
-  async isDeployed() {
-    try {
-      const state = await this.client.getAccountState(this.walletContract.address);
-      return state.status === "active";
-    } catch (error2) {
-      log.warn("Failed to check deployment status", { error: error2 });
-      return false;
-    }
-  }
-  async getSignedSignData(input) {
-    const signature = await this.sign(HexToUint8Array(input.hash));
-    return signature;
-  }
-  async getSignedTonProof(input) {
-    const message = await CreateTonProofMessageBytes(input);
-    const signature = await this.sign(message);
-    return signature;
-  }
-}
 var src = {};
 var sha256 = {};
 var sha2 = {};
@@ -77245,6 +75186,23 @@ async function MnemonicToKeyPair(mnemonic2, mnemonicType = "ton") {
 async function CreateTonMnemonic() {
   return distExports$1.mnemonicNew(24);
 }
+function DefaultSignature(data, privateKey) {
+  let fullKey = privateKey;
+  if (fullKey.length === 32) {
+    const keyPair = distExports$1.keyPairFromSeed(Buffer.from(fullKey));
+    fullKey = keyPair.secretKey;
+  }
+  return Uint8ArrayToHex(distExports$1.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(fullKey)));
+}
+function createWalletSigner(privateKey) {
+  return async (data) => {
+    return DefaultSignature(Uint8Array.from(data), privateKey);
+  };
+}
+const fakeKeyPair = distExports$1.keyPairFromSeed(Buffer.alloc(32, 0));
+function FakeSignature(data) {
+  return Uint8ArrayToHex([...distExports$1.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(fakeKeyPair.secretKey))]);
+}
 class Signer {
   /**
    * Create a signer from a mnemonic phrase
@@ -77275,9 +75233,2537 @@ class Signer {
     };
   }
 }
+function limitString(data, limit) {
+  return data.length > limit ? data.substring(0, limit) : data;
+}
+function toStringTail(data) {
+  return distExports$3.beginCell().storeStringTail(limitString(data, 127)).endCell();
+}
+const log$7 = globalLogger.createChild("JettonsManager");
+function createCacheKey(network, address) {
+  return `${network.chainId}:${address}`;
+}
+class JettonsManager {
+  eventEmitter;
+  networkManager;
+  cache;
+  DEFAULT_TIMEOUT = 1e4;
+  // 10 seconds
+  constructor(cacheSize = 1e4, eventEmitter, networkManager) {
+    this.eventEmitter = eventEmitter;
+    this.networkManager = networkManager;
+    this.cache = new LRUCache({
+      max: cacheSize,
+      ttl: 1e3 * 60 * 10
+      // 10 minutes TTL
+    });
+    for (const network of this.networkManager.getConfiguredNetworks()) {
+      this.addTonToCache(network);
+    }
+    log$7.info("JettonsManager initialized", { cacheSize });
+    this.eventEmitter.on("emulation:result", (emulationResult) => {
+      if (emulationResult && typeof emulationResult === "object" && "metadata" in emulationResult && "network" in emulationResult) {
+        const network = emulationResult.network;
+        this.addJettonsFromEmulationMetadata(Network.custom(network), emulationResult.metadata);
+      }
+    });
+  }
+  /**
+   * Add TON native token to cache for a specific network
+   */
+  addTonToCache(network) {
+    const cacheKey = createCacheKey(network, "TON");
+    this.cache.set(cacheKey, {
+      address: "TON",
+      name: "TON",
+      symbol: "TON",
+      description: "The Open Network native token",
+      decimals: 9,
+      totalSupply: "5000000000000000000",
+      image: "https://asset.ston.fi/img/EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c/ee9fb21d17bc8d75c2a5f7b5f5f62d2bacec6b128f58b63cb841e98f7b74c4fc",
+      verification: {
+        verified: true,
+        source: "manual"
+      }
+    });
+  }
+  /**
+   * Get jetton information by address for a specific network
+   * @param jettonAddress - The jetton master address
+   * @param network - The network to query (required)
+   */
+  async getJettonInfo(jettonAddress, network) {
+    const targetNetwork = network;
+    try {
+      const cacheKey = createCacheKey(targetNetwork, jettonAddress);
+      const cachedInfo = this.cache.get(cacheKey);
+      if (cachedInfo) {
+        log$7.debug("Jetton info found in cache", { jettonAddress, network: targetNetwork });
+        return cachedInfo;
+      }
+      log$7.debug("Jetton info not found in cache", { jettonAddress, network: targetNetwork });
+      const address = asMaybeAddressFriendly(jettonAddress);
+      if (!address) {
+        log$7.warn("Invalid jetton address format", { jettonAddress });
+        return null;
+      }
+      const apiClient = this.networkManager.getClient(targetNetwork);
+      const jettonFromApi = await apiClient.jettonsByAddress({
+        address,
+        offset: 0,
+        limit: 1
+      });
+      if (jettonFromApi && jettonFromApi?.jetton_masters?.length > 0 && jettonFromApi?.jetton_masters?.[0]) {
+        const jetton = jettonFromApi?.jetton_masters?.[0];
+        const metadata = jettonFromApi?.metadata?.[jetton.address];
+        const tokenInfo = metadata?.token_info?.find((t) => t.valid && t.type === "jetton_masters");
+        let decimals;
+        try {
+          decimals = parseInt(tokenInfo?.extra.decimals, 10);
+        } catch {
+          decimals = 9;
+        }
+        const result = {
+          address: jetton.jetton,
+          name: tokenInfo?.name ?? "",
+          symbol: tokenInfo?.symbol ?? "",
+          description: tokenInfo?.description ?? "",
+          decimals,
+          image: tokenInfo?.image,
+          uri: tokenInfo?.extra?.uri,
+          totalSupply: "0"
+        };
+        this.cache.set(cacheKey, result);
+        return result;
+      }
+      return null;
+    } catch (error2) {
+      log$7.error("Error getting jetton info", { error: error2, jettonAddress, network: targetNetwork });
+      return null;
+    }
+  }
+  /**
+   * Get jettons for a specific address on a specific network
+   * @param userAddress - The user's wallet address
+   * @param network - The network to query (required)
+   * @param offset - Pagination offset
+   * @param limit - Pagination limit
+   */
+  async getAddressJettons(userAddress, network, offset = 0, limit = 50) {
+    const targetNetwork = network;
+    try {
+      const apiClient = this.networkManager.getClient(targetNetwork);
+      log$7.debug("Getting address jettons", {
+        userAddress,
+        network: targetNetwork,
+        offset,
+        limit
+      });
+      const address = asAddressFriendly(userAddress);
+      const response = await apiClient.jettonsByOwnerAddress({
+        ownerAddress: address,
+        offset,
+        limit
+      });
+      if (!response.jettons) {
+        return [];
+      }
+      const addressJettons = [];
+      for (const item of response.jettons) {
+        addressJettons.push(item);
+      }
+      log$7.debug("Retrieved address jettons", { count: addressJettons.length, network: targetNetwork });
+      return addressJettons;
+    } catch (error2) {
+      log$7.error("Failed to get address jettons", { error: error2, userAddress, network: targetNetwork });
+      throw new JettonError(`Failed to get jettons for address: ${error2 instanceof Error ? error2.message : "Unknown error"}`, JettonErrorCode.NETWORK_ERROR, error2);
+    }
+  }
+  /**
+   * Add jetton info to cache from emulation data for a specific network
+   */
+  addJettonFromEmulation(network, jettonAddress, emulationInfo) {
+    try {
+      const cacheKey = createCacheKey(network, jettonAddress);
+      const jettonInfo = {
+        address: jettonAddress,
+        name: emulationInfo.name,
+        symbol: emulationInfo.symbol,
+        description: emulationInfo.description,
+        image: emulationInfo.image,
+        decimals: typeof emulationInfo.extra.decimals === "string" ? parseInt(emulationInfo.extra.decimals, 10) : emulationInfo.extra.decimals,
+        uri: emulationInfo.extra.uri
+      };
+      this.cache.set(cacheKey, jettonInfo);
+      log$7.debug("Added jetton info from emulation to cache", {
+        jettonAddress,
+        network,
+        name: jettonInfo.name,
+        symbol: jettonInfo.symbol
+      });
+    } catch (error2) {
+      log$7.error("Error adding jetton from emulation", { error: error2, jettonAddress, network });
+    }
+  }
+  /**
+   * Add multiple jettons from emulation metadata for a specific network
+   */
+  addJettonsFromEmulationMetadata(network, metadata) {
+    try {
+      let addedCount = 0;
+      for (const [jettonAddress, addressMetadata] of Object.entries(metadata)) {
+        const address = asMaybeAddressFriendly(jettonAddress);
+        if (!addressMetadata.is_indexed || !addressMetadata.token_info || !address) {
+          continue;
+        }
+        const jettonMasterInfo = addressMetadata.token_info.find((info) => typeof info === "object" && info !== null && "type" in info && info.type === "jetton_masters");
+        if (jettonMasterInfo) {
+          log$7.debug("Adding jetton from emulation metadata", { address, network });
+          this.addJettonFromEmulation(network, address, jettonMasterInfo);
+          addedCount++;
+        }
+      }
+      if (addedCount > 0) {
+        log$7.info("Added jettons from emulation metadata", { addedCount, network });
+      }
+    } catch (error2) {
+      log$7.error("Error adding jettons from emulation metadata", { error: error2, network });
+    }
+  }
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return {
+      size: this.cache.size,
+      capacity: this.cache.max
+    };
+  }
+  /**
+   * Validate jetton address format
+   */
+  validateJettonAddress(address) {
+    try {
+      if (address === "TON") {
+        return true;
+      }
+      distExports$3.Address.parse(address);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  /**
+   * Clear the jetton cache for all networks or a specific network
+   */
+  clearCache(network) {
+    if (network) {
+      for (const key2 of this.cache.keys()) {
+        if (key2.startsWith(`${network.chainId}:`)) {
+          this.cache.delete(key2);
+        }
+      }
+      this.addTonToCache(network);
+      log$7.info("Jetton cache cleared for network", { network });
+    } else {
+      this.cache.clear();
+      for (const net of this.networkManager.getConfiguredNetworks()) {
+        this.addTonToCache(net);
+      }
+      log$7.info("Jetton cache cleared for all networks");
+    }
+  }
+}
+const log$6 = globalLogger.createChild("EventEmitter");
+class EventEmitter {
+  listeners = /* @__PURE__ */ new Map();
+  /**
+   * Subscribe to an event
+   */
+  on(eventName, listener) {
+    if (!this.listeners.has(eventName)) {
+      this.listeners.set(eventName, /* @__PURE__ */ new Set());
+    }
+    this.listeners.get(eventName).add(listener);
+    log$6.debug("Event listener added", { eventName, totalListeners: this.listeners.get(eventName).size });
+  }
+  /**
+   * Subscribe to an event once (automatically removes after first emission)
+   */
+  once(eventName, listener) {
+    const onceListener = (data) => {
+      this.off(eventName, onceListener);
+      listener(data);
+    };
+    this.on(eventName, onceListener);
+  }
+  /**
+   * Unsubscribe from an event
+   */
+  off(eventName, listener) {
+    const eventListeners2 = this.listeners.get(eventName);
+    if (eventListeners2) {
+      eventListeners2.delete(listener);
+      log$6.debug("Event listener removed", { eventName, totalListeners: eventListeners2.size });
+      if (eventListeners2.size === 0) {
+        this.listeners.delete(eventName);
+      }
+    }
+  }
+  /**
+   * Emit an event to all subscribers
+   */
+  emit(eventName, data) {
+    const eventListeners2 = this.listeners.get(eventName);
+    if (eventListeners2) {
+      log$6.debug("Emitting event", { eventName, listenerCount: eventListeners2.size });
+      eventListeners2.forEach((listener) => {
+        try {
+          listener(data);
+        } catch (error2) {
+          log$6.error("Error in event listener", { eventName, error: error2 });
+        }
+      });
+    }
+  }
+  /**
+   * Remove all listeners for a specific event
+   */
+  removeAllListeners(eventName) {
+    if (eventName) {
+      this.listeners.delete(eventName);
+      log$6.debug("All listeners removed for event", { eventName });
+    } else {
+      this.listeners.clear();
+      log$6.debug("All event listeners cleared");
+    }
+  }
+  /**
+   * Get the number of listeners for an event
+   */
+  listenerCount(eventName) {
+    return this.listeners.get(eventName)?.size || 0;
+  }
+  /**
+   * Get all event names that have listeners
+   */
+  eventNames() {
+    return Array.from(this.listeners.keys());
+  }
+}
+var ContentType;
+(function(ContentType2) {
+  ContentType2["Json"] = "application/json";
+  ContentType2["JsonApi"] = "application/vnd.api+json";
+  ContentType2["FormData"] = "multipart/form-data";
+  ContentType2["UrlEncoded"] = "application/x-www-form-urlencoded";
+  ContentType2["Text"] = "text/plain";
+})(ContentType || (ContentType = {}));
+class HttpClient {
+  baseUrl = "";
+  securityData = null;
+  securityWorker;
+  abortControllers = /* @__PURE__ */ new Map();
+  customFetch = (...fetchParams) => fetch(...fetchParams);
+  baseApiParams = {
+    credentials: "same-origin",
+    headers: {},
+    redirect: "follow",
+    referrerPolicy: "no-referrer"
+  };
+  constructor(apiConfig = {}) {
+    Object.assign(this, apiConfig);
+  }
+  setSecurityData = (data) => {
+    this.securityData = data;
+  };
+  encodeQueryParam(key2, value) {
+    const encodedKey = encodeURIComponent(key2);
+    return `${encodedKey}=${encodeURIComponent(typeof value === "number" ? value : `${value}`)}`;
+  }
+  addQueryParam(query, key2) {
+    return this.encodeQueryParam(key2, query[key2]);
+  }
+  addArrayQueryParam(query, key2) {
+    const value = query[key2];
+    return value.map((v2) => this.encodeQueryParam(key2, v2)).join("&");
+  }
+  toQueryString(rawQuery) {
+    const query = rawQuery || {};
+    const keys = Object.keys(query).filter((key2) => "undefined" !== typeof query[key2]);
+    return keys.map((key2) => Array.isArray(query[key2]) ? this.addArrayQueryParam(query, key2) : this.addQueryParam(query, key2)).join("&");
+  }
+  addQueryParams(rawQuery) {
+    const queryString = this.toQueryString(rawQuery);
+    return queryString ? `?${queryString}` : "";
+  }
+  contentFormatters = {
+    [ContentType.Json]: (input) => input !== null && (typeof input === "object" || typeof input === "string") ? JSON.stringify(input) : input,
+    [ContentType.JsonApi]: (input) => input !== null && (typeof input === "object" || typeof input === "string") ? JSON.stringify(input) : input,
+    [ContentType.Text]: (input) => input !== null && typeof input !== "string" ? JSON.stringify(input) : input,
+    [ContentType.FormData]: (input) => {
+      if (input instanceof FormData) {
+        return input;
+      }
+      return Object.keys(input || {}).reduce((formData, key2) => {
+        const property = input[key2];
+        formData.append(key2, property instanceof Blob ? property : typeof property === "object" && property !== null ? JSON.stringify(property) : `${property}`);
+        return formData;
+      }, new FormData());
+    },
+    [ContentType.UrlEncoded]: (input) => this.toQueryString(input)
+  };
+  mergeRequestParams(params1, params2) {
+    return {
+      ...this.baseApiParams,
+      ...params1,
+      ...params2 || {},
+      headers: {
+        ...this.baseApiParams.headers || {},
+        ...params1.headers || {},
+        ...params2 && params2.headers || {}
+      }
+    };
+  }
+  createAbortSignal = (cancelToken) => {
+    if (this.abortControllers.has(cancelToken)) {
+      const abortController2 = this.abortControllers.get(cancelToken);
+      if (abortController2) {
+        return abortController2.signal;
+      }
+      return void 0;
+    }
+    const abortController = new AbortController();
+    this.abortControllers.set(cancelToken, abortController);
+    return abortController.signal;
+  };
+  abortRequest = (cancelToken) => {
+    const abortController = this.abortControllers.get(cancelToken);
+    if (abortController) {
+      abortController.abort();
+      this.abortControllers.delete(cancelToken);
+    }
+  };
+  request = async ({ body, secure, path, type, query, format, baseUrl, cancelToken, ...params }) => {
+    const secureParams = (typeof secure === "boolean" ? secure : this.baseApiParams.secure) && this.securityWorker && await this.securityWorker(this.securityData) || {};
+    const requestParams = this.mergeRequestParams(params, secureParams);
+    const queryString = query && this.toQueryString(query);
+    const payloadFormatter = this.contentFormatters[type || ContentType.Json];
+    const responseFormat = format || requestParams.format;
+    return this.customFetch(`${baseUrl || this.baseUrl || ""}${path}${queryString ? `?${queryString}` : ""}`, {
+      ...requestParams,
+      headers: {
+        ...requestParams.headers || {}
+        // ...(type && type !== ContentType.FormData
+        //   ? { "Content-Type": type }
+        //   : {}),
+      },
+      signal: (cancelToken ? this.createAbortSignal(cancelToken) : requestParams.signal) || null,
+      body: typeof body === "undefined" || body === null ? null : payloadFormatter(body)
+    }).then(async (response) => {
+      const r = response;
+      r.data = null;
+      r.error = null;
+      const responseToParse = responseFormat ? response.clone() : response;
+      const data = !responseFormat ? r : await responseToParse[responseFormat]().then((data2) => {
+        if (r.ok) {
+          r.data = data2;
+        } else {
+          r.error = data2;
+        }
+        return r;
+      }).catch((e) => {
+        r.error = e;
+        return r;
+      });
+      if (cancelToken) {
+        this.abortControllers.delete(cancelToken);
+      }
+      if (!response.ok)
+        throw data;
+      return data;
+    });
+  };
+}
+class Api extends HttpClient {
+  events = {
+    /**
+     * No description
+     *
+     * @name EventsCreate
+     * @request POST:/events
+     */
+    eventsCreate: (events, params = {}) => this.request({
+      path: `/events`,
+      method: "POST",
+      body: events,
+      type: ContentType.Json,
+      ...params,
+      credentials: "include"
+    })
+  };
+}
+const log$5 = globalLogger.createChild("AnalyticsApi");
+class AnalyticsApi {
+  api;
+  constructor(config) {
+    if (config?.enabled) {
+      this.api = new Api({
+        baseUrl: config?.endpoint ?? "https://analytics.ton.org"
+      });
+    }
+  }
+  async sendEvents(events) {
+    await this.api?.events.eventsCreate(events).catch(() => {
+    });
+  }
+  async sendEventsWithErrors(events) {
+    await this.api?.events.eventsCreate(events).catch((error2) => {
+      log$5.info("Failed to send events", { error: error2 });
+    });
+  }
+}
+function toNftCollection(address, data) {
+  if (!data) {
+    if (address) {
+      return { address: asAddressFriendly(address) };
+    } else {
+      return null;
+    }
+  }
+  const out = {
+    address: asAddressFriendly(data.address),
+    codeHash: data.code_hash ? Base64ToHex(data.code_hash) : void 0,
+    dataHash: data.data_hash ? Base64ToHex(data.data_hash) : void 0,
+    nextItemIndex: data.next_item_index.toString(),
+    ownerAddress: asMaybeAddressFriendly(data.owner_address) ?? void 0
+  };
+  if (data.collection_content)
+    out.extra = data.collection_content;
+  return out;
+}
+function tokenMetaToNftCollection(address, data) {
+  if (!data) {
+    return { address: asAddressFriendly(address) };
+  }
+  const image = data?.extra?.cover_image ?? data?.image;
+  const out = {
+    address: asAddressFriendly(address),
+    name: data.name,
+    description: data.description,
+    image: {
+      url: image,
+      smallUrl: data?.extra?._image_small,
+      mediumUrl: data?.extra?._image_medium,
+      largeUrl: data?.extra?._image_big
+    },
+    extra: data.extra
+  };
+  return out;
+}
+function toNftItem(data) {
+  const out = {
+    address: asAddressFriendly(data.address),
+    index: data.index.toString(),
+    collection: toNftCollection(data.collection_address, data.collection) ?? void 0,
+    auctionContractAddress: asMaybeAddressFriendly(data.auction_contract_address) ?? void 0,
+    ownerAddress: asMaybeAddressFriendly(data.owner_address) ?? void 0,
+    realOwnerAddress: asMaybeAddressFriendly(data.real_owner) ?? void 0,
+    saleContractAddress: asMaybeAddressFriendly(data.sale_contract_address) ?? void 0,
+    codeHash: data.code_hash ? Base64ToHex(data.code_hash) : void 0,
+    dataHash: data.data_hash ? Base64ToHex(data.data_hash) : void 0,
+    isInited: data.init,
+    isSoulbound: data.is_sbt,
+    isOnSale: data.on_sale
+  };
+  if (data.content)
+    out.extra = data.content;
+  return out;
+}
+function toTokenInfo(data) {
+  const result = {
+    valid: data.valid,
+    type: data.type,
+    name: data.name,
+    description: data.description,
+    image: data.image,
+    extra: data.extra,
+    animation: data?.extra?.animation_url
+  };
+  if (data.lottie) {
+    result.lottie = data.lottie;
+  } else if (data.extra && typeof data.extra === "object" && "lottie" in data.extra) {
+    const lottieValue = data.extra.lottie;
+    if (typeof lottieValue === "string") {
+      result.lottie = lottieValue;
+    }
+  }
+  if (data?.extra?.animation_url) {
+    result.animation = data.extra.animation_url;
+  } else if (data?.extra?.content_url && data.extra.content_url.includes("mp4")) {
+    result.animation = data.extra.content_url;
+  }
+  return result;
+}
+function toApiTokenInfo(data) {
+  var lottie;
+  var animationUrl;
+  if (data?.extra?.animation_url) {
+    animationUrl = data.extra.animation_url;
+  } else if (data?.extra?.content_url && data.extra.content_url.includes("mp4")) {
+    animationUrl = data.extra.content_url;
+  }
+  if (data.lottie) {
+    lottie = data.lottie;
+  } else if (data.extra && typeof data.extra === "object" && "lottie" in data.extra) {
+    const lottieValue = data.extra.lottie;
+    if (typeof lottieValue === "string") {
+      lottie = lottieValue;
+    }
+  }
+  const result = {
+    name: data.name,
+    description: data.description,
+    image: {
+      url: data.image ?? data.extra?._image_medium,
+      smallUrl: data.extra?._image_small,
+      mediumUrl: data.extra?._image_medium,
+      largeUrl: data.extra?._image_big
+    },
+    animation: {
+      url: animationUrl,
+      lottie
+    },
+    symbol: data.symbol
+  };
+  return result;
+}
+function toNftItemsResponse(data) {
+  const metadata = {};
+  const collections = {};
+  if (data.metadata) {
+    for (const address of Object.keys(data.metadata)) {
+      if (!data.metadata[address].token_info || data.metadata[address].token_info.length === 0) {
+        continue;
+      }
+      const tokenInfo = data.metadata[address].token_info[0];
+      if (tokenInfo.type === "nft_items") {
+        metadata[asAddressFriendly(address)] = {
+          isIndexed: data.metadata[address].is_indexed,
+          tokenInfo: [toTokenInfo(tokenInfo)]
+        };
+      } else if (tokenInfo.type === "nft_collections") {
+        const collection = tokenMetaToNftCollection(address, tokenInfo);
+        if (collection) {
+          collections[asAddressFriendly(address)] = collection;
+        }
+      }
+    }
+  }
+  const out = {
+    addressBook: {},
+    // metadata,
+    nfts: (data.nft_items ?? []).map((data2) => {
+      const item = toNftItem(data2);
+      const meta = metadata[item.address];
+      if (meta) {
+        const tokenInfo = meta.tokenInfo.filter((it2) => it2.valid);
+        if (tokenInfo.length > 0) {
+          item.info = toApiTokenInfo(tokenInfo[0]);
+        }
+      }
+      const itemCollection = item.collection;
+      const itemCollectionMeta = item.collection?.address ? collections[asAddressFriendly(item.collection?.address)] : void 0;
+      if (itemCollection || itemCollectionMeta) {
+        item.collection = {
+          ...itemCollection,
+          ...itemCollectionMeta
+        };
+      }
+      return item;
+    })
+  };
+  if (data.address_book) {
+    for (const address of Object.keys(data.address_book)) {
+      if (out.addressBook) {
+        out.addressBook[asAddressFriendly(address)] = {
+          address: asAddressFriendly(address),
+          domain: data.address_book[address].domain ?? void 0,
+          interfaces: data.address_book[address].interfaces ?? []
+        };
+      }
+    }
+  }
+  return out;
+}
+function toDnsRecord(data) {
+  return {
+    dnsNextResolver: data.dns_next_resolver,
+    dnsSiteAdnl: data.dns_site_adnl,
+    dnsStorageBagId: data.dns_storage_bag_id,
+    dnsWallet: asMaybeAddressFriendly(data.dns_wallet),
+    domain: data.domain,
+    nftItemAddress: asAddressFriendly(data.nft_item_address),
+    nftItemOwner: asAddressFriendly(data.nft_item_owner)
+  };
+}
+function toDnsRecords(data) {
+  const out = {
+    addressBook: {},
+    records: data.records ? data.records.map(toDnsRecord) : []
+  };
+  for (const key2 of Object.keys(data.address_book)) {
+    out.addressBook[asAddressFriendly(key2)] = {
+      domain: data.address_book[key2].domain
+    };
+  }
+  return out;
+}
+const ROOT_DNS_RESOLVER_MAINNET = "Ef_lZ1T4NCb2mwkme9h2rJfESCE0W34ma9lWp7-_uY3zXDvq";
+const ROOT_DNS_RESOLVER_TESTNET = "kf_v5x0Thgr6pq6ur2NvkWhIf4DxAxsL-Nk5rknT6n99oEkd";
+var DnsCategory;
+(function(DnsCategory2) {
+  DnsCategory2["DnsNextResolver"] = "dns_next_resolver";
+  DnsCategory2["Wallet"] = "wallet";
+  DnsCategory2["Site"] = "site";
+  DnsCategory2["BagId"] = "storage";
+  DnsCategory2[DnsCategory2["All"] = 0] = "All";
+})(DnsCategory || (DnsCategory = {}));
+var DnsRecord;
+(function(DnsRecord2) {
+  DnsRecord2[DnsRecord2["SmcAddress"] = 40915] = "SmcAddress";
+  DnsRecord2[DnsRecord2["NextResolver"] = 47763] = "NextResolver";
+  DnsRecord2[DnsRecord2["AdnlAddress"] = 44289] = "AdnlAddress";
+  DnsRecord2[DnsRecord2["StorageAddress"] = 29811] = "StorageAddress";
+})(DnsRecord || (DnsRecord = {}));
+function toDnsInternal(domain) {
+  domain = domain.toLowerCase().normalize("NFC");
+  return domain.split(".").filter(Boolean).reverse().join("\0") + "\0";
+}
+function toTonDnsCategory(category) {
+  category = category ?? DnsCategory.All;
+  if (typeof category === "number") {
+    return BigInt(category);
+  }
+  return BigInt("0x" + distExports$1.sha256_sync(category).toString("hex"));
+}
+async function dnsResolve(client, domain, category, resolver) {
+  let currentResolver = resolver ?? ROOT_DNS_RESOLVER_MAINNET;
+  let unresolved = domain;
+  let maxResolveDepth = 100;
+  while (maxResolveDepth > 0) {
+    maxResolveDepth--;
+    const step = await dnsLookup(client, unresolved, DnsCategory.DnsNextResolver, currentResolver);
+    if (step == null) {
+      return null;
+    }
+    if (step.unresolved) {
+      if (!step.value) {
+        return null;
+      }
+      currentResolver = step.value;
+      unresolved = step.unresolved;
+      continue;
+    }
+    if (step.record === "NextResolver" && step.value) {
+      if (category !== void 0) {
+        return dnsLookup(client, ".", category, step.value);
+      }
+      currentResolver = step.value;
+      unresolved = ".";
+      continue;
+    }
+    if (category !== void 0) {
+      return dnsLookup(client, ".", category, currentResolver);
+    }
+    return step;
+  }
+  return null;
+}
+async function dnsLookup(client, domain, category, resolver) {
+  category = category ?? DnsCategory.DnsNextResolver;
+  resolver = resolver ?? ROOT_DNS_RESOLVER_MAINNET;
+  const result = {
+    resolved: "",
+    unresolved: ""
+  };
+  const isSelf = domain === "." || domain === "";
+  const internal = toDnsInternal(domain);
+  const param = [
+    { type: "slice", cell: toStringTail(internal) },
+    { type: "int", value: toTonDnsCategory(category) }
+  ];
+  const { stack, exitCode } = await client.runGetMethod(asAddressFriendly(resolver), "dnsresolve", SerializeStack(param));
+  if (stack?.length !== 2) {
+    return null;
+  }
+  const parsedStack = ParseStack(stack);
+  if (exitCode !== 0) {
+    return null;
+  }
+  const resolvedBit = parsedStack[0].type === "int" ? Number(parsedStack[0].value) : 0;
+  if (resolvedBit === 0 || resolvedBit % 8 !== 0) {
+    return null;
+  }
+  const resolvedByte = resolvedBit / 8;
+  const part = isSelf ? [] : domain.split(".").filter(Boolean);
+  const level = internal.slice(0, Number(resolvedByte)).split(".").filter(Boolean).length;
+  result.unresolved = part.slice(0, part.length - level).join(".");
+  result.resolved = part.slice(part.length - level).join(".");
+  if (category === DnsCategory.All) {
+    throw new Error("not implemented all categories are requested");
+  }
+  const cell = parsedStack[1].type === "cell" ? parsedStack[1].cell : null;
+  if (!cell) {
+    return result;
+  }
+  const slice = cell.asSlice();
+  const tag = slice.loadUint(16);
+  if (tag == DnsRecord.NextResolver || tag == DnsRecord.SmcAddress) {
+    result.value = slice.loadAddress().toString();
+  } else if (tag == DnsRecord.AdnlAddress || tag == DnsRecord.StorageAddress) {
+    result.value = toHexString(slice.loadBuffer(32));
+  } else {
+    result.value = cell.toBoc().toString("base64");
+  }
+  if (result.value) {
+    result.record = DnsRecord[tag];
+  }
+  return result;
+}
+const log$4 = globalLogger.createChild("ApiClientToncenter");
+class TonClientError extends Error {
+  status;
+  details;
+  constructor(message, status, details) {
+    super(message);
+    this.name = "TonClientError";
+    this.status = status;
+    this.details = details;
+  }
+}
+class ApiClientToncenter {
+  dnsResolver;
+  endpoint;
+  apiKey;
+  timeout;
+  fetchApi;
+  network;
+  disableNetworkSend;
+  constructor(config = {}) {
+    this.network = config.network;
+    const dnsResolver = this.network?.chainId === CHAIN.MAINNET ? ROOT_DNS_RESOLVER_MAINNET : ROOT_DNS_RESOLVER_TESTNET;
+    const defaultEndpoint = this.network?.chainId === CHAIN.MAINNET ? "https://toncenter.com" : "https://testnet.toncenter.com";
+    this.dnsResolver = config.dnsResolver ?? dnsResolver;
+    this.endpoint = config.endpoint ?? defaultEndpoint;
+    this.apiKey = config.apiKey;
+    this.timeout = config.timeout ?? 3e4;
+    this.fetchApi = config.fetchApi ?? fetch;
+    this.disableNetworkSend = config.disableNetworkSend ?? false;
+  }
+  async nftItemsByAddress(request) {
+    const props = {
+      address: request.address
+    };
+    const response = await this.getJson("/api/v3/nft/items", props);
+    return toNftItemsResponse(response);
+  }
+  async nftItemsByOwner(request) {
+    const props = {
+      owner_address: request.ownerAddress,
+      limit: request.pagination?.limit ?? 10,
+      offset: request.pagination?.offset ?? 0
+    };
+    const response = await this.getJson("/api/v3/nft/items", props);
+    const formattedResponse = toNftItemsResponse(response);
+    return formattedResponse;
+  }
+  async fetchEmulation(address, messages, seqno) {
+    const props = {
+      from: address,
+      valid_until: Math.floor(Date.now() / 1e3) + 60,
+      include_code_data: true,
+      include_address_book: true,
+      include_metadata: true,
+      with_actions: true,
+      messages
+    };
+    if (typeof seqno === "number")
+      props.mc_block_seqno = seqno;
+    const response = await this.postJson("/api/v3/emulation", props);
+    return toTransactionEmulatedTrace(response);
+  }
+  async sendBoc(boc) {
+    if (this.disableNetworkSend) {
+      return "";
+    }
+    const response = await this.postJson("/api/v3/message", { boc });
+    return Base64ToBigInt(response.message_hash_norm).toString(16);
+  }
+  async runGetMethod(address, method, stack = [], seqno) {
+    const props = {
+      address,
+      method,
+      stack
+      //serializeStack(stack),
+    };
+    if (typeof seqno === "number")
+      props.seqno = seqno;
+    const raw = await this.postJson("/api/v3/runGetMethod", props);
+    return {
+      gasUsed: raw.gas_used,
+      stack: raw.stack,
+      exitCode: raw.exit_code
+    };
+  }
+  async getAccountState(address, seqno) {
+    const query = { include_boc: true, address: [address] };
+    if (typeof seqno === "number")
+      query.seqno = seqno.toString();
+    const raw = await this.getJson("/api/v3/addressInformation", query);
+    const balance = BigInt(raw.balance);
+    const extraCurrencies = {};
+    for (const currency of raw.extra_currencies || []) {
+      extraCurrencies[currency.id] = BigInt(currency.amount);
+    }
+    const out = {
+      status: raw.status,
+      balance: balance.toString(),
+      extraCurrencies,
+      code: raw.code,
+      data: raw.data,
+      lastTransaction: parseInternalTransactionId({
+        hash: raw.last_transaction_hash,
+        lt: raw.last_transaction_lt
+      })
+    };
+    if (raw.frozen_hash) {
+      out.frozenHash = Base64ToHex(raw.frozen_hash) ?? void 0;
+    }
+    return out;
+  }
+  async getBalance(address, seqno) {
+    return (await this.getAccountState(address, seqno)).balance;
+  }
+  async doRequest(url, init2 = {}) {
+    const fetchFn = this.fetchApi;
+    if (!this.timeout || this.timeout <= 0) {
+      return fetchFn(url, init2);
+    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    try {
+      return await fetchFn(url, { ...init2, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+  async fetch(url, props = {}) {
+    const headers = new Headers(props.headers);
+    headers.set("accept", "application/json");
+    if (this.apiKey)
+      headers.set("x-api-key", this.apiKey);
+    props = { ...props, headers };
+    const response = await this.doRequest(url, props);
+    if (!response.ok) {
+      throw await this.buildError(response);
+    }
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const text = await response.text();
+      throw new TonClientError("Unexpected non-JSON response", response.status, text.slice(0, 200));
+    }
+    const json = await response.json();
+    return json;
+  }
+  async getJson(path, query) {
+    return this.fetch(this.buildUrl(path, query), { method: "GET" });
+  }
+  async postJson(path, props) {
+    return this.fetch(this.buildUrl(path), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(props)
+    });
+  }
+  buildUrl(path, query = {}) {
+    const url = new URL(path.replace(/^\/*/, "/"), this.endpoint);
+    for (const [key2, value] of Object.entries(query)) {
+      if (typeof value === "string")
+        url.searchParams.set(key2, value);
+      else if (Array.isArray(value)) {
+        for (const item of value) {
+          if (typeof item === "string")
+            url.searchParams.set(key2, item);
+          else if (item != null && typeof item.toString === "function") {
+            url.searchParams.set(key2, item.toString());
+          }
+        }
+      } else if (value != null && typeof value.toString === "function") {
+        url.searchParams.set(key2, value.toString());
+      }
+    }
+    return url;
+  }
+  async buildError(response) {
+    const message = response.statusText || "HTTP Error";
+    const code = response.status ?? 500;
+    let detail;
+    try {
+      detail = await response.json();
+    } catch {
+    }
+    return new TonClientError(`HTTP ${response.status}: ${message}`, code, detail);
+  }
+  async getAccountTransactions(request) {
+    const accounts = request.address?.map(prepareAddress);
+    let offset = request.offset ?? 0;
+    let limit = request.limit ?? 10;
+    if (limit > 100) {
+      limit = 100;
+    } else if (limit < 0) {
+      limit = 0;
+    }
+    if (offset < 0) {
+      offset = 0;
+    }
+    const response = await this.getJson("/api/v3/transactions", {
+      account: accounts,
+      limit,
+      offset
+    });
+    return toTransactionsResponse(response);
+  }
+  async getTransactionsByHash(request) {
+    const msgHash = "msgHash" in request ? padBase64(request.msgHash) : void 0;
+    const bodyHash = "bodyHash" in request ? padBase64(request.bodyHash) : void 0;
+    const response = await this.getJson("/api/v3/transactionsByMessage", {
+      msg_hash: msgHash ? [msgHash] : void 0,
+      body_hash: bodyHash ? [bodyHash] : void 0
+    });
+    return toTransactionsResponse(response);
+  }
+  async getPendingTransactions(request) {
+    const accounts = "accounts" in request ? request.accounts?.map(prepareAddress) : void 0;
+    const traceId = "traceId" in request ? request.traceId : void 0;
+    const response = await this.getJson("/api/v3/pendingTransactions", {
+      account: accounts,
+      trace_id: traceId
+    });
+    return toTransactionsResponse(response);
+  }
+  async getTrace(request) {
+    const inTraceId = request.traceId ? request.traceId[0] : void 0;
+    const traceId = padBase64(Base64Normalize(inTraceId || "").replace(/=/g, ""));
+    try {
+      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
+        tx_hash: traceId
+      }));
+      if (response.traces.length > 0) {
+        return response;
+      }
+    } catch (error2) {
+      log$4.error("Error fetching trace", { error: error2 });
+    }
+    try {
+      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
+        trace_id: traceId
+      }));
+      if (response.traces.length > 0) {
+        return response;
+      }
+    } catch (error2) {
+      log$4.error("Error fetching trace", { error: error2 });
+    }
+    try {
+      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
+        msg_hash: traceId
+      }));
+      if (response.traces.length > 0) {
+        return response;
+      }
+    } catch (error2) {
+      log$4.error("Error fetching pending trace", { error: error2 });
+    }
+    throw new Error("Failed to fetch trace");
+  }
+  async getPendingTrace(request) {
+    try {
+      const response = await CallForSuccess(() => this.getJson("/api/v3/pendingTraces", {
+        ext_msg_hash: request.externalMessageHash
+      }));
+      if (response.traces.length > 0) {
+        return response;
+      }
+    } catch (error2) {
+      log$4.error("Error fetching pending trace", { error: error2 });
+    }
+    throw new Error("Failed to fetch pending trace");
+  }
+  async resolveDnsWallet(domain) {
+    const result = await dnsResolve(this, domain, DnsCategory.Wallet, this.dnsResolver);
+    if (result && result.value) {
+      return result.value;
+    }
+    return null;
+  }
+  async backResolveDnsWallet(wallet) {
+    if (wallet instanceof distExports$3.Address) {
+      wallet = wallet.toString();
+    }
+    const response = toDnsRecords(await this.getJson("/api/v3/dns/records", {
+      wallet,
+      limit: 1,
+      offset: 0
+    }));
+    if (response.records.length > 0) {
+      return response.records[0].domain;
+    }
+    return null;
+  }
+  async jettonsByAddress(request) {
+    return this.getJson("/api/v3/jetton/masters", {
+      address: request.address,
+      offset: request.offset,
+      limit: request.limit
+    });
+  }
+  async jettonsByOwnerAddress(request) {
+    const offset = request.offset ?? 0;
+    const limit = request.limit ?? 50;
+    const rawResponse = await this.getJson("/api/v3/jetton/wallets", {
+      owner_address: request.ownerAddress,
+      offset,
+      limit
+    });
+    return this.mapToResponseUserJettons(rawResponse);
+  }
+  mapToResponseUserJettons(rawResponse) {
+    const verifiedJettonsMasters = /* @__PURE__ */ new Set([
+      "0:B113A994B5024A16719F69139328EB759596C38A25F59028B146FECDC3621DFE"
+    ]);
+    const userJettons = rawResponse.jetton_wallets.map((wallet) => {
+      const jettonInfo = this.extractJettonInfoFromMetadata(wallet.jetton, rawResponse.metadata);
+      const jetton = {
+        address: asAddressFriendly(wallet.jetton),
+        walletAddress: asAddressFriendly(wallet.address),
+        balance: wallet.balance,
+        info: {
+          name: jettonInfo.name,
+          description: jettonInfo.description,
+          image: {
+            url: jettonInfo.image,
+            data: jettonInfo.image_data
+          },
+          symbol: jettonInfo.symbol
+        },
+        decimalsNumber: jettonInfo.decimals,
+        // For future use, currently prices are not provided by toncenter
+        prices: [
+          {
+            value: "0",
+            currency: "USD"
+          }
+        ],
+        isVerified: verifiedJettonsMasters.has(wallet.jetton)
+        // ????
+        // extra: rawResponse.metadata[wallet.jetton]?.token_info,
+      };
+      return jetton;
+    });
+    return {
+      jettons: userJettons,
+      addressBook: {}
+    };
+  }
+  extractJettonInfoFromMetadata(jettonAddress, metadata) {
+    const jettonMetadata = metadata[jettonAddress];
+    const metadataJettonInfo = jettonMetadata?.token_info?.find((info) => typeof info === "object" && info !== null && "type" in info && info.type === "jetton_masters");
+    if (metadataJettonInfo) {
+      const decimals = typeof metadataJettonInfo.extra.decimals === "string" ? parseInt(metadataJettonInfo.extra.decimals, 10) : metadataJettonInfo.extra.decimals;
+      return {
+        address: jettonAddress,
+        name: metadataJettonInfo.name ?? "",
+        symbol: metadataJettonInfo.symbol ?? "",
+        description: metadataJettonInfo.description ?? "",
+        decimals,
+        image: metadataJettonInfo.image,
+        image_data: metadataJettonInfo.extra.image_data,
+        uri: metadataJettonInfo.extra.uri
+      };
+    }
+    return {
+      address: jettonAddress,
+      name: "",
+      symbol: "",
+      description: "",
+      decimals: 9
+    };
+  }
+  async getEvents(request) {
+    const account = request.account instanceof distExports$3.Address ? request.account.toString() : request.account;
+    const limit = request.limit ?? 20;
+    const offset = request.offset ?? 0;
+    const query = {
+      account,
+      limit,
+      offset
+    };
+    const list = await this.getJson("/api/v3/traces", query);
+    const out = { events: [], limit, offset, hasNext: list.traces.length >= limit };
+    const addressBook = toAddressBook$1(list);
+    for (const trace of list.traces) {
+      out.events.push(toEvent(trace, account, addressBook));
+    }
+    return out;
+  }
+}
+const padBase64 = (data) => {
+  return data.padEnd(data.length + (4 - data.length % 4), "=");
+};
+function prepareAddress(address) {
+  if (address instanceof distExports$3.Address) {
+    address = address.toString();
+  }
+  return address;
+}
+function parseInternalTransactionId(data) {
+  if (data.hash !== "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=") {
+    return {
+      lt: data.lt,
+      hash: Base64ToHex(data.hash)
+    };
+  }
+  return null;
+}
+const log$3 = globalLogger.createChild("NetworkManager");
+class NetworkManager {
+  clients = /* @__PURE__ */ new Map();
+  constructor(options) {
+    this.initializeClients(options);
+    const configuredNetworks = this.getConfiguredNetworks();
+    if (configuredNetworks.length === 0) {
+      throw new WalletKitError(ERROR_CODES.CONFIGURATION_ERROR, "At least one network must be configured in TonWalletKitOptions.networks");
+    }
+  }
+  /**
+   * Initialize API clients from configuration
+   */
+  initializeClients(options) {
+    const networks = options.networks;
+    if (!networks) {
+      log$3.warn("No networks configured in TonWalletKitOptions");
+      return;
+    }
+    for (const [chainId, networkConfig] of Object.entries(networks)) {
+      const network = Network.custom(chainId);
+      if (!networkConfig)
+        continue;
+      const client = this.createClient(network, networkConfig.apiClient, options);
+      this.clients.set(network.chainId, client);
+      log$3.info("Initialized network client", { chainId });
+    }
+  }
+  /**
+   * Create an API client for a specific network
+   */
+  createClient(network, apiClientConfig, options) {
+    if (this.isApiClient(apiClientConfig)) {
+      return apiClientConfig;
+    }
+    const defaultEndpoint = network.chainId === CHAIN.MAINNET ? "https://toncenter.com" : "https://testnet.toncenter.com";
+    const endpoint = apiClientConfig?.url || defaultEndpoint;
+    return new ApiClientToncenter({
+      endpoint,
+      apiKey: apiClientConfig?.key,
+      network,
+      disableNetworkSend: options.dev?.disableNetworkSend
+    });
+  }
+  /**
+   * Type guard to check if value is a full ApiClient instance
+   */
+  isApiClient(value) {
+    return !!value && "nftItemsByAddress" in value && "nftItemsByOwner" in value && "fetchEmulation" in value && "sendBoc" in value && "runGetMethod" in value && "getAccountState" in value && "getBalance" in value;
+  }
+  /**
+   * Get API client for a specific network
+   * @param chainId - The chain ID (CHAIN.MAINNET or CHAIN.TESTNET)
+   * @returns The API client for the specified network
+   * @throws WalletKitError if no client is configured for the network
+   */
+  getClient(network) {
+    const client = this.clients.get(network.chainId);
+    if (!client) {
+      throw new WalletKitError(ERROR_CODES.NETWORK_NOT_CONFIGURED, `No API client configured for network ${network.chainId}`, void 0, {
+        network,
+        configuredNetworks: Array.from(this.clients.keys())
+      });
+    }
+    return client;
+  }
+  /**
+   * Check if a network is configured
+   */
+  hasNetwork(network) {
+    return this.clients.has(network.chainId);
+  }
+  /**
+   * Get all configured networks
+   */
+  getConfiguredNetworks() {
+    return Array.from(this.clients.keys()).map((chainId) => Network.custom(chainId));
+  }
+  /**
+   * Add or update a network client dynamically
+   */
+  setClient(network, client) {
+    this.clients.set(network.chainId, client);
+    log$3.info("Added/updated network client", { network });
+  }
+}
+const log$2 = globalLogger.createChild("TonWalletKit");
+class TonWalletKit {
+  // Component references
+  walletManager;
+  sessionManager;
+  eventRouter;
+  requestProcessor;
+  // private responseHandler!: ResponseHandler;
+  networkManager;
+  jettonsManager;
+  initializer;
+  eventProcessor;
+  bridgeManager;
+  config;
+  // Event emitter for this kit instance
+  eventEmitter;
+  // State
+  isInitialized = false;
+  initializationPromise;
+  analyticsApi;
+  constructor(options) {
+    this.config = options;
+    if (options?.analytics?.enabled) {
+      this.analyticsApi = new AnalyticsApi(options?.analytics);
+    }
+    this.networkManager = new NetworkManager(options);
+    this.eventEmitter = new EventEmitter();
+    this.initializer = new Initializer(options, this.eventEmitter, this.analyticsApi);
+    this.initializationPromise = this.initialize();
+    this.jettonsManager = new JettonsManager(1e4, this.eventEmitter, this.networkManager);
+    this.eventEmitter.on("restoreConnection", async (event) => {
+      if (!event.domain) {
+        log$2.error("Domain is required for restore connection");
+        return;
+      }
+      const session = await this.sessionManager.getSessionByDomain(event.domain);
+      if (!session) {
+        log$2.error("Session not found for domain", { domain: event.domain });
+        return;
+      }
+      const wallet = session.walletId ? this.walletManager?.getWallet(session.walletId) : void 0;
+      if (!wallet) {
+        log$2.error("Wallet not found for session", { walletId: session.walletId });
+        return;
+      }
+      const walletAddress = wallet.getAddress();
+      const deviceInfo = getDeviceInfoWithDefaults(this.config.deviceInfo);
+      const connectResponse = {
+        event: "connect",
+        id: Date.now(),
+        payload: {
+          device: deviceInfo,
+          items: [
+            {
+              name: "ton_addr",
+              address: distExports$3.Address.parse(walletAddress).toRawString(),
+              // TODO: Support multiple networks
+              network: wallet.getNetwork().chainId === CHAIN.MAINNET ? CHAIN.MAINNET : CHAIN.TESTNET,
+              walletStateInit: "",
+              publicKey: ""
+            }
+          ]
+        }
+      };
+      this.bridgeManager.sendJsBridgeResponse(event?.tabId?.toString() || "", true, event?.id ?? event?.messageId, connectResponse);
+    });
+  }
+  // === Initialization ===
+  /**
+   * Initialize all components
+   */
+  async initialize() {
+    if (this.isInitialized)
+      return;
+    try {
+      const components = await this.initializer.initialize(this.config, this.networkManager);
+      this.assignComponents(components);
+      await this.setupEventRouting();
+      this.eventProcessor.startRecoveryLoop();
+      await this.eventProcessor.startProcessing();
+      this.isInitialized = true;
+    } catch (error2) {
+      log$2.error("TonWalletKit initialization failed", { error: error2?.toString() });
+      throw error2;
+    }
+  }
+  /**
+   * Assign initialized components
+   */
+  assignComponents(components) {
+    this.walletManager = components.walletManager;
+    this.sessionManager = components.sessionManager;
+    this.eventRouter = components.eventRouter;
+    this.requestProcessor = components.requestProcessor;
+    this.eventProcessor = components.eventProcessor;
+    this.bridgeManager = components.bridgeManager;
+  }
+  /**
+   * Setup event routing from bridge to handlers
+   */
+  async setupEventRouting() {
+    await this.startProcessingForExistingWallets();
+  }
+  /**
+   * Start event processing for all existing wallets
+   */
+  async startProcessingForExistingWallets() {
+    const wallets2 = this.walletManager.getWallets();
+    for (const wallet of wallets2) {
+      try {
+        const walletId = createWalletId(wallet.getNetwork(), wallet.getAddress());
+        await this.eventProcessor.startProcessing(walletId);
+      } catch (error2) {
+        log$2.error("Failed to start event processing for wallet", {
+          walletAddress: wallet.getAddress(),
+          error: error2
+        });
+      }
+    }
+  }
+  /**
+   * Ensure initialization is complete
+   */
+  async ensureInitialized() {
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+    }
+  }
+  /**
+   * Get all configured networks
+   */
+  getConfiguredNetworks() {
+    return this.networkManager.getConfiguredNetworks();
+  }
+  // === Wallet Management API (Delegated) ===
+  getWallets() {
+    if (!this.isInitialized) {
+      log$2.warn("TonWalletKit not yet initialized, returning empty array");
+      return [];
+    }
+    return this.walletManager.getWallets();
+  }
+  /**
+   * Get wallet by wallet ID (network:address format)
+   */
+  getWallet(walletId) {
+    if (!this.isInitialized) {
+      log$2.warn("TonWalletKit not yet initialized, returning undefined");
+      return void 0;
+    }
+    return this.walletManager.getWallet(walletId);
+  }
+  /**
+   * Get wallet by address and network
+   */
+  getWalletByAddressAndNetwork(address, network) {
+    if (!this.isInitialized) {
+      log$2.warn("TonWalletKit not yet initialized, returning undefined");
+      return void 0;
+    }
+    return this.walletManager.getWalletByAddressAndNetwork(address, network);
+  }
+  async addWallet(adapter) {
+    await this.ensureInitialized();
+    const walletNetwork = adapter.getNetwork();
+    if (!this.networkManager.hasNetwork(walletNetwork)) {
+      throw new WalletKitError(ERROR_CODES.NETWORK_NOT_CONFIGURED, `No API client configured for wallet network ${walletNetwork}`, void 0, { walletNetwork, configuredNetworks: this.networkManager.getConfiguredNetworks() });
+    }
+    const wallet = await wrapWalletInterface(adapter);
+    const walletId = await this.walletManager.addWallet(wallet);
+    await this.eventProcessor.startProcessing(walletId);
+    return wallet;
+  }
+  async removeWallet(walletIdOrAdapter) {
+    await this.ensureInitialized();
+    let wallet;
+    let walletId;
+    if (typeof walletIdOrAdapter === "string") {
+      walletId = walletIdOrAdapter;
+      wallet = this.walletManager.getWallet(walletIdOrAdapter);
+    } else {
+      walletId = this.walletManager.getWalletId(walletIdOrAdapter);
+      wallet = this.walletManager.getWallet(walletId);
+    }
+    if (!wallet) {
+      throw new WalletKitError(ERROR_CODES.WALLET_NOT_FOUND, "Wallet not found for removal", void 0, {
+        walletId
+      });
+    }
+    await this.eventProcessor.stopProcessing(wallet.getAddress());
+    await this.walletManager.removeWallet(walletId);
+    await this.sessionManager.removeSessionsForWallet(walletId);
+  }
+  async clearWallets() {
+    await this.ensureInitialized();
+    const wallets2 = this.walletManager.getWallets();
+    for (const wallet of wallets2) {
+      await this.eventProcessor.stopProcessing(wallet.getAddress());
+    }
+    await this.walletManager.clearWallets();
+    await this.sessionManager.clearSessions();
+  }
+  // === Session Management API (Delegated) ===
+  async disconnect(sessionId) {
+    await this.ensureInitialized();
+    const removeSession = async (sessionId2) => {
+      const session = await this.sessionManager.getSession(sessionId2);
+      if (session) {
+        try {
+          await CallForSuccess(() => this.bridgeManager.sendResponse({
+            sessionId: sessionId2,
+            isJsBridge: session?.isJsBridge,
+            id: Date.now(),
+            from: sessionId2
+          }, {
+            event: "disconnect",
+            id: Date.now(),
+            payload: {}
+          }, session), 10, 100);
+        } catch (error2) {
+          log$2.error("Failed to send disconnect to bridge", { sessionId: sessionId2, error: error2 });
+        }
+      }
+      await this.sessionManager.removeSession(sessionId2);
+    };
+    if (sessionId) {
+      try {
+        await removeSession(sessionId);
+      } catch (error2) {
+        log$2.error("Failed to remove session", { sessionId, error: error2 });
+      }
+    } else {
+      const sessions = this.sessionManager.getSessions();
+      if (sessions.length > 0) {
+        for (const session of sessions) {
+          try {
+            await removeSession(session.sessionId);
+          } catch (error2) {
+            log$2.error("Failed to remove session", { sessionId: session.sessionId, error: error2 });
+          }
+        }
+      }
+    }
+  }
+  async listSessions() {
+    await this.ensureInitialized();
+    return this.sessionManager.getSessionsForAPI();
+  }
+  // === Event Handler Registration (Delegated) ===
+  onConnectRequest(cb) {
+    if (this.eventRouter) {
+      this.eventRouter.onConnectRequest(cb);
+    } else {
+      this.ensureInitialized().then(() => {
+        this.eventRouter.onConnectRequest(cb);
+      });
+    }
+  }
+  onTransactionRequest(cb) {
+    if (this.eventRouter) {
+      this.eventRouter.onTransactionRequest(cb);
+    } else {
+      this.ensureInitialized().then(() => {
+        this.eventRouter.onTransactionRequest(cb);
+      });
+    }
+  }
+  onSignDataRequest(cb) {
+    if (this.eventRouter) {
+      this.eventRouter.onSignDataRequest(cb);
+    } else {
+      this.ensureInitialized().then(() => {
+        this.eventRouter.onSignDataRequest(cb);
+      });
+    }
+  }
+  onDisconnect(cb) {
+    if (this.eventRouter) {
+      this.eventRouter.onDisconnect(cb);
+    } else {
+      this.ensureInitialized().then(() => {
+        this.eventRouter.onDisconnect(cb);
+      });
+    }
+  }
+  removeConnectRequestCallback() {
+    this.eventRouter.removeConnectRequestCallback();
+  }
+  removeTransactionRequestCallback() {
+    this.eventRouter.removeTransactionRequestCallback();
+  }
+  removeSignDataRequestCallback() {
+    this.eventRouter.removeSignDataRequestCallback();
+  }
+  removeDisconnectCallback() {
+    this.eventRouter.removeDisconnectCallback();
+  }
+  onRequestError(cb) {
+    if (this.eventRouter) {
+      this.eventRouter.onRequestError(cb);
+    } else {
+      this.ensureInitialized().then(() => {
+        this.eventRouter.onRequestError(cb);
+      });
+    }
+  }
+  removeErrorCallback() {
+    this.eventRouter.removeErrorCallback();
+  }
+  // === URL Processing API ===
+  /**
+   * Handle pasted TON Connect URL/link
+   * Parses the URL and creates a connect request event
+   */
+  async handleTonConnectUrl(url) {
+    await this.ensureInitialized();
+    try {
+      const parsedUrl = this.parseTonConnectUrl(url);
+      if (!parsedUrl) {
+        throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Invalid TON Connect URL format", void 0, {
+          url
+        });
+      }
+      const bridgeEvent = this.createConnectEventFromUrl(parsedUrl);
+      if (!bridgeEvent) {
+        throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Invalid TON Connect URL - unable to create bridge event", void 0, { parsedUrl });
+      }
+      await this.eventRouter.routeEvent(bridgeEvent);
+    } catch (error2) {
+      log$2.error("Failed to handle TON Connect URL", { error: error2, url });
+      throw error2;
+    }
+  }
+  async handleNewTransaction(wallet, data) {
+    await this.ensureInitialized();
+    data.validUntil ??= Math.floor(Date.now() / 1e3) + 300;
+    data.network ??= wallet.getNetwork();
+    const walletId = wallet.getWalletId();
+    const bridgeEvent = {
+      id: Date.now().toString(),
+      method: "sendTransaction",
+      params: [JSON.stringify(toConnectTransactionParamContent(data))],
+      from: "",
+      domain: "",
+      isLocal: true,
+      walletId,
+      walletAddress: asAddressFriendly(wallet.getAddress())
+    };
+    await this.eventRouter.routeEvent(bridgeEvent);
+  }
+  /**
+   * Parse TON Connect URL to extract connection parameters
+   */
+  parseTonConnectUrl(url) {
+    try {
+      let parsedUrl;
+      parsedUrl = new URL(url);
+      const params = {};
+      for (const [key2, value] of parsedUrl.searchParams.entries()) {
+        params[key2] = value;
+      }
+      if (!params.v || !params.id || !params.r) {
+        log$2.warn("Missing required TON Connect URL parameters");
+        return null;
+      }
+      return {
+        version: params.v,
+        clientId: params.id,
+        requestId: params.id,
+        returnStrategy: params.ret || "back",
+        r: params.r,
+        ...params
+      };
+    } catch (error2) {
+      log$2.error("Failed to parse TON Connect URL", { error: error2, url });
+      return null;
+    }
+  }
+  /**
+   * Create bridge event from parsed URL parameters
+   */
+  createConnectEventFromUrl(params) {
+    const rString = params.r;
+    const r = rString ? JSON.parse(rString) : void 0;
+    if (!r?.manifestUrl || !params.clientId) {
+      return void 0;
+    }
+    return {
+      from: params.clientId,
+      id: params.requestId,
+      method: "connect",
+      params: {
+        manifest: {
+          url: r.manifestUrl
+        },
+        items: r.items,
+        returnStrategy: params.returnStrategy
+      },
+      timestamp: Date.now(),
+      domain: ""
+    };
+  }
+  // === Request Processing API (Delegated) ===
+  async approveConnectRequest(event) {
+    await this.ensureInitialized();
+    return this.requestProcessor.approveConnectRequest(event);
+  }
+  async rejectConnectRequest(event, reason, errorCode) {
+    await this.ensureInitialized();
+    return this.requestProcessor.rejectConnectRequest(event, reason, errorCode);
+  }
+  async approveTransactionRequest(event) {
+    await this.ensureInitialized();
+    return this.requestProcessor.approveTransactionRequest(event);
+  }
+  async rejectTransactionRequest(event, reason) {
+    await this.ensureInitialized();
+    return this.requestProcessor.rejectTransactionRequest(event, reason);
+  }
+  async approveSignDataRequest(event) {
+    await this.ensureInitialized();
+    return this.requestProcessor.approveSignDataRequest(event);
+  }
+  async rejectSignDataRequest(event, reason) {
+    await this.ensureInitialized();
+    return this.requestProcessor.rejectSignDataRequest(event, reason);
+  }
+  // === TON Client Access ===
+  /**
+   * Get API client for a specific network
+   * @param network - The network object
+   * @returns The API client for the specified network
+   * @throws WalletKitError if no client is configured for the network
+   */
+  getApiClient(network) {
+    if (!this.isInitialized) {
+      throw new WalletKitError(ERROR_CODES.INITIALIZATION_ERROR, "TonWalletKit not yet initialized - call initialize() first");
+    }
+    return this.networkManager.getClient(network);
+  }
+  /**
+   * Get the NetworkManager instance
+   * Provides access to all configured network clients
+   */
+  getNetworkManager() {
+    return this.networkManager;
+  }
+  // === Lifecycle Management ===
+  /**
+   * Check if kit is ready for use
+   */
+  isReady() {
+    return this.isInitialized;
+  }
+  /**
+   * Wait for initialization to complete
+   */
+  async waitForReady() {
+    await this.ensureInitialized();
+  }
+  /**
+   * Get initialization status
+   */
+  getStatus() {
+    return {
+      initialized: this.isInitialized,
+      ready: this.isInitialized
+    };
+  }
+  /**
+   * Clean shutdown
+   */
+  async close() {
+    if (this.initializer) {
+      await this.initializer.cleanup({
+        walletManager: this.walletManager,
+        bridgeManager: this.bridgeManager,
+        sessionManager: this.sessionManager,
+        eventRouter: this.eventRouter,
+        requestProcessor: this.requestProcessor,
+        eventProcessor: this.eventProcessor
+      });
+    }
+    this.isInitialized = false;
+  }
+  // === Jettons API ===
+  /**
+   * Jettons API access
+   */
+  get jettons() {
+    return this.jettonsManager;
+  }
+  /**
+   * Get jettons manager for internal use
+   */
+  getJettonsManager() {
+    return this.jettonsManager;
+  }
+  /**
+   * Get the event emitter for this kit instance
+   * Allows external components to listen to and emit events
+   */
+  getEventEmitter() {
+    return this.eventEmitter;
+  }
+  /**
+   * Process a bridge request from injected JS Bridge
+   * This method is called by extension content scripts
+   * @param request - The bridge request to process
+   * @returns Promise resolving to the response data
+   */
+  async processInjectedBridgeRequest(messageInfo, request) {
+    await this.ensureInitialized();
+    return this.bridgeManager.queueJsBridgeEvent(messageInfo, request);
+  }
+}
+const WalletV5R1CodeBoc = "b5ee9c7201021401000281000114ff00f4a413f4bcf2c80b01020120020302014804050102f20e02dcd020d749c120915b8f6320d70b1f2082106578746ebd21821073696e74bdb0925f03e082106578746eba8eb48020d72101d074d721fa4030fa44f828fa443058bd915be0ed44d0810141d721f4058307f40e6fa1319130e18040d721707fdb3ce03120d749810280b99130e070e2100f020120060702012008090019be5f0f6a2684080a0eb90fa02c02016e0a0b0201480c0d0019adce76a2684020eb90eb85ffc00019af1df6a2684010eb90eb858fc00017b325fb51341c75c875c2c7e00011b262fb513435c28020011e20d70b1f82107369676ebaf2e08a7f0f01e68ef0eda2edfb218308d722028308d723208020d721d31fd31fd31fed44d0d200d31f20d31fd3ffd70a000af90140ccf9109a28945f0adb31e1f2c087df02b35007b0f2d0845125baf2e0855036baf2e086f823bbf2d0882292f800de01a47fc8ca00cb1f01cf16c9ed542092f80fde70db3cd81003f6eda2edfb02f404216e926c218e4c0221d73930709421c700b38e2d01d72820761e436c20d749c008f2e09320d74ac002f2e09320d71d06c712c2005230b0f2d089d74cd7393001a4e86c128407bbf2e093d74ac000f2e093ed55e2d20001c000915be0ebd72c08142091709601d72c081c12e25210b1e30f20d74a111213009601fa4001fa44f828fa443058baf2e091ed44d0810141d718f405049d7fc8ca0040048307f453f2e08b8e14038307f45bf2e08c22d70a00216e01b3b0f2d090e2c85003cf1612f400c9ed54007230d72c08248e2d21f2e092d200ed44d0d2005113baf2d08f54503091319c01810140d721d70a00f2e08ee2c8ca0058cf16c9ed5493f2c08de20010935bdb31e1d74cd0";
+const WalletV5R1CodeCell = distExports$3.Cell.fromBoc(Buffer.from(WalletV5R1CodeBoc, "hex"))[0];
+class ActionSendMsg {
+  mode;
+  outMsg;
+  static tag = 247711853;
+  tag = ActionSendMsg.tag;
+  constructor(mode, outMsg) {
+    this.mode = mode;
+    this.outMsg = outMsg;
+  }
+  serialize() {
+    return distExports$3.beginCell().storeUint(this.tag, 32).storeUint(this.mode | distExports$3.SendMode.IGNORE_ERRORS, 8).storeRef(distExports$3.beginCell().store(distExports$3.storeMessageRelaxed(this.outMsg)).endCell()).endCell();
+  }
+}
+class ActionAddExtension {
+  address;
+  static tag = 2;
+  tag = ActionAddExtension.tag;
+  constructor(address) {
+    this.address = address;
+  }
+  serialize() {
+    return distExports$3.beginCell().storeUint(this.tag, 8).storeAddress(this.address).endCell();
+  }
+}
+class ActionRemoveExtension {
+  address;
+  static tag = 3;
+  tag = ActionRemoveExtension.tag;
+  constructor(address) {
+    this.address = address;
+  }
+  serialize() {
+    return distExports$3.beginCell().storeUint(this.tag, 8).storeAddress(this.address).endCell();
+  }
+}
+class ActionSetSignatureAuthAllowed {
+  allowed;
+  static tag = 4;
+  tag = ActionSetSignatureAuthAllowed.tag;
+  constructor(allowed) {
+    this.allowed = allowed;
+  }
+  serialize() {
+    return distExports$3.beginCell().storeUint(this.tag, 8).storeUint(this.allowed ? 1 : 0, 1).endCell();
+  }
+}
+function isExtendedAction(action) {
+  return action.tag === ActionAddExtension.tag || action.tag === ActionRemoveExtension.tag || action.tag === ActionSetSignatureAuthAllowed.tag;
+}
+function packActionsListOut(actions) {
+  if (actions.length === 0) {
+    return distExports$3.beginCell().endCell();
+  }
+  const [action, ...rest] = actions;
+  if (isExtendedAction(action)) {
+    throw new Error("Actions bust be in an order: all extended actions, all out actions");
+  }
+  return distExports$3.beginCell().storeRef(packActionsListOut(rest)).storeSlice(action.serialize().beginParse()).endCell();
+}
+function packExtendedActions(extendedActions) {
+  const first = extendedActions[0];
+  const rest = extendedActions.slice(1);
+  let builder2 = distExports$3.beginCell().storeSlice(first.serialize().beginParse());
+  if (rest.length > 0) {
+    builder2 = builder2.storeRef(packExtendedActions(extendedActions.slice(1)));
+  }
+  return builder2.endCell();
+}
+function packActionsListExtended(actions) {
+  const extendedActions = [];
+  const outActions = [];
+  actions.forEach((action) => {
+    if (isExtendedAction(action)) {
+      extendedActions.push(action);
+    } else {
+      outActions.push(action);
+    }
+  });
+  let builder2 = distExports$3.beginCell();
+  if (outActions.length === 0) {
+    builder2 = builder2.storeUint(0, 1);
+  } else {
+    builder2 = builder2.storeMaybeRef(packActionsListOut(outActions.slice().reverse()));
+  }
+  if (extendedActions.length === 0) {
+    builder2 = builder2.storeUint(0, 1);
+  } else {
+    const first = extendedActions[0];
+    const rest = extendedActions.slice(1);
+    builder2 = builder2.storeUint(1, 1).storeSlice(first.serialize().beginParse());
+    if (rest.length > 0) {
+      builder2 = builder2.storeRef(packExtendedActions(rest));
+    }
+  }
+  return builder2.endCell();
+}
+function packActionsList(actions) {
+  return packActionsListExtended(actions);
+}
+const log$1 = globalLogger.createChild("WalletV5R1Adapter");
+const defaultWalletIdV5R1 = 2147483409;
+class WalletV5R1Adapter {
+  // private keyPair: { publicKey: Uint8Array; secretKey: Uint8Array };
+  signer;
+  config;
+  walletContract;
+  client;
+  publicKey;
+  version = "v5r1";
+  /**
+   * Static factory method to create a WalletV5R1Adapter
+   * @param signer - Signer function with publicKey property (from Signer utility)
+   * @param options - Configuration options for the wallet
+   */
+  static async create(signer, options) {
+    return new WalletV5R1Adapter({
+      signer,
+      publicKey: signer.publicKey,
+      tonClient: options.client,
+      network: options.network,
+      walletId: options.walletId,
+      workchain: options.workchain
+    });
+  }
+  constructor(config) {
+    this.config = config;
+    this.client = config.tonClient;
+    this.signer = config.signer;
+    this.publicKey = this.config.publicKey;
+    this.walletContract = WalletV5.createFromConfig({
+      publicKey: HexToBigInt(this.publicKey),
+      seqno: 0,
+      signatureAllowed: true,
+      walletId: typeof config.walletId === "bigint" ? Number(config.walletId) : config.walletId ?? defaultWalletIdV5R1,
+      extensions: distExports$3.Dictionary.empty()
+    }, {
+      code: WalletV5R1CodeCell,
+      workchain: config.workchain ?? 0,
+      client: this.client
+    });
+  }
+  getPublicKey() {
+    return this.publicKey;
+  }
+  getClient() {
+    return this.client;
+  }
+  /**
+   * Sign raw bytes with wallet's private key
+   */
+  async sign(bytes) {
+    return this.signer.sign(bytes);
+  }
+  getNetwork() {
+    return this.config.network;
+  }
+  /**
+   * Get wallet's TON address
+   */
+  getAddress(options) {
+    return formatWalletAddress(this.walletContract.address, options?.testnet);
+  }
+  getWalletId() {
+    return createWalletId(this.getNetwork(), this.getAddress());
+  }
+  async getSignedSendTransaction(input, options) {
+    const actions = packActionsList(input.messages.map((m2) => {
+      let bounce = true;
+      const parsedAddress = distExports$3.Address.parseFriendly(m2.address);
+      if (parsedAddress.isBounceable === false) {
+        bounce = false;
+      }
+      const msg = distExports$3.internal({
+        to: m2.address,
+        value: BigInt(m2.amount),
+        bounce,
+        extracurrency: m2.extraCurrency ? Object.fromEntries(Object.entries(m2.extraCurrency).map(([k2, v2]) => [Number(k2), BigInt(v2)])) : void 0
+      });
+      if (m2.payload) {
+        try {
+          msg.body = distExports$3.Cell.fromBase64(m2.payload);
+        } catch (error2) {
+          log$1.warn("Failed to load payload", { error: error2 });
+          throw WalletKitError.fromError(ERROR_CODES.CONTRACT_VALIDATION_FAILED, "Failed to parse transaction payload", error2);
+        }
+      }
+      if (m2.stateInit) {
+        try {
+          msg.init = distExports$3.loadStateInit(distExports$3.Cell.fromBase64(m2.stateInit).asSlice());
+        } catch (error2) {
+          log$1.warn("Failed to load state init", { error: error2 });
+          throw WalletKitError.fromError(ERROR_CODES.CONTRACT_VALIDATION_FAILED, "Failed to parse state init", error2);
+        }
+      }
+      return new ActionSendMsg(distExports$3.SendMode.PAY_GAS_SEPARATELY + distExports$3.SendMode.IGNORE_ERRORS, msg);
+    }));
+    const createBodyOptions = {
+      ...options,
+      validUntil: void 0
+    };
+    if (input.validUntil) {
+      const now = Math.floor(Date.now() / 1e3);
+      const maxValidUntil = now + 600;
+      if (input.validUntil < now) {
+        throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Transaction valid_until timestamp is in the past", void 0, { validUntil: input.validUntil, currentTime: now });
+      } else if (input.validUntil > maxValidUntil) {
+        createBodyOptions.validUntil = maxValidUntil;
+      } else {
+        createBodyOptions.validUntil = input.validUntil;
+      }
+    }
+    let seqno = 0;
+    try {
+      seqno = await CallForSuccess(async () => this.getSeqno(), 5, 1e3);
+    } catch (_) {
+    }
+    const walletId = (await this.walletContract.walletId).serialized;
+    if (!walletId) {
+      throw new Error("Failed to get seqno or walletId");
+    }
+    const transfer = await this.createBodyV5(seqno, walletId, actions, createBodyOptions);
+    const ext = distExports$3.external({
+      to: this.walletContract.address,
+      init: this.walletContract.init,
+      body: transfer
+    });
+    return distExports$3.beginCell().store(distExports$3.storeMessage(ext)).endCell().toBoc().toString("base64");
+  }
+  /**
+   * Get state init for wallet deployment
+   */
+  async getStateInit() {
+    if (!this.walletContract.init) {
+      throw new Error("Wallet contract not properly initialized");
+    }
+    const stateInit = distExports$3.beginCell().store(distExports$3.storeStateInit(this.walletContract.init)).endCell();
+    return stateInit.toBoc().toString("base64");
+  }
+  /**
+   * Get the underlying WalletV5 contract
+   */
+  getContract() {
+    return this.walletContract;
+  }
+  /**
+   * Get current sequence number
+   */
+  async getSeqno() {
+    try {
+      return await this.walletContract.seqno;
+    } catch (error2) {
+      log$1.warn("Failed to get seqno", { error: error2 });
+      throw error2;
+    }
+  }
+  /**
+   * Get wallet ID
+   */
+  async getWalletV5R1Id() {
+    try {
+      return this.walletContract.walletId;
+    } catch (error2) {
+      log$1.warn("Failed to get wallet ID", { error: error2 });
+      const walletId = this.config.walletId;
+      const subwalletNumber = typeof walletId === "bigint" ? Number(walletId) : walletId || 0;
+      return new WalletV5R1Id({ subwalletNumber });
+    }
+  }
+  /**
+   * Check if wallet is deployed on the network
+   */
+  async isDeployed() {
+    try {
+      const state = await this.client.getAccountState(asAddressFriendly(this.walletContract.address));
+      return state.status === "active";
+    } catch (error2) {
+      log$1.warn("Failed to check deployment status", { error: error2 });
+      return false;
+    }
+  }
+  async createBodyV5(seqno, walletId, actionsList, options) {
+    const Opcodes2 = {
+      auth_signed: 1936287598
+    };
+    const expireAt = options.validUntil ?? Math.floor(Date.now() / 1e3) + 300;
+    const payload = distExports$3.beginCell().storeUint(Opcodes2.auth_signed, 32).storeUint(walletId, 32).storeUint(expireAt, 32).storeUint(seqno, 32).storeSlice(actionsList.beginParse()).endCell();
+    const signingData = payload.hash();
+    const signature = options.fakeSignature ? FakeSignature(signingData) : await this.sign(signingData);
+    return distExports$3.beginCell().storeSlice(payload.beginParse()).storeBuffer(Buffer.from(HexToUint8Array(signature))).endCell();
+  }
+  async getSignedSignData(input) {
+    const signature = await this.sign(HexToUint8Array(input.hash));
+    return signature;
+  }
+  async getSignedTonProof(input) {
+    const message = await CreateTonProofMessageBytes(input);
+    const signature = await this.sign(message);
+    return signature;
+  }
+}
+function walletV5ConfigToCell(config) {
+  return distExports$3.beginCell().storeBit(config.signatureAllowed).storeUint(config.seqno, 32).storeUint(config.walletId, 32).storeUint(config.publicKey, 256).storeDict(config.extensions, distExports$3.Dictionary.Keys.BigUint(256), distExports$3.Dictionary.Values.BigInt(1)).endCell();
+}
+const Opcodes = {
+  action_send_msg: 247711853,
+  action_set_code: 2907562126,
+  action_extended_set_data: 536406539,
+  action_extended_add_extension: 2,
+  action_extended_remove_extension: 3,
+  action_extended_set_signature_auth_allowed: 4,
+  auth_extension: 1702392942,
+  auth_signed: 1936287598,
+  auth_signed_internal: 1936289396
+};
+class WalletV5R1Id {
+  static deserialize(walletId) {
+    return new WalletV5R1Id({
+      subwalletNumber: walletId
+    });
+  }
+  subwalletNumber;
+  serialized;
+  constructor(args) {
+    this.subwalletNumber = args?.subwalletNumber ?? 0;
+    this.serialized = BigInt(this.subwalletNumber);
+  }
+}
+class WalletV5 {
+  client;
+  address;
+  init;
+  subwalletId;
+  constructor(client, address, init2) {
+    this.client = client;
+    this.address = address;
+    this.init = init2;
+  }
+  static createFromAddress(client, address) {
+    return new WalletV5(client, address);
+  }
+  static createFromConfig(config, options) {
+    const data = walletV5ConfigToCell(config);
+    const init2 = { code: options.code, data };
+    const wallet = new WalletV5(options.client, distExports$3.contractAddress(options.workchain, init2), init2);
+    wallet.subwalletId = config.walletId;
+    return wallet;
+  }
+  async sendDeploy(provider, via, value) {
+    await provider.internal(via, {
+      value,
+      sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY,
+      body: distExports$3.beginCell().endCell()
+    });
+  }
+  async sendInternalSignedMessage(provider, via, opts) {
+    await provider.internal(via, {
+      value: opts.value,
+      sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY,
+      body: distExports$3.beginCell().storeSlice(opts.body.beginParse()).endCell()
+    });
+  }
+  async sendInternalMessageFromExtension(provider, via, opts) {
+    await provider.internal(via, {
+      value: opts.value,
+      sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY,
+      body: distExports$3.beginCell().storeUint(Opcodes.auth_extension, 32).storeUint(0, 64).storeSlice(opts.body.beginParse()).endCell()
+    });
+  }
+  async sendInternal(provider, via, opts) {
+    await provider.internal(via, opts);
+  }
+  async sendExternalSignedMessage(provider, body) {
+    await provider.external(body);
+  }
+  async sendExternal(provider, body) {
+    await provider.external(body);
+  }
+  get publicKey() {
+    return this.client.runGetMethod(asAddressFriendly(this.address), "get_public_key").then((data) => {
+      if (data.exitCode === 0) {
+        const parsedStack = ParseStack(data.stack);
+        if (parsedStack[0]?.type === "int") {
+          return parsedStack[0].value;
+        } else {
+          throw new Error("Stack is not an int");
+        }
+      } else if (this.init) {
+        return this.init.data.asSlice().skip(1 + 32 + 32).loadUintBig(256);
+      } else {
+        return 0n;
+      }
+    });
+  }
+  get status() {
+    return this.client.getAccountState(asAddressFriendly(this.address)).then((state) => state.status);
+  }
+  get seqno() {
+    return this.client.runGetMethod(asAddressFriendly(this.address), "seqno").then((data) => {
+      if (data.exitCode === 0) {
+        const parsedStack = ParseStack(data.stack);
+        if (parsedStack[0]?.type === "int") {
+          return Number(parsedStack[0].value);
+        } else {
+          throw new Error("Stack is not an int");
+        }
+      } else {
+        return 0;
+      }
+    });
+  }
+  get isSignatureAuthAllowed() {
+    return this.client.runGetMethod(asAddressFriendly(this.address), "is_signature_allowed").then((data) => {
+      if (data.exitCode === 0) {
+        const parsedStack = ParseStack(data.stack);
+        if (parsedStack[0]?.type === "int") {
+          return Boolean(parsedStack[0].value);
+        } else {
+          throw new Error("Stack is not an int");
+        }
+      } else {
+        return false;
+      }
+    });
+  }
+  get walletId() {
+    if (this.subwalletId !== void 0) {
+      return new Promise((resolve) => {
+        resolve(WalletV5R1Id.deserialize(this.subwalletId));
+      });
+    } else {
+      return this.client.runGetMethod(asAddressFriendly(this.address), "get_subwallet_id").then((data) => {
+        if (data.exitCode === 0) {
+          const parsedStack = ParseStack(data.stack);
+          if (parsedStack[0]?.type === "int") {
+            this.subwalletId = Number(parsedStack[0].value);
+          } else {
+            throw new Error("Stack is not an int");
+          }
+          return WalletV5R1Id.deserialize(this.subwalletId);
+        } else {
+          return WalletV5R1Id.deserialize(defaultWalletIdV5R1);
+        }
+      });
+    }
+  }
+}
+class WalletV4R2 {
+  address;
+  init;
+  workchain;
+  publicKey;
+  subwalletId;
+  client;
+  constructor(address, init2, options) {
+    this.address = address;
+    this.init = init2 ?? void 0;
+    this.workchain = options.workchain;
+    this.client = options.client;
+    if (init2) {
+      const dataSlice = init2.data.beginParse();
+      dataSlice.loadUint(32);
+      this.subwalletId = dataSlice.loadUint(32);
+      this.publicKey = dataSlice.loadUintBig(256);
+    } else {
+      this.subwalletId = 0;
+      this.publicKey = 0n;
+    }
+  }
+  static createFromConfig(config, options) {
+    const data = distExports$3.beginCell().storeUint(config.seqno, 32).storeUint(config.subwalletId, 32).storeUint(config.publicKey, 256).storeBit(0).endCell();
+    const init2 = { code: options.code, data };
+    const address = distExports$3.contractAddress(options.workchain, init2);
+    return new WalletV4R2(address, init2, options);
+  }
+  static createFromAddress(address, options) {
+    return new WalletV4R2(address, null, options);
+  }
+  async sendDeploy(provider, via, value) {
+    await provider.internal(via, {
+      value,
+      sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY,
+      body: distExports$3.beginCell().endCell()
+    });
+  }
+  /**
+   * Get wallet's current sequence number
+   */
+  async getSeqno() {
+    try {
+      const state = await this.client.runGetMethod(asAddressFriendly(this.address), "seqno");
+      if (state.exitCode !== 0) {
+        return 0;
+      }
+      const parsedStack = ParseStack(state.stack);
+      if (parsedStack[0]?.type === "int") {
+        return Number(parsedStack[0].value);
+      } else {
+        throw new Error("Stack is not an int");
+      }
+    } catch (error2) {
+      return 0;
+    }
+  }
+  /**
+   * Get wallet's current sequence number (async getter)
+   */
+  get seqno() {
+    return this.getSeqno();
+  }
+  /**
+   * Get wallet's subwallet ID
+   */
+  async getSubwalletId() {
+    try {
+      const state = await this.client.runGetMethod(asAddressFriendly(this.address), "get_subwallet_id");
+      if (state.exitCode !== 0) {
+        return this.subwalletId;
+      }
+      const parsedStack = ParseStack(state.stack);
+      if (parsedStack[0]?.type === "int") {
+        return Number(parsedStack[0].value);
+      } else {
+        throw new Error("Stack is not an int");
+      }
+    } catch (error2) {
+      return this.subwalletId;
+    }
+  }
+  /**
+   * Create transfer message body
+   */
+  createTransfer(args) {
+    const timeout = args.timeout ?? Math.floor(Date.now() / 1e3) + 60;
+    let body = distExports$3.beginCell().storeUint(this.subwalletId, 32).storeUint(timeout, 32).storeUint(args.seqno, 32).storeUint(0, 8).storeUint(args.sendMode, 8);
+    for (const message of args.messages) {
+      body = body.storeRef(distExports$3.beginCell().store(distExports$3.storeMessageRelaxed(message)));
+    }
+    return body.endCell();
+  }
+  /**
+   * Send internal transfer
+   */
+  async sendTransfer(provider, via, args) {
+    const transfer = this.createTransfer(args);
+    await provider.internal(via, {
+      sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY,
+      body: transfer,
+      value: 0n
+    });
+  }
+}
+const WalletV4R2CodeCell = distExports$3.Cell.fromBoc(Buffer.from("te6ccgECFAEAAtQAART/APSkE/S88sgLAQIBIAIDAgFIBAUE+PKDCNcYINMf0x/THwL4I7vyZO1E0NMf0x/T//QE0VFDuvKhUVG68qIF+QFUEGT5EPKj+AAkpMjLH1JAyx9SMMv/UhD0AMntVPgPAdMHIcAAn2xRkyDXSpbTB9QC+wDoMOAhwAHjACHAAuMAAcADkTDjDQOkyMsfEssfy/8QERITAubQAdDTAyFxsJJfBOAi10nBIJJfBOAC0x8hghBwbHVnvSKCEGRzdHK9sJJfBeAD+kAwIPpEAcjKB8v/ydDtRNCBAUDXIfQEMFyBAQj0Cm+hMbOSXwfgBdM/yCWCEHBsdWe6kjgw4w0DghBkc3RyupJfBuMNBgcCASAICQB4AfoA9AQw+CdvIjBQCqEhvvLgUIIQcGx1Z4MesXCAGFAEywUmzxZY+gIZ9ADLaRfLH1Jgyz8gyYBA+wAGAIpQBIEBCPRZMO1E0IEBQNcgyAHPFvQAye1UAXKwjiOCEGRzdHKDHrFwgBhQBcsFUAPPFiP6AhPLassfyz/JgED7AJJfA+ICASAKCwBZvSQrb2omhAgKBrkPoCGEcNQICEekk30pkQzmkD6f+YN4EoAbeBAUiYcVnzGEAgFYDA0AEbjJftRNDXCx+AA9sp37UTQgQFA1yH0BDACyMoHy//J0AGBAQj0Cm+hMYAIBIA4PABmtznaiaEAga5Drhf/AABmvHfaiaEAQa5DrhY/AAG7SB/oA1NQi+QAFyMoHFcv/ydB3dIAYyMsFywIizxZQBfoCFMtrEszMyXP7AMhAFIEBCPRR8qcCAHCBAQjXGPoA0z/IVCBHgQEI9FHyp4IQbm90ZXB0gBjIywXLAlAGzxZQBPoCFMtqEssfyz/Jc/sAAgBsgQEI1xj6ANM/MFIkgQEI9Fnyp4IQZHN0cnB0gBjIywXLAlAFzxZQA/oCE8tqyx8Syz/Jc/sAAAr0AMntVA==", "base64"))[0];
+const defaultWalletIdV4R2 = 698983191;
+const log = globalLogger.createChild("WalletV4R2Adapter");
+class WalletV4R2Adapter {
+  signer;
+  config;
+  walletContract;
+  client;
+  publicKey;
+  version = "v4r2";
+  /**
+   * Static factory method to create a WalletV4R2Adapter
+   * @param signer - Signer function with publicKey property (from Signer utility)
+   * @param options - Configuration options for the wallet
+   */
+  static async create(signer, options) {
+    return new WalletV4R2Adapter({
+      signer,
+      publicKey: signer.publicKey,
+      tonClient: options.client,
+      network: options.network,
+      walletId: typeof options.walletId === "bigint" ? Number(options.walletId) : options.walletId,
+      workchain: options.workchain
+    });
+  }
+  constructor(config) {
+    this.config = config;
+    this.client = config.tonClient;
+    this.signer = config.signer;
+    this.publicKey = this.config.publicKey;
+    const walletConfig = {
+      publicKey: HexToBigInt(this.publicKey),
+      workchain: config.workchain ?? 0,
+      seqno: 0,
+      subwalletId: config.walletId ?? defaultWalletIdV4R2
+    };
+    this.walletContract = WalletV4R2.createFromConfig(walletConfig, {
+      code: WalletV4R2CodeCell,
+      workchain: config.workchain ?? 0,
+      client: this.client
+    });
+  }
+  getPublicKey() {
+    return this.publicKey;
+  }
+  getClient() {
+    return this.client;
+  }
+  /**
+   * Sign raw bytes with wallet's private key
+   */
+  async sign(bytes) {
+    return this.signer.sign(bytes);
+  }
+  getNetwork() {
+    return this.config.network;
+  }
+  /**
+   * Get wallet's TON address
+   */
+  getAddress(options) {
+    return formatWalletAddress(this.walletContract.address, options?.testnet);
+  }
+  getWalletId() {
+    return createWalletId(this.getNetwork(), this.getAddress());
+  }
+  async getSignedSendTransaction(input, _options) {
+    if (input.messages.length === 0) {
+      throw new Error("Ledger does not support empty messages");
+    }
+    if (input.messages.length > 4) {
+      throw new Error("WalletV4R2 does not support more than 4 messages");
+    }
+    let seqno = 0;
+    try {
+      seqno = await CallForSuccess(async () => this.getSeqno(), 5, 1e3);
+    } catch (_) {
+    }
+    const timeout = input.validUntil ? Math.min(input.validUntil, Math.floor(Date.now() / 1e3) + 600) : Math.floor(Date.now() / 1e3) + 60;
+    try {
+      const messages = input.messages.map((m2) => distExports$3.internal({
+        to: distExports$3.Address.parse(m2.address),
+        value: BigInt(m2.amount),
+        bounce: true,
+        extracurrency: m2.extraCurrency ? Object.fromEntries(Object.entries(m2.extraCurrency).map(([k2, v2]) => [Number(k2), BigInt(v2)])) : void 0,
+        body: m2.payload ? distExports$3.Cell.fromBase64(m2.payload) : void 0,
+        init: m2.stateInit ? distExports$3.loadStateInit(distExports$3.Cell.fromBase64(m2.stateInit).asSlice()) : void 0
+      }));
+      const data = this.walletContract.createTransfer({
+        seqno,
+        sendMode: distExports$3.SendMode.PAY_GAS_SEPARATELY + distExports$3.SendMode.IGNORE_ERRORS,
+        messages,
+        timeout
+      });
+      const signature = await this.sign(Uint8Array.from(data.hash()));
+      const signedCell = distExports$3.beginCell().storeBuffer(Buffer.from(HexToUint8Array(signature))).storeSlice(data.asSlice()).endCell();
+      const ext = distExports$3.external({
+        to: this.walletContract.address,
+        init: this.walletContract.init,
+        body: signedCell
+      });
+      return distExports$3.beginCell().store(distExports$3.storeMessage(ext)).endCell().toBoc().toString("base64");
+    } catch (error2) {
+      log.warn("Failed to get signed send transaction", { error: error2 });
+      throw error2;
+    }
+  }
+  /**
+   * Get state init for wallet deployment
+   */
+  async getStateInit() {
+    if (!this.walletContract.init) {
+      throw new Error("Wallet contract not properly initialized");
+    }
+    const stateInit = distExports$3.beginCell().store(distExports$3.storeStateInit(this.walletContract.init)).endCell();
+    return stateInit.toBoc().toString("base64");
+  }
+  /**
+   * Get the underlying WalletV4R2 contract
+   */
+  getContract() {
+    return this.walletContract;
+  }
+  /**
+   * Get current sequence number
+   */
+  async getSeqno() {
+    try {
+      return await this.walletContract.getSeqno();
+    } catch (error2) {
+      log.warn("Failed to get seqno", { error: error2 });
+      throw error2;
+    }
+  }
+  /**
+   * Get wallet's subwallet ID
+   */
+  async getSubwalletId() {
+    try {
+      return await this.walletContract.getSubwalletId();
+    } catch (error2) {
+      log.warn("Failed to get subwallet ID", { error: error2 });
+      return this.config.walletId ?? defaultWalletIdV4R2;
+    }
+  }
+  /**
+   * Check if wallet is deployed on the network
+   */
+  async isDeployed() {
+    try {
+      const state = await this.client.getAccountState(asAddressFriendly(this.walletContract.address));
+      return state.status === "active";
+    } catch (error2) {
+      log.warn("Failed to check deployment status", { error: error2 });
+      return false;
+    }
+  }
+  async getSignedSignData(input) {
+    const signature = await this.sign(HexToUint8Array(input.hash));
+    return signature;
+  }
+  async getSignedTonProof(input) {
+    const message = await CreateTonProofMessageBytes(input);
+    const signature = await this.sign(message);
+    return signature;
+  }
+}
 const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   ApiClientToncenter,
+  get AssetType() {
+    return AssetType;
+  },
   Base64Normalize,
   Base64NormalizeUrl,
   Base64ToBigInt,
@@ -77291,7 +77777,6 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   },
   CallForSuccess,
   ConnectHandler,
-  ConvertTonProofMessage,
   CreateTonMnemonic,
   CreateTonProofMessageBytes,
   DEFAULT_DURABLE_EVENTS_CONFIG,
@@ -77316,15 +77801,27 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   LocalStorageAdapter,
   MemoryStorageAdapter,
   MnemonicToKeyPair,
+  Network,
   NetworkManager,
   Opcodes,
   ParseBase64,
   ParseStack,
   RESTORE_CONNECTION_TIMEOUT,
   RequestProcessor,
+  get Result() {
+    return Result$1;
+  },
   get SEND_TRANSACTION_ERROR_CODES() {
     return SEND_TRANSACTION_ERROR_CODES;
   },
+  get SendModeBase() {
+    return SendModeBase;
+  },
+  get SendModeFlag() {
+    return SendModeFlag;
+  },
+  SendModeFromValue,
+  SendModeToValue,
   SerializeStack,
   SessionError,
   SessionManager,
@@ -77350,6 +77847,8 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   WalletV5R1CodeBoc,
   WalletV5R1CodeCell,
   WalletV5R1Id,
+  asAddressFriendly,
+  asHex,
   createDeviceInfo,
   createWalletId,
   createWalletManifest,
@@ -77460,12 +77959,6 @@ function initTonWalletKit(config, deps) {
               log$l("[walletkitBridge] ✅ Resolving response promise for messageId:", bridgeMessage.messageId);
               resolvers == null ? void 0 : resolvers.delete(bridgeMessage.messageId);
               resolver.resolve(bridgeMessage);
-              log$l("[walletkitBridge] 📤 Sending response back to internal browser via native");
-              deps.postToNative({
-                kind: "jsBridgeEvent",
-                sessionId,
-                event: bridgeMessage
-              });
             } else {
               warn("[walletkitBridge] ⚠️ No pending promise for messageId:", bridgeMessage.messageId);
             }
@@ -78073,23 +78566,22 @@ function createSigner(args) {
 function createAdapter(args) {
   return __async$5(this, null, function* () {
     return callBridge("createAdapter", () => __async$5(null, null, function* () {
+      var _a2;
       const signer = yield getSigner(args);
-      const networkChain = args.network;
-      if (!networkChain) {
-        throw new Error("Network is required for creating wallet adapter");
-      }
+      const networkStr = (_a2 = args.network) != null ? _a2 : "mainnet";
+      const networkObject = { chainId: networkStr === "mainnet" ? "-239" : "-3" };
       let adapter;
       if (args.walletVersion === "v5r1") {
         adapter = yield WalletV5R1Adapter$1.create(signer, {
-          client: walletKit.getApiClient(networkChain),
-          network: networkChain,
+          client: walletKit.getApiClient(networkObject),
+          network: networkObject,
           workchain: args.workchain,
           walletId: args.walletId
         });
       } else if (args.walletVersion === "v4r2") {
         adapter = yield WalletV4R2Adapter$1.create(signer, {
-          client: walletKit.getApiClient(networkChain),
-          network: networkChain,
+          client: walletKit.getApiClient(networkObject),
+          network: networkObject,
           workchain: args.workchain,
           walletId: args.walletId
         });
@@ -78125,6 +78617,10 @@ function addWallet(args) {
         throw new Error("Failed to add wallet - may already exist");
       }
       adapterStore.delete(args.adapterId);
+      const walletWithAddress = wallet;
+      if (!walletWithAddress.address && walletWithAddress.getAddress) {
+        walletWithAddress.address = walletWithAddress.getAddress();
+      }
       return wallet;
     }));
   });
@@ -78315,6 +78811,9 @@ function approveTransactionRequest(args) {
       if (!args.event) {
         throw new Error("Transaction request event is required");
       }
+      if (args.walletId) {
+        args.event.walletId = args.walletId;
+      }
       return yield walletKit.approveTransactionRequest(args.event);
     }));
   });
@@ -78342,6 +78841,9 @@ function approveSignDataRequest(args) {
     return callBridge("approveSignDataRequest", () => __async$3(null, null, function* () {
       if (!args.event) {
         throw new Error("Sign data request event is required");
+      }
+      if (args.walletId) {
+        args.event.walletId = args.walletId;
       }
       return yield walletKit.approveSignDataRequest(args.event);
     }));

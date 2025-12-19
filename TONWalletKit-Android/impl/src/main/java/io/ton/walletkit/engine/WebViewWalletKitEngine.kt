@@ -24,6 +24,18 @@ package io.ton.walletkit.engine
 import android.content.Context
 import android.view.ViewGroup
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONJettonsResponse
+import io.ton.walletkit.api.generated.TONJettonsTransferRequest
+import io.ton.walletkit.api.generated.TONNFT
+import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
+import io.ton.walletkit.api.generated.TONNFTTransferRequest
+import io.ton.walletkit.api.generated.TONNFTsResponse
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
+import io.ton.walletkit.api.generated.TONTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
@@ -31,6 +43,9 @@ import io.ton.walletkit.engine.infrastructure.InitializationManager
 import io.ton.walletkit.engine.infrastructure.MessageDispatcher
 import io.ton.walletkit.engine.infrastructure.StorageManager
 import io.ton.walletkit.engine.infrastructure.WebViewManager
+import io.ton.walletkit.engine.model.TONTransactionWithPreview
+import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.engine.model.WalletSession
 import io.ton.walletkit.engine.operations.AssetOperations
 import io.ton.walletkit.engine.operations.CryptoOperations
 import io.ton.walletkit.engine.operations.TonConnectOperations
@@ -39,27 +54,13 @@ import io.ton.walletkit.engine.operations.WalletOperations
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.EventRouter
 import io.ton.walletkit.engine.state.SignerManager
-import io.ton.walletkit.event.ConnectRequestEvent
-import io.ton.walletkit.event.SignDataRequestEvent
-import io.ton.walletkit.event.TransactionRequestEvent
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.TONJettonTransferParams
-import io.ton.walletkit.model.TONJettonWallets
-import io.ton.walletkit.model.TONNFTItem
-import io.ton.walletkit.model.TONNFTItems
-import io.ton.walletkit.model.TONNFTTransferParamsHuman
-import io.ton.walletkit.model.TONNFTTransferParamsRaw
-import io.ton.walletkit.model.TONNetwork
-import io.ton.walletkit.model.TONTransactionPreview
-import io.ton.walletkit.model.TONTransferParams
-import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
-import io.ton.walletkit.model.WalletSession
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.storage.BridgeStorageAdapter
@@ -318,8 +319,8 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun createTransferTonTransaction(
         walletId: String,
-        params: TONTransferParams,
-    ): io.ton.walletkit.model.TONTransactionWithPreview = transactionOperations.createTransferTonTransaction(walletId, params)
+        params: TONTransferRequest,
+    ): TONTransactionWithPreview = transactionOperations.createTransferTonTransaction(walletId, params)
 
     override suspend fun handleNewTransaction(
         walletId: String,
@@ -331,30 +332,30 @@ internal class WebViewWalletKitEngine private constructor(
         transactionContent: String,
     ): String = transactionOperations.sendTransaction(walletId, transactionContent)
 
-    override suspend fun approveConnect(event: ConnectRequestEvent, network: TONNetwork) {
+    override suspend fun approveConnect(event: TONConnectionRequestEvent, network: TONNetwork) {
         tonConnectOperations.approveConnect(event, network)
     }
 
     override suspend fun rejectConnect(
-        event: ConnectRequestEvent,
+        event: TONConnectionRequestEvent,
         reason: String?,
         errorCode: Int?,
     ) = tonConnectOperations.rejectConnect(event, reason, errorCode)
 
-    override suspend fun approveTransaction(event: TransactionRequestEvent, network: TONNetwork) =
+    override suspend fun approveTransaction(event: TONTransactionRequestEvent, network: TONNetwork) =
         tonConnectOperations.approveTransaction(event, network)
 
     override suspend fun rejectTransaction(
-        event: TransactionRequestEvent,
+        event: TONTransactionRequestEvent,
         reason: String?,
         errorCode: Int?,
     ) = tonConnectOperations.rejectTransaction(event, reason, errorCode)
 
-    override suspend fun approveSignData(event: SignDataRequestEvent, network: TONNetwork) =
+    override suspend fun approveSignData(event: TONSignDataRequestEvent, network: TONNetwork) =
         tonConnectOperations.approveSignData(event, network)
 
     override suspend fun rejectSignData(
-        event: SignDataRequestEvent,
+        event: TONSignDataRequestEvent,
         reason: String?,
         errorCode: Int?,
     ) = tonConnectOperations.rejectSignData(event, reason, errorCode)
@@ -368,42 +369,42 @@ internal class WebViewWalletKitEngine private constructor(
         walletId: String,
         limit: Int,
         offset: Int,
-    ): TONNFTItems = assetOperations.getNfts(walletId, limit, offset)
+    ): TONNFTsResponse = assetOperations.getNfts(walletId, limit, offset)
 
     override suspend fun getNft(
         nftAddress: String,
-    ): TONNFTItem? = assetOperations.getNft(nftAddress)
+    ): TONNFT? = assetOperations.getNft(nftAddress)
 
     override suspend fun createTransferNftTransaction(
         walletId: String,
-        params: TONNFTTransferParamsHuman,
+        params: TONNFTTransferRequest,
     ): String = assetOperations.createTransferNftTransaction(walletId, params)
 
     override suspend fun createTransferNftRawTransaction(
         walletId: String,
-        params: TONNFTTransferParamsRaw,
+        params: TONNFTRawTransferRequest,
     ): String = assetOperations.createTransferNftRawTransaction(walletId, params)
 
     override suspend fun getJettons(
         walletId: String,
         limit: Int,
         offset: Int,
-    ): TONJettonWallets = assetOperations.getJettons(walletId, limit, offset)
+    ): TONJettonsResponse = assetOperations.getJettons(walletId, limit, offset)
 
     override suspend fun createTransferJettonTransaction(
         walletId: String,
-        params: TONJettonTransferParams,
+        params: TONJettonsTransferRequest,
     ): String = assetOperations.createTransferJettonTransaction(walletId, params)
 
     override suspend fun createTransferMultiTonTransaction(
         walletId: String,
-        messages: List<TONTransferParams>,
-    ): io.ton.walletkit.model.TONTransactionWithPreview = transactionOperations.createTransferMultiTonTransaction(walletId, messages)
+        messages: List<TONTransferRequest>,
+    ): TONTransactionWithPreview = transactionOperations.createTransferMultiTonTransaction(walletId, messages)
 
     override suspend fun getTransactionPreview(
         walletId: String,
         transactionContent: String,
-    ): TONTransactionPreview =
+    ): TONTransactionEmulatedPreview =
         transactionOperations.getTransactionPreview(walletId, transactionContent)
 
     override suspend fun getJettonBalance(walletId: String, jettonAddress: String): String =

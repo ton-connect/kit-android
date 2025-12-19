@@ -26,8 +26,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.demo.presentation.util.TonFormatter
-import io.ton.walletkit.model.TONTransferParams
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -117,16 +118,16 @@ class WalletOperationsViewModel(
             }
 
             runCatching {
-                // Step 1: Create transaction content
-                val params = TONTransferParams(
-                    toAddress = recipient,
-                    amount = amountInNano,
+                // Step 1: Create transaction request
+                val request = TONTransferRequest(
+                    recipientAddress = TONUserFriendlyAddress(recipient),
+                    transferAmount = amountInNano,
                     comment = comment.takeIf { it.isNotBlank() },
                 )
-                val result = wallet.createTransferTonTransaction(params)
+                val transactionRequest = wallet.transferTONTransaction(request)
 
-                // Step 2: Trigger approval flow
-                walletKit().handleNewTransaction(wallet, result.transaction)
+                // Step 2: Send the transaction directly
+                wallet.send(transactionRequest)
             }.onSuccess {
                 _state.value = _state.value.copy(
                     isSendingTransaction = false,

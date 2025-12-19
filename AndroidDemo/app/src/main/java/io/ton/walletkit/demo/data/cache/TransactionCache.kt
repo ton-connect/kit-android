@@ -22,7 +22,7 @@
 package io.ton.walletkit.demo.data.cache
 
 import android.util.Log
-import io.ton.walletkit.model.Transaction
+import io.ton.walletkit.api.generated.TONTransaction
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -34,7 +34,7 @@ class TransactionCache {
     private val mutex = Mutex()
 
     // Map of wallet address -> list of transactions (ordered by timestamp desc)
-    private val cache = mutableMapOf<String, List<Transaction>>()
+    private val cache = mutableMapOf<String, List<TONTransaction>>()
 
     // Track last update time for each wallet
     private val lastUpdateTime = mutableMapOf<String, Long>()
@@ -43,7 +43,7 @@ class TransactionCache {
      * Get cached transactions for a wallet address.
      * Returns null if no cache exists for this wallet.
      */
-    suspend fun get(walletAddress: String): List<Transaction>? = mutex.withLock {
+    suspend fun get(walletAddress: String): List<TONTransaction>? = mutex.withLock {
         cache[walletAddress]
     }
 
@@ -59,28 +59,30 @@ class TransactionCache {
      */
     suspend fun update(
         walletAddress: String,
-        newTransactions: List<Transaction>,
+        newTransactions: List<TONTransaction>,
         maxSize: Int = 100,
-    ): List<Transaction> = mutex.withLock {
+    ): List<TONTransaction> = mutex.withLock {
         val existing = cache[walletAddress] ?: emptyList()
 
         // Create a map of hash -> transaction for deduplication
         // New transactions take priority over existing ones (in case of updates)
-        val transactionMap = mutableMapOf<String, Transaction>()
+        val transactionMap = mutableMapOf<String, TONTransaction>()
 
         // Add existing transactions first
         existing.forEach { tx ->
-            transactionMap[tx.hash] = tx
+            val hashStr = tx.hash?.toString() ?: tx.logicalTime
+            transactionMap[hashStr] = tx
         }
 
         // Add/update with new transactions (overwrites existing)
         newTransactions.forEach { tx ->
-            transactionMap[tx.hash] = tx
+            val hashStr = tx.hash?.toString() ?: tx.logicalTime
+            transactionMap[hashStr] = tx
         }
 
         // Convert back to list, sort by timestamp (descending), and limit size
         val merged = transactionMap.values
-            .sortedByDescending { it.timestamp }
+            .sortedByDescending { it.now }
             .take(maxSize)
 
         // Update cache
@@ -102,12 +104,12 @@ class TransactionCache {
      */
     suspend fun replace(
         walletAddress: String,
-        transactions: List<Transaction>,
+        transactions: List<TONTransaction>,
         maxSize: Int = 100,
-    ): List<Transaction> = mutex.withLock {
+    ): List<TONTransaction> = mutex.withLock {
         val sorted = transactions
-            .distinctBy { it.hash } // Deduplicate
-            .sortedByDescending { it.timestamp }
+            .distinctBy { it.hash?.toString() ?: it.logicalTime } // Deduplicate
+            .sortedByDescending { it.now }
             .take(maxSize)
 
         cache[walletAddress] = sorted

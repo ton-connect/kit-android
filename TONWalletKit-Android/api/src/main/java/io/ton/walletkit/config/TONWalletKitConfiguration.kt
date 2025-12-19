@@ -21,8 +21,8 @@
  */
 package io.ton.walletkit.config
 
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.internal.constants.JsonConsts
-import io.ton.walletkit.model.TONNetwork
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

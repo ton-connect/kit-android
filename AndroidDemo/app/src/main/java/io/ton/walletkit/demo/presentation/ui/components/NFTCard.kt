@@ -46,33 +46,31 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
+import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
-import io.ton.walletkit.model.TONNFTItem
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Card component for displaying an NFT item in a grid.
  *
- * Extracts image URL from NFT metadata, preferring _image_medium from extra if available.
+ * Extracts image URL from NFT info, preferring mediumUrl if available.
  */
 @Composable
 fun NFTCard(
-    nft: TONNFTItem,
-    onClick: (TONNFTItem) -> Unit,
+    nft: TONNFT,
+    onClick: (TONNFT) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Get image URL, preferring _image_medium from extra if available (like demo wallet)
-    // Use remember to avoid recomputing on every recomposition
-    val imageUrl = remember(nft.address) {
+    // Get image URL, preferring medium size image
+    val imageUrl = remember(nft.address.value) {
         try {
-            // Try to get _image_medium from extra first
-            val mediumImage = nft.metadata?.extra?.get("_image_medium")?.jsonPrimitive?.content
-            val url = mediumImage ?: nft.metadata?.image
-            Log.d("NFTCard", "Image URL for ${nft.address}: $url")
+            // Try to get medium image first, fallback to regular url
+            val mediumImage = nft.info?.image?.mediumUrl
+            val url = mediumImage ?: nft.info?.image?.url
+            Log.d("NFTCard", "Image URL for ${nft.address.value}: $url")
             url
         } catch (e: Exception) {
-            Log.e("NFTCard", "Error extracting image URL for ${nft.address}", e)
-            nft.metadata?.image
+            Log.e("NFTCard", "Error extracting image URL for ${nft.address.value}", e)
+            nft.info?.image?.url
         }
     }
 
@@ -87,7 +85,7 @@ fun NFTCard(
             // NFT Image with SubcomposeAsyncImage for better state control
             SubcomposeAsyncImage(
                 model = imageUrl,
-                contentDescription = nft.metadata?.name ?: "NFT",
+                contentDescription = nft.info?.name ?: "NFT",
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
@@ -128,7 +126,7 @@ fun NFTCard(
                     .padding(12.dp),
             ) {
                 Text(
-                    text = nft.metadata?.name ?: "Unnamed NFT",
+                    text = nft.info?.name ?: "Unnamed NFT",
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -136,7 +134,7 @@ fun NFTCard(
 
                 nft.collection?.let { collection ->
                     Text(
-                        text = collection.address.take(8) + "...",
+                        text = (collection.address?.value ?: "").take(8) + "...",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -164,7 +162,7 @@ fun EmptyNFTState(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "🖼️",
+                text = "\uD83D\uDDBC️",
                 style = MaterialTheme.typography.displayLarge,
             )
             Text(

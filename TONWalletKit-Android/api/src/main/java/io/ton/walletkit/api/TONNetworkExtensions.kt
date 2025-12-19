@@ -19,24 +19,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.model
+package io.ton.walletkit.api
 
-import kotlinx.serialization.Serializable
+import io.ton.walletkit.api.generated.TONNetwork
 
 /**
- * Data required to create a new wallet.
+ * Predefined network constants.
  *
- * Mirrors the shared TON Wallet Kit data contract for cross-platform consistency.
- *
- * @property mnemonic Mnemonic phrase words (12 or 24 words)
- * @property name User-assigned wallet name
- * @property network Network to create wallet on
- * @property version Wallet contract version (e.g., "v5r1", "v4r2")
+ * Mirrors iOS TONNetwork+Predefined extension.
+ * Usage: TONNetwork.MAINNET, TONNetwork.TESTNET
  */
-@Serializable
-data class TONWalletData(
-    val mnemonic: List<String>,
-    val name: String,
-    val network: TONNetwork = TONNetwork.MAINNET,
-    val version: String = "v5r1",
-)
+val TONNetwork.Companion.MAINNET: TONNetwork
+    get() = TONNetwork(chainId = "-239")
+
+val TONNetwork.Companion.TESTNET: TONNetwork
+    get() = TONNetwork(chainId = "-3")

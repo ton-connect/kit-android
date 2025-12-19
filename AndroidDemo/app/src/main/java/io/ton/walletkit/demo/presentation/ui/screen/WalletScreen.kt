@@ -65,6 +65,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.api.generated.TONNFT
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.actions.WalletActions
@@ -100,8 +102,6 @@ import io.ton.walletkit.demo.presentation.ui.sheet.WalletDetailsSheet
 import io.ton.walletkit.demo.presentation.util.TestTags
 import io.ton.walletkit.demo.presentation.viewmodel.NFTsListViewModel
 import io.ton.walletkit.extensions.cleanupTonConnect
-import io.ton.walletkit.model.TONNFTItem
-import io.ton.walletkit.model.TONNetwork
 
 // URL for the TonConnect E2E test runner dApp
 // This is the same dApp used by web demo-wallet E2E tests
@@ -119,7 +119,7 @@ fun WalletScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // State for NFT details bottom sheet
-    var selectedNFT by remember { mutableStateOf<TONNFTItem?>(null) }
+    var selectedNFT by remember { mutableStateOf<TONNFT?>(null) }
     val nftDetailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Keep browser WebView alive across sheet changes to prevent destruction during TonConnect requests

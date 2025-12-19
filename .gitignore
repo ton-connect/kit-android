@@ -4,7 +4,10 @@ dist-android-quickjs/
 
 # Dependencies
 node_modules/
-walletkit/
+/walletkit/
+
+# Generated API models (regenerated from spec)
+**/api/generated/
 
 # macOS
 .DS_Store

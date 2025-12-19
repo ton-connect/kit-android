@@ -43,8 +43,9 @@ import kotlinx.parcelize.Parcelize
 {{#required}}{{>data_class_req_var}}{{/required}}{{^required}}{{>data_class_opt_var}}{{/required}}{{^-last}},{{/-last}}
 
 {{/allVars}}
-){{#parent}} : {{{parent}}}(){{/parent}}{{#vendorExtensions.x-has-data-class-body}} {
-{{/vendorExtensions.x-has-data-class-body}}
+){{#parent}} : {{{parent}}}(){{/parent}} {
+
+    companion object
 {{#hasEnums}}
 {{#vars}}
 {{#isEnum}}
@@ -68,7 +69,5 @@ import kotlinx.parcelize.Parcelize
 {{/isEnum}}
 {{/vars}}
 {{/hasEnums}}
-{{#vendorExtensions.x-has-data-class-body}}
 }
-{{/vendorExtensions.x-has-data-class-body}}
 {{/vendorExtensions.x-discriminated-union}}

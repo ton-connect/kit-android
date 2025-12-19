@@ -21,10 +21,10 @@
  */
 package io.ton.walletkit.request
 
-import io.ton.walletkit.event.ConnectRequestEvent
-import io.ton.walletkit.event.SignDataRequestEvent
-import io.ton.walletkit.event.TransactionRequestEvent
-import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONTransactionRequestEvent
 
 /**
  * Internal interface for handling request approvals/rejections.
@@ -32,12 +32,12 @@ import io.ton.walletkit.model.TONNetwork
  * @suppress
  */
 interface RequestHandler {
-    suspend fun approveConnect(event: ConnectRequestEvent, network: TONNetwork)
-    suspend fun rejectConnect(event: ConnectRequestEvent, reason: String?, errorCode: Int? = null)
+    suspend fun approveConnect(event: TONConnectionRequestEvent, network: TONNetwork)
+    suspend fun rejectConnect(event: TONConnectionRequestEvent, reason: String?, errorCode: Int?)
 
-    suspend fun approveTransaction(event: TransactionRequestEvent, network: TONNetwork)
-    suspend fun rejectTransaction(event: TransactionRequestEvent, reason: String?, errorCode: Int? = null)
+    suspend fun approveTransaction(event: TONTransactionRequestEvent, network: TONNetwork)
+    suspend fun rejectTransaction(event: TONTransactionRequestEvent, reason: String?, errorCode: Int?)
 
-    suspend fun approveSignData(event: SignDataRequestEvent, network: TONNetwork)
-    suspend fun rejectSignData(event: SignDataRequestEvent, reason: String?, errorCode: Int? = null)
+    suspend fun approveSignData(event: TONSignDataRequestEvent, network: TONNetwork)
+    suspend fun rejectSignData(event: TONSignDataRequestEvent, reason: String?, errorCode: Int?)
 }

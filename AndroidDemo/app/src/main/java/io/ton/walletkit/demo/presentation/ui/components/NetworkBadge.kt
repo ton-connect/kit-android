@@ -31,18 +31,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
-import io.ton.walletkit.model.TONNetwork
 
 @Composable
 fun NetworkBadge(network: TONNetwork) {
-    val color = when (network) {
-        TONNetwork.MAINNET -> MAINNET_COLOR
-        TONNetwork.TESTNET -> TESTNET_COLOR
+    val color = when (network.chainId) {
+        TONNetwork.MAINNET.chainId -> MAINNET_COLOR
+        TONNetwork.TESTNET.chainId -> TESTNET_COLOR
+        else -> MAINNET_COLOR
     }
-    val label = when (network) {
-        TONNetwork.MAINNET -> stringResource(R.string.network_mainnet)
-        TONNetwork.TESTNET -> stringResource(R.string.network_testnet)
+    val label = when (network.chainId) {
+        TONNetwork.MAINNET.chainId -> stringResource(R.string.network_mainnet)
+        TONNetwork.TESTNET.chainId -> stringResource(R.string.network_testnet)
+        else -> "Unknown"
     }
     Surface(shape = MaterialTheme.shapes.medium, color = color.copy(alpha = 0.12f)) {
         Text(

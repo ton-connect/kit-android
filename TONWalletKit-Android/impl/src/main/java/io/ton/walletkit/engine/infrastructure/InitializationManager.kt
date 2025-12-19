@@ -23,6 +23,9 @@ package io.ton.walletkit.engine.infrastructure
 
 import android.content.Context
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
@@ -31,7 +34,6 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
-import io.ton.walletkit.model.TONNetwork
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
@@ -250,9 +252,10 @@ internal class InitializationManager(
     }
 
     private fun resolveNetworkName(configuration: TONWalletKitConfiguration): String =
-        when (configuration.network) {
-            TONNetwork.MAINNET -> NetworkConstants.NETWORK_MAINNET
-            TONNetwork.TESTNET -> NetworkConstants.NETWORK_TESTNET
+        when (configuration.network.chainId) {
+            TONNetwork.MAINNET.chainId -> NetworkConstants.NETWORK_MAINNET
+            TONNetwork.TESTNET.chainId -> NetworkConstants.NETWORK_TESTNET
+            else -> NetworkConstants.NETWORK_MAINNET
         }
 
     private fun resolveTonClientEndpoint(configuration: TONWalletKitConfiguration): String? =
@@ -260,9 +263,10 @@ internal class InitializationManager(
 
     private fun resolveTonApiBase(configuration: TONWalletKitConfiguration): String {
         val custom = configuration.apiClient?.url?.takeIf { it.isNotBlank() }
-        return custom ?: when (configuration.network) {
-            TONNetwork.MAINNET -> NetworkConstants.DEFAULT_MAINNET_API_URL
-            TONNetwork.TESTNET -> NetworkConstants.DEFAULT_TESTNET_API_URL
+        return custom ?: when (configuration.network.chainId) {
+            TONNetwork.MAINNET.chainId -> NetworkConstants.DEFAULT_MAINNET_API_URL
+            TONNetwork.TESTNET.chainId -> NetworkConstants.DEFAULT_TESTNET_API_URL
+            else -> NetworkConstants.DEFAULT_MAINNET_API_URL
         }
     }
 

@@ -21,8 +21,11 @@
  */
 package io.ton.walletkit.engine.operations
 
+import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
+import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
+import io.ton.walletkit.engine.model.TONTransactionWithPreview
 import io.ton.walletkit.engine.operations.requests.CreateTransferMultiTonRequest
 import io.ton.walletkit.engine.operations.requests.CreateTransferTonRequest
 import io.ton.walletkit.engine.operations.requests.GetTransactionPreviewRequest
@@ -52,17 +55,17 @@ internal class TransactionOperations(
 
     suspend fun createTransferTonTransaction(
         walletId: String,
-        params: io.ton.walletkit.model.TONTransferParams,
-    ): io.ton.walletkit.model.TONTransactionWithPreview {
+        params: TONTransferRequest,
+    ): TONTransactionWithPreview {
         ensureInitialized()
 
         val request = CreateTransferTonRequest(
             walletId = walletId,
-            toAddress = params.toAddress,
-            amount = params.amount,
+            toAddress = params.recipientAddress.value,
+            amount = params.transferAmount,
             comment = params.comment,
-            body = params.body,
-            stateInit = params.stateInit,
+            body = params.payload?.value,
+            stateInit = params.stateInit?.value,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_TON_TRANSACTION, json.toJSONObject(request))
 
@@ -72,27 +75,27 @@ internal class TransactionOperations(
             val preview = if (result.has("preview") && !result.isNull("preview")) {
                 val previewJson = result.getJSONObject("preview")
                 try {
-                    json.decodeFromString<io.ton.walletkit.model.TONTransactionPreview>(previewJson.toString())
+                    json.decodeFromString<TONTransactionEmulatedPreview>(previewJson.toString())
                 } catch (e: SerializationException) {
                     throw JSValueConversionException.DecodingError(
-                        message = "Failed to decode TONTransactionPreview in createTransferTonTransaction: ${e.message}",
+                        message = "Failed to decode TONTransactionEmulatedPreview in createTransferTonTransaction: ${e.message}",
                         cause = e,
                     )
                 }
             } else {
                 null
             }
-            io.ton.walletkit.model.TONTransactionWithPreview(transactionContent, preview)
+            TONTransactionWithPreview(transactionContent, preview)
         } else {
             // Fallback for legacy response format
-            io.ton.walletkit.model.TONTransactionWithPreview(result.toString(), null)
+            TONTransactionWithPreview(result.toString(), null)
         }
     }
 
     suspend fun createTransferMultiTonTransaction(
         walletId: String,
-        messages: List<io.ton.walletkit.model.TONTransferParams>,
-    ): io.ton.walletkit.model.TONTransactionWithPreview {
+        messages: List<TONTransferRequest>,
+    ): TONTransactionWithPreview {
         ensureInitialized()
 
         val request = CreateTransferMultiTonRequest(walletId = walletId, messages = messages)
@@ -104,20 +107,20 @@ internal class TransactionOperations(
             val preview = if (result.has("preview") && !result.isNull("preview")) {
                 val previewJson = result.getJSONObject("preview")
                 try {
-                    json.decodeFromString<io.ton.walletkit.model.TONTransactionPreview>(previewJson.toString())
+                    json.decodeFromString<TONTransactionEmulatedPreview>(previewJson.toString())
                 } catch (e: SerializationException) {
                     throw JSValueConversionException.DecodingError(
-                        message = "Failed to decode TONTransactionPreview in createTransferMultiTonTransaction: ${e.message}",
+                        message = "Failed to decode TONTransactionEmulatedPreview in createTransferMultiTonTransaction: ${e.message}",
                         cause = e,
                     )
                 }
             } else {
                 null
             }
-            io.ton.walletkit.model.TONTransactionWithPreview(transactionContent, preview)
+            TONTransactionWithPreview(transactionContent, preview)
         } else {
             // Fallback for legacy response format
-            io.ton.walletkit.model.TONTransactionWithPreview(result.toString(), null)
+            TONTransactionWithPreview(result.toString(), null)
         }
     }
 
@@ -136,16 +139,16 @@ internal class TransactionOperations(
         return result.getString(ResponseConstants.KEY_SIGNED_BOC)
     }
 
-    suspend fun getTransactionPreview(walletId: String, transactionContent: String): io.ton.walletkit.model.TONTransactionPreview {
+    suspend fun getTransactionPreview(walletId: String, transactionContent: String): TONTransactionEmulatedPreview {
         ensureInitialized()
 
         val request = GetTransactionPreviewRequest(walletId = walletId, transactionContent = transactionContent)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW, json.toJSONObject(request))
         return try {
-            json.decodeFromString(io.ton.walletkit.model.TONTransactionPreview.serializer(), result.toString())
+            json.decodeFromString(TONTransactionEmulatedPreview.serializer(), result.toString())
         } catch (e: SerializationException) {
             throw JSValueConversionException.DecodingError(
-                message = "Failed to decode TONTransactionPreview: ${e.message}",
+                message = "Failed to decode TONTransactionEmulatedPreview: ${e.message}",
                 cause = e,
             )
         }
