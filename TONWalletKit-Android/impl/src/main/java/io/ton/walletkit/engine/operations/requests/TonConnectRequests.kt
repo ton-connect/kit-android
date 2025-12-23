@@ -21,9 +21,9 @@
  */
 package io.ton.walletkit.engine.operations.requests
 
-import io.ton.walletkit.api.generated.TONConnectionRequestEvent
-import io.ton.walletkit.api.generated.TONSignDataRequestEvent
-import io.ton.walletkit.api.generated.TONTransactionRequestEvent
+import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
+import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
+import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 

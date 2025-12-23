@@ -22,7 +22,7 @@
 package io.ton.walletkit.request
 
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.generated.TONTransactionRequestEvent
+import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 
 /**
  * Represents a transaction request from a dApp.

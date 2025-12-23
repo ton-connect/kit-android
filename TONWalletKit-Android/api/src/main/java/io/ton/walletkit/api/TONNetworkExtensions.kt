@@ -26,7 +26,6 @@ import io.ton.walletkit.api.generated.TONNetwork
 /**
  * Predefined network constants.
  *
- * Mirrors iOS TONNetwork+Predefined extension.
  * Usage: TONNetwork.MAINNET, TONNetwork.TESTNET
  */
 val TONNetwork.Companion.MAINNET: TONNetwork

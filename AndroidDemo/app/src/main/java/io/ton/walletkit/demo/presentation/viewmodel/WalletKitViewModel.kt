@@ -1173,27 +1173,12 @@ class WalletKitViewModel @Inject constructor(
         val preview = request.event.preview
         val dAppInfo = preview.dAppInfo ?: request.event.dAppInfo
 
-        Log.d(LOG_TAG, "onConnectRequest called - manifestFetchErrorCode: ${preview.manifestFetchErrorCode}, dAppInfo: ${dAppInfo?.name}, dAppUrl: ${dAppInfo?.url}")
+        Log.d(LOG_TAG, "onConnectRequest called - dAppInfo: ${dAppInfo?.name}, dAppUrl: ${dAppInfo?.url}")
+        // TODO: Re-enable manifest validation once SDK exposes manifestFetchErrorCode
         // Auto-reject if manifest fetch failed or manifest content is invalid (same behavior as web demo wallet)
         // The SDK sets manifestFetchErrorCode for:
         // - 2: MANIFEST_NOT_FOUND_ERROR - manifest URL fetch failed
         // - 3: MANIFEST_CONTENT_ERROR - manifest content is invalid (including invalid dApp URL)
-        if (preview.manifestFetchErrorCode != null) {
-            Log.w(LOG_TAG, "Auto-rejecting connect request due to manifest error: ${preview.manifestFetchErrorCode}")
-            viewModelScope.launch {
-                try {
-                    val reason = when (preview.manifestFetchErrorCode) {
-                        2 -> "App manifest not found"
-                        3 -> "App manifest content error"
-                        else -> "Manifest error"
-                    }
-                    request.reject(reason, preview.manifestFetchErrorCode)
-                } catch (e: Exception) {
-                    Log.e(LOG_TAG, "Failed to auto-reject connect request", e)
-                }
-            }
-            return
-        }
 
         // Convert to UI model for existing sheets
         val fallbackDAppName = uiString(R.string.wallet_event_unknown_dapp)
@@ -1203,7 +1188,7 @@ class WalletKitViewModel @Inject constructor(
             id = request.hashCode().toString(), // Use object hashCode as ID
             dAppName = dAppInfo?.name ?: fallbackDAppName,
             dAppUrl = dAppInfo?.url ?: "",
-            manifestUrl = dAppInfo?.manifestUrl ?: "",
+            manifestUrl = "", // TODO: Add manifestUrl once SDK exposes it
             iconUrl = dAppInfo?.iconUrl,
             permissions = preview.permissions.map { perm ->
                 ConnectPermissionUi(
@@ -1316,9 +1301,9 @@ class WalletKitViewModel @Inject constructor(
         // Extract preview content
         val previewData = request.event.preview.data
         val previewContent = when (previewData) {
-            is io.ton.walletkit.api.generated.TONSignDataPreview.Text -> previewData.value.content
-            is io.ton.walletkit.api.generated.TONSignDataPreview.Binary -> previewData.value.content.value
-            is io.ton.walletkit.api.generated.TONSignDataPreview.Cell -> previewData.value.content.value
+            is io.ton.walletkit.api.generated.TONSignData.Text -> previewData.value.content
+            is io.ton.walletkit.api.generated.TONSignData.Binary -> previewData.value.content.value
+            is io.ton.walletkit.api.generated.TONSignData.Cell -> previewData.value.content.value
         }
 
         // Convert to UI model with actual payload data from request

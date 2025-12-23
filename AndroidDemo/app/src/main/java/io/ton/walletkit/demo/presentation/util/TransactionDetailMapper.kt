@@ -23,6 +23,7 @@ package io.ton.walletkit.demo.presentation.util
 
 import io.ton.walletkit.api.generated.TONTransaction
 import io.ton.walletkit.demo.presentation.model.TransactionDetailUi
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
@@ -37,16 +38,17 @@ import kotlinx.serialization.json.jsonPrimitive
 object TransactionDetailMapper {
 
     /**
-     * Attempts to extract text content from a decoded JsonObject.
+     * Attempts to extract text content from a decoded JsonElement.
      * Looks for common fields like "text", "comment", or "message".
      */
-    private fun extractDecodedText(decoded: JsonObject?): String? {
+    private fun extractDecodedText(decoded: JsonElement?): String? {
         if (decoded == null) return null
+        val jsonObject = decoded as? JsonObject ?: return null
 
         // Try common field names for text content
         val textFields = listOf("text", "comment", "message")
         for (field in textFields) {
-            val value = decoded[field]
+            val value = jsonObject[field]
             if (value is JsonPrimitive && value.isString) {
                 return value.content
             }

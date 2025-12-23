@@ -21,11 +21,11 @@
  */
 package io.ton.walletkit.engine.parsing
 
-import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
-import io.ton.walletkit.api.generated.TONSignDataRequestEvent
-import io.ton.walletkit.api.generated.TONTransactionRequestEvent
+import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
+import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
+import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.exceptions.JSValueConversionException
@@ -57,8 +57,11 @@ internal class EventParser(
         when (type) {
             EventTypeConstants.EVENT_CONNECT_REQUEST -> {
                 try {
-                    val event = json.decodeFromString<TONConnectionRequestEvent>(data.toString())
+                    val rawJson = data.toString()
+                    Logger.d(TAG, "Parsing connect request - raw JSON: $rawJson")
+                    val event = json.decodeFromString<TONConnectionRequestEvent>(rawJson)
                     Logger.d(TAG, "Parsing connect request - preview: ${event.preview}, dAppInfo: ${event.dAppInfo}")
+                    Logger.d(TAG, "Parsing connect request - request field: ${event.request}, requestedItems: ${event.requestedItems}")
                     val request = TONWalletConnectionRequest(
                         event = event,
                         handler = engine,

@@ -26,12 +26,12 @@ import android.util.Base64
 import android.util.Log
 import androidx.core.content.edit
 import io.ton.walletkit.WalletKitBridgeException
-import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.generated.TONSignDataRequestEvent
-import io.ton.walletkit.api.generated.TONTransactionRequestEvent
+import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
+import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
+import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
@@ -514,12 +514,14 @@ internal class QuickJsWalletKitEngine(
         return result.getString("signedBoc")
     }
 
-    override suspend fun approveConnect(event: TONConnectionRequestEvent, walletId: String, walletAddress: String) {
+    override suspend fun approveConnect(event: TONConnectionRequestEvent) {
         ensureWalletKitInitialized()
+        val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+        val walletId = event.walletId ?: throw WalletKitBridgeException("Wallet ID is required")
         val params =
             JSONObject().apply {
                 put("requestId", event.id)
-                put("walletAddress", walletAddress)
+                put("walletAddress", walletAddress.value)
                 put("walletId", walletId)
             }
         call("approveConnectRequest", params)
@@ -528,17 +530,19 @@ internal class QuickJsWalletKitEngine(
     override suspend fun rejectConnect(
         event: TONConnectionRequestEvent,
         reason: String?,
+        errorCode: Int?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", event.id)
                 reason?.let { put("reason", it) }
+                errorCode?.let { put("errorCode", it) }
             }
         call("rejectConnectRequest", params)
     }
 
-    override suspend fun approveTransaction(event: TONTransactionRequestEvent): io.ton.walletkit.api.generated.TONTransactionApprovalResponse {
+    override suspend fun approveTransaction(event: TONTransactionRequestEvent, network: TONNetwork) {
         ensureWalletKitInitialized()
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val params =
@@ -547,26 +551,25 @@ internal class QuickJsWalletKitEngine(
                 put("walletAddress", walletAddress.value)
                 put("walletId", event.walletId)
             }
-        val result = call("approveTransactionRequest", params)
-        return io.ton.walletkit.api.generated.TONTransactionApprovalResponse(
-            boc = result.optString("boc"),
-        )
+        call("approveTransactionRequest", params)
     }
 
     override suspend fun rejectTransaction(
         event: TONTransactionRequestEvent,
         reason: String?,
+        errorCode: Int?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", event.id)
                 reason?.let { put("reason", it) }
+                errorCode?.let { put("errorCode", it) }
             }
         call("rejectTransactionRequest", params)
     }
 
-    override suspend fun approveSignData(event: TONSignDataRequestEvent): io.ton.walletkit.api.generated.TONSignDataApprovalResponse {
+    override suspend fun approveSignData(event: TONSignDataRequestEvent, network: TONNetwork) {
         ensureWalletKitInitialized()
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val params =
@@ -575,21 +578,20 @@ internal class QuickJsWalletKitEngine(
                 put("walletAddress", walletAddress)
                 put("walletId", event.walletId)
             }
-        val result = call("approveSignDataRequest", params)
-        return io.ton.walletkit.api.generated.TONSignDataApprovalResponse(
-            signature = result.optString("signature"),
-        )
+        call("approveSignDataRequest", params)
     }
 
     override suspend fun rejectSignData(
         event: TONSignDataRequestEvent,
         reason: String?,
+        errorCode: Int?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", event.id)
                 reason?.let { put("reason", it) }
+                errorCode?.let { put("errorCode", it) }
             }
         call("rejectSignDataRequest", params)
     }

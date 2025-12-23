@@ -21,7 +21,6 @@
  */
 package io.ton.walletkit.engine
 
-import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFT
@@ -29,10 +28,11 @@ import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
-import io.ton.walletkit.api.generated.TONTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONTransferRequest
+import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
+import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
+import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.model.TONTransactionWithPreview
@@ -316,11 +316,12 @@ internal interface WalletKitEngine : RequestHandler {
 
     /**
      * Approve a connection request from a dApp.
+     * The event should have walletId and walletAddress set.
      *
-     * @param event Typed event from the connect request
+     * @param event Typed event from the connect request with wallet info
      * @throws WalletKitBridgeException if approval fails
      */
-    override suspend fun approveConnect(event: TONConnectionRequestEvent, network: TONNetwork)
+    override suspend fun approveConnect(event: TONConnectionRequestEvent)
 
     /**
      * Reject a connection request from a dApp.

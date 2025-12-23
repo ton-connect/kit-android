@@ -99,8 +99,9 @@ class TonConnectViewModel(
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
             runCatching {
-                // Use MAINNET as default - event.walletAddress should already have correct network context
-                request.connectRequest?.approve(TONNetwork.MAINNET)
+                val wallet = getWalletByAddress(walletAddress)
+                    ?: error("Wallet not found for address: $walletAddress")
+                request.connectRequest?.approve(wallet)
                     ?: error("Connect request not available")
             }.onSuccess {
                 _state.value = _state.value.copy(

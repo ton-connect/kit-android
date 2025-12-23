@@ -22,9 +22,11 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
-import io.ton.walletkit.event.ConnectRequestEvent
-import io.ton.walletkit.event.TransactionRequestEvent
+import io.ton.walletkit.api.generated.TONConnectionRequestEventPreview
+import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
+import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -215,27 +217,40 @@ class TonConnectOperationsTest : OperationsTestBase() {
     fun approveConnect_completesSuccessfully() = runBlocking {
         givenBridgeReturns(JSONObject())
 
-        val event = ConnectRequestEvent(
+        val event = createConnectRequestEvent(
             id = "req-123",
-            walletAddress = TEST_ADDRESS,
+            walletAddress = TONUserFriendlyAddress(TEST_ADDRESS),
+            walletId = "${TEST_NETWORK.chainId}:$TEST_ADDRESS",
         )
 
         // Should not throw
-        tonConnectOperations.approveConnect(event, TEST_NETWORK)
-        assertEquals("${TEST_NETWORK.value}:$TEST_ADDRESS", event.walletId)
+        tonConnectOperations.approveConnect(event)
     }
 
     @Test(expected = WalletKitBridgeException::class)
     fun approveConnect_throwsIfWalletAddressMissing() = runBlocking {
         givenBridgeReturns(JSONObject())
 
-        val event = ConnectRequestEvent(
+        val event = createConnectRequestEvent(
             id = "req-123",
-            // Missing!
             walletAddress = null,
+            walletId = "some-wallet-id",
         )
 
-        tonConnectOperations.approveConnect(event, TEST_NETWORK)
+        tonConnectOperations.approveConnect(event)
+    }
+
+    @Test(expected = WalletKitBridgeException::class)
+    fun approveConnect_throwsIfWalletIdMissing() = runBlocking {
+        givenBridgeReturns(JSONObject())
+
+        val event = createConnectRequestEvent(
+            id = "req-123",
+            walletAddress = TONUserFriendlyAddress(TEST_ADDRESS),
+            walletId = null,
+        )
+
+        tonConnectOperations.approveConnect(event)
     }
 
     // --- rejectConnect tests ---
@@ -244,9 +259,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
     fun rejectConnect_completesSuccessfully() = runBlocking {
         givenBridgeReturns(JSONObject())
 
-        val event = ConnectRequestEvent(
-            id = "req-123",
-        )
+        val event = createConnectRequestEvent(id = "req-123")
 
         // Should not throw
         tonConnectOperations.rejectConnect(event, "User rejected")
@@ -256,9 +269,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
     fun rejectConnect_handlesNullReason() = runBlocking {
         givenBridgeReturns(JSONObject())
 
-        val event = ConnectRequestEvent(
-            id = "req-123",
-        )
+        val event = createConnectRequestEvent(id = "req-123")
 
         // Should not throw
         tonConnectOperations.rejectConnect(event, null)
@@ -270,14 +281,13 @@ class TonConnectOperationsTest : OperationsTestBase() {
     fun approveTransaction_completesSuccessfully() = runBlocking {
         givenBridgeReturns(JSONObject())
 
-        val event = TransactionRequestEvent(
+        val event = createTransactionRequestEvent(
             id = "tx-req-123",
-            walletAddress = TEST_ADDRESS,
+            walletAddress = TONUserFriendlyAddress(TEST_ADDRESS),
         )
 
         // Should not throw
         tonConnectOperations.approveTransaction(event, TEST_NETWORK)
-        assertEquals("${TEST_NETWORK.value}:$TEST_ADDRESS", event.walletId)
     }
 
     // --- rejectTransaction tests ---
@@ -286,9 +296,9 @@ class TonConnectOperationsTest : OperationsTestBase() {
     fun rejectTransaction_completesSuccessfully() = runBlocking {
         givenBridgeReturns(JSONObject())
 
-        val event = TransactionRequestEvent(
+        val event = createTransactionRequestEvent(
             id = "tx-req-123",
-            walletAddress = TEST_ADDRESS,
+            walletAddress = TONUserFriendlyAddress(TEST_ADDRESS),
         )
 
         // Should not throw
@@ -343,5 +353,36 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
         // Should always invoke callback, even on success
         assertNotNull(callbackResponse)
+    }
+
+    // --- Helper functions ---
+
+    private fun createConnectRequestEvent(
+        id: String,
+        walletAddress: TONUserFriendlyAddress? = null,
+        walletId: String? = null,
+    ): TONConnectionRequestEvent {
+        return TONConnectionRequestEvent(
+            id = id,
+            walletAddress = walletAddress,
+            walletId = walletId,
+            preview = TONConnectionRequestEventPreview(
+                requestedItems = emptyList(),
+                permissions = emptyList(),
+            ),
+        )
+    }
+
+    private fun createTransactionRequestEvent(
+        id: String,
+        walletAddress: TONUserFriendlyAddress? = null,
+        walletId: String? = null,
+    ): TONTransactionRequestEvent {
+        return TONTransactionRequestEvent(
+            id = id,
+            walletAddress = walletAddress,
+            walletId = walletId,
+            messages = emptyList(),
+        )
     }
 }

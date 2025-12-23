@@ -79,7 +79,7 @@ data class JettonDetails(
             }
 
             val imageUrl = info.image?.mediumUrl ?: info.image?.url
-            val imageData = info.image?.data?.let { String(it, Charsets.UTF_8) }
+            val imageData = info.image?.data
 
             return JettonDetails(
                 name = name,
@@ -93,7 +93,7 @@ data class JettonDetails(
                 totalSupply = null, // Not available in new API
                 imageUrl = imageUrl,
                 imageData = imageData,
-                verified = jetton.isVerified,
+                verified = false, // TODO: Add isVerified once SDK exposes it
             )
         }
     }

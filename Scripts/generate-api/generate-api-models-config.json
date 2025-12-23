@@ -28,20 +28,26 @@
     "uint8": "kotlin.Int",
     "bigInt": "kotlin.String",
     "url": "kotlin.String",
-    "object": "kotlinx.serialization.json.JsonObject",
-    "AnyType": "kotlinx.serialization.json.JsonObject",
+    "byte": "kotlin.String",
+    "ByteArray": "kotlin.String",
+    "object": "kotlinx.serialization.json.JsonElement",
+    "AnyType": "kotlinx.serialization.json.JsonElement",
     "UserFriendlyAddress": "io.ton.walletkit.model.TONUserFriendlyAddress",
+    "Hex": "io.ton.walletkit.model.TONHex",
     "LogicalTime": "kotlin.String",
     "Base64String": "io.ton.walletkit.model.TONBase64",
     "TokenAmount": "kotlin.String"
   },
   "importMappings": {
     "kotlinx.serialization.json.JsonObject": "kotlinx.serialization.json.JsonObject",
+    "kotlinx.serialization.json.JsonElement": "kotlinx.serialization.json.JsonElement",
     "io.ton.walletkit.model.TONUserFriendlyAddress": "io.ton.walletkit.model.TONUserFriendlyAddress",
-    "io.ton.walletkit.model.TONBase64": "io.ton.walletkit.model.TONBase64"
+    "io.ton.walletkit.model.TONBase64": "io.ton.walletkit.model.TONBase64",
+    "io.ton.walletkit.model.TONHex": "io.ton.walletkit.model.TONHex"
   },
   "schemaMappings": {
     "UserFriendlyAddress": "io.ton.walletkit.model.TONUserFriendlyAddress",
+    "Hex": "io.ton.walletkit.model.TONHex",
     "LogicalTime": "kotlin.String",
     "Base64String": "io.ton.walletkit.model.TONBase64",
     "TokenAmount": "kotlin.String"

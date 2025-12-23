@@ -24,7 +24,6 @@ package io.ton.walletkit.engine
 import android.content.Context
 import android.view.ViewGroup
 import io.ton.walletkit.WalletKitBridgeException
-import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFT
@@ -32,10 +31,11 @@ import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
-import io.ton.walletkit.api.generated.TONTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONTransferRequest
+import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
+import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
+import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
@@ -332,8 +332,8 @@ internal class WebViewWalletKitEngine private constructor(
         transactionContent: String,
     ): String = transactionOperations.sendTransaction(walletId, transactionContent)
 
-    override suspend fun approveConnect(event: TONConnectionRequestEvent, network: TONNetwork) {
-        tonConnectOperations.approveConnect(event, network)
+    override suspend fun approveConnect(event: TONConnectionRequestEvent) {
+        tonConnectOperations.approveConnect(event)
     }
 
     override suspend fun rejectConnect(

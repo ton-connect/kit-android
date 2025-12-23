@@ -134,6 +134,7 @@ internal class WebViewManager(
             webView.settings.domStorageEnabled = true
             webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
             webView.settings.allowFileAccess = true
+            webView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             webView.addJavascriptInterface(JsBinding(), WebViewConstants.JS_INTERFACE_NAME)
 
             // Set WebChromeClient to suppress console logs in release builds

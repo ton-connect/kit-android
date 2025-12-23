@@ -81,7 +81,7 @@ data class JettonSummary(
             }
 
             val imageUrl = info.image?.mediumUrl ?: info.image?.url
-            val imageData = info.image?.data?.let { String(it, Charsets.UTF_8) }
+            val imageData = info.image?.data
 
             // Placeholder for estimated value - would need price data
             val estimatedValue = "≈ \$0.00"
