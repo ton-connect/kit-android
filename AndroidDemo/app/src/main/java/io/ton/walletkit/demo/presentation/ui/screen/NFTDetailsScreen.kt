@@ -88,7 +88,7 @@ fun NFTDetailsScreen(
 
     LaunchedEffect(walletAddress) {
         isLoadingWallet = true
-        wallet = walletKit.getWallets().firstOrNull { it.address == walletAddress }
+        wallet = walletKit.getWallets().firstOrNull { it.address?.value == walletAddress }
         isLoadingWallet = false
     }
 

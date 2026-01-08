@@ -36,6 +36,7 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.IDGenerator
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
@@ -317,7 +318,7 @@ internal class WalletOperations(
         val version = result.optString("version").takeIf { it.isNotEmpty() } ?: "unknown"
 
         return WalletAccount(
-            address = address,
+            address = TONUserFriendlyAddress(address),
             publicKey = publicKey,
             name = null,
             version = version,
@@ -354,7 +355,7 @@ internal class WalletOperations(
 
                 add(
                     WalletAccount(
-                        address = address,
+                        address = TONUserFriendlyAddress(address),
                         publicKey = publicKey,
                         name = entry.optNullableString(JsonConstants.KEY_NAME),
                         version = entry.optString("version").takeIf { it.isNotEmpty() }
@@ -394,7 +395,7 @@ internal class WalletOperations(
         }
 
         return WalletAccount(
-            address = walletAddress,
+            address = TONUserFriendlyAddress(walletAddress),
             publicKey = publicKey,
             name = result.optNullableString(JsonConstants.KEY_NAME),
             version = result.optString("version").takeIf { it.isNotEmpty() }

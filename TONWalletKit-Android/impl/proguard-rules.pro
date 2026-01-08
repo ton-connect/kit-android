@@ -20,12 +20,40 @@
 # Keep source file names and line numbers for debugging during development
 -keepattributes SourceFile,LineNumberTable
 
-# Don't obfuscate during library development for easier debugging
-# (Only applies to library module builds, not consumer apps)
--dontobfuscate
+# Enable obfuscation and optimization for release builds
+# Comment out -dontobfuscate to shrink dependencies like ton-kotlin
+# -dontobfuscate
 
 # Keep all implementation classes readable during development
 -keep class io.ton.walletkit.bridge.** { *; }
+
+# ------------------------------------------------------------
+# ton-kotlin Library - Keep Only What We Use
+# ------------------------------------------------------------
+
+# We only use AddrStd from ton-kotlin-block-tlb for address parsing
+# Keep the minimal surface area needed for our address models
+
+-keep class org.ton.block.AddrStd {
+    public <init>(...);
+    public static ** parse(...);
+    public static ** parseRaw(...);
+    public static ** parseUserFriendly(...);
+    public ** toString(...);
+    public int getWorkchainId();
+    public ** getAddress();
+}
+
+# Keep kotlinx-serialization support for AddrStd
+-keepclassmembers class org.ton.block.AddrStd {
+    public static final ** Companion;
+}
+
+# Keep serializers that might be needed
+-keep class org.ton.block.AddrStd$$serializer { *; }
+
+# Don't warn about unused ton-kotlin classes - we intentionally only use AddrStd
+-dontwarn org.ton.**
 
 # If you want to enable obfuscation during library builds, comment out
 # the -dontobfuscate line above and the -keep rule, then uncomment below:

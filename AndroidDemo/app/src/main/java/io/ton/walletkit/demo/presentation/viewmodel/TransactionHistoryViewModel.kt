@@ -48,7 +48,7 @@ class TransactionHistoryViewModel(
     val transactions: StateFlow<List<Transaction>> = _transactions.asStateFlow()
 
     init {
-        Log.d(TAG, "Created for wallet: ${wallet.address}")
+        Log.d(TAG, "Created for wallet: ${wallet.address?.value}")
     }
 
     override fun onCleared() {
@@ -71,7 +71,7 @@ class TransactionHistoryViewModel(
     fun loadTransactions(limit: Int = DEFAULT_LIMIT) {
         viewModelScope.launch {
             try {
-                val walletAddress = wallet.address ?: run {
+                val walletAddress = wallet.address?.value ?: run {
                     _state.value = TransactionState.Error("Wallet address is null")
                     return@launch
                 }
@@ -132,7 +132,7 @@ class TransactionHistoryViewModel(
      */
     fun clearCache() {
         viewModelScope.launch {
-            val walletAddress = wallet.address ?: run {
+            val walletAddress = wallet.address?.value ?: run {
                 _state.value = TransactionState.Error("Wallet address is null")
                 return@launch
             }

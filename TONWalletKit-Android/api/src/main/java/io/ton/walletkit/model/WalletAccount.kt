@@ -22,17 +22,17 @@
 package io.ton.walletkit.model
 
 /**
- * Represents a wallet account managed by WalletKit.
+ * Represents a wallet account with its metadata.
  *
- * @property address Wallet address
- * @property publicKey Public key of the wallet (nullable if not available)
- * @property name User-assigned name for the wallet (nullable)
+ * @property address Wallet address in user-friendly format
+ * @property publicKey Public key hex string (optional)
+ * @property name User-assigned wallet name (optional)
  * @property version Wallet version (e.g., "v5r1", "v4r2")
  * @property network Network the wallet operates on (e.g., "mainnet", "testnet")
  * @property index Wallet derivation index
  */
 data class WalletAccount(
-    val address: String,
+    val address: TONUserFriendlyAddress,
     val publicKey: String?,
     val name: String? = null,
     val version: String,
