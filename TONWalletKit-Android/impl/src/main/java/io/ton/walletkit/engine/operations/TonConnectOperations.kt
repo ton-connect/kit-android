@@ -156,7 +156,8 @@ internal class TonConnectOperations(
         ensureInitialized()
 
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
-        val walletId = WalletKitUtils.createWalletId(network, walletAddress.value)
+        // Use the walletId from the event if available, otherwise create one from network + address
+        val walletId = event.walletId ?: WalletKitUtils.createWalletId(network, walletAddress.value)
 
         val request = ApproveTransactionRequest(event = event, walletId = walletId)
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_TRANSACTION_REQUEST, json.toJSONObject(request))
@@ -173,7 +174,8 @@ internal class TonConnectOperations(
         ensureInitialized()
 
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
-        val walletId = WalletKitUtils.createWalletId(network, walletAddress.value)
+        // Use the walletId from the event if available, otherwise create one from network + address
+        val walletId = event.walletId ?: WalletKitUtils.createWalletId(network, walletAddress.value)
 
         val request = ApproveSignDataRequest(event = event, walletId = walletId)
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_SIGN_DATA_REQUEST, json.toJSONObject(request))

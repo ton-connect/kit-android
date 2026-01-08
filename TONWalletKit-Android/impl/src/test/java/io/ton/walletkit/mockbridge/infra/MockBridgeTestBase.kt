@@ -22,12 +22,13 @@
 package io.ton.walletkit.mockbridge.infra
 
 import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
-import io.ton.walletkit.model.TONNetwork
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before

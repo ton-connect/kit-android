@@ -21,13 +21,13 @@
  */
 package io.ton.walletkit.mockbridge
 
+import io.ton.walletkit.api.generated.TONNFTsResponse
+import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.mockbridge.infra.DefaultMockScenario
 import io.ton.walletkit.mockbridge.infra.MockBridgeTestBase
 import io.ton.walletkit.mockbridge.infra.MockScenario
-import io.ton.walletkit.model.TONNFTItems
-import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSignerInfo
 import kotlinx.coroutines.test.runTest
@@ -120,7 +120,7 @@ class EngineMethodEfficiencyTests : MockBridgeTestBase() {
             return super.handleGetWallets()
         }
 
-        override fun handleGetNfts(walletAddress: String, limit: Int, offset: Int): TONNFTItems {
+        override fun handleGetNfts(walletAddress: String, limit: Int, offset: Int): TONNFTsResponse {
             getNftsCount.incrementAndGet()
             return super.handleGetNfts(walletAddress, limit, offset)
         }

@@ -39,7 +39,6 @@ class WalletManagementTest {
     private fun createMockWallet(addressString: String): ITONWallet {
         return mockk<ITONWallet>(relaxed = true) {
             every { this@mockk.address } returns TONUserFriendlyAddress(addressString)
-            every { publicKey } returns "test_public_key_$addressString"
         }
     }
 

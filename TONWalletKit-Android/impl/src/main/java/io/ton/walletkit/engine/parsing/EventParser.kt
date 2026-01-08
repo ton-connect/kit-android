@@ -23,6 +23,7 @@ package io.ton.walletkit.engine.parsing
 
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
+import io.ton.walletkit.api.generated.TONRequestErrorEvent
 import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
 import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
 import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
@@ -143,12 +144,32 @@ internal class EventParser(
                 )
             }
 
+            EventTypeConstants.EVENT_REQUEST_ERROR -> {
+                Logger.d(TAG, "🔴 Parsing EVENT_REQUEST_ERROR event. Data keys: ${data.keys().asSequence().toList()}")
+                try {
+                    val event = json.decodeFromString<TONRequestErrorEvent>(data.toString())
+                    Logger.d(TAG, "✅ Successfully parsed RequestError event: method=${event.data["method"]}, code=${event.error.code}, message=${event.error.message}")
+                    TONWalletKitEvent.RequestError(event)
+                } catch (e: SerializationException) {
+                    Logger.e(TAG, "Failed to decode RequestErrorEvent", e)
+                    throw JSValueConversionException.DecodingError(
+                        message = "Failed to decode RequestErrorEvent: ${e.message}",
+                        cause = e,
+                    )
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to parse RequestErrorEvent", e)
+                    throw JSValueConversionException.Unknown(
+                        message = "Failed to parse RequestErrorEvent: ${e.message}",
+                        cause = e,
+                    )
+                }
+            }
+
             // Internal browser events - not exposed to public API
             EventTypeConstants.EVENT_BROWSER_PAGE_STARTED,
             EventTypeConstants.EVENT_BROWSER_PAGE_FINISHED,
             EventTypeConstants.EVENT_BROWSER_ERROR,
             EventTypeConstants.EVENT_BROWSER_BRIDGE_REQUEST,
-            EventTypeConstants.EVENT_REQUEST_ERROR,
             EventTypeConstants.EVENT_STATE_CHANGED,
             EventTypeConstants.EVENT_WALLET_STATE_CHANGED,
             EventTypeConstants.EVENT_SESSIONS_CHANGED,

@@ -21,6 +21,9 @@
  */
 package io.ton.walletkit
 
+import io.ton.walletkit.api.generated.TONDAppInfo
+import io.ton.walletkit.api.generated.TONDisconnectionEvent
+import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.engine.state.EventRouter
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
@@ -63,6 +66,26 @@ class EventRouterTest {
         receivedEvents.clear()
     }
 
+    /** Helper to create a disconnect event for testing */
+    private fun createDisconnectEvent(sessionId: String): TONWalletKitEvent.Disconnect {
+        return TONWalletKitEvent.Disconnect(
+            TONDisconnectionEvent(
+                id = "event-$sessionId",
+                preview = TONDisconnectionEventPreview(
+                    reason = "Test disconnect",
+                    dAppInfo = TONDAppInfo(
+                        name = "Test dApp",
+                        url = "https://test.com",
+                        description = null,
+                        iconUrl = null,
+                        manifestUrl = null,
+                    ),
+                ),
+                sessionId = sessionId,
+            ),
+        )
+    }
+
     // ===== Scenario 11: Duplicate event with same event ID =====
 
     @Test
@@ -77,12 +100,8 @@ class EventRouterTest {
         eventRouter.addHandler(handler)
 
         // Create disconnect event (simplest event type)
-        val event1 = TONWalletKitEvent.Disconnect(
-            io.ton.walletkit.event.DisconnectEvent("session-1"),
-        )
-        val event2 = TONWalletKitEvent.Disconnect(
-            io.ton.walletkit.event.DisconnectEvent("session-1"),
-        )
+        val event1 = createDisconnectEvent("session-1")
+        val event2 = createDisconnectEvent("session-1")
 
         // Dispatch same event ID twice
         eventRouter.dispatchEvent("event-1", "disconnect", event1)
@@ -107,9 +126,7 @@ class EventRouterTest {
 
         // Flood with 200 events
         repeat(200) { i ->
-            val event = TONWalletKitEvent.Disconnect(
-                io.ton.walletkit.event.DisconnectEvent("session-$i"),
-            )
+            val event = createDisconnectEvent("session-$i")
             eventRouter.dispatchEvent("event-$i", "disconnect", event)
         }
 
@@ -122,9 +139,7 @@ class EventRouterTest {
     @Test
     fun `dispatchEvent - event dispatched before any handler added`() = runTest {
         // No handler registered yet
-        val event = TONWalletKitEvent.Disconnect(
-            io.ton.walletkit.event.DisconnectEvent("session-1"),
-        )
+        val event = createDisconnectEvent("session-1")
 
         // Should not crash, just no-op
         eventRouter.dispatchEvent("event-1", "disconnect", event)
@@ -146,9 +161,7 @@ class EventRouterTest {
         eventRouter.removeHandler(testHandler)
 
         // Dispatch event
-        val event = TONWalletKitEvent.Disconnect(
-            io.ton.walletkit.event.DisconnectEvent("session-1"),
-        )
+        val event = createDisconnectEvent("session-1")
         eventRouter.dispatchEvent("event-1", "disconnect", event)
 
         // Handler should not receive event
@@ -167,9 +180,7 @@ class EventRouterTest {
 
         eventRouter.addHandler(throwingHandler)
 
-        val event = TONWalletKitEvent.Disconnect(
-            io.ton.walletkit.event.DisconnectEvent("session-1"),
-        )
+        val event = createDisconnectEvent("session-1")
 
         // Should not propagate exception
         eventRouter.dispatchEvent("event-1", "disconnect", event)
@@ -207,9 +218,7 @@ class EventRouterTest {
         eventRouter.addHandler(handler2Throwing)
         eventRouter.addHandler(handler3)
 
-        val event = TONWalletKitEvent.Disconnect(
-            io.ton.walletkit.event.DisconnectEvent("session-1"),
-        )
+        val event = createDisconnectEvent("session-1")
 
         eventRouter.dispatchEvent("event-1", "disconnect", event)
 
@@ -230,9 +239,7 @@ class EventRouterTest {
         eventRouter.removeHandler(testHandler)
 
         // Simulate post-destroy event dispatch
-        val event = TONWalletKitEvent.Disconnect(
-            io.ton.walletkit.event.DisconnectEvent("session-1"),
-        )
+        val event = createDisconnectEvent("session-1")
 
         // Should not crash, just no-op
         eventRouter.dispatchEvent("event-1", "disconnect", event)
@@ -256,9 +263,7 @@ class EventRouterTest {
         assertEquals(1, eventRouter.getHandlerCount())
 
         // Dispatch event - should only be called once
-        val event = TONWalletKitEvent.Disconnect(
-            io.ton.walletkit.event.DisconnectEvent("session-1"),
-        )
+        val event = createDisconnectEvent("session-1")
         eventRouter.dispatchEvent("event-1", "disconnect", event)
 
         assertEquals(1, receivedEvents.size)
@@ -300,9 +305,7 @@ class EventRouterTest {
         eventRouter.addHandler(handler1)
         eventRouter.addHandler(handler2)
 
-        val event = TONWalletKitEvent.Disconnect(
-            io.ton.walletkit.event.DisconnectEvent("session-1"),
-        )
+        val event = createDisconnectEvent("session-1")
 
         eventRouter.dispatchEvent("event-1", "disconnect", event)
 

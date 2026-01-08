@@ -22,6 +22,7 @@
 package io.ton.walletkit.event
 
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
+import io.ton.walletkit.api.generated.TONRequestErrorEvent
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
@@ -79,5 +80,17 @@ sealed class TONWalletKitEvent {
      */
     data class Disconnect(
         val event: TONDisconnectionEvent,
+    ) : TONWalletKitEvent()
+
+    /**
+     * A request error occurred (validation error, network error, etc.).
+     *
+     * This is informational - helps track when requests fail due to validation
+     * or other errors before reaching the approval/rejection stage.
+     *
+     * @property event Request error details (generated type)
+     */
+    data class RequestError(
+        val event: TONRequestErrorEvent,
     ) : TONWalletKitEvent()
 }

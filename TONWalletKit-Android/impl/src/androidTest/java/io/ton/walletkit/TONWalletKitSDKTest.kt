@@ -24,12 +24,14 @@ package io.ton.walletkit
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WebViewWalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
-import io.ton.walletkit.model.TONNetwork
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -192,7 +194,7 @@ class TONWalletKitSDKTest {
 
                 assertNotNull("Wallet should be created", wallet)
                 assertNotNull("Wallet should have address", wallet.address)
-                assertNotNull("Wallet should have public key", wallet.publicKey)
+                assertNotNull("Signer should have public key", signer.publicKey)
             }
         }
     }
@@ -214,12 +216,12 @@ class TONWalletKitSDKTest {
 
                 // Create V5R1 wallet using 3-step pattern
                 val signer = sdk.createSignerFromMnemonic(mnemonic)
-                val adapter = sdk.createV5R1Adapter(signer, TONNetwork.TESTNET)
+                val adapter = sdk.createV5R1Adapter(signer, TONNetwork.MAINNET)
                 val wallet = sdk.addWallet(adapter.adapterId)
 
                 assertNotNull("V5R1 wallet should be created", wallet)
                 assertNotNull("Wallet should have address", wallet.address)
-                assertNotNull("Wallet should have public key", wallet.publicKey)
+                assertNotNull("Signer should have public key", signer.publicKey)
             }
         }
     }

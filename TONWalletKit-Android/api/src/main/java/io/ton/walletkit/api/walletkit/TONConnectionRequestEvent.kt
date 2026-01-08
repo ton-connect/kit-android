@@ -22,7 +22,7 @@
 package io.ton.walletkit.api.walletkit
 
 import io.ton.walletkit.api.generated.TONConnectionRequestEventPreview
-import io.ton.walletkit.api.generated.TONConnectionRequestEventPreviewRequestedItem
+import io.ton.walletkit.api.generated.TONConnectionRequestEventRequestedItem
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
@@ -81,11 +81,11 @@ data class TONConnectionRequestEvent(
 
     /** Items requested by the dApp (e.g., wallet address, proof) - JS bridge expects 'request' field */
     @SerialName(value = "request")
-    val request: List<TONConnectionRequestEventPreviewRequestedItem>? = null,
+    val request: List<TONConnectionRequestEventRequestedItem>? = null,
 
     /** Items requested by the dApp - alias for 'request' for backwards compatibility */
     @SerialName(value = "requestedItems")
-    val requestedItems: List<TONConnectionRequestEventPreviewRequestedItem>? = null,
+    val requestedItems: List<TONConnectionRequestEventRequestedItem>? = null,
 
     @SerialName(value = "preview")
     val preview: TONConnectionRequestEventPreview,

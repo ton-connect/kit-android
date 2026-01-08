@@ -26,11 +26,12 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.api.generated.TONDisconnectionEvent
+import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.TONWalletKit
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
-import io.ton.walletkit.event.DisconnectEvent
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import org.json.JSONObject
@@ -174,9 +175,10 @@ internal object TestWalletKitFactory {
         coEvery { mockEngine.disconnectSession(any()) } answers {
             val sessionId = firstArg<String?>()
             val event = TONWalletKitEvent.Disconnect(
-                event = DisconnectEvent(
-                    sessionId = sessionId,
-                    reason = "disconnected",
+                event = TONDisconnectionEvent(
+                    id = sessionId ?: "",
+                    sessionId = sessionId ?: "",
+                    preview = TONDisconnectionEventPreview(),
                 ),
             )
             // Dispatch to all registered handlers

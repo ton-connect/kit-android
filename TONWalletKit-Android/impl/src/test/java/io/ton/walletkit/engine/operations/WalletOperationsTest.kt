@@ -84,7 +84,7 @@ class WalletOperationsTest : OperationsTestBase() {
         val result = walletOperations.createSignerFromMnemonic(listOf("word1", "word2"))
 
         assertEquals("signer-123", result.signerId)
-        assertEquals("abcdef1234567890", result.publicKey) // 0x prefix stripped
+        assertEquals("abcdef1234567890", result.publicKey.value) // 0x prefix stripped
     }
 
     @Test
@@ -100,7 +100,7 @@ class WalletOperationsTest : OperationsTestBase() {
 
         val result = walletOperations.createSignerFromMnemonic(listOf("test"))
 
-        assertEquals("1234abcd", result.publicKey)
+        assertEquals("1234abcd", result.publicKey.value)
     }
 
     @Test
@@ -116,7 +116,7 @@ class WalletOperationsTest : OperationsTestBase() {
 
         val result = walletOperations.createSignerFromMnemonic(listOf("test"))
 
-        assertEquals("abcd1234", result.publicKey)
+        assertEquals("abcd1234", result.publicKey.value)
     }
 
     @Test
@@ -132,7 +132,7 @@ class WalletOperationsTest : OperationsTestBase() {
         val result = walletOperations.createSignerFromMnemonic(listOf("test"))
 
         assertEquals("signer-legacy", result.signerId)
-        assertEquals("legacykey", result.publicKey)
+        assertEquals("legacykey", result.publicKey.value)
     }
 
     @Test
@@ -152,7 +152,7 @@ class WalletOperationsTest : OperationsTestBase() {
             "Expected generated signerId starting with signer_, got: ${result.signerId}",
             result.signerId.startsWith("signer_"),
         )
-        assertEquals("key123", result.publicKey)
+        assertEquals("key123", result.publicKey.value)
     }
 
     // --- getWallets tests ---

@@ -21,7 +21,9 @@
  */
 package io.ton.walletkit.engine.state
 
-import io.ton.walletkit.event.DisconnectEvent
+import io.ton.walletkit.api.generated.TONDAppInfo
+import io.ton.walletkit.api.generated.TONDisconnectionEvent
+import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import kotlinx.coroutines.async
@@ -45,6 +47,26 @@ import java.util.concurrent.atomic.AtomicInteger
 class EventRouterTest {
 
     private lateinit var router: EventRouter
+
+    /** Helper to create a disconnect event for testing */
+    private fun createDisconnectEvent(sessionId: String): TONWalletKitEvent.Disconnect {
+        return TONWalletKitEvent.Disconnect(
+            TONDisconnectionEvent(
+                id = "event-$sessionId",
+                preview = TONDisconnectionEventPreview(
+                    reason = "Test disconnect",
+                    dAppInfo = TONDAppInfo(
+                        name = "Test dApp",
+                        url = "https://test.com",
+                        description = null,
+                        iconUrl = null,
+                        manifestUrl = null,
+                    ),
+                ),
+                sessionId = sessionId,
+            ),
+        )
+    }
 
     @Before
     fun setup() {
@@ -174,7 +196,7 @@ class EventRouterTest {
         }
         router.addHandler(handler)
 
-        val event = TONWalletKitEvent.Disconnect(DisconnectEvent(sessionId = "test-session"))
+        val event = createDisconnectEvent("test-session")
         router.dispatchEvent("event-1", "disconnect", event)
 
         assertEquals("Handler should receive 1 event", 1, receivedEvents.size)
@@ -203,7 +225,7 @@ class EventRouterTest {
             }
         })
 
-        val event = TONWalletKitEvent.Disconnect(DisconnectEvent(sessionId = "test-session"))
+        val event = createDisconnectEvent("test-session")
         router.dispatchEvent("event-1", "disconnect", event)
 
         assertEquals("Handler 1 should receive event", 1, received1.size)
@@ -232,7 +254,7 @@ class EventRouterTest {
             }
         })
 
-        val event = TONWalletKitEvent.Disconnect(DisconnectEvent(sessionId = "test-session"))
+        val event = createDisconnectEvent("test-session")
         router.dispatchEvent("event-1", "disconnect", event)
 
         assertEquals("Handler 1 should receive event", 1, received1.size)
@@ -241,7 +263,7 @@ class EventRouterTest {
 
     @Test
     fun dispatchEvent_noHandlers_doesNotThrow() = runBlocking {
-        val event = TONWalletKitEvent.Disconnect(DisconnectEvent(sessionId = "test-session"))
+        val event = createDisconnectEvent("test-session")
 
         // Should not throw
         router.dispatchEvent("event-1", "disconnect", event)
@@ -284,7 +306,7 @@ class EventRouterTest {
 
         val jobs = (1..10).map { i ->
             async {
-                val event = TONWalletKitEvent.Disconnect(DisconnectEvent(sessionId = "session-$i"))
+                val event = createDisconnectEvent("session-$i")
                 router.dispatchEvent("event-$i", "disconnect", event)
             }
         }

@@ -80,8 +80,8 @@ sealed class {{classname}} {
 {{#vars}}
 {{#vendorExtensions.x-enum-case-name}}
                 is {{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}} -> {
-                    val valueSerializer = serializer(value.value::class.java) as KSerializer<Any>
-                    val valueJson = jsonEncoder.json.encodeToJsonElement(valueSerializer, value.value)
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<{{{dataType}}}>(), value.value)
                     buildJsonObject {
                         put("type", JsonPrimitive("{{vendorExtensions.x-enum-case-raw-value}}"))
                         put("value", valueJson)

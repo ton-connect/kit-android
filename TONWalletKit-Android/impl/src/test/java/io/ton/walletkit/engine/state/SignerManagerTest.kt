@@ -21,6 +21,8 @@
  */
 package io.ton.walletkit.engine.state
 
+import io.ton.walletkit.WalletKitUtils
+import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.WalletSigner
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -199,7 +201,7 @@ class SignerManagerTest {
     // --- Helper ---
 
     private fun createMockSigner(): WalletSigner = object : WalletSigner {
-        override val publicKey: String = "0x" + "00".repeat(32)
-        override suspend fun sign(data: ByteArray): ByteArray = data
+        override fun publicKey(): TONHex = TONHex("0x" + "00".repeat(32))
+        override suspend fun sign(data: ByteArray): TONHex = TONHex(WalletKitUtils.byteArrayToHex(data))
     }
 }

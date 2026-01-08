@@ -212,7 +212,12 @@ internal class MessageDispatcher(
         Logger.d(TAG, "🟢 Event data keys: ${data.keys().asSequence().toList()}")
         Logger.d(TAG, "🟢 Thread: ${Thread.currentThread().name}")
 
-        val typedEvent = eventParser.parseEvent(type, data, event)
+        val typedEvent = try {
+            eventParser.parseEvent(type, data, event)
+        } catch (e: Exception) {
+            Logger.e(TAG, "❌ Exception thrown while parsing event type=$type", e)
+            null
+        }
         Logger.d(TAG, "🟢 Parsed typed event: ${(typedEvent?.javaClass?.simpleName ?: ResponseConstants.VALUE_UNKNOWN)}")
 
         if (typedEvent != null) {

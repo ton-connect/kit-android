@@ -145,6 +145,25 @@ object TestCaseDataProvider {
         )
 
         // ========================================
+        // Sign Data User Declined tests (Test Result IDs)
+        // ========================================
+        "8612" -> TestCaseData( // SIGN_DATA_BINARY_USER_DECLINED
+            precondition = SIGN_DATA_BINARY_PRECONDITION,
+            expectedResult = SIGN_DATA_REJECT_EXPECTED_RESULT,
+            isPositiveCase = false,
+        )
+        "8645" -> TestCaseData( // SIGN_DATA_CELL_USER_DECLINED
+            precondition = SIGN_DATA_CELL_PRECONDITION,
+            expectedResult = SIGN_DATA_REJECT_EXPECTED_RESULT,
+            isPositiveCase = false,
+        )
+        "8646" -> TestCaseData( // SIGN_DATA_TEXT_USER_DECLINED
+            precondition = SIGN_DATA_TEXT_PRECONDITION,
+            expectedResult = SIGN_DATA_REJECT_EXPECTED_RESULT,
+            isPositiveCase = false,
+        )
+
+        // ========================================
         // Legacy IDs (keep for backward compatibility)
         // ========================================
         else -> null
@@ -389,6 +408,18 @@ object TestCaseDataProvider {
     "signature": isValidDataSignature,
     "timestamp": isValidCurrentTimestamp
   }
+}
+```
+    """.trimIndent()
+
+    private val SIGN_DATA_REJECT_EXPECTED_RESULT = """
+```json
+{
+  "error": {
+    "code": 300,
+    "message": isValidString
+  },
+  "id": isValidSignDataId
 }
 ```
     """.trimIndent()

@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.engine.operations
 
-import io.ton.walletkit.model.TONTransferParams
+import io.ton.walletkit.api.generated.TONTransferRequest
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import org.junit.Assert.*
@@ -67,23 +67,15 @@ class TransactionOperationsTest : OperationsTestBase() {
                 put(
                     "preview",
                     JSONObject().apply {
-                        // Use "type" as discriminator (kotlinx.serialization default) not "kind"
-                        put("type", "success")
-                        put(
-                            "emulationResult",
-                            JSONObject().apply {
-                                put("moneyFlow", JSONObject())
-                                put("emulationResult", JSONObject())
-                            },
-                        )
+                        put("result", "success")
                     },
                 )
             },
         )
 
-        val params = TONTransferParams(
-            toAddress = TEST_TO_ADDRESS,
-            amount = "1000000000",
+        val params = TONTransferRequest(
+            recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_TO_ADDRESS),
+            transferAmount = "1000000000",
             comment = "Test",
         )
         val result = transactionOperations.createTransferTonTransaction(TEST_ADDRESS, params)
@@ -102,9 +94,9 @@ class TransactionOperationsTest : OperationsTestBase() {
             },
         )
 
-        val params = TONTransferParams(
-            toAddress = TEST_TO_ADDRESS,
-            amount = "1000000000",
+        val params = TONTransferRequest(
+            recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_TO_ADDRESS),
+            transferAmount = "1000000000",
         )
         val result = transactionOperations.createTransferTonTransaction(TEST_ADDRESS, params)
 
@@ -121,9 +113,9 @@ class TransactionOperationsTest : OperationsTestBase() {
             },
         )
 
-        val params = TONTransferParams(
-            toAddress = TEST_TO_ADDRESS,
-            amount = "1000000000",
+        val params = TONTransferRequest(
+            recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_TO_ADDRESS),
+            transferAmount = "1000000000",
         )
         val result = transactionOperations.createTransferTonTransaction(TEST_ADDRESS, params)
 
@@ -142,22 +134,15 @@ class TransactionOperationsTest : OperationsTestBase() {
                 put(
                     "preview",
                     JSONObject().apply {
-                        put("type", "success")
-                        put(
-                            "emulationResult",
-                            JSONObject().apply {
-                                put("moneyFlow", JSONObject())
-                                put("emulationResult", JSONObject())
-                            },
-                        )
+                        put("result", "success")
                     },
                 )
             },
         )
 
         val messages = listOf(
-            TONTransferParams(toAddress = TEST_TO_ADDRESS, amount = "1000000000"),
-            TONTransferParams(toAddress = TEST_ADDRESS, amount = "2000000000"),
+            TONTransferRequest(recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_TO_ADDRESS), transferAmount = "1000000000"),
+            TONTransferRequest(recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_ADDRESS), transferAmount = "2000000000"),
         )
         val result = transactionOperations.createTransferMultiTonTransaction(TEST_ADDRESS, messages)
 
@@ -197,21 +182,15 @@ class TransactionOperationsTest : OperationsTestBase() {
     fun getTransactionPreview_parsesSuccessPreview() = runBlocking {
         givenBridgeReturns(
             JSONObject().apply {
-                put("type", "success")
-                put(
-                    "emulationResult",
-                    JSONObject().apply {
-                        put("moneyFlow", JSONObject())
-                        put("emulationResult", JSONObject())
-                    },
-                )
+                put("result", "success")
             },
         )
 
         val result = transactionOperations.getTransactionPreview(TEST_ADDRESS, """{"boc":"..."}""")
 
         // Result should be a Success type
-        assertTrue(result is io.ton.walletkit.model.TONTransactionPreview.Success)
+        assertNotNull(result)
+        assertNotNull(result.result)
     }
 
     // --- handleNewTransaction tests ---

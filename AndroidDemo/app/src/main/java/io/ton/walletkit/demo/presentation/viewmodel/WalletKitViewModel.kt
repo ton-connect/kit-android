@@ -35,6 +35,7 @@ import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
+import io.ton.walletkit.demo.core.RequestErrorTracker
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.WalletRecord
 import io.ton.walletkit.demo.domain.model.PendingWalletRecord
@@ -253,6 +254,7 @@ class WalletKitViewModel @Inject constructor(
      */
     private fun handleSdkEvent(event: TONWalletKitEvent) {
         Log.d(LOG_TAG, "=== handleSdkEvent: ${event::class.simpleName} ===")
+        Log.d(LOG_TAG, "Event class: ${event.javaClass.name}, Event: $event")
         when (event) {
             is TONWalletKitEvent.ConnectRequest -> {
                 Log.d(LOG_TAG, "Handling ConnectRequest")
@@ -269,6 +271,29 @@ class WalletKitViewModel @Inject constructor(
             is TONWalletKitEvent.Disconnect -> {
                 Log.d(LOG_TAG, "Session disconnected: ${event.event.sessionId}")
                 viewModelScope.launch { sessionsViewModel.refresh() }
+            }
+            is TONWalletKitEvent.RequestError -> {
+                Log.d(LOG_TAG, "✅ ===== HANDLING RequestError EVENT =====")
+                Log.d(LOG_TAG, "Request error: ${event.event.error.message} (code: ${event.event.error.code})")
+                Log.d(LOG_TAG, "RequestError data keys: ${event.event.data.keys}")
+                val methodValue = event.event.data["method"]
+                Log.d(LOG_TAG, "RequestError data['method']: $methodValue")
+                Log.d(LOG_TAG, "RequestError data['method'] type: ${methodValue?.javaClass?.name}")
+                Log.d(LOG_TAG, "RequestError data['method'] toString: ${methodValue?.toString()}")
+                // Determine method from event data - handle both String and other types
+                val rawMethod = when (val value = methodValue) {
+                    is String -> value
+                    else -> value?.toString() ?: "unknown"
+                }
+                val method = rawMethod.trim('"')
+                Log.d(LOG_TAG, "✅ Extracted method: $method")
+                Log.d(LOG_TAG, "✅ Calling RequestErrorTracker.recordError with method=$method")
+                RequestErrorTracker.recordError(
+                    method = method,
+                    errorCode = event.event.error.code ?: 0,
+                    errorMessage = event.event.error.message ?: "Unknown error",
+                )
+                Log.d(LOG_TAG, "✅ RequestErrorTracker.recordError completed")
             }
         }
     }
@@ -1174,11 +1199,31 @@ class WalletKitViewModel @Inject constructor(
         val dAppInfo = preview.dAppInfo ?: request.event.dAppInfo
 
         Log.d(LOG_TAG, "onConnectRequest called - dAppInfo: ${dAppInfo?.name}, dAppUrl: ${dAppInfo?.url}")
-        // TODO: Re-enable manifest validation once SDK exposes manifestFetchErrorCode
+
         // Auto-reject if manifest fetch failed or manifest content is invalid (same behavior as web demo wallet)
         // The SDK sets manifestFetchErrorCode for:
         // - 2: MANIFEST_NOT_FOUND_ERROR - manifest URL fetch failed
         // - 3: MANIFEST_CONTENT_ERROR - manifest content is invalid (including invalid dApp URL)
+        val manifestErrorCode = preview.manifestFetchErrorCode
+        if (manifestErrorCode != null) {
+            Log.w(LOG_TAG, "Manifest error detected (code: $manifestErrorCode), auto-rejecting connection request")
+            val errorMessage = when (manifestErrorCode) {
+                2 -> "App manifest not found"
+                3 -> "App manifest content error"
+                else -> "Manifest error"
+            }
+            viewModelScope.launch {
+                try {
+                    // Pass the manifest error code directly to reject with proper TON Connect error code
+                    request.reject(errorMessage, manifestErrorCode)
+                    Log.d(LOG_TAG, "Connection auto-rejected due to manifest error")
+                    eventLogger.log(R.string.wallet_event_connect_request, "Auto-rejected: $errorMessage")
+                } catch (e: Exception) {
+                    Log.e(LOG_TAG, "Failed to auto-reject connection", e)
+                }
+            }
+            return // Don't show connect sheet
+        }
 
         // Convert to UI model for existing sheets
         val fallbackDAppName = uiString(R.string.wallet_event_unknown_dapp)
@@ -1188,7 +1233,7 @@ class WalletKitViewModel @Inject constructor(
             id = request.hashCode().toString(), // Use object hashCode as ID
             dAppName = dAppInfo?.name ?: fallbackDAppName,
             dAppUrl = dAppInfo?.url ?: "",
-            manifestUrl = "", // TODO: Add manifestUrl once SDK exposes it
+            manifestUrl = dAppInfo?.manifestUrl ?: "",
             iconUrl = dAppInfo?.iconUrl,
             permissions = preview.permissions.map { perm ->
                 ConnectPermissionUi(
@@ -1248,7 +1293,7 @@ class WalletKitViewModel @Inject constructor(
             val messages = txRequest.messages.map { msg ->
                 // Try to decode comment from payload if it's a simple text comment
                 val comment = try {
-                    msg.payload?.let { payload ->
+                    msg.payload?.let { _ ->
                         // Simple text comments are base64 encoded with opcode 0
                         // For now, we'll just show null - full decoding can be added later
                         null
@@ -1258,7 +1303,7 @@ class WalletKitViewModel @Inject constructor(
                 }
 
                 TransactionMessageUi(
-                    to = msg.address.value,
+                    to = msg.address,
                     amount = msg.amount,
                     comment = comment,
                     payload = msg.payload?.value,
@@ -1296,6 +1341,7 @@ class WalletKitViewModel @Inject constructor(
             is io.ton.walletkit.api.generated.TONSignData.Text -> payloadData.value.content
             is io.ton.walletkit.api.generated.TONSignData.Binary -> payloadData.value.content.value
             is io.ton.walletkit.api.generated.TONSignData.Cell -> payloadData.value.content.value
+            else -> ""
         }
 
         // Extract preview content
@@ -1304,6 +1350,7 @@ class WalletKitViewModel @Inject constructor(
             is io.ton.walletkit.api.generated.TONSignData.Text -> previewData.value.content
             is io.ton.walletkit.api.generated.TONSignData.Binary -> previewData.value.content.value
             is io.ton.walletkit.api.generated.TONSignData.Cell -> previewData.value.content.value
+            else -> ""
         }
 
         // Convert to UI model with actual payload data from request

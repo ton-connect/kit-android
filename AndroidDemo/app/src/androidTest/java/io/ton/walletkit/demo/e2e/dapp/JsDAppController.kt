@@ -1253,8 +1253,21 @@ class JsDAppController {
 
         Thread.sleep(500) // Additional delay for element to fully render
 
-        // Check the border color of the parent alert element
-        // The alert has border-green-500 when validation passed, border-red-500 when failed
+        // Check the validation text content directly - most reliable method
+        val validationText = getSendTxValidationResult()
+        android.util.Log.d("JsDAppController", "Validation text: $validationText")
+
+        // Check for "Validation Passed" text
+        val textPassed = validationText.contains("Validation Passed", ignoreCase = true) ||
+            validationText.contains("Passed", ignoreCase = true)
+
+        if (textPassed) {
+            android.util.Log.d("JsDAppController", "SendTx validation PASSED (text match)")
+            return true
+        }
+
+        // Also check the border color of the parent alert element as secondary verification
+        // The alert has border-green when validation passed, border-red when failed
         val result = jsBridge.evaluateJs(
             """
             (function() {
@@ -1267,34 +1280,34 @@ class JsDAppController {
                 
                 // Get the parent alert element (has border color class)
                 var alert = validation.closest('[data-slot="alert"]');
-                if (!alert) {
+                if (!alert && validation.parentElement && validation.parentElement.parentElement) {
                     // Try parent's parent
-                    alert = validation.parentElement?.parentElement;
+                    alert = validation.parentElement.parentElement;
                 }
                 
                 if (alert) {
                     var classes = alert.className || '';
                     console.log('Alert classes: ' + classes);
                     
-                    if (classes.includes('border-green')) {
+                    if (classes.includes('border-green') || classes.includes('green')) {
                         return 'passed';
-                    } else if (classes.includes('border-red')) {
+                    } else if (classes.includes('border-red') || classes.includes('red')) {
                         return 'failed';
                     }
                 }
                 
-                // Fallback: check the validation text
+                // Check text as fallback
                 var text = validation.textContent || validation.innerText || '';
-                if (text.toLowerCase().includes('validation passed')) {
+                if (text.toLowerCase().includes('validation passed') || text.toLowerCase().includes('passed')) {
                     return 'passed';
                 }
                 
-                return 'unknown:' + text.substring(0, 100);
+                return 'unknown';
             })()
             """.trimIndent(),
         ) ?: "error"
 
-        android.util.Log.d("JsDAppController", "verifySendTxValidation result: $result")
+        android.util.Log.d("JsDAppController", "verifySendTxValidation border check result: $result")
 
         if (result == "passed") {
             android.util.Log.d("JsDAppController", "SendTx validation PASSED (green border)")
@@ -1302,18 +1315,13 @@ class JsDAppController {
         }
 
         if (result == "failed") {
-            val validationText = getSendTxValidationResult()
             android.util.Log.e("JsDAppController", "SendTx validation FAILED (red border): $validationText")
             return false
         }
 
-        // Fallback for unknown result
-        val validationText = getSendTxValidationResult()
-        android.util.Log.w("JsDAppController", "SendTx validation unknown result: $result, text: $validationText")
-
-        // Check text content as last resort
-        return validationText.contains("Validation Passed", ignoreCase = true) ||
-            validationText.contains("Passed", ignoreCase = true)
+        // If we got here, validation is unclear
+        android.util.Log.w("JsDAppController", "SendTx validation unclear: text=$validationText, borderCheck=$result")
+        return false
     }
 
     // ===========================================

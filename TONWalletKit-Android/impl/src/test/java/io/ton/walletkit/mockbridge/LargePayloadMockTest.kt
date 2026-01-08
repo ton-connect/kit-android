@@ -21,13 +21,11 @@
  */
 package io.ton.walletkit.mockbridge
 
+import io.ton.walletkit.api.generated.TONNFT
+import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.mockbridge.infra.DefaultMockScenario
 import io.ton.walletkit.mockbridge.infra.MockBridgeTestBase
 import io.ton.walletkit.mockbridge.infra.MockScenario
-import io.ton.walletkit.model.TONNFTCollection
-import io.ton.walletkit.model.TONNFTItem
-import io.ton.walletkit.model.TONNFTItems
-import io.ton.walletkit.model.TONTokenInfo
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Test
@@ -55,44 +53,28 @@ class LargePayloadMockTest : MockBridgeTestBase() {
      * Scenario that returns large NFT collections.
      */
     private class LargePayloadScenario : DefaultMockScenario() {
-        override fun handleGetNfts(walletAddress: String, limit: Int, offset: Int): TONNFTItems {
-            val nfts = mutableListOf<TONNFTItem>()
+        override fun handleGetNfts(walletAddress: String, limit: Int, offset: Int): TONNFTsResponse {
+            val nfts = mutableListOf<TONNFT>()
             for (i in 0 until limit) {
                 val actualIndex = offset + i
                 nfts.add(
-                    TONNFTItem(
-                        address = "EQD${actualIndex.toString().padStart(46, '0')}",
-                        auctionContractAddress = null,
-                        codeHash = "0x${actualIndex.toString(16).padStart(64, '0')}",
-                        dataHash = "0x${(actualIndex + 1).toString(16).padStart(64, '0')}",
-                        collection = TONNFTCollection(
-                            address = "EQCollection${"0".repeat(42)}",
-                            codeHash = "0x${"1234567890abcdef".repeat(4)}",
-                            dataHash = "0x${"fedcba0987654321".repeat(4)}",
-                            lastTransactionLt = "1000000",
-                            nextItemIndex = limit.toString(),
-                            ownerAddress = "EQCollectionOwner${"0".repeat(36)}",
-                        ),
-                        collectionAddress = "EQCollection${"0".repeat(42)}",
-                        metadata = TONTokenInfo(
+                    TONNFT(
+                        address = io.ton.walletkit.model.TONUserFriendlyAddress("EQD${actualIndex.toString().padStart(46, '0')}"),
+                        index = actualIndex.toString(),
+                        info = io.ton.walletkit.api.generated.TONTokenInfo(
                             name = "NFT Item #$actualIndex",
                             description = "This is a test NFT item number $actualIndex with some metadata that makes the payload larger.",
-                            image = "https://example.com/nft/$actualIndex.png",
-                            nftIndex = actualIndex.toString(),
-                            type = "nft",
-                            valid = true,
+                            image = io.ton.walletkit.api.generated.TONTokenImage(
+                                url = "https://example.com/nft/$actualIndex.png",
+                            ),
                         ),
-                        index = actualIndex.toString(),
-                        initFlag = true,
-                        lastTransactionLt = (System.currentTimeMillis() + actualIndex).toString(),
-                        onSale = actualIndex % 10 == 0,
-                        ownerAddress = "EQOwner${actualIndex.toString().padStart(40, '0')}",
-                        realOwner = "EQOwner${actualIndex.toString().padStart(40, '0')}",
-                        saleContractAddress = if (actualIndex % 10 == 0) "EQSale${actualIndex.toString().padStart(41, '0')}" else null,
+                        isInited = true,
+                        isOnSale = actualIndex % 10 == 0,
+                        ownerAddress = io.ton.walletkit.model.TONUserFriendlyAddress("EQOwner${actualIndex.toString().padStart(40, '0')}"),
                     ),
                 )
             }
-            return TONNFTItems(items = nfts)
+            return TONNFTsResponse(nfts = nfts, addressBook = null)
         }
     }
 
@@ -107,16 +89,20 @@ class LargePayloadMockTest : MockBridgeTestBase() {
         val wallet = sdk.addWallet(adapter.adapterId)
 
         // Mock returns 150 NFTs (large payload)
-        val nfts = wallet.getNFTItems(limit = 150)
+        val response = wallet.nfts(
+            io.ton.walletkit.api.generated.TONNFTsRequest(
+                pagination = io.ton.walletkit.api.generated.TONPagination(limit = 150),
+            ),
+        )
 
         // Should handle large response successfully
-        assertEquals("Should receive 150 NFTs", 150, nfts.size)
+        assertEquals("Should receive 150 NFTs", 150, response.nfts.size)
 
         // Verify structure of first NFT
-        val firstNft = nfts[0]
-        assertTrue("NFT should have address", firstNft.address.isNotEmpty())
-        assertNotNull("NFT should have metadata", firstNft.metadata)
-        assertEquals("NFT Item #0", firstNft.metadata?.name)
+        val firstNft = response.nfts[0]
+        assertTrue("NFT should have address", firstNft.address.value.isNotEmpty())
+        assertNotNull("NFT should have info", firstNft.info)
+        assertEquals("NFT Item #0", firstNft.info?.name)
     }
 
     @Test
@@ -130,13 +116,20 @@ class LargePayloadMockTest : MockBridgeTestBase() {
         // Make 3 calls, each returning 100 NFTs
         var totalNfts = 0
         repeat(3) { iteration ->
-            val nfts = wallet.getNFTItems(limit = 100, offset = iteration * 100)
-            totalNfts += nfts.size
+            val response = wallet.nfts(
+                io.ton.walletkit.api.generated.TONNFTsRequest(
+                    pagination = io.ton.walletkit.api.generated.TONPagination(
+                        limit = 100,
+                        offset = iteration * 100,
+                    ),
+                ),
+            )
+            totalNfts += response.nfts.size
 
             // Verify offset is being used correctly
-            if (nfts.isNotEmpty()) {
+            if (response.nfts.isNotEmpty()) {
                 val expectedFirstIndex = iteration * 100
-                assertEquals("NFT Item #$expectedFirstIndex", nfts[0].metadata?.name)
+                assertEquals("NFT Item #$expectedFirstIndex", response.nfts[0].info?.name)
             }
         }
 

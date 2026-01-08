@@ -21,10 +21,11 @@
  */
 package io.ton.walletkit.mockbridge.infra
 
+import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.config.TONWalletKitConfiguration
-import io.ton.walletkit.model.TONNFTItems
+import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
-import io.ton.walletkit.model.WalletAccount
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSignerInfo
 import org.json.JSONObject
@@ -64,7 +65,7 @@ interface MockScenario {
     fun handleCreateSignerFromMnemonic(mnemonic: List<String>, mnemonicType: String): WalletSignerInfo {
         return WalletSignerInfo(
             signerId = "signer-${mnemonic.hashCode().toString(16)}",
-            publicKey = "0x${"0".repeat(64)}",
+            publicKey = TONHex("0x${"0".repeat(64)}"),
         )
     }
 
@@ -81,7 +82,7 @@ interface MockScenario {
     ): WalletAdapterInfo {
         return WalletAdapterInfo(
             adapterId = "adapter-v5r1-${signerId.hashCode().toString(16)}",
-            address = "EQDTest${signerId.hashCode().toString(16).padStart(40, '0')}",
+            address = TONUserFriendlyAddress("EQDTest${signerId.hashCode().toString(16).padStart(40, '0')}"),
         )
     }
 
@@ -98,7 +99,7 @@ interface MockScenario {
     ): WalletAdapterInfo {
         return WalletAdapterInfo(
             adapterId = "adapter-v4r2-${signerId.hashCode().toString(16)}",
-            address = "EQDTest${signerId.hashCode().toString(16).padStart(40, '0')}",
+            address = TONUserFriendlyAddress("EQDTest${signerId.hashCode().toString(16).padStart(40, '0')}"),
         )
     }
 
@@ -124,8 +125,8 @@ interface MockScenario {
      * Handle getNfts RPC call.
      * Override this in specific scenarios to test large payloads, errors, etc.
      */
-    fun handleGetNfts(walletAddress: String, limit: Int, offset: Int): TONNFTItems {
-        return TONNFTItems(items = emptyList())
+    fun handleGetNfts(walletAddress: String, limit: Int, offset: Int): TONNFTsResponse {
+        return TONNFTsResponse(nfts = emptyList(), addressBook = null)
     }
 
     /**

@@ -111,7 +111,7 @@ class EventParserTest {
     // --- Browser Events Tests ---
 
     @Test
-    fun parseEvent_browserPageStarted_extractsUrl() {
+    fun parseEvent_browserPageStarted_returnsNull() {
         val data = JSONObject().apply {
             put("url", "https://example.com")
         }
@@ -119,24 +119,23 @@ class EventParserTest {
 
         val event = parser.parseEvent(EventTypeConstants.EVENT_BROWSER_PAGE_STARTED, data, raw)
 
-        assertNotNull("Should parse browser page started event", event)
-        assertTrue("Should be BrowserPageStarted event", event is TONWalletKitEvent.BrowserPageStarted)
-        assertEquals("https://example.com", (event as TONWalletKitEvent.BrowserPageStarted).url)
+        // Browser events are internal and not exposed to public API
+        assertNull("Browser events should return null", event)
     }
 
     @Test
-    fun parseEvent_browserPageStarted_missingUrl_returnsEmptyString() {
+    fun parseEvent_browserPageStarted_missingUrl_returnsNull() {
         val data = JSONObject()
         val raw = JSONObject()
 
         val event = parser.parseEvent(EventTypeConstants.EVENT_BROWSER_PAGE_STARTED, data, raw)
 
-        assertNotNull("Should parse event", event)
-        assertEquals("", (event as TONWalletKitEvent.BrowserPageStarted).url)
+        // Browser events are internal
+        assertNull("Browser events should return null", event)
     }
 
     @Test
-    fun parseEvent_browserPageFinished_extractsUrl() {
+    fun parseEvent_browserPageFinished_returnsNull() {
         val data = JSONObject().apply {
             put("url", "https://example.com/page")
         }
@@ -144,13 +143,12 @@ class EventParserTest {
 
         val event = parser.parseEvent(EventTypeConstants.EVENT_BROWSER_PAGE_FINISHED, data, raw)
 
-        assertNotNull("Should parse browser page finished event", event)
-        assertTrue("Should be BrowserPageFinished event", event is TONWalletKitEvent.BrowserPageFinished)
-        assertEquals("https://example.com/page", (event as TONWalletKitEvent.BrowserPageFinished).url)
+        // Browser events are internal
+        assertNull("Browser events should return null", event)
     }
 
     @Test
-    fun parseEvent_browserError_extractsMessage() {
+    fun parseEvent_browserError_returnsNull() {
         val data = JSONObject().apply {
             put("message", "Page load failed")
         }
@@ -158,24 +156,23 @@ class EventParserTest {
 
         val event = parser.parseEvent(EventTypeConstants.EVENT_BROWSER_ERROR, data, raw)
 
-        assertNotNull("Should parse browser error event", event)
-        assertTrue("Should be BrowserError event", event is TONWalletKitEvent.BrowserError)
-        assertEquals("Page load failed", (event as TONWalletKitEvent.BrowserError).message)
+        // Browser events are internal
+        assertNull("Browser events should return null", event)
     }
 
     @Test
-    fun parseEvent_browserError_missingMessage_returnsDefaultMessage() {
+    fun parseEvent_browserError_missingMessage_returnsNull() {
         val data = JSONObject()
         val raw = JSONObject()
 
         val event = parser.parseEvent(EventTypeConstants.EVENT_BROWSER_ERROR, data, raw)
 
-        assertNotNull("Should parse event", event)
-        assertEquals("Unknown error", (event as TONWalletKitEvent.BrowserError).message)
+        // Browser events are internal
+        assertNull("Browser events should return null", event)
     }
 
     @Test
-    fun parseEvent_browserBridgeRequest_extractsFields() {
+    fun parseEvent_browserBridgeRequest_returnsNull() {
         val data = JSONObject().apply {
             put("messageId", "msg-123")
             put("method", "sendTransaction")
@@ -185,12 +182,8 @@ class EventParserTest {
 
         val event = parser.parseEvent(EventTypeConstants.EVENT_BROWSER_BRIDGE_REQUEST, data, raw)
 
-        assertNotNull("Should parse browser bridge request event", event)
-        assertTrue("Should be BrowserBridgeRequest event", event is TONWalletKitEvent.BrowserBridgeRequest)
-        val bridgeEvent = event as TONWalletKitEvent.BrowserBridgeRequest
-        assertEquals("msg-123", bridgeEvent.messageId)
-        assertEquals("sendTransaction", bridgeEvent.method)
-        assertEquals("""{"to":"..."}""", bridgeEvent.request)
+        // Browser events are internal and not exposed to public API
+        assertNull("Browser events should return null", event)
     }
 
     // --- Unknown/Ignored Event Types ---
@@ -239,30 +232,21 @@ class EventParserTest {
 
     @Test
     fun parseEvent_connectRequest_parsesValidJson() {
-        // ConnectRequestEvent.Preview.permissions is a required List<ConnectPermission>
+        // ConnectRequestEvent requires id, requestedItems, and preview
         val data = JSONObject().apply {
+            put("id", "conn-req-123")
             put("sessionId", "connect-session-123")
+            put("requestedItems", org.json.JSONArray())
             put(
                 "preview",
                 JSONObject().apply {
+                    put("permissions", org.json.JSONArray())
                     put(
-                        "manifest",
+                        "dAppInfo",
                         JSONObject().apply {
                             put("name", "Test DApp")
                             put("url", "https://testdapp.com")
                             put("iconUrl", "https://testdapp.com/icon.png")
-                        },
-                    )
-                    put(
-                        "permissions",
-                        org.json.JSONArray().apply {
-                            put(
-                                JSONObject().apply {
-                                    put("name", "basic")
-                                    put("title", "Basic")
-                                    put("description", "Basic permission")
-                                },
-                            )
                         },
                     )
                 },
@@ -279,27 +263,19 @@ class EventParserTest {
     @Test
     fun parseEvent_connectRequest_normalizesManifestUrl() {
         val data = JSONObject().apply {
+            put("id", "conn-req-norm")
             put("sessionId", "session-123")
+            put("requestedItems", org.json.JSONArray())
             put(
                 "preview",
                 JSONObject().apply {
+                    put("permissions", org.json.JSONArray())
                     put(
-                        "manifest",
+                        "dAppInfo",
                         JSONObject().apply {
                             put("name", "Test DApp")
                             put("url", "testdapp.com") // Missing https://
                             put("iconUrl", "https://testdapp.com/icon.png")
-                        },
-                    )
-                    // permissions is required
-                    put(
-                        "permissions",
-                        org.json.JSONArray().apply {
-                            put(
-                                JSONObject().apply {
-                                    put("name", "wallet")
-                                },
-                            )
                         },
                     )
                 },
@@ -318,18 +294,20 @@ class EventParserTest {
     fun parseEvent_connectRequest_withEmptyPermissions_parsesSuccessfully() {
         // Empty permissions array should work since it's still a valid list
         val data = JSONObject().apply {
+            put("id", "conn-req-empty")
             put("sessionId", "session-123")
+            put("requestedItems", org.json.JSONArray())
             put(
                 "preview",
                 JSONObject().apply {
+                    put("permissions", org.json.JSONArray()) // Empty array
                     put(
-                        "manifest",
+                        "dAppInfo",
                         JSONObject().apply {
                             put("name", "Test DApp")
                             put("url", "https://example.com")
                         },
                     )
-                    put("permissions", org.json.JSONArray()) // Empty array
                 },
             )
         }
@@ -343,9 +321,17 @@ class EventParserTest {
 
     @Test
     fun parseEvent_connectRequest_withoutPreview_parsesSuccessfully() {
-        // preview is nullable, so this should work
+        // preview is required but can have minimal structure with empty permissions
         val data = JSONObject().apply {
+            put("id", "conn-req-no-preview")
             put("sessionId", "session-no-preview")
+            put("requestedItems", org.json.JSONArray())
+            put(
+                "preview",
+                JSONObject().apply {
+                    put("permissions", org.json.JSONArray())
+                },
+            )
         }
         val raw = JSONObject()
 
@@ -360,17 +346,24 @@ class EventParserTest {
     @Test
     fun parseEvent_transactionRequest_parsesValidJson() {
         val data = JSONObject().apply {
+            put("id", "tx-req-123")
             put("sessionId", "tx-session-123")
             put("walletAddress", "EQD...")
             put(
-                "messages",
-                org.json.JSONArray().apply {
+                "preview",
+                JSONObject().apply {
                     put(
+                        "data",
                         JSONObject().apply {
-                            put("address", "EQD...")
-                            put("amount", "1000000000")
+                            put("result", "success")
                         },
                     )
+                },
+            )
+            put(
+                "request",
+                JSONObject().apply {
+                    put("messages", org.json.JSONArray())
                 },
             )
         }
@@ -387,9 +380,43 @@ class EventParserTest {
     @Test
     fun parseEvent_signDataRequest_parsesValidJson() {
         val data = JSONObject().apply {
+            put("id", "sign-req-123")
             put("sessionId", "sign-session-123")
             put("walletAddress", "EQD...")
-            put("payload", "SGVsbG8gV29ybGQ=") // Base64 "Hello World"
+            put(
+                "payload",
+                JSONObject().apply {
+                    put(
+                        "data",
+                        JSONObject().apply {
+                            put("type", "text")
+                            put(
+                                "value",
+                                JSONObject().apply {
+                                    put("content", "Hello World")
+                                },
+                            )
+                        },
+                    )
+                },
+            )
+            put(
+                "preview",
+                JSONObject().apply {
+                    put(
+                        "data",
+                        JSONObject().apply {
+                            put("type", "text")
+                            put(
+                                "value",
+                                JSONObject().apply {
+                                    put("content", "Hello World")
+                                },
+                            )
+                        },
+                    )
+                },
+            )
         }
         val raw = JSONObject()
 
