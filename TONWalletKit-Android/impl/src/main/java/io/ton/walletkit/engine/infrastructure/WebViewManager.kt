@@ -62,7 +62,7 @@ internal class WebViewManager(
     private val storageManager: StorageManager,
     private val signerManager: io.ton.walletkit.engine.state.SignerManager,
     private val onMessage: (JSONObject) -> Unit,
-    private val onBridgeError: (WalletKitBridgeException) -> Unit,
+    private val onBridgeError: (WalletKitBridgeException, String?) -> Unit,
 ) {
     private val appContext = context.applicationContext
     private val assetLoader =
@@ -134,6 +134,7 @@ internal class WebViewManager(
             webView.settings.domStorageEnabled = true
             webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
             webView.settings.allowFileAccess = true
+            webView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             webView.addJavascriptInterface(JsBinding(), WebViewConstants.JS_INTERFACE_NAME)
 
             // Set WebChromeClient to suppress console logs in release builds
@@ -164,7 +165,7 @@ internal class WebViewManager(
                                     WebViewConstants.ERROR_BUNDLE_LOAD_FAILED + MSG_OPEN_PAREN + description + MSG_CLOSE_PAREN_PERIOD_SPACE + WebViewConstants.BUILD_INSTRUCTION,
                                 )
                             failBridgeFutures(exception)
-                            onBridgeError(exception)
+                            onBridgeError(exception, null)
                         }
                     }
 
@@ -217,6 +218,7 @@ internal class WebViewManager(
                 WalletKitBridgeException(
                     WebViewConstants.ERROR_BUNDLE_LOAD_FAILED + MSG_OPEN_PAREN + (e.message ?: ResponseConstants.VALUE_UNKNOWN) + MSG_CLOSE_PAREN_PERIOD_SPACE + WebViewConstants.BUILD_INSTRUCTION,
                 ),
+                null,
             )
         }
     }
@@ -242,7 +244,7 @@ internal class WebViewManager(
                     WebViewConstants.ERROR_BUNDLE_LOAD_FAILED + MSG_OPEN_PAREN + safeMessage + MSG_CLOSE_PAREN_PERIOD_SPACE + WebViewConstants.BUILD_INSTRUCTION,
                 )
             failBridgeFutures(exception)
-            onBridgeError(exception)
+            onBridgeError(exception, null)
         }
     }
 
@@ -264,10 +266,12 @@ internal class WebViewManager(
                 Logger.v(TAG, "📨 Raw JSON: $json")
 
                 val payload = JSONObject(json)
+                Logger.d(TAG, "✅ JSON parsed successfully")
                 onMessage(payload)
             } catch (err: JSONException) {
-                Logger.e(TAG, "❌ " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
-                onBridgeError(WalletKitBridgeException(LogConstants.ERROR_MALFORMED_PAYLOAD_PREFIX + err.message))
+                Logger.e(TAG, "❌ JSONException: " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
+                Logger.e(TAG, "❌ Malformed JSON string: $json")
+                onBridgeError(WalletKitBridgeException(LogConstants.ERROR_MALFORMED_PAYLOAD_PREFIX + err.message), json)
             }
         }
 
@@ -316,9 +320,9 @@ internal class WebViewManager(
                     val bytesArray = org.json.JSONArray(bytesJson)
                     val bytes = ByteArray(bytesArray.length()) { i -> bytesArray.getInt(i).toByte() }
 
-                    val signatureBytes = signer.sign(bytes)
-                    // Convert to hex string with 0x prefix as expected by JavaScript
-                    io.ton.walletkit.WalletKitUtils.byteArrayToHex(signatureBytes)
+                    val signatureHex = signer.sign(bytes)
+                    // Return hex string with 0x prefix as expected by JavaScript
+                    signatureHex.value
                 } catch (e: Exception) {
                     Logger.e(TAG, "Failed to sign with custom signer: $signerId", e)
                     throw e

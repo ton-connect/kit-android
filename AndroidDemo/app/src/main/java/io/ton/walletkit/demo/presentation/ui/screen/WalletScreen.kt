@@ -35,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,11 +59,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.api.generated.TONNFT
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.actions.WalletActions
@@ -95,12 +99,13 @@ import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransferJettonSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.WalletDetailsSheet
+import io.ton.walletkit.demo.presentation.util.TestTags
 import io.ton.walletkit.demo.presentation.viewmodel.NFTsListViewModel
 import io.ton.walletkit.extensions.cleanupTonConnect
-import io.ton.walletkit.model.TONNFTItem
-import io.ton.walletkit.model.TONNetwork
 
-private const val DEFAULT_DAPP_URL = "https://tonconnect-sdk-demo-dapp.vercel.app/iframe/iframe"
+// URL for the TonConnect E2E test runner dApp
+// This is the same dApp used by web demo-wallet E2E tests
+private const val DEFAULT_DAPP_URL = "https://allure-test-runner.vercel.app/e2e"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,7 +119,7 @@ fun WalletScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // State for NFT details bottom sheet
-    var selectedNFT by remember { mutableStateOf<TONNFTItem?>(null) }
+    var selectedNFT by remember { mutableStateOf<TONNFT?>(null) }
     val nftDetailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Keep browser WebView alive across sheet changes to prevent destruction during TonConnect requests
@@ -208,6 +213,7 @@ fun WalletScreen(
                     onClose = actions::onDismissSheet,
                     walletKit = walletKit,
                     webViewHolder = browserWebViewHolder,
+                    injectTonConnect = sheet.injectTonConnect,
                 )
 
                 is SheetState.JettonDetails -> {
@@ -263,6 +269,14 @@ fun WalletScreen(
                 actions = {
                     IconButton(onClick = { actions.onOpenBrowser(DEFAULT_DAPP_URL) }) {
                         Icon(Icons.Default.Language, contentDescription = "Open dApp Browser")
+                    }
+                    // Open browser WITHOUT TonConnect injection
+                    // This allows E2E tests to use the standard TonConnect modal with QR code
+                    IconButton(
+                        onClick = { actions.onOpenBrowser(DEFAULT_DAPP_URL, injectTonConnect = false) },
+                        modifier = Modifier.testTag(TestTags.BROWSER_NO_INJECT_BUTTON),
+                    ) {
+                        Icon(Icons.Outlined.Language, contentDescription = "Open dApp Browser (No Injection)")
                     }
                     IconButton(onClick = actions::onRefresh) {
                         Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.action_refresh))

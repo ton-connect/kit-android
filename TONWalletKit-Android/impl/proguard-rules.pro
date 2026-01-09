@@ -28,6 +28,33 @@
 -keep class io.ton.walletkit.bridge.** { *; }
 
 # ------------------------------------------------------------
+# Public API - Keep all public SDK classes
+# ------------------------------------------------------------
+
+# Core SDK entry points
+-keep class io.ton.walletkit.core.** { *; }
+
+# Public API interfaces and models
+-keep class io.ton.walletkit.ITONWalletKit { *; }
+-keep class io.ton.walletkit.ITONWallet { *; }
+-keep class io.ton.walletkit.WebViewTonConnectInjector { *; }
+
+# Configuration classes
+-keep class io.ton.walletkit.config.** { *; }
+
+# Event classes
+-keep class io.ton.walletkit.event.** { *; }
+
+# Model classes
+-keep class io.ton.walletkit.model.** { *; }
+
+# Listener interfaces
+-keep class io.ton.walletkit.listener.** { *; }
+
+# Internal factory (needed for reflection)
+-keep class io.ton.walletkit.internal.TONWalletKitFactory { *; }
+
+# ------------------------------------------------------------
 # ton-kotlin Library - Keep Only What We Use
 # ------------------------------------------------------------
 

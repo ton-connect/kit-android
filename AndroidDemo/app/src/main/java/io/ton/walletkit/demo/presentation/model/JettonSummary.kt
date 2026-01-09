@@ -21,14 +21,14 @@
  */
 package io.ton.walletkit.demo.presentation.model
 
-import io.ton.walletkit.model.TONJettonWallet
+import io.ton.walletkit.api.generated.TONJetton
 import java.math.BigDecimal
 import java.math.RoundingMode
 
 /**
  * UI-friendly jetton summary model for list display.
  *
- * Maps from [TONJettonWallet] SDK model to presentation layer.
+ * Maps from [TONJetton] SDK model to presentation layer.
  * Mirrors iOS WalletJettonsListItem structure for cross-platform consistency.
  */
 data class JettonSummary(
@@ -40,7 +40,7 @@ data class JettonSummary(
     val imageUrl: String?,
     val imageData: String?,
     val estimatedValue: String,
-    val jettonWallet: TONJettonWallet,
+    val jetton: TONJetton,
 ) {
     /**
      * Get the image source, preferring URL over base64 data.
@@ -50,22 +50,22 @@ data class JettonSummary(
 
     companion object {
         /**
-         * Create JettonSummary from SDK's TONJettonWallet.
+         * Create JettonSummary from SDK's TONJetton.
          *
-         * @param jettonWallet Jetton wallet from SDK
+         * @param jetton Jetton from SDK
          * @return UI-friendly jetton summary
          */
-        fun from(jettonWallet: TONJettonWallet): JettonSummary {
-            val jetton = jettonWallet.jetton
+        fun from(jetton: TONJetton): JettonSummary {
+            val info = jetton.info
 
-            val name = jetton?.name ?: "Unknown Jetton"
-            val symbol = jetton?.symbol ?: "UNKNOWN"
-            val address = jettonWallet.address
-            val balance = jettonWallet.balance ?: "0"
+            val name = info.name ?: "Unknown Jetton"
+            val symbol = info.symbol ?: "UNKNOWN"
+            val address = jetton.walletAddress.value
+            val balance = jetton.balance
 
             // Format balance with decimals
             val formattedBalance = try {
-                val decimals = jetton?.decimals ?: 9
+                val decimals = jetton.decimalsNumber ?: 9
                 val balanceBigInt = BigDecimal(balance)
                 val divisor = BigDecimal.TEN.pow(decimals)
                 val formattedValue = balanceBigInt.divide(divisor, decimals, RoundingMode.DOWN)
@@ -80,11 +80,11 @@ data class JettonSummary(
                 "$balance $symbol (raw)"
             }
 
-            val imageUrl = jetton?.image
-            val imageData = jetton?.imageData
+            val imageUrl = info.image?.mediumUrl ?: info.image?.url
+            val imageData = info.image?.data
 
             // Placeholder for estimated value - would need price data
-            val estimatedValue = "≈ $0.00"
+            val estimatedValue = "≈ \$0.00"
 
             return JettonSummary(
                 name = name,
@@ -95,7 +95,7 @@ data class JettonSummary(
                 imageUrl = imageUrl,
                 imageData = imageData,
                 estimatedValue = estimatedValue,
-                jettonWallet = jettonWallet,
+                jetton = jetton,
             )
         }
     }

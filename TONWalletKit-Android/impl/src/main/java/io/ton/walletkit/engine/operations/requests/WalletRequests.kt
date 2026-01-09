@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.engine.operations.requests
 
+import io.ton.walletkit.api.generated.TONNetwork
 import kotlinx.serialization.Serializable
 
 /**
@@ -41,7 +42,7 @@ internal data class CreateSignerRequest(
 internal data class CreateAdapterRequest(
     val signerId: String,
     val walletVersion: String,
-    val network: String? = null,
+    val network: TONNetwork? = null,
     val workchain: Int = 0,
     val walletId: Long,
     // Public key as hex string (for custom signers)
@@ -57,4 +58,9 @@ internal data class AddWalletRequest(
 @Serializable
 internal data class AddressRequest(
     val address: String,
+)
+
+@Serializable
+internal data class WalletIdRequest(
+    val walletId: String,
 )

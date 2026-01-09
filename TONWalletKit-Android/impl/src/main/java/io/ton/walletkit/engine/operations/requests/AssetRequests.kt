@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.engine.operations.requests
 
+import io.ton.walletkit.api.generated.TONPagination
 import kotlinx.serialization.Serializable
 
 /**
@@ -32,9 +33,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 internal data class GetNftsRequest(
-    val address: String,
-    val limit: Int,
-    val offset: Int,
+    val walletId: String,
+    val pagination: TONPagination,
 )
 
 @Serializable
@@ -44,34 +44,31 @@ internal data class GetNftRequest(
 
 @Serializable
 internal data class CreateTransferNftRequest(
-    val address: String,
+    val walletId: String,
     val nftAddress: String,
-    val transferAmount: String,
+    val transferAmount: String? = null,
     val toAddress: String,
     val comment: String? = null,
 )
 
 @Serializable
 internal data class CreateTransferNftRawRequest(
-    val address: String,
+    val walletId: String,
     val nftAddress: String,
     val transferAmount: String,
-    val transferMessage: TONNFTTransferMessageDTO,
+    /** Serialized JSON of TONNFTRawTransferRequestMessage */
+    val transferMessage: String,
 )
-
-// Re-use public model
-typealias TONNFTTransferMessageDTO = io.ton.walletkit.model.TONNFTTransferMessageDTO
 
 @Serializable
 internal data class GetJettonsRequest(
-    val address: String,
-    val limit: Int,
-    val offset: Int,
+    val walletId: String,
+    val pagination: TONPagination,
 )
 
 @Serializable
 internal data class CreateTransferJettonRequest(
-    val address: String,
+    val walletId: String,
     val toAddress: String,
     val jettonAddress: String,
     val amount: String,
@@ -80,12 +77,12 @@ internal data class CreateTransferJettonRequest(
 
 @Serializable
 internal data class GetJettonBalanceRequest(
-    val address: String,
+    val walletId: String,
     val jettonAddress: String,
 )
 
 @Serializable
 internal data class GetJettonWalletAddressRequest(
-    val address: String,
+    val walletId: String,
     val jettonAddress: String,
 )

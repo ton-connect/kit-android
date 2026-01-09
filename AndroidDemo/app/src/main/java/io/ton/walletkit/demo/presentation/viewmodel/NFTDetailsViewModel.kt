@@ -26,8 +26,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
+import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.demo.presentation.model.NFTDetails
-import io.ton.walletkit.model.TONNFTTransferParamsHuman
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -70,9 +71,9 @@ class NFTDetailsViewModel(
     /**
      * Transfers the NFT to the specified address
      *
-     * Uses the standard 2-step process (matching JS API):
-     * 1. Create transaction: wallet.createTransferNftTransaction() returns transaction JSON
-     * 2. Send to blockchain: wallet.sendTransaction(transactionJSON) returns hash
+     * Uses the standard 2-step process:
+     * 1. Create transaction: wallet.transferNFTTransaction() returns TONTransactionRequest
+     * 2. Send to blockchain: wallet.send(transactionRequest) returns hash
      */
     fun transfer(toAddress: String) {
         if (!validateAddress(toAddress)) {
@@ -92,22 +93,23 @@ class NFTDetailsViewModel(
 
                 Log.d(TAG, "Creating NFT transfer transaction for ${nftDetails.value.contractAddress} to $toAddress")
 
-                val params = TONNFTTransferParamsHuman(
-                    nftAddress = nftDetails.value.contractAddress,
+                val transferRequest = TONNFTTransferRequest(
+                    nftAddress = TONUserFriendlyAddress(nftDetails.value.contractAddress),
+                    recipientAddress = TONUserFriendlyAddress(toAddress),
                     transferAmount = "50000000", // 0.05 TON in nanotons for gas
-                    toAddress = toAddress,
+                    comment = null,
                 )
 
-                // Step 1: Create the NFT transfer transaction
-                val transactionJson = wallet.createTransferNFTTransaction(params)
-                Log.d(TAG, "NFT transfer transaction created: $transactionJson")
+                // Step 1: Create the NFT transfer transaction request
+                val transactionRequest = wallet.transferNFTTransaction(transferRequest)
+                Log.d(TAG, "NFT transfer transaction request created")
 
                 // Step 2: Send the transaction to the blockchain
                 Log.d(TAG, "Sending NFT transfer transaction to blockchain...")
-                val txHash = wallet.sendTransaction(transactionJson)
-                Log.d(TAG, "NFT transfer successful! Transaction hash: $txHash")
+                wallet.send(transactionRequest)
+                Log.d(TAG, "NFT transfer successful!")
 
-                _transferResult.value = TransferResult.Success(txHash)
+                _transferResult.value = TransferResult.Success("Transaction submitted")
             } catch (e: Exception) {
                 Log.e(TAG, "NFT transfer failed", e)
                 _transferResult.value = TransferResult.Error(

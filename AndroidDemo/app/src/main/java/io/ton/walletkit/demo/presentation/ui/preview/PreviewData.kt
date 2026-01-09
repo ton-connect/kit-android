@@ -21,6 +21,12 @@
  */
 package io.ton.walletkit.demo.presentation.ui.preview
 
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.generated.TONNFT
+import io.ton.walletkit.api.generated.TONNFTCollection
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONTokenImage
+import io.ton.walletkit.api.generated.TONTokenInfo
 import io.ton.walletkit.demo.presentation.model.ConnectPermissionUi
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.SessionSummary
@@ -31,15 +37,12 @@ import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
-import io.ton.walletkit.model.TONNFTCollection
-import io.ton.walletkit.model.TONNFTItem
-import io.ton.walletkit.model.TONNetwork
-import io.ton.walletkit.model.TONTokenInfo
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import org.json.JSONObject
 
 object PreviewData {
     val wallet: WalletSummary = WalletSummary(
-        address = "0:previewaddress",
+        address = "EQpreviewaddressExampleToShowWalletKit123",
         name = "Preview Wallet",
         network = TONNetwork.MAINNET,
         version = "v5r1",
@@ -81,7 +84,7 @@ object PreviewData {
         validUntil = null,
         messages = listOf(
             TransactionMessageUi(
-                to = "0:recipient",
+                to = "EQrecipientAddressForPreviewTest12345678",
                 amount = "1000000000",
                 comment = null,
                 payload = "payload",
@@ -109,7 +112,7 @@ object PreviewData {
         amount = "1.5 TON",
         fee = "0.005 TON",
         fromAddress = wallet.address,
-        toAddress = "0:recipient_address_preview",
+        toAddress = "EQrecipientAddressForPreviewTest12345678",
         comment = "Payment for services",
         status = "Confirmed",
         blockSeqno = 12345678,
@@ -131,32 +134,37 @@ object PreviewData {
     )
 
     val nftCollection: TONNFTCollection = TONNFTCollection(
-        address = "0:collection_address_preview",
+        address = TONUserFriendlyAddress("EQcollectionAddressPreview123456789012"),
+        name = "Preview Collection",
         nextItemIndex = "100",
-        ownerAddress = "0:owner_address",
+        ownerAddress = TONUserFriendlyAddress(wallet.address),
     )
 
-    val nftItem: TONNFTItem = TONNFTItem(
-        address = "0:nft_item_address_preview",
+    val nftItem: TONNFT = TONNFT(
+        address = TONUserFriendlyAddress("EQnftItemAddressPreview1234567890123456"),
         index = "1",
-        ownerAddress = wallet.address,
+        ownerAddress = TONUserFriendlyAddress(wallet.address),
         collection = nftCollection,
-        metadata = TONTokenInfo(
+        info = TONTokenInfo(
             name = "Cool NFT #1",
             description = "A preview NFT item",
-            image = "https://picsum.photos/seed/nft1/400/400",
+            image = TONTokenImage(
+                url = "https://picsum.photos/seed/nft1/400/400",
+            ),
         ),
     )
 
-    val nftItem2: TONNFTItem = TONNFTItem(
-        address = "0:nft_item_address_preview_2",
+    val nftItem2: TONNFT = TONNFT(
+        address = TONUserFriendlyAddress("EQnftItemAddressPreview2345678901234567"),
         index = "2",
-        ownerAddress = wallet.address,
+        ownerAddress = TONUserFriendlyAddress(wallet.address),
         collection = nftCollection,
-        metadata = TONTokenInfo(
+        info = TONTokenInfo(
             name = "Cool NFT #2",
             description = "Another preview NFT item",
-            image = "https://picsum.photos/seed/nft2/400/400",
+            image = TONTokenImage(
+                url = "https://picsum.photos/seed/nft2/400/400",
+            ),
         ),
     )
 

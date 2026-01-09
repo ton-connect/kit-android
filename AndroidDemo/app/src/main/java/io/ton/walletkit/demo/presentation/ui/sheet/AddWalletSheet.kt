@@ -60,13 +60,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
-import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.demo.presentation.util.TestTags
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -79,7 +83,8 @@ fun AddWalletSheet(
     var selectedTab by remember { mutableStateOf(AddWalletTab.Import) }
     val defaultName = stringResource(R.string.wallet_default_name, walletCount + 1)
     var walletName by rememberSaveable(walletCount) { mutableStateOf(defaultName) }
-    var network by rememberSaveable { mutableStateOf(TONNetwork.MAINNET) }
+    // Use remember instead of rememberSaveable - TONNetwork is a data class that can't be saved in Bundle
+    var network by remember { mutableStateOf(TONNetwork.MAINNET) }
     var walletVersion by rememberSaveable { mutableStateOf(DEFAULT_WALLET_VERSION) }
     var interfaceType by rememberSaveable { mutableStateOf(WalletInterfaceType.MNEMONIC) }
     val mnemonicWords = remember { mutableStateListOf(*Array(24) { "" }) }
@@ -126,6 +131,12 @@ fun AddWalletSheet(
                     onClick = { selectedTab = tab },
                     shape = SegmentedButtonDefaults.itemShape(index, AddWalletTab.entries.size),
                     label = { Text(stringResource(tab.labelRes)) },
+                    modifier = Modifier.testTag(
+                        when (tab) {
+                            AddWalletTab.Import -> TestTags.ADD_WALLET_TAB_IMPORT
+                            AddWalletTab.Generate -> TestTags.ADD_WALLET_TAB_GENERATE
+                        },
+                    ),
                 )
             }
         }
@@ -140,15 +151,16 @@ fun AddWalletSheet(
 
         Text(stringResource(R.string.label_network), style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TONNetwork.entries.forEach { option ->
+            listOf(TONNetwork.MAINNET, TONNetwork.TESTNET).forEach { option ->
                 FilterChip(
                     selected = network == option,
                     onClick = { network = option },
                     label = {
                         Text(
-                            when (option) {
-                                TONNetwork.MAINNET -> stringResource(R.string.network_mainnet)
-                                TONNetwork.TESTNET -> stringResource(R.string.network_testnet)
+                            when (option.chainId) {
+                                "-239" -> stringResource(R.string.network_mainnet)
+                                "-3" -> stringResource(R.string.network_testnet)
+                                else -> "Unknown"
                             },
                         )
                     },
@@ -269,7 +281,7 @@ fun AddWalletSheet(
                             },
                             label = { Text(stringResource(R.string.add_wallet_paste_label)) },
                             placeholder = { Text(stringResource(R.string.add_wallet_recovery_placeholder)) },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().testTag(TestTags.MNEMONIC_FIELD),
                             minLines = 2,
                             maxLines = 3,
                             trailingIcon = {
@@ -279,6 +291,7 @@ fun AddWalletSheet(
                                             parseSeedPhrase(clipboardText)
                                         }
                                     },
+                                    modifier = Modifier.testTag(TestTags.PASTE_ALL_BUTTON),
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.ContentPaste,
@@ -317,7 +330,7 @@ fun AddWalletSheet(
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(
                             onClick = { onImportWallet(walletName, network, mnemonicWords.toList(), "", walletVersion, interfaceType) },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().testTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON),
                         ) { Text(stringResource(R.string.action_import_wallet)) }
                     }
                 }
@@ -356,7 +369,7 @@ fun AddWalletSheet(
 
                     Button(
                         onClick = { onGenerateWallet(walletName, network, walletVersion, interfaceType) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag(TestTags.GENERATE_WALLET_PROCESS_BUTTON),
                         enabled = interfaceType == WalletInterfaceType.MNEMONIC, // Only enable for Mnemonic
                     ) { Text(stringResource(R.string.action_generate_wallet)) }
                 }

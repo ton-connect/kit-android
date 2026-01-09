@@ -22,11 +22,12 @@
 package io.ton.walletkit
 
 import android.content.Context
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.TONNetwork
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
@@ -236,6 +237,16 @@ interface ITONWalletKit {
      * @param transactionContent Transaction from createTransfer* methods
      */
     suspend fun handleNewTransaction(wallet: ITONWallet, transactionContent: String)
+
+    /**
+     * Handle a TON Connect URL.
+     *
+     * Use this to process TON Connect deep links or QR code scans.
+     * The URL will be parsed and appropriate events will be triggered.
+     *
+     * @param url TON Connect URL (tc:// or https://)
+     */
+    suspend fun connect(url: String)
 
     /**
      * Disconnect TON Connect session.
