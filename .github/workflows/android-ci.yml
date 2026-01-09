@@ -4,20 +4,39 @@ on:
   pull_request:
     branches:
       - main
+      - feat/unit-tests  # Temporary - remove after testing
     paths:
       - 'TONWalletKit-Android/**'
       - 'AndroidDemo/**'
       - '.github/workflows/android-ci.yml'
+  workflow_dispatch:
+    inputs:
+      parallel_emulators:
+        description: 'Number of parallel emulators for E2E tests (1-5)'
+        required: false
+        default: '5'
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
+
+env:
+  # All available test suites
+  ALL_TEST_SUITES: |
+    ConnectE2ETest
+    TransactionAddressAmountE2ETest
+    TransactionFromMessagesNetworkE2ETest
+    TransactionPayloadStateInitValidUntilE2ETest
+    MerkleJettonSignDataE2ETest
 
 jobs:
   # Code formatting check with Spotless
   spotless:
     name: Spotless Check
-    # runs-on: ubuntu-latest
-    runs-on: [self-hosted, k8s, linux]
-    container:
-      image: cimg/android:2025.10-node
-      options: --user root
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,8 +47,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      # - name: Setup Android SDK
-      #   uses: android-actions/setup-android@v3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Grant execute permission for gradlew
         working-directory: TONWalletKit-Android
@@ -42,11 +62,7 @@ jobs:
   # Build and test SDK
   test-sdk:
     name: Test & Build SDK
-    # runs-on: ubuntu-latest
-    runs-on: [self-hosted, k8s, linux]
-    container:
-      image: cimg/android:2025.10-node
-      options: --user root
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -57,8 +73,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      # - name: Setup Android SDK
-      #   uses: android-actions/setup-android@v3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Grant execute permission for gradlew
         working-directory: TONWalletKit-Android
@@ -66,35 +83,32 @@ jobs:
 
       - name: Run unit tests
         working-directory: TONWalletKit-Android
-        run: ./gradlew :bridge:testWebviewReleaseUnitTest
+        run: ./gradlew :impl:testWebviewReleaseUnitTest
 
-      - name: Build WebView variant
+      - name: Build WebView variant (Release)
         working-directory: TONWalletKit-Android
-        run: ./gradlew buildWebview
+        run: ./gradlew buildWebviewRelease
 
       - name: Upload WebView AAR
         uses: actions/upload-artifact@v4
         with:
-          name: bridge-webview-release
-          path: TONWalletKit-Android/bridge/build/outputs/aar/bridge-webview-release.aar
+          name: sdk-webview-aar
+          path: TONWalletKit-Android/impl/build/outputs/aar/impl-webview-release.aar
           retention-days: 7
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
-          path: TONWalletKit-Android/bridge/build/test-results/
+          name: unit-test-results
+          path: TONWalletKit-Android/impl/build/test-results/
           retention-days: 7
 
-  # Build Demo App
+  # Build Demo App (reused by E2E tests)
   build-demo:
     name: Build Demo App
-    # runs-on: ubuntu-latest
-    runs-on: [self-hosted, k8s, linux]
-    container:
-      image: cimg/android:2025.10-node
-      options: --user root
+    runs-on: ubuntu-latest
+    needs: test-sdk
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -105,23 +119,20 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      # - name: Setup Android SDK
-      #   uses: android-actions/setup-android@v3
 
-      - name: Grant execute permission for gradlew (SDK)
-        working-directory: TONWalletKit-Android
-        run: chmod +x gradlew
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Build SDK for Demo
-        working-directory: TONWalletKit-Android
-        run: ./gradlew buildWebview
+      - name: Download SDK AAR
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-webview-aar
+          path: AndroidDemo/app/libs/
 
-      - name: Copy AAR to Demo app libs
-        run: |
-          mkdir -p AndroidDemo/app/libs
-          cp TONWalletKit-Android/bridge/build/outputs/aar/bridge-webview-release.aar AndroidDemo/app/libs/bridge-release.aar
+      - name: Rename AAR
+        run: mv AndroidDemo/app/libs/impl-webview-release.aar AndroidDemo/app/libs/tonwalletkit-release.aar
 
-      - name: Grant execute permission for gradlew (Demo)
+      - name: Grant execute permission for gradlew
         working-directory: AndroidDemo
         run: chmod +x gradlew
 
@@ -129,9 +140,208 @@ jobs:
         working-directory: AndroidDemo
         run: ./gradlew assembleDebug
 
-      - name: Upload Demo APK
+      - name: Build Android Test APK
+        working-directory: AndroidDemo
+        run: ./gradlew assembleDebugAndroidTest
+
+      - name: Prepare APKs for upload
+        run: |
+          mkdir -p demo-apks
+          cp AndroidDemo/app/build/outputs/apk/debug/app-debug.apk demo-apks/
+          cp AndroidDemo/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk demo-apks/
+
+      - name: Upload Demo APKs
         uses: actions/upload-artifact@v4
         with:
-          name: demo-app-debug
-          path: AndroidDemo/app/build/outputs/apk/debug/app-debug.apk
+          name: demo-apks
+          path: demo-apks/
+          retention-days: 7
+
+  # Generate test matrix based on parallel emulators setting
+  generate-matrix:
+    name: Generate Test Matrix
+    runs-on: ubuntu-latest
+    needs: build-demo
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Generate matrix
+        id: set-matrix
+        run: |
+          # Get parallel count (default 5 for PRs, configurable for workflow_dispatch)
+          PARALLEL=${{ github.event.inputs.parallel_emulators || '5' }}
+          
+          # All test suites
+          SUITES=(
+            "ConnectE2ETest"
+            "TransactionAddressAmountE2ETest"
+            "TransactionFromMessagesNetworkE2ETest"
+            "TransactionPayloadStateInitValidUntilE2ETest"
+            "MerkleJettonSignDataE2ETest"
+          )
+          
+          TOTAL_SUITES=${#SUITES[@]}
+          
+          # Build matrix entries
+          MATRIX_ENTRIES=""
+          for ((i=0; i<PARALLEL; i++)); do
+            # Calculate which suites this emulator will run
+            RUNNER_SUITES=""
+            for ((j=i; j<TOTAL_SUITES; j+=PARALLEL)); do
+              if [ -n "$RUNNER_SUITES" ]; then
+                RUNNER_SUITES="$RUNNER_SUITES,${SUITES[$j]}"
+              else
+                RUNNER_SUITES="${SUITES[$j]}"
+              fi
+            done
+            
+            if [ -n "$RUNNER_SUITES" ]; then
+              # Use first suite name for display
+              FIRST_SUITE=$(echo "$RUNNER_SUITES" | cut -d',' -f1)
+              if [ -n "$MATRIX_ENTRIES" ]; then
+                MATRIX_ENTRIES="$MATRIX_ENTRIES,"
+              fi
+              MATRIX_ENTRIES="$MATRIX_ENTRIES{\"name\":\"$FIRST_SUITE\",\"suites\":\"$RUNNER_SUITES\"}"
+            fi
+          done
+          
+          echo "matrix={\"include\":[$MATRIX_ENTRIES]}" >> $GITHUB_OUTPUT
+          echo "Generated matrix: {\"include\":[$MATRIX_ENTRIES]}"
+
+  # Run E2E tests in parallel on emulators
+  e2e-tests:
+    name: E2E - ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    needs: generate-matrix
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: demo-apks
+          path: apks/
+
+      - name: List downloaded APKs
+        run: ls -la apks/
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api-31-x86_64
+
+      - name: Create AVD and generate snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 31
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run E2E tests - ${{ matrix.name }}
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 31
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb install -r apks/app-debug.apk
+            adb install -r apks/app-debug-androidTest.apk
+            
+            # Run each test suite assigned to this emulator
+            IFS=',' read -ra SUITES <<< "${{ matrix.suites }}"
+            FAILED=0
+            
+            for SUITE in "${SUITES[@]}"; do
+              echo "=========================================="
+              echo "Running test suite: $SUITE"
+              echo "=========================================="
+              
+              OUTPUT=$(adb shell am instrument -w -e class io.ton.walletkit.demo.e2e.tests.$SUITE -e allureToken "${{ secrets.ALLURE_API_TOKEN }}" -e testMnemonic "${{ secrets.WALLET_MNEMONIC }}" -e disableNetworkSend "${{ secrets.DISABLE_NETWORK_SEND }}" io.ton.walletkit.demo.test/androidx.test.runner.AndroidJUnitRunner 2>&1)
+              echo "$OUTPUT"
+              
+              if echo "$OUTPUT" | grep -q "FAILURES"; then
+                echo "::error::E2E tests failed for $SUITE"
+                FAILED=1
+              fi
+              
+              if echo "$OUTPUT" | grep -q "Error in"; then
+                echo "::error::E2E tests had errors for $SUITE"
+                FAILED=1
+              fi
+            done
+            
+            if [ $FAILED -eq 1 ]; then
+              exit 1
+            fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.name }}
+          path: |
+            AndroidDemo/app/build/outputs/androidTest-results/
+            AndroidDemo/app/build/reports/androidTests/
+          retention-days: 7
+
+  # Summary job that waits for all E2E tests
+  e2e-summary:
+    name: E2E Summary
+    needs: e2e-tests
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
+            echo "✅ All E2E tests passed!"
+            exit 0
+          else
+            echo "❌ Some E2E tests failed"
+            exit 1
+          fi
+
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: e2e-results-*
+          path: all-results/
+          merge-multiple: true
+
+      - name: Upload combined results
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-all-results
+          path: all-results/
           retention-days: 7
