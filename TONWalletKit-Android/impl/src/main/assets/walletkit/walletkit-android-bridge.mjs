@@ -32882,10 +32882,11 @@ function toTransactionDescription(desc) {
       totalForwardingFees: desc.action?.total_fwd_fees,
       totalActionFees: desc.action?.total_action_fees,
       resultCode: desc.action?.result_code,
-      totalActionsNumber: desc.action?.tot_actions,
-      specActionsNumber: desc.action?.spec_actions,
-      skippedActionsNumber: desc.action?.skipped_actions,
-      messagesCreatedNumber: desc.action?.msgs_created,
+      // Provide defaults when toncenter omits these counters
+      totalActionsNumber: desc.action?.tot_actions ?? 0,
+      specActionsNumber: desc.action?.spec_actions ?? 0,
+      skippedActionsNumber: desc.action?.skipped_actions ?? 0,
+      messagesCreatedNumber: desc.action?.msgs_created ?? 0,
       actionListHash: desc.action?.action_list_hash ? Base64ToHex(desc.action.action_list_hash) : void 0,
       totalMessagesSize: {
         cells: desc.action?.tot_msg_size.cells,
@@ -51453,7 +51454,9 @@ class EventRouter {
         if (handler.canHandle(event)) {
           const result = await handler.handle(event);
           if ("error" in result) {
-            this.notifyErrorCallback({ id: result.id, data: { ...event }, error: result.error });
+            const methodName = this.getMethodFromEvent(event);
+            log$d.debug("Handler returned error, emitting RequestError", { methodName, error: result.error, eventId: result.id });
+            this.notifyErrorCallback({ id: result.id, data: { ...event, method: methodName }, error: result.error });
             try {
               await this.bridgeManager.sendResponse(event, result);
             } catch (error2) {
@@ -51469,6 +51472,29 @@ class EventRouter {
       log$d.error("Error routing event", { error: error2 });
       throw error2;
     }
+  }
+  /**
+   * Determine method name from event type
+   */
+  getMethodFromEvent(event) {
+    if ("method" in event && typeof event.method === "string") {
+      return event.method;
+    }
+    if ("params" in event && event.params) {
+      if ("messages" in event.params) {
+        return "sendTransaction";
+      }
+      if ("payload" in event.params) {
+        return "signData";
+      }
+    }
+    if ("dAppUrl" in event) {
+      return "connect";
+    }
+    if ("sessionId" in event && !("dAppUrl" in event)) {
+      return "disconnect";
+    }
+    return "unknown";
   }
   /**
    * Register event callbacks
@@ -51555,7 +51581,12 @@ class EventRouter {
    * Notify error callbacks
    */
   async notifyErrorCallback(event) {
-    return await this.errorCallback?.(event);
+    if (this.errorCallback) {
+      log$d.info("Calling error callback with RequestErrorEvent", { eventId: event.id, errorCode: event.error.code, errorMessage: event.error.message });
+      return await this.errorCallback(event);
+    } else {
+      log$d.warn("No error callback registered! RequestErrorEvent will not be forwarded to native.");
+    }
   }
   /**
    * Get enabled event types based on registered callbacks
@@ -51760,9 +51791,11 @@ class RequestProcessor {
           const error2 = new WalletKitError(ERROR_CODES.WALLET_NOT_FOUND, "Wallet not found for connect request", void 0, { walletId, eventId: event.id });
           throw error2;
         }
-        const url = new URL(event.preview.dAppInfo?.url || "");
+        const dAppInfo = event.dAppInfo || event.preview.dAppInfo;
+        const dAppUrl = dAppInfo?.url || "";
+        const url = new URL(dAppUrl);
         const domain = url.host;
-        const newSession = await this.sessionManager.createSession(event.from || (await distExports.getSecureRandomBytes(32)).toString("hex"), event.preview.dAppInfo?.name || "", domain, event.preview.dAppInfo?.iconUrl || "", event.preview.dAppInfo?.description || "", wallet, {
+        const newSession = await this.sessionManager.createSession(event.from || (await distExports.getSecureRandomBytes(32)).toString("hex"), dAppInfo?.name || "", domain, dAppInfo?.iconUrl || "", dAppInfo?.description || "", wallet, {
           isJsBridge: event.isJsBridge
         });
         await this.bridgeManager.createSession(newSession.sessionId);
@@ -59686,19 +59719,20 @@ function createAdapter(args) {
     return callBridge("createAdapter", () => __async$5(null, null, function* () {
       var _a2;
       const signer = yield getSigner(args);
-      const network = (_a2 = args.network) != null ? _a2 : { chainId: "-239" };
+      const networkStr = (_a2 = args.network) != null ? _a2 : "mainnet";
+      const networkObject = { chainId: networkStr === "mainnet" ? "-239" : "-3" };
       let adapter;
       if (args.walletVersion === "v5r1") {
         adapter = yield WalletV5R1Adapter$1.create(signer, {
-          client: walletKit.getApiClient(network),
-          network,
+          client: walletKit.getApiClient(networkObject),
+          network: networkObject,
           workchain: args.workchain,
           walletId: args.walletId
         });
       } else if (args.walletVersion === "v4r2") {
         adapter = yield WalletV4R2Adapter$1.create(signer, {
-          client: walletKit.getApiClient(network),
-          network,
+          client: walletKit.getApiClient(networkObject),
+          network: networkObject,
           workchain: args.workchain,
           walletId: args.walletId
         });
@@ -60091,7 +60125,10 @@ function getNfts(args) {
   return __async$1(this, null, function* () {
     return callBridge("getNfts", () => __async$1(null, null, function* () {
       return yield callOnWalletBridge(args.walletId, "getNfts", {
-        pagination: args.pagination,
+        pagination: {
+          limit: args.limit,
+          offset: args.offset
+        },
         collectionAddress: args.collectionAddress,
         indirectOwnership: args.indirectOwnership
       });
@@ -60152,7 +60189,10 @@ function getJettons(args) {
   return __async(this, null, function* () {
     return callBridge("getJettons", () => __async(null, null, function* () {
       return yield callOnWalletBridge(args.walletId, "getJettons", {
-        pagination: args.pagination
+        pagination: {
+          limit: args.limit,
+          offset: args.offset
+        }
       });
     }));
   });
