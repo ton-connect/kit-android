@@ -26,22 +26,30 @@ import android.util.Base64
 import android.util.Log
 import androidx.core.content.edit
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONDisconnectionEvent
+import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
+import io.ton.walletkit.api.generated.TONJettonsTransferRequest
+import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
+import io.ton.walletkit.api.generated.TONNFTTransferRequest
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONTransferRequest
+import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
+import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
+import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
-import io.ton.walletkit.event.ConnectRequestEvent
-import io.ton.walletkit.event.DisconnectEvent
-import io.ton.walletkit.event.SignDataRequestEvent
+import io.ton.walletkit.engine.model.TONTransactionWithPreview
+import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.engine.model.WalletSession
 import io.ton.walletkit.event.TONWalletKitEvent
-import io.ton.walletkit.event.TransactionRequestEvent
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.listener.TONBridgeEventsHandler
-import io.ton.walletkit.model.DAppInfo
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.TONNetwork
-import io.ton.walletkit.model.WalletAccount
-import io.ton.walletkit.model.WalletSession
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.presentation.impl.quickjs.QuickJs
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
@@ -331,7 +339,7 @@ internal class QuickJsWalletKitEngine(
 
     override suspend fun createV5R1Adapter(
         signerId: String,
-        network: String?,
+        network: TONNetwork?,
         workchain: Int,
         walletId: Long,
         publicKey: String?,
@@ -345,7 +353,7 @@ internal class QuickJsWalletKitEngine(
 
     override suspend fun createV4R2Adapter(
         signerId: String,
-        network: String?,
+        network: TONNetwork?,
         workchain: Int,
         walletId: Long,
         publicKey: String?,
@@ -447,44 +455,6 @@ internal class QuickJsWalletKitEngine(
         call("handleTonConnectUrl", params)
     }
 
-    override suspend fun createTransferTonTransaction(
-        walletAddress: String,
-        params: io.ton.walletkit.model.TONTransferParams,
-    ): io.ton.walletkit.model.TONTransactionWithPreview {
-        ensureWalletKitInitialized()
-        val paramsJson =
-            JSONObject().apply {
-                put("walletAddress", walletAddress)
-                put("toAddress", params.toAddress)
-                put("amount", params.amount)
-                if (!params.comment.isNullOrBlank()) {
-                    put("comment", params.comment)
-                }
-                if (!params.body.isNullOrBlank()) {
-                    put("body", params.body)
-                }
-                if (!params.stateInit.isNullOrBlank()) {
-                    put("stateInit", params.stateInit)
-                }
-            }
-        val result = call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_TON_TRANSACTION, paramsJson)
-
-        // JS returns { transaction, preview } or { transaction }
-        return if (result.has("transaction")) {
-            val transactionContent = result.get("transaction").toString()
-            val preview = if (result.has("preview") && !result.isNull("preview")) {
-                val previewJson = result.getJSONObject("preview")
-                json.decodeFromString<io.ton.walletkit.model.TONTransactionPreview>(previewJson.toString())
-            } else {
-                null
-            }
-            io.ton.walletkit.model.TONTransactionWithPreview(transactionContent, preview)
-        } else {
-            // Fallback for legacy response format
-            io.ton.walletkit.model.TONTransactionWithPreview(result.toString(), null)
-        }
-    }
-
     override suspend fun handleNewTransaction(
         walletAddress: String,
         transactionContent: String,
@@ -513,63 +483,84 @@ internal class QuickJsWalletKitEngine(
         return result.getString("signedBoc")
     }
 
-    override suspend fun approveConnect(event: io.ton.walletkit.event.ConnectRequestEvent) {
+    override suspend fun approveConnect(event: TONConnectionRequestEvent) {
         ensureWalletKitInitialized()
+        val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+        val walletId = event.walletId ?: throw WalletKitBridgeException("Wallet ID is required")
         val params =
             JSONObject().apply {
                 put("requestId", event.id)
-                put("walletAddress", event.walletAddress)
+                put("walletAddress", walletAddress.value)
+                put("walletId", walletId)
             }
         call("approveConnectRequest", params)
     }
 
     override suspend fun rejectConnect(
-        event: io.ton.walletkit.event.ConnectRequestEvent,
+        event: TONConnectionRequestEvent,
         reason: String?,
+        errorCode: Int?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", event.id)
                 reason?.let { put("reason", it) }
+                errorCode?.let { put("errorCode", it) }
             }
         call("rejectConnectRequest", params)
     }
 
-    override suspend fun approveTransaction(event: io.ton.walletkit.event.TransactionRequestEvent) {
+    override suspend fun approveTransaction(event: TONTransactionRequestEvent, network: TONNetwork) {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply { put("requestId", event.id) }
+        val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+        val params =
+            JSONObject().apply {
+                put("requestId", event.id)
+                put("walletAddress", walletAddress.value)
+                put("walletId", event.walletId)
+            }
         call("approveTransactionRequest", params)
     }
 
     override suspend fun rejectTransaction(
-        event: io.ton.walletkit.event.TransactionRequestEvent,
+        event: TONTransactionRequestEvent,
         reason: String?,
+        errorCode: Int?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", event.id)
                 reason?.let { put("reason", it) }
+                errorCode?.let { put("errorCode", it) }
             }
         call("rejectTransactionRequest", params)
     }
 
-    override suspend fun approveSignData(event: io.ton.walletkit.event.SignDataRequestEvent) {
+    override suspend fun approveSignData(event: TONSignDataRequestEvent, network: TONNetwork) {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply { put("requestId", event.id) }
+        val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+        val params =
+            JSONObject().apply {
+                put("requestId", event.id)
+                put("walletAddress", walletAddress)
+                put("walletId", event.walletId)
+            }
         call("approveSignDataRequest", params)
     }
 
     override suspend fun rejectSignData(
-        event: io.ton.walletkit.event.SignDataRequestEvent,
+        event: TONSignDataRequestEvent,
         reason: String?,
+        errorCode: Int?,
     ) {
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
                 put("requestId", event.id)
                 reason?.let { put("reason", it) }
+                errorCode?.let { put("errorCode", it) }
             }
         call("rejectSignDataRequest", params)
     }
@@ -604,7 +595,7 @@ internal class QuickJsWalletKitEngine(
         call("disconnectSession", if (params.length() == 0) null else params)
     }
 
-    override suspend fun getNfts(walletAddress: String, limit: Int, offset: Int): io.ton.walletkit.model.TONNFTItems {
+    override suspend fun getNfts(walletAddress: String, limit: Int, offset: Int): io.ton.walletkit.api.generated.TONNFTsResponse {
         ensureWalletKitInitialized()
         val params = JSONObject().apply {
             put("address", walletAddress)
@@ -615,7 +606,7 @@ internal class QuickJsWalletKitEngine(
         return json.decodeFromString(result.toString())
     }
 
-    override suspend fun getNft(nftAddress: String): io.ton.walletkit.model.TONNFTItem? {
+    override suspend fun getNft(nftAddress: String): io.ton.walletkit.api.generated.TONNFT? {
         ensureWalletKitInitialized()
         val params = JSONObject().apply {
             put("address", nftAddress)
@@ -629,40 +620,21 @@ internal class QuickJsWalletKitEngine(
     }
 
     override suspend fun createTransferNftTransaction(
-        walletAddress: String,
-        params: io.ton.walletkit.model.TONNFTTransferParamsHuman,
+        walletId: String,
+        params: TONNFTTransferRequest,
     ): String {
-        ensureWalletKitInitialized()
-        val paramsJson = JSONObject().apply {
-            put("address", walletAddress)
-            put("nftAddress", params.nftAddress)
-            put("transferAmount", params.transferAmount)
-            put("toAddress", params.toAddress)
-            params.comment?.let { put("comment", it) }
-        }
-        val result = call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_TRANSACTION, paramsJson)
-        return result.toString()
+        TODO("Not yet implemented")
     }
 
     override suspend fun createTransferNftRawTransaction(
-        walletAddress: String,
-        params: io.ton.walletkit.model.TONNFTTransferParamsRaw,
+        walletId: String,
+        params: TONNFTRawTransferRequest,
     ): String {
-        ensureWalletKitInitialized()
-        val paramsJson = JSONObject(
-            json.encodeToString(
-                io.ton.walletkit.model.TONNFTTransferParamsRaw.serializer(),
-                params,
-            ),
-        ).apply {
-            put("address", walletAddress)
-        }
-        val result = call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_RAW_TRANSACTION, paramsJson)
-        return result.toString()
+        TODO("Not yet implemented")
     }
 
     // Jetton methods
-    override suspend fun getJettons(walletAddress: String, limit: Int, offset: Int): io.ton.walletkit.model.TONJettonWallets {
+    override suspend fun getJettons(walletAddress: String, limit: Int, offset: Int): io.ton.walletkit.api.generated.TONJettonsResponse {
         ensureWalletKitInitialized()
         val params = JSONObject().apply {
             put("address", walletAddress)
@@ -674,64 +646,23 @@ internal class QuickJsWalletKitEngine(
     }
 
     override suspend fun createTransferJettonTransaction(
-        walletAddress: String,
-        params: io.ton.walletkit.model.TONJettonTransferParams,
+        walletId: String,
+        params: TONJettonsTransferRequest,
     ): String {
-        ensureWalletKitInitialized()
-        val paramsJson = JSONObject(
-            json.encodeToString(
-                io.ton.walletkit.model.TONJettonTransferParams.serializer(),
-                params,
-            ),
-        ).apply {
-            put("address", walletAddress)
-        }
-        val result = call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_JETTON_TRANSACTION, paramsJson)
-        return result.toString()
+        TODO("Not yet implemented")
     }
 
     override suspend fun createTransferMultiTonTransaction(
-        walletAddress: String,
-        messages: List<io.ton.walletkit.model.TONTransferParams>,
-    ): io.ton.walletkit.model.TONTransactionWithPreview {
-        ensureWalletKitInitialized()
-        val messagesArray = JSONArray()
-        messages.forEach { message ->
-            val msgJson = JSONObject().apply {
-                put("toAddress", message.toAddress)
-                put("amount", message.amount)
-                message.comment?.let { put("comment", it) }
-                message.body?.let { put("body", it) }
-                message.stateInit?.let { put("stateInit", it) }
-            }
-            messagesArray.put(msgJson)
-        }
-        val paramsJson = JSONObject().apply {
-            put("address", walletAddress)
-            put("messages", messagesArray)
-        }
-        val result = call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_MULTI_TON_TRANSACTION, paramsJson)
-
-        // JS returns { transaction, preview } or { transaction }
-        return if (result.has("transaction")) {
-            val transactionContent = result.get("transaction").toString()
-            val preview = if (result.has("preview") && !result.isNull("preview")) {
-                val previewJson = result.getJSONObject("preview")
-                json.decodeFromString<io.ton.walletkit.model.TONTransactionPreview>(previewJson.toString())
-            } else {
-                null
-            }
-            io.ton.walletkit.model.TONTransactionWithPreview(transactionContent, preview)
-        } else {
-            // Fallback for legacy response format
-            io.ton.walletkit.model.TONTransactionWithPreview(result.toString(), null)
-        }
+        walletId: String,
+        messages: List<TONTransferRequest>,
+    ): TONTransactionWithPreview {
+        TODO("Not yet implemented")
     }
 
     override suspend fun getTransactionPreview(
         walletAddress: String,
         transactionContent: String,
-    ): io.ton.walletkit.model.TONTransactionPreview {
+    ): io.ton.walletkit.api.generated.TONTransactionEmulatedPreview {
         ensureWalletKitInitialized()
         val paramsJson = JSONObject().apply {
             put("address", walletAddress)
@@ -740,7 +671,7 @@ internal class QuickJsWalletKitEngine(
         val result = call(BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW, paramsJson)
         // Parse the result using kotlinx.serialization
         return json.decodeFromString(
-            io.ton.walletkit.model.TONTransactionPreview.serializer(),
+            io.ton.walletkit.api.generated.TONTransactionEmulatedPreview.serializer(),
             result.toString(),
         )
     }
@@ -779,6 +710,13 @@ internal class QuickJsWalletKitEngine(
         // QuickJS engine doesn't support internal browser mode
         // This should never be called for QuickJS
         throw UnsupportedOperationException("Internal browser mode is not supported in QuickJS engine")
+    }
+
+    override suspend fun createTransferTonTransaction(
+        walletId: String,
+        params: TONTransferRequest,
+    ): TONTransactionWithPreview {
+        TODO("Not yet implemented")
     }
 
     override suspend fun destroy() {
@@ -1028,12 +966,8 @@ internal class QuickJsWalletKitEngine(
         return when (type) {
             "connectRequest" -> {
                 try {
-                    val event = json.decodeFromString<ConnectRequestEvent>(data.toString())
-                    val dAppInfo = parseDAppInfo(data)
-                    val permissions = event.preview?.permissions ?: emptyList()
+                    val event = json.decodeFromString<TONConnectionRequestEvent>(data.toString())
                     val request = TONWalletConnectionRequest(
-                        dAppInfo = dAppInfo,
-                        permissions = permissions,
                         event = event,
                         handler = this,
                     )
@@ -1046,10 +980,8 @@ internal class QuickJsWalletKitEngine(
 
             "transactionRequest" -> {
                 try {
-                    val event = json.decodeFromString<TransactionRequestEvent>(data.toString())
-                    val dAppInfo = parseDAppInfo(data)
+                    val event = json.decodeFromString<TONTransactionRequestEvent>(data.toString())
                     val request = TONWalletTransactionRequest(
-                        dAppInfo = dAppInfo,
                         event = event,
                         handler = this,
                     )
@@ -1062,11 +994,8 @@ internal class QuickJsWalletKitEngine(
 
             "signDataRequest" -> {
                 try {
-                    val event = json.decodeFromString<SignDataRequestEvent>(data.toString())
-                    val dAppInfo = parseDAppInfo(data)
+                    val event = json.decodeFromString<TONSignDataRequestEvent>(data.toString())
                     val request = TONWalletSignDataRequest(
-                        dAppInfo = dAppInfo,
-                        walletAddress = event.walletAddress,
                         event = event,
                         handler = this,
                     )
@@ -1081,44 +1010,17 @@ internal class QuickJsWalletKitEngine(
                 val sessionId = data.optNullableString("sessionId")
                     ?: data.optNullableString("id")
                     ?: return null
-                TONWalletKitEvent.Disconnect(DisconnectEvent(sessionId))
+                TONWalletKitEvent.Disconnect(
+                    TONDisconnectionEvent(
+                        sessionId = sessionId,
+                        id = sessionId,
+                        preview = TONDisconnectionEventPreview(),
+                    ),
+                )
             }
 
             else -> null // Unknown event type
         }
-    }
-
-    private fun parseDAppInfo(data: JSONObject): DAppInfo? {
-        // Try to get dApp name from multiple sources
-        val dAppName = data.optNullableString("dAppName")
-            ?: data.optJSONObject("manifest")?.optNullableString("name")
-            ?: data.optJSONObject("preview")?.optJSONObject("manifest")?.optNullableString("name")
-
-        // Try to get URLs from multiple sources
-        val manifest = data.optJSONObject("preview")?.optJSONObject("manifest")
-            ?: data.optJSONObject("manifest")
-
-        val dAppUrl = data.optNullableString("dAppUrl")
-            ?: manifest?.optNullableString("url")
-            ?: ""
-
-        val iconUrl = data.optNullableString("dAppIconUrl")
-            ?: manifest?.optNullableString("iconUrl")
-
-        val manifestUrl = data.optNullableString("manifestUrl")
-            ?: manifest?.optNullableString("url")
-
-        // Only return null if we have absolutely no dApp information
-        if (dAppName == null && dAppUrl.isEmpty()) {
-            return null
-        }
-
-        return DAppInfo(
-            name = dAppName ?: dAppUrl.takeIf { it.isNotEmpty() } ?: "Unknown dApp",
-            url = dAppUrl,
-            iconUrl = iconUrl,
-            manifestUrl = manifestUrl,
-        )
     }
 
     private fun JSONObject.optNullableString(key: String): String? {
@@ -1723,11 +1625,13 @@ internal class QuickJsWalletKitEngine(
         private const val ENVIRONMENT_SHIM_ASSET = QUICKJS_ASSET_DIR + "environment.js"
         private const val TEXT_ENCODING_ASSET = QUICKJS_ASSET_DIR + "text-encoding.js"
         private const val ERROR_INIT_CONFIG_REQUIRED = "TONWalletKit.initialize() must be called before using the SDK."
+        private const val ERROR_WALLET_ADDRESS_REQUIRED = "walletAddress is required for TonConnect approval"
 
         private fun resolveNetworkName(configuration: TONWalletKitConfiguration): String =
             when (configuration.network) {
                 TONNetwork.MAINNET -> NetworkConstants.NETWORK_MAINNET
                 TONNetwork.TESTNET -> NetworkConstants.NETWORK_TESTNET
+                else -> NetworkConstants.NETWORK_MAINNET
             }
 
         private fun resolveTonClientEndpoint(configuration: TONWalletKitConfiguration): String? =
@@ -1738,6 +1642,7 @@ internal class QuickJsWalletKitEngine(
             return custom ?: when (configuration.network) {
                 TONNetwork.MAINNET -> NetworkConstants.DEFAULT_MAINNET_API_URL
                 TONNetwork.TESTNET -> NetworkConstants.DEFAULT_TESTNET_API_URL
+                else -> NetworkConstants.DEFAULT_MAINNET_API_URL
             }
         }
 

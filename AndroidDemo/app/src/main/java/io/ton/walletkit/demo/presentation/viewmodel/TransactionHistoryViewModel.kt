@@ -25,9 +25,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
+import io.ton.walletkit.api.generated.TONTransaction
 import io.ton.walletkit.demo.data.cache.TransactionCache
 import io.ton.walletkit.demo.presentation.util.TransactionDiffUtil
-import io.ton.walletkit.model.Transaction
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,16 +44,16 @@ class TransactionHistoryViewModel(
     private val _state = MutableStateFlow<TransactionState>(TransactionState.Initial)
     val state: StateFlow<TransactionState> = _state.asStateFlow()
 
-    private val _transactions = MutableStateFlow<List<Transaction>>(emptyList())
-    val transactions: StateFlow<List<Transaction>> = _transactions.asStateFlow()
+    private val _transactions = MutableStateFlow<List<TONTransaction>>(emptyList())
+    val transactions: StateFlow<List<TONTransaction>> = _transactions.asStateFlow()
 
     init {
-        Log.d(TAG, "Created for wallet: ${wallet.address?.value}")
+        Log.d(TAG, "Created for wallet: ${wallet.address.value}")
     }
 
     override fun onCleared() {
         super.onCleared()
-        Log.d(TAG, "Cleared for wallet: ${wallet.address}")
+        Log.d(TAG, "Cleared for wallet: ${wallet.address.value}")
     }
 
     sealed class TransactionState {
@@ -71,10 +71,7 @@ class TransactionHistoryViewModel(
     fun loadTransactions(limit: Int = DEFAULT_LIMIT) {
         viewModelScope.launch {
             try {
-                val walletAddress = wallet.address?.value ?: run {
-                    _state.value = TransactionState.Error("Wallet address is null")
-                    return@launch
-                }
+                val walletAddress = wallet.address.value
 
                 _state.value = TransactionState.Loading
 
@@ -90,7 +87,7 @@ class TransactionHistoryViewModel(
                 // Fetch fresh transactions from network
                 // Temporarily disabled - getRecentTransactions has been removed
                 Log.d(TAG, "Transaction fetching temporarily disabled - Coming Soon")
-                val freshTransactions = emptyList<Transaction>()
+                val freshTransactions = emptyList<TONTransaction>()
 
                 // Merge with cache
                 val mergedTransactions = transactionCache.update(walletAddress, freshTransactions)
@@ -132,10 +129,7 @@ class TransactionHistoryViewModel(
      */
     fun clearCache() {
         viewModelScope.launch {
-            val walletAddress = wallet.address?.value ?: run {
-                _state.value = TransactionState.Error("Wallet address is null")
-                return@launch
-            }
+            val walletAddress = wallet.address.value
             transactionCache.clear(walletAddress)
             _transactions.value = emptyList()
             _state.value = TransactionState.Initial

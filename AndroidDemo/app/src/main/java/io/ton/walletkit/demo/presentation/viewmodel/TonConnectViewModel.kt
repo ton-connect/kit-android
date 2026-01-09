@@ -25,6 +25,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
+import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
@@ -38,6 +41,7 @@ import kotlinx.coroutines.launch
  * Manages connect, transaction, and sign data approval/rejection flows.
  */
 class TonConnectViewModel(
+    private val walletKit: () -> ITONWalletKit,
     private val getWalletByAddress: (String) -> ITONWallet?,
     private val onRequestApproved: () -> Unit = {},
     private val onRequestRejected: () -> Unit = {},
@@ -70,7 +74,7 @@ class TonConnectViewModel(
             }
 
             runCatching {
-                wallet.connect(url.trim())
+                walletKit().connect(url.trim())
             }.onSuccess {
                 _state.value = _state.value.copy(
                     isProcessing = false,
@@ -95,7 +99,9 @@ class TonConnectViewModel(
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
             runCatching {
-                request.connectRequest?.approve(walletAddress)
+                val wallet = getWalletByAddress(walletAddress)
+                    ?: error("Wallet not found for address: $walletAddress")
+                request.connectRequest?.approve(wallet)
                     ?: error("Connect request not available")
             }.onSuccess {
                 _state.value = _state.value.copy(
@@ -118,7 +124,7 @@ class TonConnectViewModel(
     /**
      * Reject a connection request from a dApp.
      */
-    fun rejectConnect(request: ConnectRequestUi, reason: String = "User rejected") {
+    fun rejectConnect(request: ConnectRequestUi, reason: String = "User declined the connection") {
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
@@ -147,7 +153,7 @@ class TonConnectViewModel(
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
             runCatching {
-                request.transactionRequest?.approve()
+                request.transactionRequest?.approve(TONNetwork.MAINNET)
                     ?: error("Transaction request not available")
             }.onSuccess {
                 _state.value = _state.value.copy(
@@ -170,7 +176,7 @@ class TonConnectViewModel(
     /**
      * Reject a transaction request from a dApp.
      */
-    fun rejectTransaction(request: TransactionRequestUi, reason: String = "User rejected") {
+    fun rejectTransaction(request: TransactionRequestUi, reason: String = "User declined the transaction") {
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
@@ -199,7 +205,7 @@ class TonConnectViewModel(
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
             runCatching {
-                request.signDataRequest?.approve()
+                request.signDataRequest?.approve(TONNetwork.MAINNET)
                     ?: error("Sign data request not available")
             }.onSuccess {
                 _state.value = _state.value.copy(
@@ -221,7 +227,7 @@ class TonConnectViewModel(
     /**
      * Reject a sign data request from a dApp.
      */
-    fun rejectSignData(request: SignDataRequestUi, reason: String = "User rejected") {
+    fun rejectSignData(request: SignDataRequestUi, reason: String = "User declined the request") {
         viewModelScope.launch {
             _state.value = _state.value.copy(isProcessing = true, error = null)
 

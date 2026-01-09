@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.demo.domain.model
 
-import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.api.generated.TONNetwork
 
 data class WalletMetadata(
     val name: String,

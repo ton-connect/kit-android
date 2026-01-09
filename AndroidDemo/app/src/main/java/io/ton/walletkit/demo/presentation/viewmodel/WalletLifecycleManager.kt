@@ -24,6 +24,9 @@ package io.ton.walletkit.demo.presentation.viewmodel
 import android.util.Log
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.data.cache.TransactionCache
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.UserPreferences
@@ -36,8 +39,6 @@ import io.ton.walletkit.demo.domain.model.toTonNetwork
 import io.ton.walletkit.demo.presentation.model.SessionSummary
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.util.TonFormatter
-import io.ton.walletkit.model.TONNetwork
-import io.ton.walletkit.model.TONWalletData
 
 /**
  * Handles wallet lifecycle: bootstrapping from storage, metadata management,
@@ -123,19 +124,18 @@ class WalletLifecycleManager(
             wallet.address?.value?.let { tonWallets[it] = wallet }
         }
 
-        val knownAddresses = wallets.mapNotNull { it.address?.value }.toSet()
+        val knownAddresses = wallets.map { it.address.value }.toSet()
         walletMetadata.keys.retainAll(knownAddresses)
 
         val result = mutableListOf<WalletSummary>()
         for (wallet in wallets) {
-            val address = wallet.address?.value ?: continue
-            val publicKey = wallet.publicKey
+            val address = wallet.address.value
             val metadata = ensureMetadataForAddress(address)
 
-            val balance = runCatching { wallet.getBalance() }
+            val balance = runCatching { wallet.balance() }
                 .onFailure { Log.e(LOG_TAG, "loadWalletSummaries: balance failed for $address", it) }
                 .getOrNull()
-            val formattedBalance = balance?.let { TonFormatter.formatTon(it) }
+            val formattedBalance = balance?.let { TonFormatter.formatTon(it.value) }
 
             val cachedTransactions = transactionCache.get(address)
             val walletSessions = sessions.filter { it.walletAddress == address }
@@ -151,8 +151,8 @@ class WalletLifecycleManager(
                     name = metadata.name,
                     network = metadata.network,
                     version = metadata.version.ifBlank { defaultWalletVersion },
-                    publicKey = publicKey,
-                    balanceNano = balance,
+                    publicKey = null,
+                    balanceNano = balance?.value,
                     balance = formattedBalance,
                     transactions = cachedTransactions,
                     lastUpdated = System.currentTimeMillis(),

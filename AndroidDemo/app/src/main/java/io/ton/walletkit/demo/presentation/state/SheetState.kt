@@ -37,7 +37,7 @@ sealed interface SheetState {
     data class WalletDetails(val wallet: WalletSummary) : SheetState
     data class SendTransaction(val wallet: WalletSummary) : SheetState
     data class TransactionDetail(val transaction: TransactionDetailUi) : SheetState
-    data class Browser(val url: String) : SheetState
+    data class Browser(val url: String, val injectTonConnect: Boolean = true) : SheetState
     data class JettonDetails(val jetton: io.ton.walletkit.demo.presentation.model.JettonDetails) : SheetState
     data class TransferJetton(val jetton: io.ton.walletkit.demo.presentation.model.JettonDetails) : SheetState
 }

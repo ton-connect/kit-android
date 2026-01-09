@@ -43,10 +43,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.demo.presentation.ui.components.EmptyNFTState
 import io.ton.walletkit.demo.presentation.ui.components.NFTCard
 import io.ton.walletkit.demo.presentation.viewmodel.NFTsListViewModel
-import io.ton.walletkit.model.TONNFTItem
 
 /**
  * Section displaying NFTs owned by the wallet.
@@ -54,7 +54,7 @@ import io.ton.walletkit.model.TONNFTItem
 @Composable
 fun NFTsSection(
     viewModel: NFTsListViewModel,
-    onNFTClick: (TONNFTItem) -> Unit,
+    onNFTClick: (TONNFT) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
@@ -93,7 +93,7 @@ fun NFTsSection(
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        items(nfts, key = { it.address }) { nft ->
+                        items(nfts, key = { it.address.value }) { nft ->
                             NFTCard(
                                 nft = nft,
                                 onClick = onNFTClick,

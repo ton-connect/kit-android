@@ -31,9 +31,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import io.ton.walletkit.demo.R
+import io.ton.walletkit.demo.presentation.util.TestTags
 
 @Composable
 fun UrlPromptDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
@@ -48,6 +51,7 @@ fun UrlPromptDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                     url = ""
                 },
                 enabled = url.isNotBlank(),
+                modifier = Modifier.testTag(TestTags.TONCONNECT_PROCESS_BUTTON),
             ) { Text(stringResource(R.string.action_handle_url)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
@@ -58,6 +62,7 @@ fun UrlPromptDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                 onValueChange = { url = it },
                 placeholder = { Text(stringResource(R.string.url_prompt_placeholder)) },
                 singleLine = true,
+                modifier = Modifier.testTag(TestTags.TONCONNECT_URL_FIELD),
             )
         },
     )

@@ -313,57 +313,6 @@ fun JettonDetailsSheet(
                         valueColor = if (jetton.verified) Color(0xFF4CAF50) else Color(0xFFFF9800),
                         icon = if (jetton.verified) Icons.Default.CheckCircle else Icons.Default.Warning,
                     )
-
-                    // Verification Source
-                    jetton.verificationSource?.let { source ->
-                        DetailRow(
-                            label = "Source",
-                            value = source.replaceFirstChar { it.uppercase() },
-                        )
-                    }
-                }
-            }
-
-            // Warnings (if any)
-            if (!jetton.warnings.isNullOrEmpty()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFFFF3E0), // Light orange
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = "Warning",
-                                tint = Color(0xFFFF9800),
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Text(
-                                text = "Warnings",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFE65100),
-                            )
-                        }
-                        jetton.warnings?.forEach { warning ->
-                            Text(
-                                text = "• $warning",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFFE65100),
-                            )
-                        }
-                    }
                 }
             }
 

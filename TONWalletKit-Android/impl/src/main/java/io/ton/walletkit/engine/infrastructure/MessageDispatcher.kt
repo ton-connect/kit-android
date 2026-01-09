@@ -154,11 +154,14 @@ internal class MessageDispatcher(
         webViewManager.markJsBridgeReady()
 
         val wasAlreadyReady = rpcClient.isReady()
-        Logger.d(TAG, "🚀 wasAlreadyReady=$wasAlreadyReady, ready.isCompleted=${rpcClient.isReady()}")
+        Logger.d(TAG, "🚀 wasAlreadyReady=$wasAlreadyReady")
 
-        if (!rpcClient.isReady()) {
+        if (!wasAlreadyReady) {
             Logger.d(TAG, "🚀 Completing ready for the first time")
             rpcClient.markReady()
+            Logger.d(TAG, "🚀 After markReady(), isReady = ${rpcClient.isReady()}")
+        } else {
+            Logger.d(TAG, "⚠️ rpcClient already ready, not calling markReady()")
         }
 
         if (wasAlreadyReady && areEventListenersSetUp) {
@@ -209,7 +212,12 @@ internal class MessageDispatcher(
         Logger.d(TAG, "🟢 Event data keys: ${data.keys().asSequence().toList()}")
         Logger.d(TAG, "🟢 Thread: ${Thread.currentThread().name}")
 
-        val typedEvent = eventParser.parseEvent(type, data, event)
+        val typedEvent = try {
+            eventParser.parseEvent(type, data, event)
+        } catch (e: Exception) {
+            Logger.e(TAG, "❌ Exception thrown while parsing event type=$type", e)
+            null
+        }
         Logger.d(TAG, "🟢 Parsed typed event: ${(typedEvent?.javaClass?.simpleName ?: ResponseConstants.VALUE_UNKNOWN)}")
 
         if (typedEvent != null) {
@@ -270,6 +278,62 @@ internal class MessageDispatcher(
             } catch (e: Exception) {
                 Logger.e(TAG, "❌ Failed to send JS Bridge event", e)
             }
+        }
+    }
+
+    /**
+     * Dispatches an error to fail a specific pending RPC call.
+     *
+     * When the bridge encounters an error (e.g., malformed JSON), this method:
+     * 1. Attempts to extract the call ID from the malformed message
+     * 2. Creates an error response for that specific call
+     * 3. Dispatches the error response to fail only that call
+     *
+     * If the call ID cannot be extracted, the error is logged but no call is failed.
+     */
+    fun dispatchError(exception: WalletKitBridgeException, malformedJson: String?) {
+        Logger.e(TAG, "❌ Dispatching error for malformed message", exception)
+
+        // Try to extract call ID from malformed JSON
+        val callId = malformedJson?.let { tryExtractCallId(it) }
+
+        if (callId != null) {
+            Logger.d(TAG, "🔍 Extracted call ID from malformed JSON: $callId")
+
+            // Create error response for this specific call
+            val errorResponse = JSONObject().apply {
+                put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_RESPONSE)
+                put(ResponseConstants.KEY_ID, callId)
+                put(
+                    ResponseConstants.KEY_ERROR,
+                    JSONObject().apply {
+                        put(ResponseConstants.KEY_MESSAGE, exception.message ?: "Bridge error")
+                    },
+                )
+            }
+
+            Logger.d(TAG, "📤 Dispatching error response for call $callId")
+            // Dispatch the error response to fail the specific call
+            rpcClient.handleResponse(callId, errorResponse)
+        } else {
+            Logger.w(TAG, "⚠️  Could not extract call ID from malformed JSON, cannot fail specific call")
+            Logger.w(TAG, "⚠️  Malformed JSON: $malformedJson")
+        }
+    }
+
+    /**
+     * Attempts to extract the call ID from a malformed JSON string.
+     * Uses regex to find the "id" field even if the JSON is incomplete or invalid.
+     */
+    private fun tryExtractCallId(malformedJson: String): String? {
+        return try {
+            // Try to find "id":"value" or "id": "value" pattern
+            val regex = """"id"\s*:\s*"([^"]+)"""".toRegex()
+            val matchResult = regex.find(malformedJson)
+            matchResult?.groupValues?.get(1)
+        } catch (e: Exception) {
+            Logger.e(TAG, "❌ Failed to extract call ID from malformed JSON", e)
+            null
         }
     }
 

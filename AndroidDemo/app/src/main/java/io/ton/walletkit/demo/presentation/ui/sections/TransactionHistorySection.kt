@@ -52,10 +52,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.api.generated.TONTransaction
 import io.ton.walletkit.demo.R
+import io.ton.walletkit.demo.presentation.model.getDisplayHash
+import io.ton.walletkit.demo.presentation.model.getPrimaryAmount
+import io.ton.walletkit.demo.presentation.model.getUniqueId
+import io.ton.walletkit.demo.presentation.model.isOutgoing
 import io.ton.walletkit.demo.presentation.ui.components.EmptyStateCard
-import io.ton.walletkit.model.Transaction
-import io.ton.walletkit.model.TransactionType
 import java.math.BigDecimal
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -63,7 +66,7 @@ import java.util.Locale
 
 @Composable
 fun TransactionHistorySection(
-    transactions: List<Transaction>?,
+    transactions: List<TONTransaction>?,
     walletAddress: String,
     isRefreshing: Boolean,
     onRefreshTransactions: () -> Unit,
@@ -123,11 +126,11 @@ fun TransactionHistorySection(
             Column(verticalArrangement = Arrangement.spacedBy(TRANSACTION_LIST_SPACING)) {
                 for (tx in transactions.take(10)) {
                     // Use key() to provide stable identity for efficient recomposition
-                    key(tx.hash) {
+                    key(tx.getUniqueId()) {
                         TransactionItem(
                             transaction = tx,
                             walletAddress = walletAddress,
-                            onClick = { onTransactionClick(tx.hash) },
+                            onClick = { onTransactionClick(tx.getUniqueId()) },
                         )
                     }
                 }
@@ -138,14 +141,14 @@ fun TransactionHistorySection(
 
 @Composable
 private fun TransactionItem(
-    transaction: Transaction,
+    transaction: TONTransaction,
     walletAddress: String,
     onClick: () -> Unit,
 ) {
-    val isOutgoing = transaction.type == TransactionType.OUTGOING
-    val amount = formatNanoTon(transaction.amount)
-    val timestamp = transaction.timestamp
-    val hash = transaction.hash
+    val isOutgoing = transaction.isOutgoing(walletAddress)
+    val amount = formatNanoTon(transaction.getPrimaryAmount())
+    val timestamp = transaction.now.toLong() * 1000 // Convert to milliseconds
+    val hash = transaction.getDisplayHash()
 
     Card(
         modifier = Modifier
@@ -255,7 +258,6 @@ private fun formatTimestamp(timestamp: Long, unknownLabel: String): String = try
     if (timestamp == 0L) {
         unknownLabel
     } else {
-        // Timestamp is already in milliseconds from the bridge
         val date = Date(timestamp)
         val sdf = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
         sdf.format(date)
@@ -281,38 +283,9 @@ private val NANO_TON_DIVISOR = BigDecimal(1_000_000_000L)
 @Preview(showBackground = true)
 @Composable
 private fun TransactionHistorySectionPreview() {
-    val transactions = listOf(
-        Transaction(
-            hash = "hash1",
-            timestamp = System.currentTimeMillis(),
-            amount = "5000000000",
-            fee = "10000000",
-            comment = "Preview transaction",
-            sender = "EQSender",
-            recipient = "EQRecipient",
-            type = TransactionType.OUTGOING,
-            lt = "1",
-            blockSeqno = 100,
-        ),
-        Transaction(
-            hash = "hash2",
-            timestamp = System.currentTimeMillis() - 3600_000,
-            amount = "2500000000",
-            fee = null,
-            comment = null,
-            sender = "EQSender2",
-            recipient = "EQRecipient2",
-            type = TransactionType.INCOMING,
-            lt = "2",
-            blockSeqno = 101,
-        ),
-    )
-
-    TransactionHistorySection(
-        transactions = transactions,
-        walletAddress = "EQPreviewWallet",
-        isRefreshing = false,
-        onRefreshTransactions = {},
-        onTransactionClick = {},
+    // Preview disabled - would need mock TONTransaction objects
+    EmptyStateCard(
+        title = "No Transactions",
+        description = "Transaction preview not available",
     )
 }

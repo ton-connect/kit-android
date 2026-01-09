@@ -41,6 +41,8 @@ const ERROR_CODES = {
   CONTRACT_DEPLOYMENT_FAILED: 7800,
   CONTRACT_EXECUTION_FAILED: 7801,
   CONTRACT_VALIDATION_FAILED: 7802,
+  // Network Errors (7850-7899)
+  NETWORK_NOT_CONFIGURED: 7850,
   // Generic Errors (7900-7999)
   UNKNOWN_ERROR: 7900,
   VALIDATION_ERROR: 7901,
@@ -465,6 +467,150 @@ function injectBridge(window2, options, argsTransport) {
 }
 const TONCONNECT_BRIDGE_REQUEST = "TONCONNECT_BRIDGE_REQUEST";
 const TONCONNECT_BRIDGE_EVENT = "TONCONNECT_BRIDGE_EVENT";
+var LogLevel$1;
+(function(LogLevel2) {
+  LogLevel2[LogLevel2["DEBUG"] = 0] = "DEBUG";
+  LogLevel2[LogLevel2["INFO"] = 1] = "INFO";
+  LogLevel2[LogLevel2["WARN"] = 2] = "WARN";
+  LogLevel2[LogLevel2["ERROR"] = 3] = "ERROR";
+  LogLevel2[LogLevel2["NONE"] = 4] = "NONE";
+})(LogLevel$1 || (LogLevel$1 = {}));
+class Logger {
+  config;
+  parent;
+  static defaultConfig = {
+    level: LogLevel$1.INFO,
+    prefix: "TonWalletKit",
+    enableTimestamp: true,
+    enableStackTrace: false
+  };
+  constructor(config) {
+    this.parent = config?.parent;
+    this.config = { ...Logger.defaultConfig, ...config };
+    if (this.parent) {
+      this.config = {
+        ...this.parent.config,
+        ...config,
+        // Build hierarchical prefix
+        prefix: this.buildHierarchicalPrefix(config?.prefix)
+      };
+    }
+  }
+  /**
+   * Update logger configuration
+   */
+  configure(config) {
+    this.config = { ...this.config, ...config };
+  }
+  /**
+   * Create a child logger with a prefix that inherits from this logger
+   */
+  createChild(prefix, config) {
+    return new Logger({
+      ...config,
+      parent: this,
+      prefix
+    });
+  }
+  /**
+   * Build hierarchical prefix by combining parent prefix with current prefix
+   */
+  buildHierarchicalPrefix(currentPrefix) {
+    if (!this.parent || !currentPrefix) {
+      return currentPrefix || this.parent?.config.prefix || "";
+    }
+    const parentPrefix = this.parent.config.prefix;
+    if (!parentPrefix) {
+      return currentPrefix;
+    }
+    return `${parentPrefix}:${currentPrefix}`;
+  }
+  /**
+   * Get the full hierarchical prefix for this logger
+   */
+  getPrefix() {
+    return this.config.prefix || "";
+  }
+  /**
+   * Get the parent logger if it exists
+   */
+  getParent() {
+    return this.parent;
+  }
+  /**
+   * Log debug messages
+   */
+  debug(message, context) {
+    if (this.config.level <= LogLevel$1.DEBUG) {
+      this.log("DEBUG", message, context);
+    }
+  }
+  /**
+   * Log info messages
+   */
+  info(message, context) {
+    if (this.config.level <= LogLevel$1.INFO) {
+      this.log("INFO", message, context);
+    }
+  }
+  /**
+   * Log warning messages
+   */
+  warn(message, context) {
+    if (this.config.level <= LogLevel$1.WARN) {
+      this.log("WARN", message, context);
+    }
+  }
+  /**
+   * Log error messages
+   */
+  error(message, context) {
+    if (this.config.level <= LogLevel$1.ERROR) {
+      this.log("ERROR", message, context);
+    }
+  }
+  /**
+   * Internal logging method
+   */
+  log(level, message, context) {
+    const timestamp = this.config.enableTimestamp ? (/* @__PURE__ */ new Date()).toISOString() : "";
+    const prefix = this.config.prefix ? `[${this.config.prefix}]` : "";
+    let logMessage = "";
+    if (timestamp) {
+      logMessage += `${timestamp} `;
+    }
+    if (prefix) {
+      logMessage += `${prefix} `;
+    }
+    logMessage += `${level}: ${message}`;
+    const logArgs = [logMessage];
+    if (context && Object.keys(context).length > 0) {
+      logArgs.push(context);
+    }
+    switch (level) {
+      case "DEBUG":
+        console.debug(...logArgs);
+        break;
+      case "INFO":
+        console.info(...logArgs);
+        break;
+      case "WARN":
+        console.warn(...logArgs);
+        break;
+      case "ERROR":
+        console.error(...logArgs);
+        if (this.config.enableStackTrace) {
+          console.trace();
+        }
+        break;
+    }
+  }
+}
+const globalLogger = new Logger({
+  level: LogLevel$1.DEBUG,
+  enableStackTrace: true
+});
+globalLogger.createChild("ExtensionTransport");
 function injectBridgeCode(window2, options, transport) {
   injectBridge(window2, options, transport);
 }

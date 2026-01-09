@@ -22,21 +22,19 @@
 package io.ton.walletkit.demo.presentation.util
 
 import androidx.recyclerview.widget.DiffUtil
-import io.ton.walletkit.model.Transaction
+import io.ton.walletkit.api.generated.TONTransaction
 
-private const val CHANGE_AMOUNT = "amount"
-private const val CHANGE_FEE = "fee"
-private const val CHANGE_COMMENT = "comment"
-private const val CHANGE_TYPE = "type"
+private const val CHANGE_TIMESTAMP = "timestamp"
+private const val CHANGE_FEES = "fees"
 private const val CHANGE_BLOCK_SEQNO = "blockSeqno"
 
 /**
  * DiffUtil callback for efficiently calculating differences between transaction lists.
- * Uses transaction hash as the unique identifier.
+ * Uses transaction hash (as string) or logical time as the unique identifier.
  */
 class TransactionDiffCallback(
-    private val oldList: List<Transaction>,
-    private val newList: List<Transaction>,
+    private val oldList: List<TONTransaction>,
+    private val newList: List<TONTransaction>,
 ) : DiffUtil.Callback() {
 
     override fun getOldListSize(): Int = oldList.size
@@ -44,12 +42,18 @@ class TransactionDiffCallback(
     override fun getNewListSize(): Int = newList.size
 
     /**
+     * Get unique identifier for a transaction.
+     * Uses hash (as string) if available, otherwise falls back to logicalTime.
+     */
+    private fun TONTransaction.uniqueId(): String = hash?.toString() ?: logicalTime
+
+    /**
      * Check if items represent the same transaction (same hash).
      */
     override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
         val oldItem = oldList[oldItemPosition]
         val newItem = newList[newItemPosition]
-        return oldItem.hash == newItem.hash
+        return oldItem.uniqueId() == newItem.uniqueId()
     }
 
     /**
@@ -61,16 +65,12 @@ class TransactionDiffCallback(
         val newItem = newList[newItemPosition]
 
         // Compare all fields that might change
-        return oldItem.hash == newItem.hash &&
-            oldItem.timestamp == newItem.timestamp &&
-            oldItem.amount == newItem.amount &&
-            oldItem.fee == newItem.fee &&
-            oldItem.comment == newItem.comment &&
-            oldItem.sender == newItem.sender &&
-            oldItem.recipient == newItem.recipient &&
-            oldItem.type == newItem.type &&
-            oldItem.lt == newItem.lt &&
-            oldItem.blockSeqno == newItem.blockSeqno
+        return oldItem.uniqueId() == newItem.uniqueId() &&
+            oldItem.now == newItem.now &&
+            oldItem.logicalTime == newItem.logicalTime &&
+            oldItem.mcBlockSeqno == newItem.mcBlockSeqno &&
+            oldItem.totalFees == newItem.totalFees &&
+            oldItem.account.value == newItem.account.value
     }
 
     /**
@@ -84,11 +84,9 @@ class TransactionDiffCallback(
         // Create a list of changed fields
         val changes = mutableListOf<String>()
 
-        if (oldItem.amount != newItem.amount) changes.add(CHANGE_AMOUNT)
-        if (oldItem.fee != newItem.fee) changes.add(CHANGE_FEE)
-        if (oldItem.comment != newItem.comment) changes.add(CHANGE_COMMENT)
-        if (oldItem.type != newItem.type) changes.add(CHANGE_TYPE)
-        if (oldItem.blockSeqno != newItem.blockSeqno) changes.add(CHANGE_BLOCK_SEQNO)
+        if (oldItem.now != newItem.now) changes.add(CHANGE_TIMESTAMP)
+        if (oldItem.totalFees != newItem.totalFees) changes.add(CHANGE_FEES)
+        if (oldItem.mcBlockSeqno != newItem.mcBlockSeqno) changes.add(CHANGE_BLOCK_SEQNO)
 
         return if (changes.isNotEmpty()) changes else null
     }
@@ -99,12 +97,17 @@ class TransactionDiffCallback(
  */
 object TransactionDiffUtil {
     /**
+     * Get unique identifier for a transaction.
+     */
+    private fun TONTransaction.uniqueId(): String = hash?.toString() ?: logicalTime
+
+    /**
      * Calculate the difference between two transaction lists.
      * Returns a DiffUtil.DiffResult that can be used to update UI efficiently.
      */
     fun calculateDiff(
-        oldList: List<Transaction>,
-        newList: List<Transaction>,
+        oldList: List<TONTransaction>,
+        newList: List<TONTransaction>,
         detectMoves: Boolean = true,
     ): DiffUtil.DiffResult {
         val callback = TransactionDiffCallback(oldList, newList)
@@ -116,14 +119,14 @@ object TransactionDiffUtil {
      * This is a quick check based on size and hash values.
      */
     fun areListsEqual(
-        oldList: List<Transaction>,
-        newList: List<Transaction>,
+        oldList: List<TONTransaction>,
+        newList: List<TONTransaction>,
     ): Boolean {
         if (oldList.size != newList.size) return false
 
         // Quick hash-based comparison
-        val oldHashes = oldList.map { it.hash }.toSet()
-        val newHashes = newList.map { it.hash }.toSet()
+        val oldHashes = oldList.map { it.uniqueId() }.toSet()
+        val newHashes = newList.map { it.uniqueId() }.toSet()
 
         return oldHashes == newHashes
     }
@@ -132,22 +135,22 @@ object TransactionDiffUtil {
      * Get new transactions (transactions in newList but not in oldList).
      */
     fun getNewTransactions(
-        oldList: List<Transaction>,
-        newList: List<Transaction>,
-    ): List<Transaction> {
-        val oldHashes = oldList.map { it.hash }.toSet()
-        return newList.filter { it.hash !in oldHashes }
+        oldList: List<TONTransaction>,
+        newList: List<TONTransaction>,
+    ): List<TONTransaction> {
+        val oldHashes = oldList.map { it.uniqueId() }.toSet()
+        return newList.filter { it.uniqueId() !in oldHashes }
     }
 
     /**
      * Get removed transactions (transactions in oldList but not in newList).
      */
     fun getRemovedTransactions(
-        oldList: List<Transaction>,
-        newList: List<Transaction>,
-    ): List<Transaction> {
-        val newHashes = newList.map { it.hash }.toSet()
-        return oldList.filter { it.hash !in newHashes }
+        oldList: List<TONTransaction>,
+        newList: List<TONTransaction>,
+    ): List<TONTransaction> {
+        val newHashes = newList.map { it.uniqueId() }.toSet()
+        return oldList.filter { it.uniqueId() !in newHashes }
     }
 
     /**
@@ -155,25 +158,25 @@ object TransactionDiffUtil {
      * Deduplicates by hash and sorts by timestamp descending.
      */
     fun mergeLists(
-        oldList: List<Transaction>,
-        newList: List<Transaction>,
+        oldList: List<TONTransaction>,
+        newList: List<TONTransaction>,
         maxSize: Int = 100,
-    ): List<Transaction> {
-        val transactionMap = mutableMapOf<String, Transaction>()
+    ): List<TONTransaction> {
+        val transactionMap = mutableMapOf<String, TONTransaction>()
 
         // Add old transactions first
         oldList.forEach { tx ->
-            transactionMap[tx.hash] = tx
+            transactionMap[tx.uniqueId()] = tx
         }
 
         // Add/update with new transactions (overwrites existing)
         newList.forEach { tx ->
-            transactionMap[tx.hash] = tx
+            transactionMap[tx.uniqueId()] = tx
         }
 
         // Sort by timestamp descending and limit
         return transactionMap.values
-            .sortedByDescending { it.timestamp }
+            .sortedByDescending { it.now }
             .take(maxSize)
     }
 }

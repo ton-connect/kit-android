@@ -4,8 +4,16 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinCompose)
+    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hiltAndroid)
+}
+
+// Force OkHttp version to avoid conflicts between app dependencies and test dependencies
+configurations.all {
+    resolutionStrategy {
+        force("com.squareup.okhttp3:okhttp:5.3.2")
+    }
 }
 
 android {
@@ -19,6 +27,28 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Pass instrumentation arguments from gradle properties or environment
+        // Usage: ./gradlew connectedDebugAndroidTest -PtestMnemonic="word1 word2 ..."
+        // Or set TEST_MNEMONIC environment variable
+        val testMnemonic =
+            findProperty("testMnemonic") as String?
+                ?: System.getenv("TEST_MNEMONIC")
+        val disableNetworkSend =
+            findProperty("disableNetworkSend") as String?
+                ?: System.getenv("DISABLE_NETWORK_SEND")
+                ?: "true"
+        val allureToken =
+            findProperty("allureToken") as String?
+                ?: System.getenv("ALLURE_API_TOKEN")
+
+        testMnemonic?.let {
+            testInstrumentationRunnerArguments["testMnemonic"] = it
+        }
+        testInstrumentationRunnerArguments["disableNetworkSend"] = disableNetworkSend
+        allureToken?.let {
+            testInstrumentationRunnerArguments["allureToken"] = it
+        }
     }
 
     buildTypes {
@@ -80,4 +110,33 @@ dependencies {
     // implementation("io.github.ton-connect:tonwalletkit-android:1.0.0-alpha01")
 
     debugImplementation(libs.leakcanaryAndroid)
+
+    // Testing - Unit Tests
+    testImplementation(libs.junit)
+
+    // Testing - Instrumentation Tests (Espresso + Compose)
+    androidTestImplementation(libs.androidxTestCore)
+    androidTestImplementation(libs.androidxTestCoreKtx)
+    androidTestImplementation(libs.androidxTestRunner)
+    androidTestImplementation(libs.androidxTestRules)
+    androidTestImplementation(libs.androidxTestEspressoCore)
+    androidTestImplementation(libs.androidxTestEspressoWeb)
+    androidTestImplementation(libs.androidxTestEspressoIntents)
+    androidTestImplementation(libs.androidxTestUiAutomator)
+    androidTestImplementation(platform(libs.androidxComposeBom))
+    androidTestImplementation(libs.androidxComposeUiTestJunit4)
+    debugImplementation(libs.androidxComposeUiTestManifest)
+
+    // Allure reporting for tests
+    androidTestImplementation(libs.allureKotlinAndroid)
+    androidTestImplementation(libs.allureKotlinModel)
+    androidTestImplementation(libs.allureKotlinCommons)
+
+    // OkHttp for Allure API client
+    androidTestImplementation(libs.okhttp)
+    androidTestImplementation(libs.kotlinxSerializationJson)
+
+    // Hilt testing
+    androidTestImplementation(libs.hiltAndroidTesting)
+    kspAndroidTest(libs.hiltCompiler)
 }

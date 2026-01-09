@@ -1,0 +1,55 @@
+{
+  "packageName": "io.ton.walletkit.api",
+  "modelPackage": "io.ton.walletkit.api.generated",
+  "serializationLibrary": "kotlinx_serialization",
+  "dateLibrary": "kotlinx-datetime",
+  "collectionType": "list",
+  "enumPropertyNaming": "original",
+  "sourceFolder": "src/main/kotlin",
+  "nonPublicApi": false,
+  "modelMutable": false,
+  "parcelizeModels": false,
+  "sortModelPropertiesByRequiredFlag": true,
+  "modelNamePrefix": "TON",
+  "modelNameMappings": {
+    "TONTransferRequest": "TONTransferRequest"
+  },
+  "typeMappings": {
+    "number": "kotlin.Int",
+    "integer": "kotlin.Int",
+    "int64": "kotlin.Long",
+    "int32": "kotlin.Int",
+    "int16": "kotlin.Short",
+    "int8": "kotlin.Byte",
+    "uint": "kotlin.Int",
+    "uint64": "kotlin.Long",
+    "uint32": "kotlin.Int",
+    "uint16": "kotlin.Int",
+    "uint8": "kotlin.Int",
+    "bigInt": "kotlin.String",
+    "url": "kotlin.String",
+    "byte": "kotlin.String",
+    "ByteArray": "kotlin.String",
+    "object": "kotlinx.serialization.json.JsonElement",
+    "AnyType": "kotlinx.serialization.json.JsonElement",
+    "UserFriendlyAddress": "io.ton.walletkit.model.TONUserFriendlyAddress",
+    "Hex": "io.ton.walletkit.model.TONHex",
+    "LogicalTime": "kotlin.String",
+    "Base64String": "io.ton.walletkit.model.TONBase64",
+    "TokenAmount": "kotlin.String"
+  },
+  "importMappings": {
+    "kotlinx.serialization.json.JsonObject": "kotlinx.serialization.json.JsonObject",
+    "kotlinx.serialization.json.JsonElement": "kotlinx.serialization.json.JsonElement",
+    "io.ton.walletkit.model.TONUserFriendlyAddress": "io.ton.walletkit.model.TONUserFriendlyAddress",
+    "io.ton.walletkit.model.TONBase64": "io.ton.walletkit.model.TONBase64",
+    "io.ton.walletkit.model.TONHex": "io.ton.walletkit.model.TONHex"
+  },
+  "schemaMappings": {
+    "UserFriendlyAddress": "io.ton.walletkit.model.TONUserFriendlyAddress",
+    "Hex": "io.ton.walletkit.model.TONHex",
+    "LogicalTime": "kotlin.String",
+    "Base64String": "io.ton.walletkit.model.TONBase64",
+    "TokenAmount": "kotlin.String"
+  }
+}

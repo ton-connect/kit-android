@@ -21,18 +21,20 @@
  */
 package io.ton.walletkit.engine.parsing
 
+import io.ton.walletkit.api.generated.TONDisconnectionEvent
+import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
+import io.ton.walletkit.api.generated.TONRequestErrorEvent
+import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
+import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
+import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.engine.WalletKitEngine
-import io.ton.walletkit.event.ConnectRequestEvent
-import io.ton.walletkit.event.SignDataRequestEvent
 import io.ton.walletkit.event.TONWalletKitEvent
-import io.ton.walletkit.event.TransactionRequestEvent
 import io.ton.walletkit.exceptions.JSValueConversionException
 import io.ton.walletkit.internal.constants.EventTypeConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
-import io.ton.walletkit.model.DAppInfo
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
@@ -56,23 +58,20 @@ internal class EventParser(
         when (type) {
             EventTypeConstants.EVENT_CONNECT_REQUEST -> {
                 try {
-                    val event = json.decodeFromString<ConnectRequestEvent>(data.toString())
-                    // Normalize manifest URL to include https:// if it's just a domain
-                    val normalizedEvent = normalizeManifestUrl(event)
-                    val dAppInfo = parseDAppInfo(data)
-                    val permissions = normalizedEvent.preview?.permissions ?: emptyList()
-                    val request =
-                        TONWalletConnectionRequest(
-                            dAppInfo = dAppInfo,
-                            permissions = permissions,
-                            event = normalizedEvent,
-                            handler = engine,
-                        )
+                    val rawJson = data.toString()
+                    Logger.d(TAG, "Parsing connect request - raw JSON: $rawJson")
+                    val event = json.decodeFromString<TONConnectionRequestEvent>(rawJson)
+                    Logger.d(TAG, "Parsing connect request - preview: ${event.preview}, dAppInfo: ${event.dAppInfo}")
+                    Logger.d(TAG, "Parsing connect request - request field: ${event.request}, requestedItems: ${event.requestedItems}")
+                    val request = TONWalletConnectionRequest(
+                        event = event,
+                        handler = engine,
+                    )
                     TONWalletKitEvent.ConnectRequest(request)
                 } catch (e: SerializationException) {
                     Logger.e(TAG, ERROR_FAILED_PARSE_CONNECT_REQUEST, e)
                     throw JSValueConversionException.DecodingError(
-                        message = "Failed to decode ConnectRequestEvent: ${e.message}",
+                        message = "Failed to decode TONConnectionRequestEvent: ${e.message}",
                         cause = e,
                     )
                 } catch (e: Exception) {
@@ -86,20 +85,16 @@ internal class EventParser(
 
             EventTypeConstants.EVENT_TRANSACTION_REQUEST -> {
                 try {
-                    val event = json.decodeFromString<TransactionRequestEvent>(data.toString())
-                    val dAppInfo = parseDAppInfo(data)
-
-                    val request =
-                        TONWalletTransactionRequest(
-                            dAppInfo = dAppInfo,
-                            event = event,
-                            handler = engine,
-                        )
+                    val event = json.decodeFromString<TONTransactionRequestEvent>(data.toString())
+                    val request = TONWalletTransactionRequest(
+                        event = event,
+                        handler = engine,
+                    )
                     TONWalletKitEvent.TransactionRequest(request)
                 } catch (e: SerializationException) {
                     Logger.e(TAG, ERROR_FAILED_PARSE_TRANSACTION_REQUEST, e)
                     throw JSValueConversionException.DecodingError(
-                        message = "Failed to decode TransactionRequestEvent: ${e.message}",
+                        message = "Failed to decode TONTransactionRequestEvent: ${e.message}",
                         cause = e,
                     )
                 } catch (e: Exception) {
@@ -113,20 +108,16 @@ internal class EventParser(
 
             EventTypeConstants.EVENT_SIGN_DATA_REQUEST -> {
                 try {
-                    val event = json.decodeFromString<SignDataRequestEvent>(data.toString())
-                    val dAppInfo = parseDAppInfo(data)
-                    val request =
-                        TONWalletSignDataRequest(
-                            dAppInfo = dAppInfo,
-                            walletAddress = event.walletAddress,
-                            event = event,
-                            handler = engine,
-                        )
+                    val event = json.decodeFromString<TONSignDataRequestEvent>(data.toString())
+                    val request = TONWalletSignDataRequest(
+                        event = event,
+                        handler = engine,
+                    )
                     TONWalletKitEvent.SignDataRequest(request)
                 } catch (e: SerializationException) {
                     Logger.e(TAG, ERROR_FAILED_PARSE_SIGN_DATA_REQUEST, e)
                     throw JSValueConversionException.DecodingError(
-                        message = "Failed to decode SignDataRequestEvent: ${e.message}",
+                        message = "Failed to decode TONSignDataRequestEvent: ${e.message}",
                         cause = e,
                     )
                 } catch (e: Exception) {
@@ -144,31 +135,41 @@ internal class EventParser(
                         ?: data.optNullableString(JsonConstants.KEY_ID)
                         ?: return null
                 Logger.d(TAG, "Disconnect event received. sessionId=$sessionId, dataKeys=${data.keys().asSequence().toList()}")
-                TONWalletKitEvent.Disconnect(io.ton.walletkit.event.DisconnectEvent(sessionId))
+                TONWalletKitEvent.Disconnect(
+                    TONDisconnectionEvent(
+                        id = sessionId,
+                        sessionId = sessionId,
+                        preview = TONDisconnectionEventPreview(),
+                    ),
+                )
             }
 
-            EventTypeConstants.EVENT_BROWSER_PAGE_STARTED -> {
-                val url = data.optString("url", "")
-                TONWalletKitEvent.BrowserPageStarted(url)
+            EventTypeConstants.EVENT_REQUEST_ERROR -> {
+                Logger.d(TAG, "🔴 Parsing EVENT_REQUEST_ERROR event. Data keys: ${data.keys().asSequence().toList()}")
+                try {
+                    val event = json.decodeFromString<TONRequestErrorEvent>(data.toString())
+                    Logger.d(TAG, "✅ Successfully parsed RequestError event: method=${event.data["method"]}, code=${event.error.code}, message=${event.error.message}")
+                    TONWalletKitEvent.RequestError(event)
+                } catch (e: SerializationException) {
+                    Logger.e(TAG, "Failed to decode RequestErrorEvent", e)
+                    throw JSValueConversionException.DecodingError(
+                        message = "Failed to decode RequestErrorEvent: ${e.message}",
+                        cause = e,
+                    )
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to parse RequestErrorEvent", e)
+                    throw JSValueConversionException.Unknown(
+                        message = "Failed to parse RequestErrorEvent: ${e.message}",
+                        cause = e,
+                    )
+                }
             }
 
-            EventTypeConstants.EVENT_BROWSER_PAGE_FINISHED -> {
-                val url = data.optString("url", "")
-                TONWalletKitEvent.BrowserPageFinished(url)
-            }
-
-            EventTypeConstants.EVENT_BROWSER_ERROR -> {
-                val message = data.optString("message", "Unknown error")
-                TONWalletKitEvent.BrowserError(message)
-            }
-
-            EventTypeConstants.EVENT_BROWSER_BRIDGE_REQUEST -> {
-                val messageId = data.optString("messageId", "")
-                val method = data.optString("method", "")
-                val request = data.optString("request", "")
-                TONWalletKitEvent.BrowserBridgeRequest(messageId, method, request)
-            }
-
+            // Internal browser events - not exposed to public API
+            EventTypeConstants.EVENT_BROWSER_PAGE_STARTED,
+            EventTypeConstants.EVENT_BROWSER_PAGE_FINISHED,
+            EventTypeConstants.EVENT_BROWSER_ERROR,
+            EventTypeConstants.EVENT_BROWSER_BRIDGE_REQUEST,
             EventTypeConstants.EVENT_STATE_CHANGED,
             EventTypeConstants.EVENT_WALLET_STATE_CHANGED,
             EventTypeConstants.EVENT_SESSIONS_CHANGED,
@@ -176,43 +177,6 @@ internal class EventParser(
 
             else -> null
         }
-
-    private fun parseDAppInfo(data: JSONObject): DAppInfo? {
-        // Try to get dApp name from multiple sources
-        val dAppName =
-            data.optNullableString(ResponseConstants.KEY_DAPP_NAME)
-                ?: data.optJSONObject(ResponseConstants.KEY_MANIFEST)?.optNullableString(JsonConstants.KEY_NAME)
-                ?: data.optJSONObject(ResponseConstants.KEY_PREVIEW)?.optJSONObject(ResponseConstants.KEY_MANIFEST)?.optNullableString(JsonConstants.KEY_NAME)
-
-        // Try to get URLs from multiple sources
-        val manifest =
-            data.optJSONObject(ResponseConstants.KEY_PREVIEW)?.optJSONObject(ResponseConstants.KEY_MANIFEST)
-                ?: data.optJSONObject(ResponseConstants.KEY_MANIFEST)
-
-        val dAppUrl =
-            data.optNullableString(ResponseConstants.KEY_DAPP_URL_ALT)
-                ?: manifest?.optNullableString(ResponseConstants.KEY_URL) ?: ""
-
-        val iconUrl =
-            data.optNullableString(ResponseConstants.KEY_DAPP_ICON_URL)
-                ?: manifest?.optNullableString(ResponseConstants.KEY_ICON_URL_ALT)
-
-        val manifestUrl =
-            data.optNullableString(ResponseConstants.KEY_MANIFEST_URL_ALT)
-                ?: manifest?.optNullableString(ResponseConstants.KEY_URL)
-
-        // Only return null if we have absolutely no dApp information
-        if (dAppName == null && dAppUrl.isEmpty()) {
-            return null
-        }
-
-        return DAppInfo(
-            name = dAppName ?: dAppUrl.takeIf { it.isNotEmpty() } ?: "Unknown dApp",
-            url = dAppUrl,
-            iconUrl = iconUrl,
-            manifestUrl = manifestUrl,
-        )
-    }
 
     private fun JSONObject.optNullableString(key: String): String? {
         val value = opt(key)
@@ -222,25 +186,10 @@ internal class EventParser(
         }
     }
 
-    /**
-     * Normalizes the manifest URL in a ConnectRequestEvent to include https:// if it's just a domain.
-     * The JS bridge may pass just the domain (e.g., "toncommunity.org") instead of a full URL.
-     */
-    private fun normalizeManifestUrl(event: ConnectRequestEvent): ConnectRequestEvent {
-        val manifestUrl = event.preview?.manifest?.url
-        if (manifestUrl.isNullOrEmpty()) return event
-        if (manifestUrl.startsWith("http://") || manifestUrl.startsWith("https://")) return event
-
-        val normalizedUrl = "https://$manifestUrl"
-        val normalizedManifest = event.preview?.manifest?.copy(url = normalizedUrl)
-        val normalizedPreview = event.preview?.copy(manifest = normalizedManifest)
-        return event.copy(preview = normalizedPreview)
-    }
-
     private companion object {
         private const val TAG = LogConstants.TAG_WEBVIEW_ENGINE
-        private const val ERROR_FAILED_PARSE_CONNECT_REQUEST = "Failed to parse ConnectRequestEvent"
-        private const val ERROR_FAILED_PARSE_TRANSACTION_REQUEST = "Failed to parse TransactionRequestEvent"
-        private const val ERROR_FAILED_PARSE_SIGN_DATA_REQUEST = "Failed to parse SignDataRequestEvent"
+        private const val ERROR_FAILED_PARSE_CONNECT_REQUEST = "Failed to parse TONConnectionRequestEvent"
+        private const val ERROR_FAILED_PARSE_TRANSACTION_REQUEST = "Failed to parse TONTransactionRequestEvent"
+        private const val ERROR_FAILED_PARSE_SIGN_DATA_REQUEST = "Failed to parse TONSignDataRequestEvent"
     }
 }

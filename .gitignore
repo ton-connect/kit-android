@@ -4,6 +4,10 @@ dist-android-quickjs/
 
 # Dependencies
 node_modules/
+/walletkit/
+
+# Generated API models (regenerated from spec)
+**/api/generated/
 
 # macOS
 .DS_Store
@@ -48,6 +52,7 @@ gradle.properties
 JITPACK_QUICKSTART.md
 PUBLISHING_GUIDE.md
 gradle.properties.template
+Scripts/generate-api/generated/
 
 # Build logs
 *.log
@@ -56,3 +61,4 @@ build-js-bundles.sh
 
 # Source maps (generated, can be regenerated from build)
 *.map
+sdk-test-utility/.idea/

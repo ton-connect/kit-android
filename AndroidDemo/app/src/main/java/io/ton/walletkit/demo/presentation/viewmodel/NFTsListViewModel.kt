@@ -25,7 +25,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
-import io.ton.walletkit.model.TONNFTItem
+import io.ton.walletkit.api.generated.TONNFT
+import io.ton.walletkit.api.generated.TONNFTsRequest
+import io.ton.walletkit.api.generated.TONPagination
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,8 +43,8 @@ class NFTsListViewModel(
     private val _state = MutableStateFlow<NFTState>(NFTState.Initial)
     val state: StateFlow<NFTState> = _state.asStateFlow()
 
-    private val _nfts = MutableStateFlow<List<TONNFTItem>>(emptyList())
-    val nfts: StateFlow<List<TONNFTItem>> = _nfts.asStateFlow()
+    private val _nfts = MutableStateFlow<List<TONNFT>>(emptyList())
+    val nfts: StateFlow<List<TONNFT>> = _nfts.asStateFlow()
 
     private val _isLoadingMore = MutableStateFlow(false)
     val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
@@ -54,12 +56,12 @@ class NFTsListViewModel(
     private var loadJob: Job? = null
 
     init {
-        Log.d("NFTsListViewModel", "Created for wallet: ${wallet.address?.value}")
+        Log.d("NFTsListViewModel", "Created for wallet: ${wallet.address.value}")
     }
 
     override fun onCleared() {
         super.onCleared()
-        Log.d("NFTsListViewModel", "Cleared for wallet: ${wallet.address?.value}")
+        Log.d("NFTsListViewModel", "Cleared for wallet: ${wallet.address.value}")
         loadJob?.cancel()
     }
 
@@ -77,17 +79,19 @@ class NFTsListViewModel(
             return
         }
 
-        Log.d("NFTsListViewModel", "Starting loadNFTs for wallet: ${wallet.address?.value}")
-        loadJob?.cancel() // Cancel any existing load operation
+        Log.d("NFTsListViewModel", "Starting loadNFTs for wallet: ${wallet.address.value}")
+        loadJob?.cancel()
         loadJob = viewModelScope.launch {
             try {
                 _state.value = NFTState.Loading
 
-                val nfts = wallet.getNFTItems(limit = limit, offset = 0)
+                val request = TONNFTsRequest(pagination = TONPagination(limit = limit, offset = 0))
+                val nftsResponse = wallet.nfts(request)
+                val nfts = nftsResponse.nfts
 
                 Log.d("NFTsListViewModel", "Loaded ${nfts.size} NFTs")
                 nfts.forEachIndexed { index, nft ->
-                    Log.d("NFTsListViewModel", "NFT[$index]: address=${nft.address}, name=${nft.metadata?.name}, image=${nft.metadata?.image}")
+                    Log.d("NFTsListViewModel", "NFT[$index]: address=${nft.address.value}, name=${nft.info?.name}, image=${nft.info?.image?.url}")
                 }
 
                 if (nfts.isEmpty()) {
@@ -119,17 +123,16 @@ class NFTsListViewModel(
             try {
                 _isLoadingMore.value = true
 
-                val nfts = wallet.getNFTItems(
-                    limit = limit,
-                    offset = currentOffset,
-                )
+                val request = TONNFTsRequest(pagination = TONPagination(limit = limit, offset = currentOffset))
+                val nftsResponse = wallet.nfts(request)
+                val nfts = nftsResponse.nfts
 
                 Log.d("NFTsListViewModel", "Loaded ${nfts.size} more NFTs")
 
                 _canLoadMore.value = nfts.size == limit
                 // Only add NFTs that don't already exist (filter duplicates by address)
-                val existingAddresses = _nfts.value.map { it.address }.toSet()
-                val newNfts = nfts.filterNot { it.address in existingAddresses }
+                val existingAddresses = _nfts.value.map { it.address.value }.toSet()
+                val newNfts = nfts.filterNot { it.address.value in existingAddresses }
                 _nfts.value = _nfts.value + newNfts
 
                 Log.d("NFTsListViewModel", "Added ${newNfts.size} new NFTs (filtered ${nfts.size - newNfts.size} duplicates), canLoadMore=${_canLoadMore.value}")

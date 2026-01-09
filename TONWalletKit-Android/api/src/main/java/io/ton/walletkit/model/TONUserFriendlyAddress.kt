@@ -21,7 +21,13 @@
  */
 package io.ton.walletkit.model
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import org.ton.block.AddrStd
 
 /**
@@ -37,7 +43,7 @@ import org.ton.block.AddrStd
  *
  * @property value The base64-encoded user-friendly address string
  */
-@Serializable
+@Serializable(with = TONUserFriendlyAddressSerializer::class)
 data class TONUserFriendlyAddress(
     val value: String,
 ) {
@@ -170,5 +176,21 @@ data class TONUserFriendlyAddress(
             AddrStd.parseUserFriendly(userFriendlyAddress)
             return TONUserFriendlyAddress(userFriendlyAddress)
         }
+    }
+}
+
+/**
+ * Serializer for TONUserFriendlyAddress that serializes/deserializes as a plain string.
+ */
+internal object TONUserFriendlyAddressSerializer : KSerializer<TONUserFriendlyAddress> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("TONUserFriendlyAddress", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: TONUserFriendlyAddress) {
+        encoder.encodeString(value.value)
+    }
+
+    override fun deserialize(decoder: Decoder): TONUserFriendlyAddress {
+        return TONUserFriendlyAddress(decoder.decodeString())
     }
 }

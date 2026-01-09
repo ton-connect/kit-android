@@ -21,28 +21,27 @@
  */
 package io.ton.walletkit.demo.domain.model
 
-import io.ton.walletkit.model.TONNetwork
+import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONNetwork
 
 private const val BRIDGE_MAINNET = "-239"
 private const val BRIDGE_TESTNET = "-3"
 
 /**
- * Convert SDK network enum to the string value we persist in demo storage.
+ * Convert SDK network to the string value we persist in demo storage.
  */
-fun TONNetwork.toBridgeValue(): String = when (this) {
-    TONNetwork.MAINNET -> BRIDGE_MAINNET
-    TONNetwork.TESTNET -> BRIDGE_TESTNET
-}
+fun TONNetwork.toBridgeValue(): String = this.chainId
 
 /**
- * Parse a persisted network string (bridge manifest style or chain id) into SDK enum.
+ * Parse a persisted network string (bridge manifest style or chain id) into SDK network.
  */
 fun String?.toTonNetwork(fallback: TONNetwork = TONNetwork.MAINNET): TONNetwork {
-    val normalized = this?.trim()?.lowercase()
+    val normalized = this?.trim()
     return when (normalized) {
-        BRIDGE_MAINNET -> TONNetwork.MAINNET
-        BRIDGE_TESTNET -> TONNetwork.TESTNET
+        BRIDGE_MAINNET, "mainnet" -> TONNetwork.MAINNET
+        BRIDGE_TESTNET, "testnet" -> TONNetwork.TESTNET
         null, "" -> fallback
-        else -> TONNetwork.fromString(normalized) ?: fallback
+        else -> fallback
     }
 }

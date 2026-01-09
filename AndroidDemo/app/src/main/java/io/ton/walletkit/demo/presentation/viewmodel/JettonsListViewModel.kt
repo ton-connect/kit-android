@@ -25,8 +25,11 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
-import io.ton.walletkit.model.TONJettonTransferParams
-import io.ton.walletkit.model.TONJettonWallet
+import io.ton.walletkit.api.generated.TONJetton
+import io.ton.walletkit.api.generated.TONJettonsRequest
+import io.ton.walletkit.api.generated.TONJettonsTransferRequest
+import io.ton.walletkit.api.generated.TONPagination
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,8 +47,8 @@ class JettonsListViewModel(
     private val _state = MutableStateFlow<JettonState>(JettonState.Initial)
     val state: StateFlow<JettonState> = _state.asStateFlow()
 
-    private val _jettons = MutableStateFlow<List<TONJettonWallet>>(emptyList())
-    val jettons: StateFlow<List<TONJettonWallet>> = _jettons.asStateFlow()
+    private val _jettons = MutableStateFlow<List<TONJetton>>(emptyList())
+    val jettons: StateFlow<List<TONJetton>> = _jettons.asStateFlow()
 
     private val _isLoadingMore = MutableStateFlow(false)
     val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
@@ -60,12 +63,12 @@ class JettonsListViewModel(
     private var loadJob: Job? = null
 
     init {
-        Log.d(TAG, "Created for wallet: ${wallet.address?.value}")
+        Log.d(TAG, "Created for wallet: ${wallet.address.value}")
     }
 
     override fun onCleared() {
         super.onCleared()
-        Log.d(TAG, "Cleared for wallet: ${wallet.address?.value}")
+        Log.d(TAG, "Cleared for wallet: ${wallet.address.value}")
         loadJob?.cancel()
     }
 
@@ -86,18 +89,19 @@ class JettonsListViewModel(
             return
         }
 
-        Log.d(TAG, "Starting loadJettons for wallet: ${wallet.address?.value}")
+        Log.d(TAG, "Starting loadJettons for wallet: ${wallet.address.value}")
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             try {
                 _state.value = JettonState.Loading
 
-                val jettonsResponse = wallet.getJettons(limit = limit, offset = 0)
-                val jettons = jettonsResponse.items
+                val request = TONJettonsRequest(pagination = TONPagination(limit = limit, offset = 0))
+                val jettonsResponse = wallet.jettons(request)
+                val jettons = jettonsResponse.jettons
 
                 Log.d(TAG, "Loaded ${jettons.size} jettons")
-                jettons.forEachIndexed { index, jettonWallet ->
-                    Log.d(TAG, "Jetton[$index]: address=${jettonWallet.jettonAddress}, balance=${jettonWallet.balance}, name=${jettonWallet.jetton?.name}")
+                jettons.forEachIndexed { index, jetton ->
+                    Log.d(TAG, "Jetton[$index]: address=${jetton.walletAddress.value}, balance=${jetton.balance}, name=${jetton.info.name}")
                 }
 
                 if (jettons.isEmpty()) {
@@ -133,18 +137,16 @@ class JettonsListViewModel(
             try {
                 _isLoadingMore.value = true
 
-                val jettonsResponse = wallet.getJettons(
-                    limit = limit,
-                    offset = currentOffset,
-                )
-                val jettons = jettonsResponse.items
+                val request = TONJettonsRequest(pagination = TONPagination(limit = limit, offset = currentOffset))
+                val jettonsResponse = wallet.jettons(request)
+                val jettons = jettonsResponse.jettons
 
                 Log.d(TAG, "Loaded ${jettons.size} more jettons")
 
                 _canLoadMore.value = jettons.size == limit
                 // Filter duplicates by jetton address
-                val existingAddresses = _jettons.value.map { it.jettonAddress }.toSet()
-                val newJettons = jettons.filterNot { it.jettonAddress in existingAddresses }
+                val existingAddresses = _jettons.value.map { it.walletAddress.value }.toSet()
+                val newJettons = jettons.filterNot { it.walletAddress.value in existingAddresses }
                 _jettons.value = _jettons.value + newJettons
 
                 Log.d(TAG, "Added ${newJettons.size} new jettons (filtered ${jettons.size - newJettons.size} duplicates), canLoadMore=${_canLoadMore.value}")
@@ -185,22 +187,22 @@ class JettonsListViewModel(
             try {
                 _transferError.value = null
 
-                val transferParams = TONJettonTransferParams(
-                    toAddress = recipient,
-                    jettonAddress = jettonAddress,
-                    amount = amount,
+                val transferRequest = TONJettonsTransferRequest(
+                    jettonAddress = TONUserFriendlyAddress(jettonAddress),
+                    recipientAddress = TONUserFriendlyAddress(recipient),
+                    transferAmount = amount,
                     comment = comment.takeIf { it.isNotBlank() },
                 )
 
                 Log.i(TAG, "Creating jetton transfer transaction: jetton=$jettonAddress, to=$recipient, amount=$amount")
 
                 // Create the jetton transfer transaction (step 1)
-                val transactionBoc = wallet.createTransferJettonTransaction(transferParams)
+                val transactionRequest = wallet.transferJettonTransaction(transferRequest)
 
                 Log.i(TAG, "Jetton transfer transaction created, sending...")
 
                 // Send the transaction (step 2)
-                wallet.sendTransaction(transactionBoc)
+                wallet.send(transactionRequest)
 
                 Log.i(TAG, "Jetton transfer transaction sent successfully")
 

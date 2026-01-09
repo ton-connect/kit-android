@@ -113,6 +113,11 @@ internal object JsonConstants {
      */
     const val KEY_BRIDGE_NAME = "bridgeName"
 
+    /**
+     * JSON key for disabling network send (dev/testing option).
+     */
+    const val KEY_DISABLE_NETWORK_SEND = "disableNetworkSend"
+
     // Wallet manifest keys
     /**
      * JSON key for wallet manifest object.
