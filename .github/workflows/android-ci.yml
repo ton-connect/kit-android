@@ -64,8 +64,18 @@ jobs:
     name: Test & Build SDK
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout kit-android code
         uses: actions/checkout@v4
+
+      - name: Checkout kit repository
+        uses: actions/checkout@v4
+        with:
+          repository: ton-connect/kit
+          ref: fix/android-dto  # Branch with RequestError and nullable fixes
+          path: ton-repo
+          sparse-checkout: |
+            packages/walletkit
+            packages/walletkit-android-bridge
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -77,13 +87,50 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install openapi-generator
+        run: |
+          npm install -g @openapitools/openapi-generator-cli
+          # Create symlink for compatibility with script
+          ln -sf "$(npm config get prefix)/bin/openapi-generator-cli" "$(npm config get prefix)/bin/openapi-generator" || true
+
+      - name: Generate Kotlin models from walletkit API
+        run: |
+          chmod +x Scripts/generate-api/generate-api-models.sh
+          # Run with verbose output to debug
+          bash -x ./Scripts/generate-api/generate-api-models.sh ./ton-repo/packages/walletkit
+
+      - name: Build TypeScript Bridge Bundle
+        run: |
+          cd ton-repo
+          pnpm install
+          pnpm turbo run build --filter=walletkit-android-bridge --force
+
+      - name: Copy Bridge Bundle to dist-android
+        run: |
+          mkdir -p dist-android
+          cp ton-repo/packages/walletkit-android-bridge/dist/* dist-android/
+
       - name: Grant execute permission for gradlew
         working-directory: TONWalletKit-Android
         run: chmod +x gradlew
 
+      - name: Sync WebView Assets
+        working-directory: TONWalletKit-Android
+        run: ./gradlew syncWalletKitWebViewAssets
+
       - name: Run unit tests
         working-directory: TONWalletKit-Android
-        run: ./gradlew :impl:testWebviewReleaseUnitTest
+        run: ./gradlew :impl:testWebviewDebugUnitTest
 
       - name: Build WebView variant (Release)
         working-directory: TONWalletKit-Android
@@ -265,6 +312,52 @@ jobs:
           disable-animations: true
           script: echo "Generated AVD snapshot for caching."
 
+      - name: Create test runner script
+        env:
+          TEST_SUITES: ${{ matrix.suites }}
+          ALLURE_TOKEN: ${{ secrets.ALLURE_API_TOKEN }}
+          TEST_MNEMONIC: ${{ secrets.WALLET_MNEMONIC }}
+          DISABLE_NETWORK_SEND: ${{ secrets.DISABLE_NETWORK_SEND }}
+        run: |
+          # Embed variables directly into the script to avoid shell escaping issues
+          cat > /tmp/run_tests.sh << SCRIPT_END
+          #!/bin/bash
+          set -e
+          FAILED=0
+          
+          TEST_SUITES="$TEST_SUITES"
+          ALLURE_TOKEN="$ALLURE_TOKEN"
+          TEST_MNEMONIC="$TEST_MNEMONIC"
+          DISABLE_NETWORK_SEND="$DISABLE_NETWORK_SEND"
+          
+          for SUITE in \$(echo "\$TEST_SUITES" | tr ',' ' '); do
+            echo "=========================================="
+            echo "Running test suite: \$SUITE"
+            echo "=========================================="
+            
+            # Use printf to build command with proper escaping for adb shell
+            adb shell "am instrument -w \\
+              -e class io.ton.walletkit.demo.e2e.tests.\$SUITE \\
+              -e allureToken '\$ALLURE_TOKEN' \\
+              -e testMnemonic '\$TEST_MNEMONIC' \\
+              -e disableNetworkSend '\$DISABLE_NETWORK_SEND' \\
+              io.ton.walletkit.demo.test/androidx.test.runner.AndroidJUnitRunner" 2>&1 | tee "/tmp/test_output_\$SUITE.txt" || true
+            
+            if grep -q "FAILURES" "/tmp/test_output_\$SUITE.txt"; then
+              echo "::error::E2E tests failed for \$SUITE"
+              FAILED=1
+            fi
+            
+            if grep -q "Error in" "/tmp/test_output_\$SUITE.txt"; then
+              echo "::error::E2E tests had errors for \$SUITE"
+              FAILED=1
+            fi
+          done
+          
+          exit \$FAILED
+          SCRIPT_END
+          chmod +x /tmp/run_tests.sh
+
       - name: Run E2E tests - ${{ matrix.name }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -277,33 +370,7 @@ jobs:
           script: |
             adb install -r apks/app-debug.apk
             adb install -r apks/app-debug-androidTest.apk
-            
-            # Run each test suite assigned to this emulator
-            IFS=',' read -ra SUITES <<< "${{ matrix.suites }}"
-            FAILED=0
-            
-            for SUITE in "${SUITES[@]}"; do
-              echo "=========================================="
-              echo "Running test suite: $SUITE"
-              echo "=========================================="
-              
-              OUTPUT=$(adb shell am instrument -w -e class io.ton.walletkit.demo.e2e.tests.$SUITE -e allureToken "${{ secrets.ALLURE_API_TOKEN }}" -e testMnemonic "${{ secrets.WALLET_MNEMONIC }}" -e disableNetworkSend "${{ secrets.DISABLE_NETWORK_SEND }}" io.ton.walletkit.demo.test/androidx.test.runner.AndroidJUnitRunner 2>&1)
-              echo "$OUTPUT"
-              
-              if echo "$OUTPUT" | grep -q "FAILURES"; then
-                echo "::error::E2E tests failed for $SUITE"
-                FAILED=1
-              fi
-              
-              if echo "$OUTPUT" | grep -q "Error in"; then
-                echo "::error::E2E tests had errors for $SUITE"
-                FAILED=1
-              fi
-            done
-            
-            if [ $FAILED -eq 1 ]; then
-              exit 1
-            fi
+            /tmp/run_tests.sh
 
       - name: Upload test results
         if: always()
