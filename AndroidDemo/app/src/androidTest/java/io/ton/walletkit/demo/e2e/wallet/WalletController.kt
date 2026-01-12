@@ -44,6 +44,13 @@ import io.ton.walletkit.demo.presentation.util.TestTags
  */
 class WalletController(composeTestRule: ComposeTestRule? = null) {
 
+    companion object {
+        // Timeouts - longer for CI emulators which are slower than local machines
+        const val SHEET_APPEAR_TIMEOUT = 20_000L  // Wait for sheets to appear (depends on WebView/network)
+        const val BUTTON_ENABLE_TIMEOUT = 10_000L // Wait for buttons to become enabled
+        const val UI_IDLE_TIMEOUT = 5_000L        // General UI idle/animation timeout
+    }
+
     private lateinit var composeTestRule: ComposeTestRule
     private var androidComposeTestRule: AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>? = null
 
@@ -418,7 +425,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
      */
     @Step("Wait for wallet home screen")
     fun waitForWalletHome() {
-        composeTestRule.waitUntil(10000) {
+        composeTestRule.waitUntil(SHEET_APPEAR_TIMEOUT) {
             composeTestRule.onAllNodesWithTag(TestTags.BROWSER_NO_INJECT_BUTTON)
                 .fetchSemanticsNodes().isNotEmpty()
         }
@@ -434,7 +441,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     @Step("Approve connection request")
     fun approveConnect() {
         // Wait for connect request sheet
-        composeTestRule.waitUntil(10000) {
+        composeTestRule.waitUntil(SHEET_APPEAR_TIMEOUT) {
             composeTestRule.onAllNodesWithTag(TestTags.CONNECT_REQUEST_SHEET)
                 .fetchSemanticsNodes().isNotEmpty()
         }
@@ -444,7 +451,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
         composeTestRule.waitForIdle()
 
         // Wait for button to be enabled (may take time to verify manifest)
-        composeTestRule.waitUntil(5000) {
+        composeTestRule.waitUntil(BUTTON_ENABLE_TIMEOUT) {
             try {
                 composeTestRule.onNodeWithTag(TestTags.CONNECT_APPROVE_BUTTON)
                     .assertIsEnabled()
@@ -467,7 +474,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     @Step("Reject connection request")
     fun rejectConnect() {
         // Wait for connect request sheet
-        composeTestRule.waitUntil(10000) {
+        composeTestRule.waitUntil(SHEET_APPEAR_TIMEOUT) {
             composeTestRule.onAllNodesWithTag(TestTags.CONNECT_REQUEST_SHEET)
                 .fetchSemanticsNodes().isNotEmpty()
         }
@@ -490,7 +497,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     fun approveTransaction() {
         Log.d("WalletController", "approveTransaction: waiting for sheet")
         // Wait for transaction request sheet
-        composeTestRule.waitUntil(10000) {
+        composeTestRule.waitUntil(SHEET_APPEAR_TIMEOUT) {
             composeTestRule.onAllNodesWithTag(TestTags.TRANSACTION_REQUEST_SHEET)
                 .fetchSemanticsNodes().isNotEmpty()
         }
@@ -511,7 +518,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     @Step("Reject transaction request")
     fun rejectTransaction() {
         // Wait for transaction request sheet
-        composeTestRule.waitUntil(10000) {
+        composeTestRule.waitUntil(SHEET_APPEAR_TIMEOUT) {
             composeTestRule.onAllNodesWithTag(TestTags.TRANSACTION_REQUEST_SHEET)
                 .fetchSemanticsNodes().isNotEmpty()
         }
@@ -529,7 +536,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     @Step("Approve sign data request")
     fun approveSignData() {
         // Wait for sign data sheet
-        composeTestRule.waitUntil(10000) {
+        composeTestRule.waitUntil(SHEET_APPEAR_TIMEOUT) {
             composeTestRule.onAllNodesWithTag(TestTags.SIGN_DATA_SHEET)
                 .fetchSemanticsNodes().isNotEmpty()
         }
@@ -547,7 +554,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     @Step("Reject sign data request")
     fun rejectSignData() {
         // Wait for sign data sheet
-        composeTestRule.waitUntil(10000) {
+        composeTestRule.waitUntil(SHEET_APPEAR_TIMEOUT) {
             composeTestRule.onAllNodesWithTag(TestTags.SIGN_DATA_SHEET)
                 .fetchSemanticsNodes().isNotEmpty()
         }

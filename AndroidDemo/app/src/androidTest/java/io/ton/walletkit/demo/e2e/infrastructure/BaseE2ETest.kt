@@ -378,7 +378,7 @@ abstract class BaseE2ETest {
 
         if (expectConnectSheet) {
             step("Wait for connect request sheet") {
-                waitFor(10000L) { walletController.isConnectRequestVisible() }
+                waitFor(20000L) { walletController.isConnectRequestVisible() }
             }
 
             step(if (approve) "Approve connection" else "Reject connection") {
@@ -438,7 +438,7 @@ abstract class BaseE2ETest {
         }
 
         step("Wait for and approve connection") {
-            waitFor(10000L) { walletController.isConnectRequestVisible() }
+            waitFor(20000L) { walletController.isConnectRequestVisible() }
             walletController.approveConnect()
         }
 
