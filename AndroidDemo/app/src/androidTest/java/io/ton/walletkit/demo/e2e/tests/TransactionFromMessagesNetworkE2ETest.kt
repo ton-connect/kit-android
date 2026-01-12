@@ -87,9 +87,9 @@ class TransactionFromMessagesNetworkE2ETest : BaseE2ETest() {
         val connectUrl = dAppController.clickCopyLinkInModal()
         dAppController.closeBrowserFully()
         walletController.connectByUrl(connectUrl)
-        waitFor(timeoutMs = 10000) { walletController.isConnectRequestVisible() }
+        waitFor(timeoutMs = SHEET_APPEAR_TIMEOUT_MS) { walletController.isConnectRequestVisible() }
         walletController.approveConnect()
-        waitFor(timeoutMs = 5000) { !walletController.isConnectRequestVisible() }
+        waitFor(timeoutMs = UI_DISMISS_TIMEOUT_MS) { !walletController.isConnectRequestVisible() }
         isConnected = true
     }
 

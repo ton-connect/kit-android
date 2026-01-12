@@ -46,9 +46,9 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
     companion object {
         // Timeouts - longer for CI emulators which are slower than local machines
-        const val SHEET_APPEAR_TIMEOUT = 20_000L  // Wait for sheets to appear (depends on WebView/network)
-        const val BUTTON_ENABLE_TIMEOUT = 10_000L // Wait for buttons to become enabled
-        const val UI_IDLE_TIMEOUT = 5_000L        // General UI idle/animation timeout
+        const val SHEET_APPEAR_TIMEOUT = 30_000L // Wait for sheets to appear (depends on WebView/network)
+        const val BUTTON_ENABLE_TIMEOUT = 15_000L // Wait for buttons to become enabled
+        const val UI_IDLE_TIMEOUT = 10_000L // General UI idle/animation timeout
     }
 
     private lateinit var composeTestRule: ComposeTestRule

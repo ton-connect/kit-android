@@ -59,6 +59,33 @@ abstract class BaseE2ETest {
         // Default password used for tests
         const val TEST_PASSWORD = "testpass123"
 
+        // =====================================================================
+        // E2E Test Timeouts
+        // =====================================================================
+        // CI emulators are significantly slower than local machines.
+        // These timeouts are tuned for CI stability.
+
+        /** Timeout for UI elements that depend on WebView/network (sheets, dialogs) */
+        const val SHEET_APPEAR_TIMEOUT_MS = 30_000L
+
+        /** Timeout for transaction/connect request sheets to appear */
+        const val REQUEST_SHEET_TIMEOUT_MS = 25_000L
+
+        /** Timeout for waiting for dApp responses after wallet action */
+        const val DAPP_RESPONSE_TIMEOUT_MS = 20_000L
+
+        /** Timeout for waiting for SDK error events to propagate */
+        const val SDK_ERROR_EVENT_TIMEOUT_MS = 15_000L
+
+        /** Timeout for UI elements to disappear after action */
+        const val UI_DISMISS_TIMEOUT_MS = 10_000L
+
+        /** General wait timeout for simple UI states */
+        const val UI_STATE_TIMEOUT_MS = 10_000L
+
+        /** Short sleep for auto-reject processing */
+        const val AUTO_REJECT_PROCESS_MS = 3_000L
+
         /**
          * Test mnemonic for E2E tests.
          * This wallet should have sufficient balance for testing transactions.
@@ -289,7 +316,7 @@ abstract class BaseE2ETest {
 
         if (expectWalletPrompt) {
             step("Wait for transaction request") {
-                waitFor(15000L) { walletController.isTransactionRequestVisible() }
+                waitFor(REQUEST_SHEET_TIMEOUT_MS) { walletController.isTransactionRequestVisible() }
             }
 
             step(if (approve) "Approve transaction" else "Reject transaction") {
@@ -297,18 +324,18 @@ abstract class BaseE2ETest {
             }
 
             step("Wait for wallet to close transaction sheet") {
-                waitFor(5000L) { !walletController.isTransactionRequestVisible() }
+                waitFor(UI_DISMISS_TIMEOUT_MS) { !walletController.isTransactionRequestVisible() }
             }
 
             step("Wait for dApp to receive transaction response") {
                 dAppController.openBrowser()
                 dAppController.waitForDAppPage()
-                dAppController.waitForSendTxResponse(timeoutMs = 15000)
+                dAppController.waitForSendTxResponse(timeoutMs = DAPP_RESPONSE_TIMEOUT_MS)
             }
         } else {
             if (expectSdkError) {
                 step("Verify SDK received RequestError event for sendTransaction") {
-                    val error = RequestErrorTracker.waitForError(timeoutMs = 5000, method = "sendTransaction")
+                    val error = RequestErrorTracker.waitForError(timeoutMs = SDK_ERROR_EVENT_TIMEOUT_MS, method = "sendTransaction")
                     android.util.Log.d("SendTxTest", "RequestError received: $error")
                     assert(error != null) { "Expected SDK to receive RequestError event for sendTransaction, but none received" }
                     assert(error!!.method == "sendTransaction") { "Expected method 'sendTransaction', got '${error.method}'" }
@@ -317,7 +344,7 @@ abstract class BaseE2ETest {
                 step("Wait for wallet app to auto-reject transaction") {
                     // Wallet app receives the request but rejects it without showing UI (e.g., insufficient balance)
                     // Give it time to process and send rejection to dApp
-                    Thread.sleep(2000)
+                    Thread.sleep(AUTO_REJECT_PROCESS_MS)
                 }
             }
 
@@ -378,7 +405,7 @@ abstract class BaseE2ETest {
 
         if (expectConnectSheet) {
             step("Wait for connect request sheet") {
-                waitFor(20000L) { walletController.isConnectRequestVisible() }
+                waitFor(SHEET_APPEAR_TIMEOUT_MS) { walletController.isConnectRequestVisible() }
             }
 
             step(if (approve) "Approve connection" else "Reject connection") {
@@ -386,7 +413,7 @@ abstract class BaseE2ETest {
             }
 
             step("Wait for connect sheet to close") {
-                waitFor(5000L) { !walletController.isConnectRequestVisible() }
+                waitFor(UI_DISMISS_TIMEOUT_MS) { !walletController.isConnectRequestVisible() }
             }
         } else {
             step("Verify no connect sheet shown (wallet app auto-rejected)") {
@@ -438,12 +465,12 @@ abstract class BaseE2ETest {
         }
 
         step("Wait for and approve connection") {
-            waitFor(20000L) { walletController.isConnectRequestVisible() }
+            waitFor(SHEET_APPEAR_TIMEOUT_MS) { walletController.isConnectRequestVisible() }
             walletController.approveConnect()
         }
 
         step("Wait for connect sheet to close") {
-            waitFor(5000L) { !walletController.isConnectRequestVisible() }
+            waitFor(UI_DISMISS_TIMEOUT_MS) { !walletController.isConnectRequestVisible() }
         }
 
         step("Verify dApp validation") {
@@ -490,7 +517,7 @@ abstract class BaseE2ETest {
         }
 
         step("Wait for sign data request") {
-            waitFor(15000L) { walletController.isSignDataRequestVisible() }
+            waitFor(REQUEST_SHEET_TIMEOUT_MS) { walletController.isSignDataRequestVisible() }
         }
 
         step(if (approve) "Approve sign data" else "Reject sign data") {
@@ -498,13 +525,13 @@ abstract class BaseE2ETest {
         }
 
         step("Wait for wallet to close sign data sheet") {
-            waitFor(5000L) { !walletController.isSignDataRequestVisible() }
+            waitFor(UI_DISMISS_TIMEOUT_MS) { !walletController.isSignDataRequestVisible() }
         }
 
         step("Wait for dApp to receive sign data response") {
             dAppController.openBrowser()
             dAppController.waitForDAppPage()
-            dAppController.waitForSignDataResponse(timeoutMs = 15000)
+            dAppController.waitForSignDataResponse(timeoutMs = DAPP_RESPONSE_TIMEOUT_MS)
         }
 
         step("Verify result in browser") {
