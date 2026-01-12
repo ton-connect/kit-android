@@ -87,7 +87,7 @@ abstract class MockBridgeTestBase {
      * Create a test configuration for SDK initialization
      */
     protected fun createTestConfig(
-        network: TONNetwork = TONNetwork(chainId = "-3"),
+        network: TONNetwork = TONNetwork(chainId = io.ton.walletkit.api.ChainIds.TESTNET),
     ): TONWalletKitConfiguration {
         return TONWalletKitConfiguration(
             network = network,

@@ -288,6 +288,9 @@ dependencies {
     implementation(libs.androidxDatastorePreferences)
     implementation(libs.androidxSecurityCrypto)
 
+    // API module as api dependency so it's exported in the AAR
+    api(project(":api"))
+
     // API module needed for tests to access WalletKitBridgeException
     testImplementation(project(":api"))
     testImplementation(libs.junit)

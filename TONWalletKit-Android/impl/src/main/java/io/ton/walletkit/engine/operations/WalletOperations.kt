@@ -23,6 +23,7 @@ package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.WalletKitUtils
+import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
@@ -205,7 +206,7 @@ internal class WalletOperations(
 
         val request = CreateAdapterRequest(
             signerId = signerId,
-            walletVersion = "v5r1",
+            walletVersion = WalletVersions.V5R1,
             network = network,
             workchain = workchain,
             walletId = walletId,
@@ -263,7 +264,7 @@ internal class WalletOperations(
 
         val request = CreateAdapterRequest(
             signerId = signerId,
-            walletVersion = "v4r2",
+            walletVersion = WalletVersions.V4R2,
             network = network,
             workchain = workchain,
             walletId = walletId,
