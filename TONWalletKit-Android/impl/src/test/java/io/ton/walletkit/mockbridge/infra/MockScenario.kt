@@ -108,8 +108,10 @@ interface MockScenario {
      * Handle addWallet RPC call.
      */
     fun handleAddWallet(adapterId: String): WalletAccount {
+        val address = "EQDTest${adapterId.hashCode().toString(16).padStart(40, '0')}"
         return WalletAccount(
-            address = TONUserFriendlyAddress("EQDTest${adapterId.hashCode().toString(16).padStart(40, '0')}"),
+            walletId = "-3:$address",
+            address = TONUserFriendlyAddress(address),
             publicKey = "0x${"0".repeat(64)}",
             version = "v5r1",
             network = "testnet",

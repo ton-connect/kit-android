@@ -308,23 +308,25 @@ internal class WalletOperations(
         val request = AddWalletRequest(adapterId = adapterId)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, json.toJSONObject(request))
 
-        // JS now returns raw wallet object - extract properties
+        // JS returns mapped wallet object with id, publicKey, version, network
+        val walletId = result.optString("id").takeIf { it.isNotEmpty() }
+            ?: throw WalletKitBridgeException(ERROR_NEW_WALLET_NOT_FOUND)
+
         val rawPublicKey = result.optString("publicKey")
         val publicKey = WalletKitUtils.stripHexPrefix(rawPublicKey)
 
-        // Extract address (may need getAddress() call or stored as property)
-        val address = result.optString("address").takeIf { it.isNotEmpty() }
-            ?: result.optString(ResponseConstants.KEY_ADDRESS)
+        // Get address via RPC
+        val address = getWalletAddress(walletId)
 
-        // Extract version if available
         val version = result.optString("version").takeIf { it.isNotEmpty() } ?: "unknown"
 
         return WalletAccount(
+            walletId = walletId,
             address = TONUserFriendlyAddress(address),
             publicKey = publicKey,
             name = null,
             version = version,
-            network = currentNetworkProvider(),
+            network = result.optString("network", currentNetworkProvider()),
             index = 0,
         )
     }
@@ -351,23 +353,37 @@ internal class WalletOperations(
                     ?: entry.optNullableString(ResponseConstants.KEY_PUBLIC_KEY)
                 val publicKey = rawPublicKey?.let { WalletKitUtils.stripHexPrefix(it) }
 
-                // Extract address
-                val address = entry.optString("address").takeIf { it.isNotEmpty() }
-                    ?: entry.optString(ResponseConstants.KEY_ADDRESS)
+                // Get the original walletId from JS - this must be used for all subsequent RPC calls
+                val walletId = entry.optString("id").takeIf { it.isNotEmpty() } ?: continue
+
+                // Call getWalletAddress RPC to get current address
+                val address = getWalletAddress(walletId)
 
                 add(
                     WalletAccount(
+                        walletId = walletId,
                         address = TONUserFriendlyAddress(address),
                         publicKey = publicKey,
                         name = entry.optNullableString(JsonConstants.KEY_NAME),
                         version = entry.optString("version").takeIf { it.isNotEmpty() }
                             ?: entry.optString(JsonConstants.KEY_VERSION, ResponseConstants.VALUE_UNKNOWN),
-                        network = entry.optString(JsonConstants.KEY_NETWORK, currentNetworkProvider()),
+                        network = entry.optString("network", currentNetworkProvider()),
                         index = entry.optInt(ResponseConstants.KEY_INDEX, index),
                     ),
                 )
             }
         }
+    }
+
+    /**
+     * Get wallet address by calling getAddress() on the JS wallet object.
+     */
+    suspend fun getWalletAddress(walletId: String): String {
+        val request = JSONObject().apply {
+            put("walletId", walletId)
+        }
+        val result = rpcClient.call("getWalletAddress", request)
+        return result.optString("address", "")
     }
 
     /**
@@ -390,21 +406,23 @@ internal class WalletOperations(
             ?: result.optNullableString(ResponseConstants.KEY_PUBLIC_KEY)
         val publicKey = rawPublicKey?.let { WalletKitUtils.stripHexPrefix(it) }
 
-        // Extract address from wallet object
-        val walletAddress = result.optString("address").takeIf { it.isNotEmpty() }
-            ?: result.optString(ResponseConstants.KEY_ADDRESS)
-
-        if (walletAddress.isEmpty()) {
+        // Get address via RPC
+        val address = getWalletAddress(walletId)
+        if (address.isEmpty()) {
             return null
         }
 
+        // Use the original walletId from the request, or get from response
+        val id = result.optString("id").takeIf { it.isNotEmpty() } ?: walletId
+
         return WalletAccount(
-            address = TONUserFriendlyAddress(walletAddress),
+            walletId = id,
+            address = TONUserFriendlyAddress(address),
             publicKey = publicKey,
             name = result.optNullableString(JsonConstants.KEY_NAME),
             version = result.optString("version").takeIf { it.isNotEmpty() }
                 ?: result.optString(JsonConstants.KEY_VERSION, ResponseConstants.VALUE_UNKNOWN),
-            network = result.optString(JsonConstants.KEY_NETWORK, currentNetworkProvider()),
+            network = result.optString("network", currentNetworkProvider()),
             index = result.optInt(ResponseConstants.KEY_INDEX, 0),
         )
     }

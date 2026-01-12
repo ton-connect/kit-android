@@ -30,27 +30,14 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class WalletAccount(
+    val walletId: String,
     val address: TONUserFriendlyAddress,
     val publicKey: String? = null,
     val name: String? = null,
     val version: String? = null,
     val network: String? = null,
     val index: Int = 0,
-) {
-    /**
-     * Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
-     */
-    val walletId: String
-        get() {
-            // Parse network string to get chainId, default to mainnet (-239)
-            val chainId = when (network) {
-                "mainnet" -> "-239"
-                "testnet" -> "-3"
-                else -> network ?: "-239"
-            }
-            return "$chainId:${address.value}"
-        }
-}
+)
 
 /**
  * Internal wallet session representation.
