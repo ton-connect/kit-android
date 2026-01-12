@@ -44,9 +44,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.presentation.util.TestTags
 
 @Composable
 fun UnlockWalletScreen(
@@ -73,6 +75,7 @@ fun UnlockWalletScreen(
             text = "Unlock Wallet",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.testTag(TestTags.UNLOCK_TITLE),
         )
 
         Text(
@@ -95,7 +98,7 @@ fun UnlockWalletScreen(
             placeholder = { Text("Enter your password") },
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.UNLOCK_PASSWORD_FIELD),
             isError = error != null,
         )
 
@@ -122,7 +125,7 @@ fun UnlockWalletScreen(
                 isLoading = false
             },
             enabled = password.isNotEmpty() && !isLoading,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.UNLOCK_SUBMIT_BUTTON),
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
@@ -139,7 +142,7 @@ fun UnlockWalletScreen(
         // Reset wallet button
         TextButton(
             onClick = { showResetDialog = true },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(TestTags.UNLOCK_RESET_BUTTON),
         ) {
             Text(
                 "Forgot Password? Reset Wallet",

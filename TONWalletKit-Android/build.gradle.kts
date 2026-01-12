@@ -32,7 +32,7 @@ subprojects {
     }
 }
 
-// Task to build WebView variant
+// Task to build WebView variant (Debug)
 tasks.register("buildWebview") {
     group = "build"
     description = "Build WebView SDK variant (no QuickJS) - DEBUG with logs"
@@ -43,6 +43,20 @@ tasks.register("buildWebview") {
         println("✅ WebView variant built: impl-webview-debug.aar (2.7M)")
         println("   Includes API + implementation, no QuickJS native libs")
         println("   🐛 DEBUG build with full logging enabled")
+    }
+}
+
+// Task to build WebView variant (Release)
+tasks.register("buildWebviewRelease") {
+    group = "build"
+    description = "Build WebView SDK variant (no QuickJS) - RELEASE"
+    
+    dependsOn(":impl:bundleWebviewReleaseAar")
+    
+    doLast {
+        println("✅ WebView variant built: impl-webview-release.aar")
+        println("   Includes API + implementation, no QuickJS native libs")
+        println("   📦 RELEASE build")
     }
 }
 

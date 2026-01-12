@@ -1,0 +1,130 @@
+{{!--
+  Template for discriminated union types (sealed classes in Kotlin).
+  
+  Uses vendor extensions from OpenAPI spec:
+  - x-discriminated-union: boolean indicating this is a discriminated union
+  - x-enum-cases: array of {name, rawValue, hasAssociatedValue, valuePropertyName}
+  
+  Properties with x-enum-case-name extension become sealed class subclasses.
+  The discriminator is always "type" field.
+--}}
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.serializer
+import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
+
+/**
+ * {{{description}}}
+ * 
+ * This is a discriminated union type. Use the appropriate subclass based on the `type` field.
+ */
+@Serializable(with = {{classname}}.Serializer::class)
+sealed class {{classname}} {
+
+    /**
+     * The discriminator value for this union type
+     */
+    abstract val type: String
+
+{{#vars}}
+{{#vendorExtensions.x-enum-case-name}}
+    /**
+     * {{description}}
+     */
+    @Serializable
+    data class {{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}}(
+        @SerialName("value")
+        val value: {{{dataType}}}
+    ) : {{classname}}() {
+        override val type: String = "{{vendorExtensions.x-enum-case-raw-value}}"
+    }
+
+{{/vendorExtensions.x-enum-case-name}}
+{{/vars}}
+{{#vendorExtensions.x-enum-cases}}
+{{^hasAssociatedValue}}
+    /**
+     * Case without associated value: {{name}}
+     */
+    @Serializable
+    object {{#lambda.titlecase}}{{name}}{{/lambda.titlecase}} : {{classname}}() {
+        override val type: String = "{{rawValue}}"
+    }
+
+{{/hasAssociatedValue}}
+{{/vendorExtensions.x-enum-cases}}
+    internal object Serializer : KSerializer<{{classname}}> {
+        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("{{classname}}")
+
+        @Suppress("UNCHECKED_CAST")
+        override fun serialize(encoder: Encoder, value: {{classname}}) {
+            val jsonEncoder = encoder as? JsonEncoder
+                ?: throw SerializationException("{{classname}} can only be serialized with JSON")
+            
+            val jsonObject = when (value) {
+{{#vars}}
+{{#vendorExtensions.x-enum-case-name}}
+                is {{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}} -> {
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<{{{dataType}}}>(), value.value)
+                    buildJsonObject {
+                        put("type", JsonPrimitive("{{vendorExtensions.x-enum-case-raw-value}}"))
+                        put("value", valueJson)
+                    }
+                }
+{{/vendorExtensions.x-enum-case-name}}
+{{/vars}}
+{{#vendorExtensions.x-enum-cases}}
+{{^hasAssociatedValue}}
+                is {{#lambda.titlecase}}{{name}}{{/lambda.titlecase}} -> JsonObject(mapOf("type" to JsonPrimitive("{{rawValue}}")))
+{{/hasAssociatedValue}}
+{{/vendorExtensions.x-enum-cases}}
+            }
+            jsonEncoder.encodeJsonElement(jsonObject)
+        }
+
+        override fun deserialize(decoder: Decoder): {{classname}} {
+            val jsonDecoder = decoder as? JsonDecoder
+                ?: throw SerializationException("{{classname}} can only be deserialized from JSON")
+            
+            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
+            val typeValue = jsonObject["type"]?.jsonPrimitive?.content
+                ?: throw SerializationException("Missing 'type' discriminator for {{classname}}")
+            
+            return when (typeValue) {
+{{#vars}}
+{{#vendorExtensions.x-enum-case-name}}
+                "{{vendorExtensions.x-enum-case-raw-value}}" -> {
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for {{classname}}.{{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}}")
+                    {{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}}(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<{{{dataType}}}>(), valueJson)
+                    )
+                }
+{{/vendorExtensions.x-enum-case-name}}
+{{/vars}}
+{{#vendorExtensions.x-enum-cases}}
+{{^hasAssociatedValue}}
+                "{{rawValue}}" -> {{#lambda.titlecase}}{{name}}{{/lambda.titlecase}}
+{{/hasAssociatedValue}}
+{{/vendorExtensions.x-enum-cases}}
+                else -> throw SerializationException("Unknown type '$typeValue' for {{classname}}")
+            }
+        }
+    }
+}

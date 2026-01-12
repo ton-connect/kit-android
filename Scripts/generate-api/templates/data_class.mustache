@@ -1,0 +1,73 @@
+{{#vendorExtensions.x-discriminated-union}}
+{{>modelDiscriminatedUnion}}
+{{/vendorExtensions.x-discriminated-union}}
+{{^vendorExtensions.x-discriminated-union}}
+{{^multiplatform}}
+{{#kotlinx_serialization}}
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Contextual
+import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
+{{#enumUnknownDefaultCase}}
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+{{/enumUnknownDefaultCase}}
+{{/kotlinx_serialization}}
+{{#parcelizeModels}}
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+{{/parcelizeModels}}
+{{/multiplatform}}
+
+/**
+ * {{{description}}}
+ *
+{{#allVars}}
+ * @param {{{name}}} {{{description}}}
+{{/allVars}}
+ */
+{{#parcelizeModels}}
+@Parcelize
+{{/parcelizeModels}}
+{{#kotlinx_serialization}}@Serializable{{/kotlinx_serialization}}
+{{#isDeprecated}}
+@Deprecated(message = "This schema is deprecated.")
+{{/isDeprecated}}
+{{#nonPublicApi}}internal {{/nonPublicApi}}{{#hasVars}}data {{/hasVars}}class {{classname}} (
+
+{{#allVars}}
+{{#required}}{{>data_class_req_var}}{{/required}}{{^required}}{{>data_class_opt_var}}{{/required}}{{^-last}},{{/-last}}
+
+{{/allVars}}
+){{#parent}} : {{{parent}}}(){{/parent}} {
+
+    companion object
+{{#hasEnums}}
+{{#vars}}
+{{#isEnum}}
+    /**
+     * {{{description}}}
+     *
+     * Values: {{#allowableValues}}{{#enumVars}}{{&name}}{{^-last}},{{/-last}}{{/enumVars}}{{/allowableValues}}
+     */
+    {{#kotlinx_serialization}}
+    @Serializable
+    {{/kotlinx_serialization}}
+    {{#nonPublicApi}}internal {{/nonPublicApi}}enum class {{{nameInPascalCase}}}(val value: {{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}kotlin.String{{/isContainer}}) {
+    {{#allowableValues}}
+    {{#enumVars}}
+        {{#kotlinx_serialization}}
+        @SerialName(value = {{#lambda.doublequote}}{{{value}}}{{/lambda.doublequote}}) {{&name}}({{{value}}}){{^-last}},{{/-last}}{{#-last}};{{/-last}}
+        {{/kotlinx_serialization}}
+    {{/enumVars}}
+    {{/allowableValues}}
+    }
+{{/isEnum}}
+{{/vars}}
+{{/hasEnums}}
+}
+{{/vendorExtensions.x-discriminated-union}}

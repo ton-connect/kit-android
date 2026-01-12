@@ -21,44 +21,48 @@
  */
 package io.ton.walletkit.request
 
-import io.ton.walletkit.event.ConnectRequestEvent
-import io.ton.walletkit.model.DAppInfo
+import io.ton.walletkit.ITONWallet
+import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
 
 /**
  * Represents a connection request from a dApp.
  *
- * Aligns with the shared TON Wallet Kit API contract for cross-platform consistency.
+ * Mirrors iOS TONWalletConnectionRequest for cross-platform consistency.
  *
- * Handle this request by calling [approve] with a wallet address
+ * Handle this request by calling [approve] with a wallet
  * or [reject] to deny the connection.
  *
- * @property dAppInfo Information about the requesting dApp
- * @property permissions List of requested permissions
+ * @property event The underlying connection request event with all details
  */
 class TONWalletConnectionRequest(
-    val dAppInfo: DAppInfo?,
-    val permissions: List<ConnectRequestEvent.ConnectPermission>,
-    private val event: ConnectRequestEvent,
+    val event: TONConnectionRequestEvent,
     private val handler: RequestHandler,
 ) {
     /**
      * Approve this connection request with the specified wallet.
      *
-     * @param walletAddress Address of the wallet to connect with
+     * The wallet's ID and address will be used for the connection.
+     * This matches the iOS API where approve takes a wallet parameter.
+     *
+     * @param wallet The wallet to connect with
      * @throws io.ton.walletkit.WalletKitBridgeException if approval fails
      */
-    suspend fun approve(walletAddress: String) {
-        val eventWithWallet = event.copy(walletAddress = walletAddress)
-        handler.approveConnect(eventWithWallet)
+    suspend fun approve(wallet: ITONWallet) {
+        val updatedEvent = event.copy(
+            walletId = wallet.id,
+            walletAddress = wallet.address,
+        )
+        handler.approveConnect(updatedEvent)
     }
 
     /**
      * Reject this connection request.
      *
      * @param reason Optional reason for rejection
+     * @param errorCode Optional error code for the TON Connect protocol
      * @throws io.ton.walletkit.WalletKitBridgeException if rejection fails
      */
-    suspend fun reject(reason: String? = null) {
-        handler.rejectConnect(event, reason)
+    suspend fun reject(reason: String? = null, errorCode: Int? = null) {
+        handler.rejectConnect(event, reason, errorCode)
     }
 }

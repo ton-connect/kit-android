@@ -86,6 +86,11 @@ internal object EventTypeConstants {
     const val EVENT_BROWSER_BRIDGE_REQUEST = "browserBridgeRequest"
 
     /**
+     * Event type for request errors (validation failures, etc.).
+     */
+    const val EVENT_REQUEST_ERROR = "requestError"
+
+    /**
      * Default value for unknown event types.
      */
     const val EVENT_TYPE_UNKNOWN = "unknown"

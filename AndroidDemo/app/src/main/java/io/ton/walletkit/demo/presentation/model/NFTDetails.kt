@@ -21,13 +21,12 @@
  */
 package io.ton.walletkit.demo.presentation.model
 
-import io.ton.walletkit.model.TONNFTItem
-import kotlinx.serialization.json.jsonPrimitive
+import io.ton.walletkit.api.generated.TONNFT
 
 /**
  * UI-friendly NFT details model.
  *
- * Maps from [TONNFTItem] SDK model to presentation layer.
+ * Maps from [TONNFT] SDK model to presentation layer.
  * Mirrors iOS WalletNFTDetails structure for cross-platform consistency.
  */
 data class NFTDetails(
@@ -43,36 +42,33 @@ data class NFTDetails(
 ) {
     companion object {
         /**
-         * Create NFTDetails from SDK's TONNFTItem.
+         * Create NFTDetails from SDK's TONNFT.
          *
-         * @param nftItem NFT item from SDK
+         * @param nft NFT from SDK
          * @return UI-friendly NFT details
          */
-        fun from(nftItem: TONNFTItem): NFTDetails {
-            val name = nftItem.metadata?.name ?: "Unknown NFT"
-            val description = nftItem.metadata?.description
+        fun from(nft: TONNFT): NFTDetails {
+            val info = nft.info
+            val name = info?.name ?: "Unknown NFT"
+            val description = info?.description
 
-            // Try to get medium image from extra, fallback to standard image
-            val imageUrl = try {
-                nftItem.metadata?.extra?.get("_image_medium")?.jsonPrimitive?.content
-                    ?: nftItem.metadata?.image
-            } catch (e: Exception) {
-                nftItem.metadata?.image
-            }
+            // Try to get medium image, fallback to standard image
+            val imageUrl = info?.image?.mediumUrl ?: info?.image?.url
 
-            // Collection address as name since TONNFTCollection doesn't have a name field
-            val collectionName = nftItem.collection?.address?.take(8)?.let { "$it..." }
+            // Collection name from collection object
+            val collectionName = nft.collection?.name
+                ?: nft.collection?.address?.value?.take(8)?.let { "\$it..." }
 
-            val index = nftItem.metadata?.nftIndex
+            val index = nft.index
 
-            val status = if (nftItem.onSale == true) "On Sale" else "Not on Sale"
+            val status = if (nft.isOnSale == true) "On Sale" else "Not on Sale"
 
-            val contractAddress = nftItem.address
+            val contractAddress = nft.address.value
 
-            val ownerAddress = nftItem.ownerAddress ?: nftItem.realOwner
+            val ownerAddress = nft.realOwnerAddress?.value ?: nft.ownerAddress?.value
 
             // Can only transfer if not on sale and has owner
-            val canTransfer = nftItem.onSale != true && nftItem.ownerAddress != null
+            val canTransfer = nft.isOnSale != true && nft.ownerAddress != null
 
             return NFTDetails(
                 name = name,

@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.demo.presentation.actions
 
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
@@ -29,7 +30,6 @@ import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.viewmodel.WalletKitViewModel
-import io.ton.walletkit.model.TONNetwork
 import javax.inject.Inject
 
 /**
@@ -45,7 +45,7 @@ class WalletActionsImpl @Inject constructor(
 
     override fun onUrlPromptClick() = viewModel.showUrlPrompt()
 
-    override fun onOpenBrowser(url: String) = viewModel.openBrowser(url)
+    override fun onOpenBrowser(url: String, injectTonConnect: Boolean) = viewModel.openBrowser(url, injectTonConnect)
 
     override fun onRefresh() = viewModel.refreshAll()
 

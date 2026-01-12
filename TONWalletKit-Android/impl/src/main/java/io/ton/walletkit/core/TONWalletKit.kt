@@ -26,12 +26,12 @@ import android.webkit.WebView
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.WebViewTonConnectInjector
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.TONNetwork
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
@@ -97,6 +97,29 @@ internal class TONWalletKit private constructor(
     @JvmSynthetic
     internal val engine: WalletKitEngine,
 ) : ITONWalletKit {
+
+    companion object {
+        /**
+         * Initialize TON Wallet Kit with configuration.
+         *
+         * See class-level documentation for usage examples.
+         */
+        suspend fun initialize(
+            context: Context,
+            configuration: TONWalletKitConfiguration,
+        ): ITONWalletKit {
+            // Create engine with configuration using the WebView implementation
+            val newEngine = WalletKitEngineFactory.create(
+                kind = WalletKitEngineKind.WEBVIEW,
+                context = context,
+                configuration = configuration,
+                eventsHandler = null,
+            )
+
+            return TONWalletKit(newEngine)
+        }
+    }
+
     @Volatile
     private var isDestroyed = false
 
@@ -199,10 +222,10 @@ internal class TONWalletKit private constructor(
         val isCustom = engine.isCustomSigner(signer.signerId)
         return engine.createV5R1Adapter(
             signerId = signer.signerId,
-            network = network.value,
+            network = network,
             workchain = workchain,
             walletId = walletId,
-            publicKey = if (isCustom) signer.publicKey else null,
+            publicKey = if (isCustom) signer.publicKey?.value else null,
             isCustom = isCustom,
         )
     }
@@ -221,10 +244,10 @@ internal class TONWalletKit private constructor(
         val isCustom = engine.isCustomSigner(signer.signerId)
         return engine.createV4R2Adapter(
             signerId = signer.signerId,
-            network = network.value,
+            network = network,
             workchain = workchain,
             walletId = walletId,
-            publicKey = if (isCustom) signer.publicKey else null,
+            publicKey = if (isCustom) signer.publicKey?.value else null,
             isCustom = isCustom,
         )
     }
@@ -239,6 +262,7 @@ internal class TONWalletKit private constructor(
         val account = engine.addWallet(adapterId)
 
         return TONWallet(
+            id = account.walletId,
             address = account.address,
             engine = engine,
             account = account,
@@ -256,6 +280,7 @@ internal class TONWalletKit private constructor(
         val accounts = engine.getWallets()
         return accounts.map { account ->
             TONWallet(
+                id = account.walletId,
                 address = account.address,
                 engine = engine,
                 account = account,
@@ -270,6 +295,7 @@ internal class TONWalletKit private constructor(
         checkNotDestroyed()
         val account = engine.getWallet(address.value) ?: return null
         return TONWallet(
+            id = account.walletId,
             address = account.address,
             engine = engine,
             account = account,
@@ -283,7 +309,7 @@ internal class TONWalletKit private constructor(
         checkNotDestroyed()
         val wallet = getWallet(address)
         return if (wallet != null) {
-            wallet.remove()
+            (wallet as TONWallet).remove()
             true
         } else {
             false
@@ -296,7 +322,7 @@ internal class TONWalletKit private constructor(
     override suspend fun clearWallets() {
         checkNotDestroyed()
         val wallets = getWallets()
-        wallets.forEach { it.remove() }
+        wallets.forEach { (it as TONWallet).remove() }
     }
 
     /**
@@ -367,6 +393,19 @@ internal class TONWalletKit private constructor(
     }
 
     /**
+     * Handle a TON Connect URL (deep link or QR code scan).
+     *
+     * This will parse the URL and trigger appropriate events through the events handler.
+     *
+     * @param url TON Connect URL (tc:// or https://)
+     * @throws io.ton.walletkit.WalletKitBridgeException if URL handling fails
+     */
+    override suspend fun connect(url: String) {
+        checkNotDestroyed()
+        engine.handleTonConnectUrl(url)
+    }
+
+    /**
      * Create a WebView TonConnect injector for the given WebView.
      *
      * @param webView The WebView to inject TonConnect into
@@ -374,27 +413,5 @@ internal class TONWalletKit private constructor(
      */
     override fun createWebViewInjector(webView: WebView): WebViewTonConnectInjector {
         return TonConnectInjector(webView, this)
-    }
-
-    companion object {
-        /**
-         * Initialize TON Wallet Kit with configuration.
-         *
-         * See class-level documentation for usage examples.
-         */
-        suspend fun initialize(
-            context: Context,
-            configuration: TONWalletKitConfiguration,
-        ): ITONWalletKit {
-            // Create engine with configuration using the WebView implementation
-            val newEngine = WalletKitEngineFactory.create(
-                kind = WalletKitEngineKind.WEBVIEW,
-                context = context,
-                configuration = configuration,
-                eventsHandler = null,
-            )
-
-            return TONWalletKit(newEngine)
-        }
     }
 }
