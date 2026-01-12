@@ -22,6 +22,7 @@
 package io.ton.walletkit
 
 import io.mockk.*
+import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import kotlinx.coroutines.test.runTest
@@ -38,16 +39,18 @@ class CustomSignerTest {
      * Mock hardware wallet signer for testing.
      */
     private class MockHardwareWalletSigner(
-        override val publicKey: String = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        private val pubKey: String = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
     ) : WalletSigner {
         var signCallCount = 0
         var lastSignedData: ByteArray? = null
 
-        override suspend fun sign(data: ByteArray): ByteArray {
+        override fun publicKey(): TONHex = TONHex(pubKey)
+
+        override suspend fun sign(data: ByteArray): TONHex {
             signCallCount++
             lastSignedData = data
-            // Return a mock signature (64 bytes)
-            return ByteArray(64) { 0xaa.toByte() }
+            // Return a mock signature (64 bytes as hex)
+            return TONHex(WalletKitUtils.byteArrayToHex(ByteArray(64) { 0xaa.toByte() }))
         }
     }
 
@@ -57,7 +60,7 @@ class CustomSignerTest {
         val customSigner = MockHardwareWalletSigner()
         val expectedSignerInfo = WalletSignerInfo(
             signerId = "signer_custom_123",
-            publicKey = customSigner.publicKey,
+            publicKey = customSigner.publicKey(),
         )
 
         coEvery { mockKit.createSignerFromCustom(customSigner) } returns expectedSignerInfo
@@ -65,7 +68,7 @@ class CustomSignerTest {
         val result = mockKit.createSignerFromCustom(customSigner)
 
         assertNotNull(result)
-        assertEquals(customSigner.publicKey, result.publicKey)
+        assertEquals(customSigner.publicKey(), result.publicKey)
         assertNotNull(result.signerId)
         assertTrue(result.signerId.isNotEmpty())
         coVerify(exactly = 1) { mockKit.createSignerFromCustom(customSigner) }
@@ -81,7 +84,9 @@ class CustomSignerTest {
         assertEquals(1, customSigner.signCallCount)
         assertArrayEquals(testData, customSigner.lastSignedData)
         assertNotNull(signature)
-        assertEquals(64, signature.size)
+        assertTrue(signature.value.startsWith("0x"))
+        // 64 bytes = 128 hex chars + "0x" prefix = 130 total
+        assertEquals(130, signature.value.length)
     }
 
     @Test
@@ -104,11 +109,11 @@ class CustomSignerTest {
     fun `custom signer with different public keys creates different signers`() = runTest {
         val mockKit = mockk<ITONWalletKit>()
 
-        val signer1 = MockHardwareWalletSigner(publicKey = "0x1111111111111111111111111111111111111111111111111111111111111111")
-        val signer2 = MockHardwareWalletSigner(publicKey = "0x2222222222222222222222222222222222222222222222222222222222222222")
+        val signer1 = MockHardwareWalletSigner(pubKey = "0x1111111111111111111111111111111111111111111111111111111111111111")
+        val signer2 = MockHardwareWalletSigner(pubKey = "0x2222222222222222222222222222222222222222222222222222222222222222")
 
-        val signerInfo1 = WalletSignerInfo(signerId = "signer_1", publicKey = signer1.publicKey)
-        val signerInfo2 = WalletSignerInfo(signerId = "signer_2", publicKey = signer2.publicKey)
+        val signerInfo1 = WalletSignerInfo(signerId = "signer_1", publicKey = signer1.publicKey())
+        val signerInfo2 = WalletSignerInfo(signerId = "signer_2", publicKey = signer2.publicKey())
 
         coEvery { mockKit.createSignerFromCustom(signer1) } returns signerInfo1
         coEvery { mockKit.createSignerFromCustom(signer2) } returns signerInfo2
@@ -118,7 +123,7 @@ class CustomSignerTest {
 
         assertNotEquals(result1.signerId, result2.signerId)
         assertNotEquals(result1.publicKey, result2.publicKey)
-        assertEquals(signer1.publicKey, result1.publicKey)
-        assertEquals(signer2.publicKey, result2.publicKey)
+        assertEquals(signer1.publicKey(), result1.publicKey)
+        assertEquals(signer2.publicKey(), result2.publicKey)
     }
 }
