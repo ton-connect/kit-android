@@ -66,24 +66,22 @@ class TransactionCache {
 
         // Create a map of hash -> transaction for deduplication
         // New transactions take priority over existing ones (in case of updates)
-        val transactionMap = mutableMapOf<String, TONTransaction>()
+        val transactionMap = linkedMapOf<String, TONTransaction>()
 
         // Add existing transactions first
         existing.forEach { tx ->
-            val hashStr = tx.hash?.toString() ?: tx.logicalTime
-            transactionMap[hashStr] = tx
+            val hash = tx.hash?.toString() ?: return@forEach
+            transactionMap[hash] = tx
         }
 
         // Add/update with new transactions (overwrites existing)
         newTransactions.forEach { tx ->
-            val hashStr = tx.hash?.toString() ?: tx.logicalTime
-            transactionMap[hashStr] = tx
+            val hash = tx.hash?.toString() ?: return@forEach
+            transactionMap[hash] = tx
         }
 
-        // Convert back to list, sort by timestamp (descending), and limit size
-        val merged = transactionMap.values
-            .sortedByDescending { it.now }
-            .take(maxSize)
+        // Take first maxSize (preserves insertion order from linkedMapOf)
+        val merged = transactionMap.values.take(maxSize)
 
         // Update cache
         cache[walletAddress] = merged
@@ -92,8 +90,7 @@ class TransactionCache {
         Log.d(
             TAG,
             "TransactionCache updated for $walletAddress: " +
-                "${existing.size} existing + ${newTransactions.size} new = ${merged.size} total " +
-                "(${newTransactions.size - (merged.size - existing.size)} duplicates)",
+                "${existing.size} existing + ${newTransactions.size} new = ${merged.size} total",
         )
 
         merged
@@ -101,23 +98,24 @@ class TransactionCache {
 
     /**
      * Replace the entire cache for a wallet (useful for full refresh).
+     * Preserves order from API (already sorted), deduplicates by hash only.
      */
     suspend fun replace(
         walletAddress: String,
         transactions: List<TONTransaction>,
         maxSize: Int = 100,
     ): List<TONTransaction> = mutex.withLock {
-        val sorted = transactions
-            .distinctBy { it.hash?.toString() ?: it.logicalTime } // Deduplicate
-            .sortedByDescending { it.now }
+        val deduplicated = transactions
+            .filter { it.hash != null }
+            .distinctBy { it.hash.toString() }
             .take(maxSize)
 
-        cache[walletAddress] = sorted
+        cache[walletAddress] = deduplicated
         lastUpdateTime[walletAddress] = System.currentTimeMillis()
 
-        Log.d(TAG, "TransactionCache replaced for $walletAddress: ${sorted.size} transactions")
+        Log.d(TAG, "TransactionCache replaced for $walletAddress: ${deduplicated.size} transactions")
 
-        sorted
+        deduplicated
     }
 
     /**
