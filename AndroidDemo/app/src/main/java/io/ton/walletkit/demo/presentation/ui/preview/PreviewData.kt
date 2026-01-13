@@ -22,6 +22,7 @@
 package io.ton.walletkit.demo.presentation.ui.preview
 
 import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.api.generated.TONNFTCollection
 import io.ton.walletkit.api.generated.TONNetwork
@@ -45,7 +46,7 @@ object PreviewData {
         address = "EQpreviewaddressExampleToShowWalletKit123",
         name = "Preview Wallet",
         network = TONNetwork.MAINNET,
-        version = "v5r1",
+        version = WalletVersions.V5R1,
         publicKey = "preview-public-key",
         balanceNano = "123456789",
         balance = "0.1234",

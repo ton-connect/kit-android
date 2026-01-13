@@ -29,7 +29,7 @@ import io.ton.walletkit.api.generated.TONNetwork
  * Usage: TONNetwork.MAINNET, TONNetwork.TESTNET
  */
 val TONNetwork.Companion.MAINNET: TONNetwork
-    get() = TONNetwork(chainId = "-239")
+    get() = TONNetwork(chainId = ChainIds.MAINNET)
 
 val TONNetwork.Companion.TESTNET: TONNetwork
-    get() = TONNetwork(chainId = "-3")
+    get() = TONNetwork(chainId = ChainIds.TESTNET)

@@ -21,9 +21,12 @@
  */
 package io.ton.walletkit.engine.operations
 
+import io.mockk.coEvery
 import io.mockk.mockk
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.engine.state.SignerManager
+import io.ton.walletkit.internal.constants.NetworkConstants
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -46,7 +49,7 @@ class WalletOperationsTest : OperationsTestBase() {
 
     private lateinit var signerManager: SignerManager
     private lateinit var walletOperations: WalletOperations
-    private var currentNetwork = "testnet"
+    private var currentNetwork = NetworkConstants.DEFAULT_NETWORK
 
     // Valid TON test addresses for testing
     companion object {
@@ -159,30 +162,49 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun getWallets_parsesArrayOfWallets() = runBlocking {
-        givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "items",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("address", TEST_ADDRESS_1)
-                                put("publicKey", "0xpub1")
-                                put("version", "v5r1")
-                                put("network", "mainnet")
-                            },
-                        )
-                        put(
-                            JSONObject().apply {
-                                put("address", TEST_ADDRESS_2)
-                                put("publicKey", "pub2") // no 0x prefix
-                                put("version", "v4r2")
-                            },
-                        )
-                    },
-                )
-            },
-        )
+        // JS now returns array of { walletId, wallet } objects
+        coEvery { rpcClient.call(any(), any()) } coAnswers {
+            val method = firstArg<String>()
+            capturedMethod = method
+            capturedParams = secondArg()
+            when (method) {
+                "getWalletAddress" -> {
+                    val walletId = secondArg<JSONObject?>()?.optString("walletId") ?: ""
+                    jsonOf("value" to if (walletId.contains("wallet-1")) TEST_ADDRESS_1 else TEST_ADDRESS_2)
+                }
+                else -> JSONObject().apply {
+                    put(
+                        "items",
+                        JSONArray().apply {
+                            put(
+                                JSONObject().apply {
+                                    put("walletId", "-239:wallet-1")
+                                    put(
+                                        "wallet",
+                                        JSONObject().apply {
+                                            put("publicKey", "0xpub1")
+                                            put("version", WalletVersions.V5R1)
+                                        },
+                                    )
+                                },
+                            )
+                            put(
+                                JSONObject().apply {
+                                    put("walletId", "-3:wallet-2")
+                                    put(
+                                        "wallet",
+                                        JSONObject().apply {
+                                            put("publicKey", "pub2") // no 0x prefix
+                                            put("version", WalletVersions.V4R2)
+                                        },
+                                    )
+                                },
+                            )
+                        },
+                    )
+                }
+            }
+        }
 
         val result = walletOperations.getWallets()
 
@@ -190,34 +212,42 @@ class WalletOperationsTest : OperationsTestBase() {
 
         assertEquals(TEST_ADDRESS_1, result[0].address.value)
         assertEquals("pub1", result[0].publicKey) // stripped
-        assertEquals("v5r1", result[0].version)
-        assertEquals("mainnet", result[0].network)
+        assertEquals(WalletVersions.V5R1, result[0].version)
 
         assertEquals(TEST_ADDRESS_2, result[1].address.value)
         assertEquals("pub2", result[1].publicKey)
-        assertEquals("v4r2", result[1].version)
-        assertEquals("testnet", result[1].network) // falls back to currentNetwork
+        assertEquals(WalletVersions.V4R2, result[1].version)
     }
 
     @Test
     fun getWallets_handlesDirectArrayResponse() = runBlocking {
-        // Some JS responses return array directly without "items" wrapper
-        // Note: JSONObject can't be JSONArray, so this tests the optJSONArray fallback
-        givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "items",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("address", TEST_ADDRESS_1)
-                                put("publicKey", "directKey")
-                            },
-                        )
-                    },
-                )
-            },
-        )
+        // Tests the items wrapper
+        coEvery { rpcClient.call(any(), any()) } coAnswers {
+            val method = firstArg<String>()
+            capturedMethod = method
+            capturedParams = secondArg()
+            when (method) {
+                "getWalletAddress" -> jsonOf("value" to TEST_ADDRESS_1)
+                else -> JSONObject().apply {
+                    put(
+                        "items",
+                        JSONArray().apply {
+                            put(
+                                JSONObject().apply {
+                                    put("walletId", "-239:wallet-1")
+                                    put(
+                                        "wallet",
+                                        JSONObject().apply {
+                                            put("publicKey", "directKey")
+                                        },
+                                    )
+                                },
+                            )
+                        },
+                    )
+                }
+            }
+        }
 
         val result = walletOperations.getWallets()
 
@@ -236,50 +266,68 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun getWallets_usesAlternateKeyNames() = runBlocking {
-        // Tests that it checks both "publicKey" and legacy key names
-        givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "items",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("address", TEST_ADDRESS_1)
-                                put("public_key", "0xaltkey") // alternate key name
-                            },
-                        )
-                    },
-                )
-            },
-        )
+        // Tests that it checks wallet.publicKey
+        coEvery { rpcClient.call(any(), any()) } coAnswers {
+            val method = firstArg<String>()
+            capturedMethod = method
+            capturedParams = secondArg()
+            when (method) {
+                "getWalletAddress" -> jsonOf("value" to TEST_ADDRESS_1)
+                else -> JSONObject().apply {
+                    put(
+                        "items",
+                        JSONArray().apply {
+                            put(
+                                JSONObject().apply {
+                                    put("walletId", "-239:wallet-1")
+                                    put(
+                                        "wallet",
+                                        JSONObject().apply {
+                                            // No publicKey - should be null
+                                        },
+                                    )
+                                },
+                            )
+                        },
+                    )
+                }
+            }
+        }
 
         val result = walletOperations.getWallets()
 
         assertEquals(1, result.size)
         // Should handle missing publicKey gracefully
-        assertNull(result[0].publicKey) // Falls back to null if neither key found
+        assertNull(result[0].publicKey) // Falls back to null if no publicKey in wallet
     }
 
     // --- getWallet tests ---
 
     @Test
     fun getWallet_parsesWalletObject() = runBlocking {
-        givenBridgeReturns(
-            jsonOf(
-                "address" to TEST_ADDRESS_1,
-                "publicKey" to "0xsinglekey",
-                "version" to "v5r1",
-                "name" to "My Wallet",
-            ),
-        )
+        // JS returns { walletId, wallet }
+        coEvery { rpcClient.call(any(), any()) } coAnswers {
+            val method = firstArg<String>()
+            capturedMethod = method
+            capturedParams = secondArg()
+            when (method) {
+                "getWalletAddress" -> jsonOf("value" to TEST_ADDRESS_1)
+                else -> jsonOf(
+                    "walletId" to "-239:$TEST_ADDRESS_1",
+                    "wallet" to JSONObject().apply {
+                        put("publicKey", "0xsinglekey")
+                        put("version", WalletVersions.V5R1)
+                    },
+                )
+            }
+        }
 
         val result = walletOperations.getWallet(TEST_ADDRESS_1)
 
         assertNotNull(result)
         assertEquals(TEST_ADDRESS_1, result!!.address.value)
         assertEquals("singlekey", result.publicKey)
-        assertEquals("v5r1", result.version)
-        assertEquals("My Wallet", result.name)
+        assertEquals(WalletVersions.V5R1, result.version)
     }
 
     @Test
@@ -293,13 +341,22 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun getWallet_returnsNullIfAddressMissing() = runBlocking {
-        givenBridgeReturns(
-            jsonOf(
-                "publicKey" to "0xkey",
-                "version" to "v4r2",
-                // no address!
-            ),
-        )
+        // Mock getWalletAddress to return empty string
+        coEvery { rpcClient.call(any(), any()) } coAnswers {
+            val method = firstArg<String>()
+            capturedMethod = method
+            capturedParams = secondArg()
+            when (method) {
+                "getWalletAddress" -> jsonOf("value" to "") // Empty address
+                else -> jsonOf(
+                    "walletId" to "-239:missing",
+                    "wallet" to JSONObject().apply {
+                        put("publicKey", "0xkey")
+                        put("version", WalletVersions.V4R2)
+                    },
+                )
+            }
+        }
 
         val result = walletOperations.getWallet("missing")
 
@@ -381,30 +438,44 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun addWallet_parsesWalletResponse() = runBlocking {
-        givenBridgeReturns(
-            jsonOf(
-                "address" to TEST_ADDRESS_1,
-                "publicKey" to "0xnewkey",
-                "version" to "v5r1",
-            ),
-        )
+        // JS returns { walletId, wallet }
+        coEvery { rpcClient.call(any(), any()) } coAnswers {
+            val method = firstArg<String>()
+            capturedMethod = method
+            capturedParams = secondArg()
+            when (method) {
+                "getWalletAddress" -> jsonOf("value" to TEST_ADDRESS_1)
+                else -> jsonOf(
+                    "walletId" to "-239:$TEST_ADDRESS_1",
+                    "wallet" to JSONObject().apply {
+                        put("publicKey", "0xnewkey")
+                        put("version", WalletVersions.V5R1)
+                    },
+                )
+            }
+        }
 
         val result = walletOperations.addWallet("adapter-123")
 
         assertEquals(TEST_ADDRESS_1, result.address.value)
         assertEquals("newkey", result.publicKey)
-        assertEquals("v5r1", result.version)
-        assertEquals("testnet", result.network) // from currentNetworkProvider
+        assertEquals(WalletVersions.V5R1, result.version)
     }
 
     @Test
     fun addWallet_usesUnknownVersionIfMissing() = runBlocking {
-        givenBridgeReturns(
-            jsonOf(
-                "address" to TEST_ADDRESS_1,
-                // no version
-            ),
-        )
+        coEvery { rpcClient.call(any(), any()) } coAnswers {
+            val method = firstArg<String>()
+            capturedMethod = method
+            capturedParams = secondArg()
+            when (method) {
+                "getWalletAddress" -> jsonOf("value" to TEST_ADDRESS_1)
+                else -> jsonOf(
+                    "walletId" to "-239:$TEST_ADDRESS_1",
+                    "wallet" to JSONObject(),
+                )
+            }
+        }
 
         val result = walletOperations.addWallet("adapter-123")
 

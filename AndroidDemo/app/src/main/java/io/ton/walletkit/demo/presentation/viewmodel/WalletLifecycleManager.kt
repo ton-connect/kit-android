@@ -24,8 +24,10 @@ package io.ton.walletkit.demo.presentation.viewmodel
 import android.util.Log
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.api.ChainIds
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.data.cache.TransactionCache
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
@@ -34,8 +36,6 @@ import io.ton.walletkit.demo.data.storage.WalletRecord
 import io.ton.walletkit.demo.domain.model.PendingWalletRecord
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.domain.model.WalletMetadata
-import io.ton.walletkit.demo.domain.model.toBridgeValue
-import io.ton.walletkit.demo.domain.model.toTonNetwork
 import io.ton.walletkit.demo.presentation.model.SessionSummary
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.util.TonFormatter
@@ -93,7 +93,7 @@ class WalletLifecycleManager(
                 if (storedRecord != null) {
                     walletMetadata[address] = WalletMetadata(
                         name = storedRecord.name,
-                        network = storedRecord.network.toTonNetwork(currentNetwork),
+                        network = parseNetworkString(storedRecord.network, currentNetwork),
                         version = storedRecord.version,
                     )
                 } else {
@@ -206,18 +206,18 @@ class WalletLifecycleManager(
                 continue
             }
 
-            val networkEnum = record.network.toTonNetwork(currentNetwork)
+            val networkEnum = parseNetworkString(record.network, currentNetwork)
             val version = record.version.ifBlank { defaultWalletVersion }
             val name = record.name.ifBlank { defaultWalletNameProvider(restoredCount) }
 
             val result = runCatching {
                 when (version) {
-                    "v4r2" -> {
+                    WalletVersions.V4R2 -> {
                         val signer = kit.createSignerFromMnemonic(record.mnemonic)
                         val adapter = kit.createV4R2Adapter(signer, networkEnum)
                         kit.addWallet(adapter.adapterId)
                     }
-                    "v5r1" -> {
+                    WalletVersions.V5R1 -> {
                         val signer = kit.createSignerFromMnemonic(record.mnemonic)
                         val adapter = kit.createV5R1Adapter(signer, networkEnum)
                         kit.addWallet(adapter.adapterId)
@@ -275,7 +275,7 @@ class WalletLifecycleManager(
             ?: storedRecord?.let {
                 WalletMetadata(
                     name = it.name,
-                    network = it.network.toTonNetwork(currentNetwork),
+                    network = parseNetworkString(it.network, currentNetwork),
                     version = it.version,
                 )
             }
@@ -290,7 +290,7 @@ class WalletLifecycleManager(
             val record = WalletRecord(
                 mnemonic = pending.mnemonic,
                 name = metadata.name,
-                network = metadata.network.toBridgeValue(),
+                network = metadata.network.chainId,
                 version = metadata.version,
             )
             runCatching { storage.saveWallet(address, record) }
@@ -298,13 +298,13 @@ class WalletLifecycleManager(
                 .onFailure { Log.e(LOG_TAG, "ensureMetadataForAddress: failed to save pending record for $address", it) }
         } else if (storedRecord != null) {
             val needsUpdate = storedRecord.name != metadata.name ||
-                storedRecord.network != metadata.network.toBridgeValue() ||
+                storedRecord.network != metadata.network.chainId ||
                 storedRecord.version != metadata.version
             if (needsUpdate) {
                 val record = WalletRecord(
                     mnemonic = storedRecord.mnemonic,
                     name = metadata.name,
-                    network = metadata.network.toBridgeValue(),
+                    network = metadata.network.chainId,
                     version = metadata.version,
                     interfaceType = storedRecord.interfaceType,
                     createdAt = storedRecord.createdAt,
@@ -316,6 +316,13 @@ class WalletLifecycleManager(
         }
 
         return metadata
+    }
+
+    private fun parseNetworkString(networkStr: String?, fallback: TONNetwork): TONNetwork = when (networkStr?.trim()) {
+        ChainIds.MAINNET -> TONNetwork.MAINNET
+        ChainIds.TESTNET -> TONNetwork.TESTNET
+        null, "" -> fallback
+        else -> fallback
     }
 
     companion object {

@@ -176,9 +176,9 @@ internal class QuickJsWalletKitEngine(
     internal val nativeEventSource = NativeEventSource()
     internal val nativeTimers = NativeTimers()
 
-    @Volatile private var currentNetwork: String = "testnet"
+    @Volatile private var currentNetwork: String = NetworkConstants.DEFAULT_NETWORK
 
-    @Volatile private var apiBaseUrl: String = "https://testnet.tonapi.io"
+    @Volatile private var apiBaseUrl: String = NetworkConstants.DEFAULT_TESTNET_API_URL
 
     @Volatile private var tonApiKey: String? = null
 
@@ -379,12 +379,12 @@ internal class QuickJsWalletKitEngine(
         return buildList(items.length()) {
             for (index in 0 until items.length()) {
                 val entry = items.optJSONObject(index) ?: continue
+                val walletId = entry.optString("id").takeIf { it.isNotEmpty() } ?: continue
                 val account = WalletAccount(
+                    walletId = walletId,
                     address = TONUserFriendlyAddress(entry.optString("address")),
                     publicKey = entry.optNullableString("publicKey"),
                     version = entry.optString("version", "unknown"),
-                    network = entry.optString("network", currentNetwork),
-                    index = entry.optInt("index", index),
                 )
                 Log.d(logTag, "getWallets account: ${account.address}")
                 add(account)
@@ -404,12 +404,12 @@ internal class QuickJsWalletKitEngine(
             return null
         }
 
+        val walletId = result.optString("id").takeIf { it.isNotEmpty() } ?: address
         return WalletAccount(
+            walletId = walletId,
             address = TONUserFriendlyAddress(result.optString("address")),
             publicKey = result.optNullableString("publicKey"),
             version = result.optString("version", "unknown"),
-            network = result.optString("network", currentNetwork),
-            index = result.optInt("index", 0),
         )
     }
 
@@ -1031,7 +1031,7 @@ internal class QuickJsWalletKitEngine(
         }
     }
 
-    private fun defaultTonClientEndpoint(network: String): String = if (network.equals("mainnet", ignoreCase = true)) {
+    private fun defaultTonClientEndpoint(network: String): String = if (network.equals(NetworkConstants.NETWORK_MAINNET, ignoreCase = true)) {
         "https://toncenter.com/api/v2/jsonRPC"
     } else {
         "https://testnet.toncenter.com/api/v2/jsonRPC"
