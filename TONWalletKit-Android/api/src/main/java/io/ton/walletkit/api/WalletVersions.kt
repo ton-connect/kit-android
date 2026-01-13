@@ -19,11 +19,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.demo.domain.model
-
-import io.ton.walletkit.api.generated.TONNetwork
+package io.ton.walletkit.api
 
 /**
- * Convert SDK network to the string value we persist in demo storage.
+ * Standard TON wallet version identifiers.
  */
-fun TONNetwork.toBridgeValue(): String = this.chainId
+object WalletVersions {
+    const val V4R2 = "v4r2"
+    const val V5R1 = "v5r1"
+}

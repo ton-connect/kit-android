@@ -52,7 +52,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
         const val TEST_ADDRESS = "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N"
         const val TEST_SESSION_ID = "session-123"
         const val TEST_DAPP_URL = "https://example.com"
-        val TEST_NETWORK: TONNetwork = TONNetwork(chainId = "-3") // TESTNET
+        val TEST_NETWORK: TONNetwork = TONNetwork(chainId = io.ton.walletkit.api.ChainIds.TESTNET)
     }
 
     @Before

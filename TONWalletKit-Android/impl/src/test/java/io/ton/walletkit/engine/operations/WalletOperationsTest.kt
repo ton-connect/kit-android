@@ -24,7 +24,9 @@ package io.ton.walletkit.engine.operations
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.engine.state.SignerManager
+import io.ton.walletkit.internal.constants.NetworkConstants
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -47,7 +49,7 @@ class WalletOperationsTest : OperationsTestBase() {
 
     private lateinit var signerManager: SignerManager
     private lateinit var walletOperations: WalletOperations
-    private var currentNetwork = "testnet"
+    private var currentNetwork = NetworkConstants.DEFAULT_NETWORK
 
     // Valid TON test addresses for testing
     companion object {
@@ -172,7 +174,7 @@ class WalletOperationsTest : OperationsTestBase() {
             capturedMethod = method
             capturedParams = secondArg()
             when (method) {
-                "getWalletAddress" -> callSequence.getOrNull(callCount++)  ?: JSONObject()
+                "getWalletAddress" -> callSequence.getOrNull(callCount++) ?: JSONObject()
                 else -> JSONObject().apply {
                     put(
                         "items",
@@ -182,8 +184,8 @@ class WalletOperationsTest : OperationsTestBase() {
                                     put("id", "wallet-1")
                                     put("address", TEST_ADDRESS_1)
                                     put("publicKey", "0xpub1")
-                                    put("version", "v5r1")
-                                    put("network", "mainnet")
+                                    put("version", WalletVersions.V5R1)
+                                    put("network", NetworkConstants.NETWORK_MAINNET)
                                 },
                             )
                             put(
@@ -191,7 +193,7 @@ class WalletOperationsTest : OperationsTestBase() {
                                     put("id", "wallet-2")
                                     put("address", TEST_ADDRESS_2)
                                     put("publicKey", "pub2") // no 0x prefix
-                                    put("version", "v4r2")
+                                    put("version", WalletVersions.V4R2)
                                 },
                             )
                         },
@@ -206,13 +208,13 @@ class WalletOperationsTest : OperationsTestBase() {
 
         assertEquals(TEST_ADDRESS_1, result[0].address.value)
         assertEquals("pub1", result[0].publicKey) // stripped
-        assertEquals("v5r1", result[0].version)
-        assertEquals("mainnet", result[0].network)
+        assertEquals(WalletVersions.V5R1, result[0].version)
+        assertEquals(NetworkConstants.NETWORK_MAINNET, result[0].network)
 
         assertEquals(TEST_ADDRESS_2, result[1].address.value)
         assertEquals("pub2", result[1].publicKey)
-        assertEquals("v4r2", result[1].version)
-        assertEquals("testnet", result[1].network) // falls back to currentNetwork
+        assertEquals(WalletVersions.V4R2, result[1].version)
+        assertEquals(NetworkConstants.DEFAULT_NETWORK, result[1].network) // falls back to currentNetwork
     }
 
     @Test
@@ -298,7 +300,7 @@ class WalletOperationsTest : OperationsTestBase() {
             jsonOf(
                 "address" to TEST_ADDRESS_1,
                 "publicKey" to "0xsinglekey",
-                "version" to "v5r1",
+                "version" to WalletVersions.V5R1,
                 "name" to "My Wallet",
             ),
         )
@@ -308,7 +310,7 @@ class WalletOperationsTest : OperationsTestBase() {
         assertNotNull(result)
         assertEquals(TEST_ADDRESS_1, result!!.address.value)
         assertEquals("singlekey", result.publicKey)
-        assertEquals("v5r1", result.version)
+        assertEquals(WalletVersions.V5R1, result.version)
         assertEquals("My Wallet", result.name)
     }
 
@@ -326,7 +328,7 @@ class WalletOperationsTest : OperationsTestBase() {
         givenBridgeReturns(
             jsonOf(
                 "publicKey" to "0xkey",
-                "version" to "v4r2",
+                "version" to WalletVersions.V4R2,
                 // no address!
             ),
         )
@@ -421,7 +423,7 @@ class WalletOperationsTest : OperationsTestBase() {
                     "id" to "wallet-1",
                     "address" to TEST_ADDRESS_1,
                     "publicKey" to "0xnewkey",
-                    "version" to "v5r1",
+                    "version" to WalletVersions.V5R1,
                 )
             }
         }
@@ -430,8 +432,8 @@ class WalletOperationsTest : OperationsTestBase() {
 
         assertEquals(TEST_ADDRESS_1, result.address.value)
         assertEquals("newkey", result.publicKey)
-        assertEquals("v5r1", result.version)
-        assertEquals("testnet", result.network) // from currentNetworkProvider
+        assertEquals(WalletVersions.V5R1, result.version)
+        assertEquals(NetworkConstants.DEFAULT_NETWORK, result.network) // from currentNetworkProvider
     }
 
     @Test
