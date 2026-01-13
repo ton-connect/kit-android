@@ -385,8 +385,6 @@ internal class QuickJsWalletKitEngine(
                     address = TONUserFriendlyAddress(entry.optString("address")),
                     publicKey = entry.optNullableString("publicKey"),
                     version = entry.optString("version", "unknown"),
-                    network = entry.optString("network", currentNetwork),
-                    index = entry.optInt("index", index),
                 )
                 Log.d(logTag, "getWallets account: ${account.address}")
                 add(account)
@@ -412,8 +410,6 @@ internal class QuickJsWalletKitEngine(
             address = TONUserFriendlyAddress(result.optString("address")),
             publicKey = result.optNullableString("publicKey"),
             version = result.optString("version", "unknown"),
-            network = result.optString("network", currentNetwork),
-            index = result.optInt("index", 0),
         )
     }
 

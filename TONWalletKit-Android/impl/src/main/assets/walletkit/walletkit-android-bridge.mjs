@@ -59581,12 +59581,10 @@ function getWallets() {
       var _a2, _b;
       const wallets = (_b = (_a2 = kit.getWallets) == null ? void 0 : _a2.call(kit)) != null ? _b : [];
       return wallets.map((w2) => {
-        var _a22, _b2, _c, _d;
+        var _a22;
         return {
-          id: (_a22 = w2.getWalletId) == null ? void 0 : _a22.call(w2),
-          publicKey: (_b2 = w2.getPublicKey) == null ? void 0 : _b2.call(w2),
-          version: (_c = w2.version) != null ? _c : "unknown",
-          network: (_d = w2.getNetwork) == null ? void 0 : _d.call(w2)
+          walletId: (_a22 = w2.getWalletId) == null ? void 0 : _a22.call(w2),
+          wallet: w2
         };
       });
     }));
@@ -59595,15 +59593,10 @@ function getWallets() {
 function getWallet(args) {
   return __async$5(this, null, function* () {
     return callBridge("getWallet", (kit) => __async$5(null, null, function* () {
-      var _a2, _b, _c, _d, _e2;
+      var _a2, _b;
       const w2 = (_a2 = kit.getWallet) == null ? void 0 : _a2.call(kit, args.walletId);
       if (!w2) return null;
-      return {
-        id: (_b = w2.getWalletId) == null ? void 0 : _b.call(w2),
-        publicKey: (_c = w2.getPublicKey) == null ? void 0 : _c.call(w2),
-        version: (_d = w2.version) != null ? _d : "unknown",
-        network: (_e2 = w2.getNetwork) == null ? void 0 : _e2.call(w2)
-      };
+      return { walletId: (_b = w2.getWalletId) == null ? void 0 : _b.call(w2), wallet: w2 };
     }));
   });
 }
@@ -59612,7 +59605,7 @@ function getWalletAddress(args) {
     return callBridge("getWalletAddress", (kit) => __async$5(null, null, function* () {
       var _a2, _b, _c;
       const wallet = (_a2 = kit.getWallet) == null ? void 0 : _a2.call(kit, args.walletId);
-      return { address: (_c = (_b = wallet == null ? void 0 : wallet.getAddress) == null ? void 0 : _b.call(wallet)) != null ? _c : null };
+      return (_c = (_b = wallet == null ? void 0 : wallet.getAddress) == null ? void 0 : _b.call(wallet)) != null ? _c : null;
     }));
   });
 }
@@ -59620,20 +59613,16 @@ function removeWallet(args) {
   return __async$5(this, null, function* () {
     return callBridge("removeWallet", (kit) => __async$5(null, null, function* () {
       var _a2;
-      const wallet = (_a2 = kit.getWallet) == null ? void 0 : _a2.call(kit, args.walletId);
-      if (!wallet) {
-        return { removed: false };
-      }
-      yield kit.removeWallet(args.walletId);
-      return { removed: true };
+      return yield (_a2 = kit.removeWallet) == null ? void 0 : _a2.call(kit, args.walletId);
     }));
   });
 }
 function getBalance(args) {
   return __async$5(this, null, function* () {
     return callBridge("getBalance", (kit) => __async$5(null, null, function* () {
-      const wallet = kit.getWallet(args.walletId);
-      return yield wallet.getBalance();
+      var _a2, _b;
+      const wallet = (_a2 = kit.getWallet) == null ? void 0 : _a2.call(kit, args.walletId);
+      return yield (_b = wallet == null ? void 0 : wallet.getBalance) == null ? void 0 : _b.call(wallet);
     }));
   });
 }
@@ -59690,27 +59679,22 @@ function getAdapterAddress(args) {
       if (!adapter) {
         throw new Error(`Adapter not found: ${args.adapterId}`);
       }
-      return { address: adapter.getAddress() };
+      return adapter.getAddress();
     }));
   });
 }
 function addWallet(args) {
   return __async$5(this, null, function* () {
     return callBridge("addWallet", (kit) => __async$5(null, null, function* () {
-      var _a2, _b, _c, _d;
+      var _a2;
       const adapter = adapterStore.get(args.adapterId);
       if (!adapter) {
         throw new Error(`Adapter not found: ${args.adapterId}`);
       }
-      const w2 = yield kit.addWallet(adapter);
+      const wallet = yield kit.addWallet(adapter);
       adapterStore.delete(args.adapterId);
-      if (!w2) return null;
-      return {
-        id: (_a2 = w2.getWalletId) == null ? void 0 : _a2.call(w2),
-        publicKey: (_b = w2.getPublicKey) == null ? void 0 : _b.call(w2),
-        version: (_c = w2.version) != null ? _c : "unknown",
-        network: (_d = w2.getNetwork) == null ? void 0 : _d.call(w2)
-      };
+      if (!wallet) return null;
+      return { walletId: (_a2 = wallet.getWalletId) == null ? void 0 : _a2.call(wallet), wallet };
     }));
   });
 }
