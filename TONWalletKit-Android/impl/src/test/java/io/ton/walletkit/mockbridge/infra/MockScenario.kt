@@ -21,6 +21,8 @@
  */
 package io.ton.walletkit.mockbridge.infra
 
+import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -84,6 +86,7 @@ interface MockScenario {
         return WalletAdapterInfo(
             adapterId = "adapter-v5r1-${signerId.hashCode().toString(16)}",
             address = TONUserFriendlyAddress("EQDTest${signerId.hashCode().toString(16).padStart(40, '0')}"),
+            network = network ?: TONNetwork.TESTNET,
         )
     }
 
@@ -101,6 +104,7 @@ interface MockScenario {
         return WalletAdapterInfo(
             adapterId = "adapter-v4r2-${signerId.hashCode().toString(16)}",
             address = TONUserFriendlyAddress("EQDTest${signerId.hashCode().toString(16).padStart(40, '0')}"),
+            network = network ?: TONNetwork.TESTNET,
         )
     }
 
@@ -108,12 +112,12 @@ interface MockScenario {
      * Handle addWallet RPC call.
      */
     fun handleAddWallet(adapterId: String): WalletAccount {
+        val address = "EQDTest${adapterId.hashCode().toString(16).padStart(40, '0')}"
         return WalletAccount(
-            address = TONUserFriendlyAddress("EQDTest${adapterId.hashCode().toString(16).padStart(40, '0')}"),
+            walletId = "${io.ton.walletkit.api.ChainIds.TESTNET}:$address",
+            address = TONUserFriendlyAddress(address),
             publicKey = "0x${"0".repeat(64)}",
-            version = "v5r1",
-            network = "testnet",
-            index = 0,
+            version = WalletVersions.V5R1,
         )
     }
 

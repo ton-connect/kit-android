@@ -33,8 +33,10 @@ import coil3.request.crossfade
 import coil3.util.DebugLogger
 import dagger.hilt.android.HiltAndroidApp
 import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.api.ChainIds
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -169,16 +171,16 @@ class WalletKitDemoApp :
 
                     // Convert network string to TONNetwork enum
                     val network = when (walletRecord.network.lowercase()) {
-                        "mainnet", "-239" -> TONNetwork.MAINNET
-                        "testnet", "-3" -> TONNetwork.TESTNET
+                        ChainIds.MAINNET -> TONNetwork.MAINNET
+                        ChainIds.TESTNET -> TONNetwork.TESTNET
                         else -> TONNetwork.MAINNET
                     }
 
                     // Use 3-step wallet creation pattern
                     val signer = kit.createSignerFromMnemonic(mnemonicWords)
                     val adapter = when (walletRecord.version) {
-                        "v4r2" -> kit.createV4R2Adapter(signer, network)
-                        "v5r1" -> kit.createV5R1Adapter(signer, network)
+                        WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network)
+                        WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network)
                         else -> {
                             Log.w(TAG, "Unsupported wallet version: ${walletRecord.version}, skipping")
                             continue

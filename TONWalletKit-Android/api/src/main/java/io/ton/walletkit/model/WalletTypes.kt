@@ -21,6 +21,8 @@
  */
 package io.ton.walletkit.model
 
+import io.ton.walletkit.api.generated.TONNetwork
+
 /**
  * Custom wallet signer interface for hardware wallet integration.
  *
@@ -62,10 +64,12 @@ data class WalletSignerInfo(
  *
  * @property adapterId Internal adapter identifier
  * @property address Wallet address
+ * @property network Network the adapter was created for (for walletId computation)
  */
 data class WalletAdapterInfo(
     val adapterId: String,
     val address: TONUserFriendlyAddress,
+    val network: TONNetwork,
 )
 
 /**

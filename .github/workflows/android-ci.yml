@@ -4,20 +4,39 @@ on:
   pull_request:
     branches:
       - main
+      - feat/unit-tests  # Temporary - remove after testing
     paths:
       - 'TONWalletKit-Android/**'
       - 'AndroidDemo/**'
       - '.github/workflows/android-ci.yml'
+  workflow_dispatch:
+    inputs:
+      parallel_emulators:
+        description: 'Number of parallel emulators for E2E tests (1-5)'
+        required: false
+        default: '2'
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
+
+env:
+  # All available test suites
+  ALL_TEST_SUITES: |
+    ConnectE2ETest
+    TransactionAddressAmountE2ETest
+    TransactionFromMessagesNetworkE2ETest
+    TransactionPayloadStateInitValidUntilE2ETest
+    MerkleJettonSignDataE2ETest
 
 jobs:
   # Code formatting check with Spotless
   spotless:
     name: Spotless Check
-    # runs-on: ubuntu-latest
-    runs-on: [self-hosted, k8s, linux]
-    container:
-      image: cimg/android:2025.10-node
-      options: --user root
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,8 +47,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      # - name: Setup Android SDK
-      #   uses: android-actions/setup-android@v3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Grant execute permission for gradlew
         working-directory: TONWalletKit-Android
@@ -42,14 +62,20 @@ jobs:
   # Build and test SDK
   test-sdk:
     name: Test & Build SDK
-    # runs-on: ubuntu-latest
-    runs-on: [self-hosted, k8s, linux]
-    container:
-      image: cimg/android:2025.10-node
-      options: --user root
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout kit-android code
         uses: actions/checkout@v4
+
+      - name: Checkout kit repository
+        uses: actions/checkout@v4
+        with:
+          repository: ton-connect/kit
+          ref: fix/android-dto  # Branch with RequestError and nullable fixes
+          path: ton-repo
+          sparse-checkout: |
+            packages/walletkit
+            packages/walletkit-android-bridge
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -57,44 +83,79 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      # - name: Setup Android SDK
-      #   uses: android-actions/setup-android@v3
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install openapi-generator
+        run: |
+          npm install -g @openapitools/openapi-generator-cli
+          # Create symlink for compatibility with script
+          ln -sf "$(npm config get prefix)/bin/openapi-generator-cli" "$(npm config get prefix)/bin/openapi-generator" || true
+
+      - name: Generate Kotlin models from walletkit API
+        run: |
+          chmod +x Scripts/generate-api/generate-api-models.sh
+          # Run with verbose output to debug
+          bash -x ./Scripts/generate-api/generate-api-models.sh ./ton-repo/packages/walletkit
+
+      - name: Build TypeScript Bridge Bundle
+        run: |
+          cd ton-repo
+          pnpm install
+          pnpm turbo run build --filter=walletkit-android-bridge --force
+
+      - name: Copy Bridge Bundle to dist-android
+        run: |
+          mkdir -p dist-android
+          cp ton-repo/packages/walletkit-android-bridge/dist/* dist-android/
 
       - name: Grant execute permission for gradlew
         working-directory: TONWalletKit-Android
         run: chmod +x gradlew
 
+      - name: Sync WebView Assets
+        working-directory: TONWalletKit-Android
+        run: ./gradlew syncWalletKitWebViewAssets
+
       - name: Run unit tests
         working-directory: TONWalletKit-Android
-        run: ./gradlew :bridge:testWebviewReleaseUnitTest
+        run: ./gradlew :impl:testWebviewDebugUnitTest
 
-      - name: Build WebView variant
+      - name: Build WebView variant (Release)
         working-directory: TONWalletKit-Android
-        run: ./gradlew buildWebview
+        run: ./gradlew buildWebviewRelease
 
       - name: Upload WebView AAR
         uses: actions/upload-artifact@v4
         with:
-          name: bridge-webview-release
-          path: TONWalletKit-Android/bridge/build/outputs/aar/bridge-webview-release.aar
+          name: sdk-webview-aar
+          path: TONWalletKit-Android/impl/build/outputs/aar/impl-webview-release.aar
           retention-days: 7
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
-          path: TONWalletKit-Android/bridge/build/test-results/
+          name: unit-test-results
+          path: TONWalletKit-Android/impl/build/test-results/
           retention-days: 7
 
-  # Build Demo App
+  # Build Demo App (reused by E2E tests)
   build-demo:
     name: Build Demo App
-    # runs-on: ubuntu-latest
-    runs-on: [self-hosted, k8s, linux]
-    container:
-      image: cimg/android:2025.10-node
-      options: --user root
+    runs-on: ubuntu-latest
+    needs: test-sdk
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -105,23 +166,20 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-      # - name: Setup Android SDK
-      #   uses: android-actions/setup-android@v3
 
-      - name: Grant execute permission for gradlew (SDK)
-        working-directory: TONWalletKit-Android
-        run: chmod +x gradlew
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Build SDK for Demo
-        working-directory: TONWalletKit-Android
-        run: ./gradlew buildWebview
+      - name: Download SDK AAR
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-webview-aar
+          path: AndroidDemo/app/libs/
 
-      - name: Copy AAR to Demo app libs
-        run: |
-          mkdir -p AndroidDemo/app/libs
-          cp TONWalletKit-Android/bridge/build/outputs/aar/bridge-webview-release.aar AndroidDemo/app/libs/bridge-release.aar
+      - name: Rename AAR
+        run: mv AndroidDemo/app/libs/impl-webview-release.aar AndroidDemo/app/libs/tonwalletkit-release.aar
 
-      - name: Grant execute permission for gradlew (Demo)
+      - name: Grant execute permission for gradlew
         working-directory: AndroidDemo
         run: chmod +x gradlew
 
@@ -129,9 +187,251 @@ jobs:
         working-directory: AndroidDemo
         run: ./gradlew assembleDebug
 
-      - name: Upload Demo APK
+      - name: Build Android Test APK
+        working-directory: AndroidDemo
+        run: ./gradlew assembleDebugAndroidTest
+
+      - name: Prepare APKs for upload
+        run: |
+          mkdir -p demo-apks
+          cp AndroidDemo/app/build/outputs/apk/debug/app-debug.apk demo-apks/
+          cp AndroidDemo/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk demo-apks/
+
+      - name: Upload Demo APKs
         uses: actions/upload-artifact@v4
         with:
-          name: demo-app-debug
-          path: AndroidDemo/app/build/outputs/apk/debug/app-debug.apk
+          name: demo-apks
+          path: demo-apks/
+          retention-days: 7
+
+  # Generate test matrix based on parallel emulators setting
+  generate-matrix:
+    name: Generate Test Matrix
+    runs-on: ubuntu-latest
+    needs: build-demo
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Generate matrix
+        id: set-matrix
+        run: |
+          # Get parallel count (default 2, configurable for workflow_dispatch)
+          PARALLEL=${{ github.event.inputs.parallel_emulators || '2' }}
+          
+          # All test suites
+          SUITES=(
+            "ConnectE2ETest"
+            "TransactionAddressAmountE2ETest"
+            "TransactionFromMessagesNetworkE2ETest"
+            "TransactionPayloadStateInitValidUntilE2ETest"
+            "MerkleJettonSignDataE2ETest"
+          )
+          
+          TOTAL_SUITES=${#SUITES[@]}
+          
+          # Build matrix entries
+          MATRIX_ENTRIES=""
+          for ((i=0; i<PARALLEL; i++)); do
+            # Calculate which suites this emulator will run
+            RUNNER_SUITES=""
+            for ((j=i; j<TOTAL_SUITES; j+=PARALLEL)); do
+              if [ -n "$RUNNER_SUITES" ]; then
+                RUNNER_SUITES="$RUNNER_SUITES,${SUITES[$j]}"
+              else
+                RUNNER_SUITES="${SUITES[$j]}"
+              fi
+            done
+            
+            if [ -n "$RUNNER_SUITES" ]; then
+              # Use first suite name for display
+              FIRST_SUITE=$(echo "$RUNNER_SUITES" | cut -d',' -f1)
+              if [ -n "$MATRIX_ENTRIES" ]; then
+                MATRIX_ENTRIES="$MATRIX_ENTRIES,"
+              fi
+              MATRIX_ENTRIES="$MATRIX_ENTRIES{\"name\":\"$FIRST_SUITE\",\"suites\":\"$RUNNER_SUITES\"}"
+            fi
+          done
+          
+          echo "matrix={\"include\":[$MATRIX_ENTRIES]}" >> $GITHUB_OUTPUT
+          echo "Generated matrix: {\"include\":[$MATRIX_ENTRIES]}"
+
+  # Run E2E tests in parallel on emulators
+  e2e-tests:
+    name: E2E - ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    needs: generate-matrix
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: demo-apks
+          path: apks/
+
+      - name: List downloaded APKs
+        run: ls -la apks/
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api-35-x86_64
+
+      - name: Create AVD and generate snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Create test runner script
+        env:
+          TEST_SUITES: ${{ matrix.suites }}
+          ALLURE_TOKEN: ${{ secrets.ALLURE_API_TOKEN }}
+          TEST_MNEMONIC: ${{ secrets.WALLET_MNEMONIC }}
+          DISABLE_NETWORK_SEND: ${{ secrets.DISABLE_NETWORK_SEND }}
+        run: |
+          # Embed variables directly into the script to avoid shell escaping issues
+          cat > /tmp/run_tests.sh << SCRIPT_END
+          #!/bin/bash
+          set -e
+          FAILED=0
+          
+          TEST_SUITES="$TEST_SUITES"
+          ALLURE_TOKEN="$ALLURE_TOKEN"
+          TEST_MNEMONIC="$TEST_MNEMONIC"
+          DISABLE_NETWORK_SEND="$DISABLE_NETWORK_SEND"
+          
+          for SUITE in \$(echo "\$TEST_SUITES" | tr ',' ' '); do
+            echo "=========================================="
+            echo "Running test suite: \$SUITE"
+            echo "=========================================="
+            
+            # Use printf to build command with proper escaping for adb shell
+            adb shell "am instrument -w \\
+              -e class io.ton.walletkit.demo.e2e.tests.\$SUITE \\
+              -e allureToken '\$ALLURE_TOKEN' \\
+              -e testMnemonic '\$TEST_MNEMONIC' \\
+              -e disableNetworkSend '\$DISABLE_NETWORK_SEND' \\
+              io.ton.walletkit.demo.test/androidx.test.runner.AndroidJUnitRunner" 2>&1 | tee "/tmp/test_output_\$SUITE.txt" || true
+            
+            if grep -q "FAILURES" "/tmp/test_output_\$SUITE.txt"; then
+              echo "::error::E2E tests failed for \$SUITE"
+              FAILED=1
+            fi
+            
+            if grep -q "Error in" "/tmp/test_output_\$SUITE.txt"; then
+              echo "::error::E2E tests had errors for \$SUITE"
+              FAILED=1
+            fi
+          done
+          
+          exit \$FAILED
+          SCRIPT_END
+          chmod +x /tmp/run_tests.sh
+
+      - name: Run E2E tests - ${{ matrix.name }}
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            # Wait for emulator to be fully booted and stable
+            echo "Waiting for emulator to stabilize..."
+            adb wait-for-device
+            sleep 10
+            
+            # Wait for boot to complete (single line to avoid shell splitting)
+            while [ "$(adb shell getprop sys.boot_completed 2>/dev/null)" != "1" ]; do echo "Waiting for boot_completed..."; sleep 2; done
+            
+            # Additional wait for system services
+            sleep 15
+            
+            # Disable animations via settings (belt and suspenders)
+            adb shell settings put global window_animation_scale 0
+            adb shell settings put global transition_animation_scale 0
+            adb shell settings put global animator_duration_scale 0
+            
+            # Install APKs
+            echo "Installing APKs..."
+            adb install -r apks/app-debug.apk
+            adb install -r apks/app-debug-androidTest.apk
+            
+            # Give the system time to index the newly installed apps
+            sleep 5
+            
+            # Run tests
+            /tmp/run_tests.sh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.name }}
+          path: |
+            AndroidDemo/app/build/outputs/androidTest-results/
+            AndroidDemo/app/build/reports/androidTests/
+          retention-days: 7
+
+  # Summary job that waits for all E2E tests
+  e2e-summary:
+    name: E2E Summary
+    needs: e2e-tests
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
+            echo "✅ All E2E tests passed!"
+            exit 0
+          else
+            echo "❌ Some E2E tests failed"
+            exit 1
+          fi
+
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: e2e-results-*
+          path: all-results/
+          merge-multiple: true
+
+      - name: Upload combined results
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-all-results
+          path: all-results/
           retention-days: 7

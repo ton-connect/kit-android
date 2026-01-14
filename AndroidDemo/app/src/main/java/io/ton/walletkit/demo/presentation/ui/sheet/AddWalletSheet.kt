@@ -65,8 +65,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.api.ChainIds
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
@@ -158,8 +160,8 @@ fun AddWalletSheet(
                     label = {
                         Text(
                             when (option.chainId) {
-                                "-239" -> stringResource(R.string.network_mainnet)
-                                "-3" -> stringResource(R.string.network_testnet)
+                                ChainIds.MAINNET -> stringResource(R.string.network_mainnet)
+                                ChainIds.TESTNET -> stringResource(R.string.network_testnet)
                                 else -> "Unknown"
                             },
                         )
@@ -170,7 +172,7 @@ fun AddWalletSheet(
 
         Text(stringResource(R.string.label_wallet_version), style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("v5r1", "v4r2").forEach { version ->
+            listOf(WalletVersions.V5R1, WalletVersions.V4R2).forEach { version ->
                 FilterChip(
                     selected = walletVersion == version,
                     onClick = { walletVersion = version },
@@ -386,7 +388,7 @@ private enum class AddWalletTab(@StringRes val labelRes: Int) {
 }
 
 private const val MNEMONIC_WORD_COUNT = 24
-private const val DEFAULT_WALLET_VERSION = "v5r1"
+private const val DEFAULT_WALLET_VERSION = WalletVersions.V5R1
 
 @Preview(showBackground = true)
 @Composable

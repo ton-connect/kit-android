@@ -33,6 +33,7 @@ import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.core.RequestErrorTracker
@@ -41,7 +42,6 @@ import io.ton.walletkit.demo.data.storage.WalletRecord
 import io.ton.walletkit.demo.domain.model.PendingWalletRecord
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.domain.model.WalletMetadata
-import io.ton.walletkit.demo.domain.model.toBridgeValue
 import io.ton.walletkit.demo.presentation.model.ConnectPermissionUi
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
@@ -644,8 +644,8 @@ class WalletKitViewModel @Inject constructor(
                 // - walletId: unique ID for multiple wallets from same signer
                 // Example: kit.createV5R1Adapter(signerInfo, network, workchain = 0, walletId = WalletKitConstants.DEFAULT_WALLET_ID_V5R1)
                 val adapter = when (version) {
-                    "v4r2" -> kit.createV4R2Adapter(signerInfo, network)
-                    "v5r1" -> kit.createV5R1Adapter(signerInfo, network)
+                    WalletVersions.V4R2 -> kit.createV4R2Adapter(signerInfo, network)
+                    WalletVersions.V5R1 -> kit.createV5R1Adapter(signerInfo, network)
                     else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                 }
 
@@ -666,7 +666,7 @@ class WalletKitViewModel @Inject constructor(
                     val record = WalletRecord(
                         mnemonic = cleaned,
                         name = pending.metadata.name,
-                        network = network.toBridgeValue(),
+                        network = network.chainId,
                         version = version,
                         interfaceType = interfaceType.value,
                     )
@@ -741,8 +741,8 @@ class WalletKitViewModel @Inject constructor(
                 val mnemonic = kit.createTonMnemonic()
                 val signer = kit.createSignerFromMnemonic(mnemonic)
                 val adapter = when (version) {
-                    "v4r2" -> kit.createV4R2Adapter(signer, network)
-                    "v5r1" -> kit.createV5R1Adapter(signer, network)
+                    WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network)
+                    WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network)
                     else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                 }
                 kit.addWallet(adapter.adapterId)
@@ -760,7 +760,7 @@ class WalletKitViewModel @Inject constructor(
                     val record = WalletRecord(
                         mnemonic = emptyList(), // Random mnemonic not saved in demo app
                         name = pending.metadata.name,
-                        network = network.toBridgeValue(),
+                        network = network.chainId,
                         version = version,
                         interfaceType = interfaceType.value,
                     )
@@ -1176,7 +1176,7 @@ class WalletKitViewModel @Inject constructor(
                     // Preserve interfaceType and createdAt when updating metadata
                     interfaceType = storedWallet.interfaceType,
                     createdAt = storedWallet.createdAt,
-                    network = updated.network.toBridgeValue(),
+                    network = updated.network.chainId,
                     version = updated.version,
                 )
                 runCatching { storage.saveWallet(address, updatedRecord) }
@@ -1575,7 +1575,7 @@ class WalletKitViewModel @Inject constructor(
         private const val BALANCE_REFRESH_MS = 20_000L
         private const val HIDE_MESSAGE_MS = 10_000L
         private const val MAX_EVENT_LOG = 12
-        private const val DEFAULT_WALLET_VERSION = "v5r1"
+        private const val DEFAULT_WALLET_VERSION = WalletVersions.V5R1
         private const val TRANSACTION_FETCH_LIMIT = 20
         private val DEFAULT_NETWORK = TONNetwork.MAINNET
         private const val LOG_TAG = "WalletKitVM"
