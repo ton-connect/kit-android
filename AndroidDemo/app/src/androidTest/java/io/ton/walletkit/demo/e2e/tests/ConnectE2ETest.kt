@@ -67,7 +67,10 @@ class ConnectE2ETest : BaseE2ETest() {
 
     override fun setUp() {
         super.setUp()
-        composeTestRule.waitForIdle()
+
+        // Wait for Activity to be fully ready (critical for slow CI emulators)
+        waitForActivityReady(composeTestRule)
+
         walletController.init(composeTestRule)
         dAppController.init(composeTestRule)
         ensureWalletReady()

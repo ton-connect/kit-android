@@ -23,6 +23,7 @@ package io.ton.walletkit.demo.e2e.infrastructure
 
 import android.content.Context
 import android.graphics.Bitmap
+import androidx.compose.ui.test.onRoot
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import io.qameta.allure.kotlin.Allure
@@ -215,6 +216,44 @@ abstract class BaseE2ETest {
         walletController.setupWallet(TEST_MNEMONIC, TEST_PASSWORD)
         walletController.waitForWalletHome()
         android.util.Log.d("BaseE2ETest", "Wallet is ready on home screen")
+    }
+
+    /**
+     * Wait for Activity to be fully launched and Compose hierarchy to be available.
+     * This is critical for slow CI emulators where Activity launch can be delayed.
+     * Call this in setUp() before initializing controllers.
+     *
+     * @param composeTestRule The compose test rule to wait on
+     * @param initialDelayMs Initial delay after waitForIdle to let Activity stabilize
+     */
+    protected fun waitForActivityReady(
+        composeTestRule: androidx.compose.ui.test.junit4.ComposeTestRule,
+        initialDelayMs: Long = 3000,
+    ) {
+        android.util.Log.d("BaseE2ETest", "Waiting for Activity to launch...")
+        composeTestRule.waitForIdle()
+
+        // Give the Activity extra time to fully initialize on slow emulators
+        Thread.sleep(initialDelayMs)
+
+        // Wait for Compose hierarchy to be set up
+        try {
+            composeTestRule.waitUntil(UI_STATE_TIMEOUT_MS) {
+                // Try to access the root node - this fails if Compose isn't ready
+                try {
+                    composeTestRule.onRoot().fetchSemanticsNode()
+                    true
+                } catch (e: Exception) {
+                    false
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("BaseE2ETest", "Timeout waiting for Compose hierarchy: ${e.message}")
+            // Don't throw - proceed and let the test fail with a more specific error if needed
+        }
+
+        composeTestRule.waitForIdle()
+        android.util.Log.d("BaseE2ETest", "Activity is ready")
     }
 
     /**

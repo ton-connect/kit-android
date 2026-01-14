@@ -14,7 +14,7 @@ on:
       parallel_emulators:
         description: 'Number of parallel emulators for E2E tests (1-5)'
         required: false
-        default: '5'
+        default: '1'
         type: choice
         options:
           - '1'
@@ -215,8 +215,8 @@ jobs:
       - name: Generate matrix
         id: set-matrix
         run: |
-          # Get parallel count (default 5 for PRs, configurable for workflow_dispatch)
-          PARALLEL=${{ github.event.inputs.parallel_emulators || '5' }}
+          # Get parallel count (default 1 for PRs for stability, configurable for workflow_dispatch)
+          PARALLEL=${{ github.event.inputs.parallel_emulators || '1' }}
           
           # All test suites
           SUITES=(
@@ -368,8 +368,34 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
+            # Wait for emulator to be fully booted and stable
+            echo "Waiting for emulator to stabilize..."
+            adb wait-for-device
+            sleep 10
+            
+            # Wait for boot to complete
+            while [ "$(adb shell getprop sys.boot_completed 2>/dev/null)" != "1" ]; do
+              echo "Waiting for boot_completed..."
+              sleep 2
+            done
+            
+            # Additional wait for system services
+            sleep 15
+            
+            # Disable animations via settings (belt and suspenders)
+            adb shell settings put global window_animation_scale 0
+            adb shell settings put global transition_animation_scale 0
+            adb shell settings put global animator_duration_scale 0
+            
+            # Install APKs
+            echo "Installing APKs..."
             adb install -r apks/app-debug.apk
             adb install -r apks/app-debug-androidTest.apk
+            
+            # Give the system time to index the newly installed apps
+            sleep 5
+            
+            # Run tests
             /tmp/run_tests.sh
 
       - name: Upload test results

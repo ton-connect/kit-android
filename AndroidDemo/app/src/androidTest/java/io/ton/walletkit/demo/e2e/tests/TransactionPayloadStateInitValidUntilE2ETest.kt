@@ -72,7 +72,7 @@ class TransactionPayloadStateInitValidUntilE2ETest : BaseE2ETest() {
 
     override fun setUp() {
         super.setUp()
-        composeTestRule.waitForIdle()
+        waitForActivityReady(composeTestRule)
         walletController.init(composeTestRule)
         dAppController.init(composeTestRule)
         ensureWalletReady()
