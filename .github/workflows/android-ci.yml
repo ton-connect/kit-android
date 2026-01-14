@@ -298,13 +298,13 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-api-31-x86_64
+          key: avd-api-35-x86_64
 
       - name: Create AVD and generate snapshot
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 31
+          api-level: 35
           arch: x86_64
           target: google_apis
           force-avd-creation: false
@@ -361,7 +361,7 @@ jobs:
       - name: Run E2E tests - ${{ matrix.name }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 31
+          api-level: 35
           arch: x86_64
           target: google_apis
           force-avd-creation: false
@@ -373,11 +373,8 @@ jobs:
             adb wait-for-device
             sleep 10
             
-            # Wait for boot to complete
-            while [ "$(adb shell getprop sys.boot_completed 2>/dev/null)" != "1" ]; do
-              echo "Waiting for boot_completed..."
-              sleep 2
-            done
+            # Wait for boot to complete (single line to avoid shell splitting)
+            while [ "$(adb shell getprop sys.boot_completed 2>/dev/null)" != "1" ]; do echo "Waiting for boot_completed..."; sleep 2; done
             
             # Additional wait for system services
             sleep 15
