@@ -1260,7 +1260,7 @@ class WalletKitViewModel @Inject constructor(
         Log.d(LOG_TAG, "=== onTransactionRequest called ===")
         // Extract wallet address from active wallet
         val walletAddress = state.value.activeWalletAddress ?: ""
-        val dAppInfo = request.event.preview.dAppInfo ?: request.event.dAppInfo
+        val dAppInfo = request.event.dAppInfo
         val fallbackDAppName = uiString(R.string.wallet_event_generic_dapp)
         val txRequest = request.event.request
 

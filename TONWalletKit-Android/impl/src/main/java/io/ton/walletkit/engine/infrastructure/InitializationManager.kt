@@ -34,6 +34,7 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
@@ -132,7 +133,7 @@ internal class InitializationManager(
     private suspend fun performInitialization(configuration: TONWalletKitConfiguration) {
         val networkName = resolveNetworkName(configuration)
         currentNetwork = networkName
-        persistentStorageEnabled = configuration.storage.persistent
+        persistentStorageEnabled = configuration.storageType != TONWalletKitStorageType.Memory
 
         val tonClientEndpoint = resolveTonClientEndpoint(configuration)
         apiBaseUrl = resolveTonApiBase(configuration)

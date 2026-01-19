@@ -28,6 +28,7 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -109,7 +110,7 @@ abstract class MockBridgeTestBase {
                     types = listOf(SignDataType.TEXT, SignDataType.BINARY, SignDataType.CELL),
                 ),
             ),
-            storage = TONWalletKitConfiguration.Storage(persistent = false),
+            storageType = TONWalletKitStorageType.Memory,
         )
     }
 

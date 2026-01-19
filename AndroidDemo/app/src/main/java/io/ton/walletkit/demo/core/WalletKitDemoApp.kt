@@ -44,6 +44,7 @@ import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.SecureDemoAppStorage
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -291,7 +292,7 @@ object TONWalletKitHelper {
                         types = listOf(SignDataType.TEXT, SignDataType.BINARY, SignDataType.CELL),
                     ),
                 ),
-                storage = TONWalletKitConfiguration.Storage(persistent = true),
+                storageType = TONWalletKitStorageType.Encrypted,
                 dev = devOptions,
             )
 
