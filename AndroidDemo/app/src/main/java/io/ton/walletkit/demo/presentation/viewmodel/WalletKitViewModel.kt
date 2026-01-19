@@ -37,7 +37,6 @@ import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.core.RequestErrorTracker
-import io.ton.walletkit.demo.core.TONWalletKitHelper
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.WalletRecord
 import io.ton.walletkit.demo.domain.model.PendingWalletRecord
@@ -1274,10 +1273,9 @@ class WalletKitViewModel @Inject constructor(
         Log.d(LOG_TAG, "Transaction request - walletAddress: $walletAddress, dAppName: ${dAppInfo?.name}")
 
         // Check balance before showing transaction UI (like web demo-wallet does)
-        // Skip balance check when disableNetworkSend is true (testing mode)
         viewModelScope.launch {
             val wallet = lifecycleManager.tonWallets[walletAddress]
-            if (wallet != null && !TONWalletKitHelper.disableNetworkSend) {
+            if (wallet != null) {
                 try {
                     val balance = wallet.balance()
                     val totalAmount = txRequest.messages.sumOf { msg ->
@@ -1298,8 +1296,6 @@ class WalletKitViewModel @Inject constructor(
                     Log.e(LOG_TAG, "Failed to check balance, proceeding with transaction UI", e)
                     // Continue to show the UI even if balance check fails
                 }
-            } else if (TONWalletKitHelper.disableNetworkSend) {
-                Log.d(LOG_TAG, "Skipping balance check - disableNetworkSend is true (testing mode)")
             }
 
             // Map actual transaction messages from request
