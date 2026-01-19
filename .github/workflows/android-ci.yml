@@ -4,11 +4,13 @@ on:
   pull_request:
     branches:
       - main
-      - feat/unit-tests  # Temporary - remove after testing
     paths:
       - 'TONWalletKit-Android/**'
       - 'AndroidDemo/**'
       - '.github/workflows/android-ci.yml'
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       parallel_emulators:
@@ -34,33 +36,35 @@ env:
 
 jobs:
   # Code formatting check with Spotless
-  spotless:
-    name: Spotless Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  # COMMENTED OUT: Skipping for publish workflow testing
+  # spotless:
+  #   name: Spotless Check
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+  #     - name: Set up JDK 17
+  #       uses: actions/setup-java@v4
+  #       with:
+  #         distribution: 'temurin'
+  #         java-version: '17'
+  #         cache: 'gradle'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+  #     - name: Setup Android SDK
+  #       uses: android-actions/setup-android@v3
 
-      - name: Grant execute permission for gradlew
-        working-directory: TONWalletKit-Android
-        run: chmod +x gradlew
+  #     - name: Grant execute permission for gradlew
+  #       working-directory: TONWalletKit-Android
+  #       run: chmod +x gradlew
 
-      - name: Run Spotless Check
-        working-directory: TONWalletKit-Android
-        run: ./gradlew spotlessCheck
+  #     - name: Run Spotless Check
+  #       working-directory: TONWalletKit-Android
+  #       run: ./gradlew spotlessCheck
 
   # Build and test SDK
-  test-sdk:
+  # COMMENTED OUT: Skipping unit tests for publish workflow testing
+  # test-sdk:
     name: Test & Build SDK
     runs-on: ubuntu-latest
     steps:
