@@ -411,7 +411,7 @@ internal class WalletOperations(
     /**
      * Get a single wallet by walletId using RPC call.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      */
     suspend fun getWallet(walletId: String): WalletAccount? {
         ensureInitialized()
@@ -450,7 +450,7 @@ internal class WalletOperations(
     /**
      * Remove a wallet from the bridge layer.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      */
     suspend fun removeWallet(walletId: String) {
         ensureInitialized()
@@ -475,7 +475,7 @@ internal class WalletOperations(
     /**
      * Retrieve wallet balance in nanoTON.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      */
     suspend fun getBalance(walletId: String): String {
         ensureInitialized()

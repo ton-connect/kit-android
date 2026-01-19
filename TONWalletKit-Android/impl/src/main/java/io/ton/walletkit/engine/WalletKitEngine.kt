@@ -218,7 +218,7 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Get a single wallet by walletId using RPC call.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @return Wallet account or null if not found
      */
     suspend fun getWallet(walletId: String): WalletAccount?
@@ -226,7 +226,7 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Remove a wallet by walletId.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @throws WalletKitBridgeException if removal fails
      */
     suspend fun removeWallet(walletId: String)
@@ -234,7 +234,7 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Get the current state of a wallet.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @return Current wallet balance in nanoTON as a string
      * @throws WalletKitBridgeException if balance retrieval fails
      */
@@ -273,7 +273,7 @@ internal interface WalletKitEngine : RequestHandler {
      * This method creates transaction content matching the JS WalletKit API wallet.createTransferTonTransaction().
      * The returned transaction content can be passed to handleNewTransaction() to trigger the approval flow.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @param params Transfer parameters (recipient, amount, optional comment/body/stateInit)
      * @return Transaction with optional preview
      * @throws WalletKitBridgeException if transaction creation fails
@@ -289,7 +289,7 @@ internal interface WalletKitEngine : RequestHandler {
      * This method matches the JS WalletKit API kit.handleNewTransaction() and triggers
      * a transaction request event that can be approved or rejected via the event handler.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @param transactionContent Transaction content as JSON (from createTransferTonTransaction, etc.)
      * @throws WalletKitBridgeException if transaction handling fails
      */
@@ -304,7 +304,7 @@ internal interface WalletKitEngine : RequestHandler {
      * This method takes transaction content (as JSON) and sends it to the blockchain,
      * returning the transaction hash. This matches the iOS wallet.sendTransaction() behavior.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @param transactionContent Transaction content as JSON (from transferNFT, createTransferJettonTransaction, etc.)
      * @return Transaction hash (signedBoc) after successful broadcast
      * @throws WalletKitBridgeException if sending fails
@@ -419,7 +419,7 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Create an NFT transfer transaction with human-friendly parameters.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @param params Transfer parameters
      * @return Transaction content as JSON string
      * @throws WalletKitBridgeException if transaction creation fails
@@ -432,7 +432,7 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Create an NFT transfer transaction with raw parameters.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @param params Raw transfer parameters
      * @return Transaction content as JSON string
      * @throws WalletKitBridgeException if transaction creation fails
@@ -445,7 +445,7 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Get jetton wallets owned by a wallet with pagination.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @param limit Maximum number of jetton wallets to return
      * @param offset Offset for pagination
      * @return Jetton wallets with pagination info
@@ -456,7 +456,7 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Create a jetton transfer transaction.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @param params Transfer parameters
      * @return Transaction content as JSON string
      * @throws WalletKitBridgeException if transaction creation fails
@@ -469,7 +469,7 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Create a multi-recipient TON transfer transaction.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @param messages List of transfer parameters for each recipient
      * @return Transaction with optional preview
      * @throws WalletKitBridgeException if transaction creation fails
@@ -482,7 +482,7 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Get a preview of a transaction including estimated fees.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @param transactionContent Transaction content as JSON string
      * @return Transaction preview with fee estimation
      * @throws WalletKitBridgeException if preview generation fails
@@ -495,7 +495,7 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Get the balance of a specific jetton for a wallet.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @param jettonAddress Jetton master contract address
      * @return Balance as a string (in jetton units)
      * @throws WalletKitBridgeException if balance retrieval fails
@@ -505,7 +505,7 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Get the jetton wallet address for a specific jetton master contract.
      *
-     * @param walletId Wallet ID in format "chainId:address" (e.g., "-239:UQDtFp...")
+     * @param walletId Wallet ID (opaque identifier from bridge)
      * @param jettonAddress Jetton master contract address
      * @return Jetton wallet contract address
      * @throws WalletKitBridgeException if address retrieval fails

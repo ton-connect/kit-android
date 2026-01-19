@@ -33,9 +33,13 @@ object WalletKitUtils {
     private val HEX_CHARS = "0123456789abcdef".toCharArray()
 
     /**
-     * Create walletId from network and address.
-     * Format: "{chainId}:{address}" e.g., "-3:UQA..."
+     * @deprecated WalletId is now a hash created by the JavaScript bridge.
+     * Do not create walletId on the Kotlin side - use the walletId from events/responses.
      */
+    @Deprecated(
+        message = "WalletId format has changed to SHA256 hash. Use walletId from bridge events instead.",
+        level = DeprecationLevel.ERROR,
+    )
     fun createWalletId(network: TONNetwork, address: String): String {
         return "${network.chainId}:$address"
     }

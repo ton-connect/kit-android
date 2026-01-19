@@ -287,7 +287,8 @@ object TONWalletKitHelper {
                 ),
                 apiClient = null,
                 features = listOf(
-                    TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 4),
+                    // V5R1 wallets support up to 255 messages per transaction
+                    TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 255),
                     TONWalletKitConfiguration.SignDataFeature(
                         types = listOf(SignDataType.TEXT, SignDataType.BINARY, SignDataType.CELL),
                     ),

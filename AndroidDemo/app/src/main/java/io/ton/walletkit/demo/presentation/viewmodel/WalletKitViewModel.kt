@@ -37,6 +37,7 @@ import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.core.RequestErrorTracker
+import io.ton.walletkit.demo.core.TONWalletKitHelper
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.WalletRecord
 import io.ton.walletkit.demo.domain.model.PendingWalletRecord
@@ -60,6 +61,7 @@ import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -70,6 +72,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.collections.ArrayDeque
 import kotlin.collections.firstOrNull
@@ -1212,14 +1215,18 @@ class WalletKitViewModel @Inject constructor(
                 3 -> "App manifest content error"
                 else -> "Manifest error"
             }
+            // Use NonCancellable to ensure rejection completes even if Activity goes to background
+            // This is critical for E2E tests where the test navigates away immediately
             viewModelScope.launch {
-                try {
-                    // Pass the manifest error code directly to reject with proper TON Connect error code
-                    request.reject(errorMessage, manifestErrorCode)
-                    Log.d(LOG_TAG, "Connection auto-rejected due to manifest error")
-                    eventLogger.log(R.string.wallet_event_connect_request, "Auto-rejected: $errorMessage")
-                } catch (e: Exception) {
-                    Log.e(LOG_TAG, "Failed to auto-reject connection", e)
+                withContext(NonCancellable) {
+                    try {
+                        // Pass the manifest error code directly to reject with proper TON Connect error code
+                        request.reject(errorMessage, manifestErrorCode)
+                        Log.d(LOG_TAG, "Connection auto-rejected due to manifest error")
+                        eventLogger.log(R.string.wallet_event_connect_request, "Auto-rejected: $errorMessage")
+                    } catch (e: Exception) {
+                        Log.e(LOG_TAG, "Failed to auto-reject connection", e)
+                    }
                 }
             }
             return // Don't show connect sheet
@@ -1267,9 +1274,10 @@ class WalletKitViewModel @Inject constructor(
         Log.d(LOG_TAG, "Transaction request - walletAddress: $walletAddress, dAppName: ${dAppInfo?.name}")
 
         // Check balance before showing transaction UI (like web demo-wallet does)
+        // Skip balance check when disableNetworkSend is true (testing mode)
         viewModelScope.launch {
             val wallet = lifecycleManager.tonWallets[walletAddress]
-            if (wallet != null) {
+            if (wallet != null && !TONWalletKitHelper.disableNetworkSend) {
                 try {
                     val balance = wallet.balance()
                     val totalAmount = txRequest.messages.sumOf { msg ->
@@ -1279,14 +1287,19 @@ class WalletKitViewModel @Inject constructor(
 
                     if (balance.value.toBigInteger() < totalAmount) {
                         Log.d(LOG_TAG, "Insufficient balance - auto-rejecting transaction")
-                        // Use BAD_REQUEST_ERROR (1) for insufficient balance, matching web demo-wallet
-                        request.reject("Insufficient balance", BAD_REQUEST_ERROR_CODE)
+                        // Use NonCancellable to ensure rejection completes even if Activity goes to background
+                        withContext(NonCancellable) {
+                            // Use BAD_REQUEST_ERROR (1) for insufficient balance, matching web demo-wallet
+                            request.reject("Insufficient balance", BAD_REQUEST_ERROR_CODE)
+                        }
                         return@launch
                     }
                 } catch (e: Exception) {
                     Log.e(LOG_TAG, "Failed to check balance, proceeding with transaction UI", e)
                     // Continue to show the UI even if balance check fails
                 }
+            } else if (TONWalletKitHelper.disableNetworkSend) {
+                Log.d(LOG_TAG, "Skipping balance check - disableNetworkSend is true (testing mode)")
             }
 
             // Map actual transaction messages from request

@@ -220,7 +220,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
         val event = createConnectRequestEvent(
             id = "req-123",
             walletAddress = TONUserFriendlyAddress(TEST_ADDRESS),
-            walletId = "${TEST_NETWORK.chainId}:$TEST_ADDRESS",
+            walletId = "mock-wallet-id-hash",
         )
 
         // Should not throw
