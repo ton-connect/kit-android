@@ -13,6 +13,7 @@ composeBom = "2025.12.01"
 lifecycle = "2.10.0"
 coroutinesAndroid = "1.10.2"
 kotlinxSerialization = "1.9.0"
+walletkitAndroid = "0.0.1"
 webkit = "1.15.0"
 datastorePreferences = "1.2.0"
 securityCrypto = "1.1.0"
@@ -70,6 +71,7 @@ allureKotlinModel = { module = "io.qameta.allure:allure-kotlin-model", version.r
 allureKotlinCommons = { module = "io.qameta.allure:allure-kotlin-commons", version.ref = "allureKotlin" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 hiltAndroidTesting = { module = "com.google.dagger:hilt-android-testing", version.ref = "hilt" }
+walletkitAndroid = { module = "org.ton:walletkit-android", version.ref = "walletkitAndroid" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

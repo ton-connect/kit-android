@@ -288,9 +288,6 @@ dependencies {
     implementation(libs.androidxDatastorePreferences)
     implementation(libs.androidxSecurityCrypto)
 
-    // API module as api dependency so it's exported in the AAR
-    api(project(":api"))
-
     // API module needed for tests to access WalletKitBridgeException
     testImplementation(project(":api"))
     testImplementation(libs.junit)
@@ -364,6 +361,23 @@ mavenPublishing {
             url.set("https://github.com/ton-connect/kit-android")
             connection.set("scm:git:git://github.com/ton-connect/kit-android.git")
             developerConnection.set("scm:git:ssh://git@github.com/ton-connect/kit-android.git")
+        }
+
+        // Remove any project dependencies from POM (they're merged into the fat AAR)
+        withXml {
+            val dependenciesNode = asNode().children().find {
+                (it as? groovy.util.Node)?.name().toString().endsWith("dependencies")
+            } as? groovy.util.Node
+
+            dependenciesNode?.children()?.removeIf { dep ->
+                val depNode = dep as? groovy.util.Node
+                val groupId = depNode?.children()?.find {
+                    (it as? groovy.util.Node)?.name().toString().endsWith("groupId")
+                } as? groovy.util.Node
+                val groupIdValue = groupId?.text() ?: ""
+                // Remove project dependencies (they have groupId = project name like "TONWalletKit-Android")
+                groupIdValue == "TONWalletKit-Android" || groupIdValue.contains("unspecified")
+            }
         }
     }
 }
