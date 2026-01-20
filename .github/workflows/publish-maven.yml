@@ -1,16 +1,9 @@
 name: Publish to Maven Central
 
 on:
-  # Trigger on push to release branches
   push:
-    branches:
-      - 'release/**'
-  
-  # Trigger on GitHub releases
-  release:
-    types: [released, prereleased]
-  
-  # Allow manual workflow dispatch
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       publish_type:
@@ -23,12 +16,36 @@ on:
           - release
 
 jobs:
-  validate:
-    name: Validate Publishing Setup
+  # Build SDK and Publish to Maven Central
+  build-and-publish:
+    name: Build & Publish SDK
     runs-on: ubuntu-latest
+    environment: release
     steps:
-      - name: Checkout code
+      - name: Checkout kit-android code
         uses: actions/checkout@v4
+
+      - name: Checkout kit repository
+        uses: actions/checkout@v4
+        with:
+          repository: ton-connect/kit
+          ref: fix/android-dto  # Branch with RequestError and nullable fixes
+          path: ton-repo
+          sparse-checkout: |
+            packages/walletkit
+            packages/walletkit-android-bridge
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION=$(grep "VERSION_NAME=" TONWalletKit-Android/gradle.properties | cut -d'=' -f2)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Version: $VERSION"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -37,138 +54,97 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Grant execute permission for gradlew
-        working-directory: TONWalletKit-Android
-        run: chmod +x gradlew
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Validate publishing configuration
-        working-directory: TONWalletKit-Android
-        run: ./gradlew checkPomFileForMavenPublication
-        env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-
-  build:
-    name: Build & Test SDK
-    needs: validate
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          node-version: '20'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install openapi-generator
+        run: |
+          npm install -g @openapitools/openapi-generator-cli
+          ln -sf "$(npm config get prefix)/bin/openapi-generator-cli" "$(npm config get prefix)/bin/openapi-generator" || true
+
+      - name: Generate Kotlin models from walletkit API
+        run: |
+          chmod +x Scripts/generate-api/generate-api-models.sh
+          bash -x ./Scripts/generate-api/generate-api-models.sh ./ton-repo/packages/walletkit
+
+      - name: Build TypeScript Bridge Bundle
+        run: |
+          cd ton-repo
+          pnpm install
+          pnpm turbo run build --filter=walletkit-android-bridge --force
+
+      - name: Copy Bridge Bundle to dist-android
+        run: |
+          mkdir -p dist-android
+          cp ton-repo/packages/walletkit-android-bridge/dist/* dist-android/
 
       - name: Grant execute permission for gradlew
         working-directory: TONWalletKit-Android
         run: chmod +x gradlew
 
-      - name: Run unit tests
+      - name: Sync WebView Assets
         working-directory: TONWalletKit-Android
-        run: ./gradlew :impl:testWebviewReleaseUnitTest
+        run: ./gradlew syncWalletKitWebViewAssets
 
-      - name: Build WebView Release variant
+      # COMMENTED OUT: Skipping unit tests for faster publishing
+      # - name: Run unit tests
+      #   working-directory: TONWalletKit-Android
+      #   run: ./gradlew :impl:testWebviewDebugUnitTest
+
+      - name: Build WebView variant (Release)
         working-directory: TONWalletKit-Android
-        run: ./gradlew :impl:assembleWebviewRelease
+        run: ./gradlew buildWebviewRelease
 
-      - name: Upload WebView AAR artifact
+      - name: Upload WebView AAR
         uses: actions/upload-artifact@v4
         with:
-          name: tonwalletkit-webview-release
+          name: sdk-webview-aar
           path: TONWalletKit-Android/impl/build/outputs/aar/impl-webview-release.aar
-          retention-days: 30
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-publish
-          path: TONWalletKit-Android/impl/build/test-results/
           retention-days: 7
 
-  publish-staging:
-    name: Publish to Maven Central (Staging)
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish_type == 'staging')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
-
-      - name: Grant execute permission for gradlew
+      - name: Publish to Maven Central (Staging)
+        if: github.event_name == 'push' || inputs.publish_type == 'staging'
         working-directory: TONWalletKit-Android
-        run: chmod +x gradlew
-
-      - name: Publish to Maven Central (manual release required)
-        working-directory: TONWalletKit-Android
-        run: ./gradlew publishToMavenCentral --no-configuration-cache
+        run: ./gradlew publishToMavenCentral --no-configuration-cache -PVERSION_NAME=${{ steps.version.outputs.version }}
         env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+
+      - name: Publish to Maven Central (Auto-Release)
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_type == 'release'
+        working-directory: TONWalletKit-Android
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache -PVERSION_NAME=${{ steps.version.outputs.version }}
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
 
       - name: Publishing summary
         run: |
-          echo "✅ Published to Maven Central staging repository"
+          echo "✅ Published to Maven Central"
           echo ""
-          echo "📦 Artifact: io.github.ton-connect:tonwalletkit-android"
+          echo "📦 Artifact: org.ton:walletkit-android:${{ steps.version.outputs.version }}"
           echo ""
-          echo "📦 Next steps:"
-          echo "1. Go to https://central.sonatype.com/publishing/deployments"
-          echo "2. Review the staged artifacts"
-          echo "3. Click 'Publish' to release to Maven Central"
-          echo ""
-          echo "ℹ️  It takes 15-30 minutes for artifacts to appear after publishing"
-
-  publish-release:
-    name: Publish to Maven Central (Auto-Release)
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish_type == 'release')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
-
-      - name: Grant execute permission for gradlew
-        working-directory: TONWalletKit-Android
-        run: chmod +x gradlew
-
-      - name: Publish and Release to Maven Central (automatic)
-        working-directory: TONWalletKit-Android
-        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
-        env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
-
-      - name: Publishing summary
-        run: |
-          echo "✅ Published and released to Maven Central automatically"
-          echo ""
-          echo "📦 Artifact will be available at:"
-          echo "   https://central.sonatype.com/artifact/io.github.ton-connect/tonwalletkit-android"
-          echo ""
-          echo "ℹ️  It takes 15-30 minutes for artifacts to appear in Maven Central"
-          echo "ℹ️  It may take several hours for them to be indexed and searchable"
+          if [ "${{ inputs.publish_type }}" == "release" ]; then
+            echo "🚀 Auto-released to Maven Central"
+          else
+            echo "📦 Next steps:"
+            echo "1. Go to https://central.sonatype.com/publishing/deployments"
+            echo "2. Review the staged artifacts"
+            echo "3. Click 'Publish' to release to Maven Central"
+          fi

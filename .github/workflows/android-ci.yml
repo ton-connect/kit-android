@@ -4,11 +4,13 @@ on:
   pull_request:
     branches:
       - main
-      - feat/unit-tests  # Temporary - remove after testing
     paths:
       - 'TONWalletKit-Android/**'
       - 'AndroidDemo/**'
       - '.github/workflows/android-ci.yml'
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       parallel_emulators:

@@ -124,9 +124,6 @@
 # Apply optimization passes
 -optimizationpasses 5
 
-# Allow ProGuard to modify access modifiers for better optimization
--allowaccessmodification
-
 # Merge interfaces aggressively to reduce DEX size
 -mergeinterfacesaggressively
 
