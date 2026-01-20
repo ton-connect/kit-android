@@ -37,7 +37,6 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.model.TONTransactionWithPreview
 import io.ton.walletkit.engine.model.WalletAccount
-import io.ton.walletkit.engine.model.WalletSession
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
@@ -386,7 +385,7 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @return List of active sessions
      */
-    suspend fun listSessions(): List<WalletSession>
+    suspend fun listSessions(): List<io.ton.walletkit.api.generated.TONConnectSession>
 
     /**
      * Disconnect a TON Connect session.

@@ -22,13 +22,14 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.generated.TONConnectSession
+import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
 import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
 import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
-import io.ton.walletkit.engine.model.WalletSession
 import io.ton.walletkit.engine.operations.requests.ApproveConnectRequest
 import io.ton.walletkit.engine.operations.requests.ApproveSignDataRequest
 import io.ton.walletkit.engine.operations.requests.ApproveTransactionRequest
@@ -43,6 +44,7 @@ import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
@@ -185,7 +187,7 @@ internal class TonConnectOperations(
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_SIGN_DATA_REQUEST, json.toJSONObject(request))
     }
 
-    suspend fun listSessions(): List<WalletSession> {
+    suspend fun listSessions(): List<TONConnectSession> {
         ensureInitialized()
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_LIST_SESSIONS)
@@ -199,16 +201,27 @@ internal class TonConnectOperations(
                     TAG,
                     "listSessions entry[$index]: keys=${entry.keys().asSequence().toList()}, sessionId=${entry.optString(ResponseConstants.KEY_SESSION_ID)}",
                 )
+
+                // Parse dAppInfo from the session entry
+                val dAppInfoJson = entry.optJSONObject(JsonConstants.KEY_DAPP_INFO)
+                val dAppInfo = TONDAppInfo(
+                    name = dAppInfoJson?.optString("name") ?: entry.optString(ResponseConstants.KEY_DAPP_NAME),
+                    url = dAppInfoJson?.optNullableString("url") ?: entry.optNullableString(JsonConstants.KEY_DAPP_URL),
+                    iconUrl = dAppInfoJson?.optNullableString("iconUrl") ?: entry.optNullableString(JsonConstants.KEY_ICON_URL),
+                    description = dAppInfoJson?.optNullableString("description"),
+                )
+
                 add(
-                    WalletSession(
+                    TONConnectSession(
                         sessionId = entry.optString(ResponseConstants.KEY_SESSION_ID),
-                        dAppName = entry.optString(ResponseConstants.KEY_DAPP_NAME),
-                        walletAddress = entry.optString(ResponseConstants.KEY_WALLET_ADDRESS),
-                        dAppUrl = entry.optNullableString(JsonConstants.KEY_DAPP_URL),
-                        manifestUrl = entry.optNullableString(JsonConstants.KEY_MANIFEST_URL),
-                        iconUrl = entry.optNullableString(JsonConstants.KEY_ICON_URL),
-                        createdAtIso = entry.optNullableString(ResponseConstants.KEY_CREATED_AT),
-                        lastActivityIso = entry.optNullableString(ResponseConstants.KEY_LAST_ACTIVITY),
+                        walletId = entry.optString(JsonConstants.KEY_WALLET_ID),
+                        walletAddress = TONUserFriendlyAddress(entry.optString(ResponseConstants.KEY_WALLET_ADDRESS)),
+                        createdAt = entry.optString(ResponseConstants.KEY_CREATED_AT),
+                        lastActivityAt = entry.optString(ResponseConstants.KEY_LAST_ACTIVITY),
+                        privateKey = entry.optString(JsonConstants.KEY_PRIVATE_KEY),
+                        publicKey = entry.optString(JsonConstants.KEY_PUBLIC_KEY),
+                        dAppInfo = dAppInfo,
+                        isJsBridge = entry.optBoolean(JsonConstants.KEY_IS_JS_BRIDGE, false),
                     ),
                 )
             }

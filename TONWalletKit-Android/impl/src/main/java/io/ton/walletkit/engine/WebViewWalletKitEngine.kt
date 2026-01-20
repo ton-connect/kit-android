@@ -24,6 +24,7 @@ package io.ton.walletkit.engine
 import android.content.Context
 import android.view.ViewGroup
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.generated.TONConnectSession
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFT
@@ -45,7 +46,6 @@ import io.ton.walletkit.engine.infrastructure.StorageManager
 import io.ton.walletkit.engine.infrastructure.WebViewManager
 import io.ton.walletkit.engine.model.TONTransactionWithPreview
 import io.ton.walletkit.engine.model.WalletAccount
-import io.ton.walletkit.engine.model.WalletSession
 import io.ton.walletkit.engine.operations.AssetOperations
 import io.ton.walletkit.engine.operations.CryptoOperations
 import io.ton.walletkit.engine.operations.TonConnectOperations
@@ -362,7 +362,7 @@ internal class WebViewWalletKitEngine private constructor(
         errorCode: Int?,
     ) = tonConnectOperations.rejectSignData(event, reason, errorCode)
 
-    override suspend fun listSessions(): List<WalletSession> = tonConnectOperations.listSessions()
+    override suspend fun listSessions(): List<TONConnectSession> = tonConnectOperations.listSessions()
 
     override suspend fun disconnectSession(sessionId: String?) =
         tonConnectOperations.disconnectSession(sessionId)

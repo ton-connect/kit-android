@@ -285,4 +285,30 @@ internal object JsonConstants {
      * JSON key for a numeric count parameter (used by createTonMnemonic)
      */
     const val KEY_COUNT = "count"
+
+    // Session keys
+    /**
+     * JSON key for wallet ID (network:address format).
+     */
+    const val KEY_WALLET_ID = "walletId"
+
+    /**
+     * JSON key for private key in session.
+     */
+    const val KEY_PRIVATE_KEY = "privateKey"
+
+    /**
+     * JSON key for public key in session.
+     */
+    const val KEY_PUBLIC_KEY = "publicKey"
+
+    /**
+     * JSON key for dApp info object.
+     */
+    const val KEY_DAPP_INFO = "dAppInfo"
+
+    /**
+     * JSON key for JS bridge indicator.
+     */
+    const val KEY_IS_JS_BRIDGE = "isJsBridge"
 }

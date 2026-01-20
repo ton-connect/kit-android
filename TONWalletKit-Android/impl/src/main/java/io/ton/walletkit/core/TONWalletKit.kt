@@ -393,6 +393,16 @@ internal class TONWalletKit private constructor(
     }
 
     /**
+     * List all active TON Connect sessions.
+     *
+     * @return List of all active sessions
+     */
+    override suspend fun listSessions(): List<io.ton.walletkit.api.generated.TONConnectSession> {
+        checkNotDestroyed()
+        return engine.listSessions()
+    }
+
+    /**
      * Handle a TON Connect URL (deep link or QR code scan).
      *
      * This will parse the URL and trigger appropriate events through the events handler.
