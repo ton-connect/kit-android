@@ -28,6 +28,8 @@ import androidx.core.content.edit
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONConnectSession
+import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
@@ -43,7 +45,6 @@ import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.engine.model.TONTransactionWithPreview
 import io.ton.walletkit.engine.model.WalletAccount
-import io.ton.walletkit.engine.model.WalletSession
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
@@ -565,23 +566,34 @@ internal class QuickJsWalletKitEngine(
         call("rejectSignDataRequest", params)
     }
 
-    override suspend fun listSessions(): List<WalletSession> {
+    override suspend fun listSessions(): List<TONConnectSession> {
         ensureWalletKitInitialized()
         val result = call("listSessions")
         val items = result.optJSONArray("items") ?: JSONArray()
         return buildList(items.length()) {
             for (index in 0 until items.length()) {
                 val entry = items.optJSONObject(index) ?: continue
+
+                // Parse dAppInfo from the session entry
+                val dAppInfoJson = entry.optJSONObject("dAppInfo")
+                val dAppInfo = TONDAppInfo(
+                    name = dAppInfoJson?.optString("name") ?: entry.optString("dAppName"),
+                    url = dAppInfoJson?.optNullableString("url") ?: entry.optNullableString("dAppUrl"),
+                    iconUrl = dAppInfoJson?.optNullableString("iconUrl") ?: entry.optNullableString("iconUrl"),
+                    description = dAppInfoJson?.optNullableString("description"),
+                )
+
                 add(
-                    WalletSession(
+                    TONConnectSession(
                         sessionId = entry.optString("sessionId"),
-                        dAppName = entry.optString("dAppName"),
-                        walletAddress = entry.optString("walletAddress"),
-                        dAppUrl = entry.optNullableString("dAppUrl"),
-                        manifestUrl = entry.optNullableString("manifestUrl"),
-                        iconUrl = entry.optNullableString("iconUrl"),
-                        createdAtIso = entry.optNullableString("createdAt"),
-                        lastActivityIso = entry.optNullableString("lastActivity"),
+                        walletId = entry.optString("walletId"),
+                        walletAddress = TONUserFriendlyAddress(entry.optString("walletAddress")),
+                        createdAt = entry.optString("createdAt"),
+                        lastActivityAt = entry.optString("lastActivityAt"),
+                        privateKey = entry.optString("privateKey"),
+                        publicKey = entry.optString("publicKey"),
+                        dAppInfo = dAppInfo,
+                        isJsBridge = entry.optBoolean("isJsBridge", false),
                     ),
                 )
             }
