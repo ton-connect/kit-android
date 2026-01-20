@@ -310,7 +310,7 @@ dependencies {
 
 // Maven Publishing Configuration for both variants
 mavenPublishing {
-    publishToMavenCentral()
+    publishToMavenCentral(automaticallyReleaseAfterClose = true)
 
     // Only sign if credentials are configured (CI/CD or manual local publish)
     if (project.hasProperty("signing.keyId") || System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyId") != null) {
