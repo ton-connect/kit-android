@@ -365,15 +365,17 @@ mavenPublishing {
 
         // Remove any project dependencies from POM (they're merged into the fat AAR)
         withXml {
-            val dependenciesNode = asNode().children().find {
-                (it as? groovy.util.Node)?.name().toString().endsWith("dependencies")
-            } as? groovy.util.Node
+            val dependenciesNode =
+                asNode().children().find {
+                    (it as? groovy.util.Node)?.name().toString().endsWith("dependencies")
+                } as? groovy.util.Node
 
             dependenciesNode?.children()?.removeIf { dep ->
                 val depNode = dep as? groovy.util.Node
-                val groupId = depNode?.children()?.find {
-                    (it as? groovy.util.Node)?.name().toString().endsWith("groupId")
-                } as? groovy.util.Node
+                val groupId =
+                    depNode?.children()?.find {
+                        (it as? groovy.util.Node)?.name().toString().endsWith("groupId")
+                    } as? groovy.util.Node
                 val groupIdValue = groupId?.text() ?: ""
                 // Remove project dependencies (they have groupId = project name like "TONWalletKit-Android")
                 groupIdValue == "TONWalletKit-Android" || groupIdValue.contains("unspecified")
@@ -483,6 +485,21 @@ afterEvaluate {
             }
 
             logger.lifecycle("✅ Merged API classes into $variantName AAR: ${outputAar.name}")
+        }
+    }
+
+    // Merge API sources into the sources JAR for better IDE experience
+    // This ensures developers can see documentation and source code for all public API classes
+    tasks.matching { it.name == "sourceWebviewReleaseJar" }.configureEach {
+        val sourcesTask = this as? org.gradle.jvm.tasks.Jar ?: return@configureEach
+
+        // Add API module sources to the sources JAR
+        val apiSourceDir = project(":api").projectDir.resolve("src/main/java")
+        if (apiSourceDir.exists()) {
+            sourcesTask.from(apiSourceDir) {
+                include("**/*.kt", "**/*.java")
+            }
+            logger.lifecycle("✅ Added API sources from ${apiSourceDir.absolutePath}")
         }
     }
 }

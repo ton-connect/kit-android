@@ -100,6 +100,7 @@ dependencies {
     // TONWalletKit SDK
     implementation(libs.walletkitAndroid)
 
+    implementation(libs.kotlinxSerializationJson)
     debugImplementation(libs.leakcanaryAndroid)
 
     // Testing - Unit Tests

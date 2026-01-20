@@ -138,7 +138,7 @@ jobs:
         run: |
           echo "✅ Published to Maven Central"
           echo ""
-          echo "📦 Artifact: io.github.ton-connect:tonwalletkit-android:${{ steps.version.outputs.version }}"
+          echo "📦 Artifact: org.ton:walletkit-android:${{ steps.version.outputs.version }}"
           echo ""
           if [ "${{ inputs.publish_type }}" == "release" ]; then
             echo "🚀 Auto-released to Maven Central"

@@ -18,7 +18,6 @@ include(":app")
 
 dependencyResolutionManagement {
     repositories {
-        mavenLocal()
         google()
         mavenCentral()
     }
