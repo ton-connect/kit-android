@@ -192,7 +192,7 @@ internal class WalletOperations(
      * @param signerId Signer ID from createSigner
      * @param network Network string ("mainnet" or "testnet")
      * @param workchain Workchain ID (0 for basechain, -1 for masterchain)
-     * @param walletId Wallet ID for address uniqueness
+     * @param walletId Wallet ID
      * @param publicKey Public key hex string (required for custom signers)
      * @param isCustom Whether this is a custom signer (hardware wallet)
      */
@@ -260,7 +260,7 @@ internal class WalletOperations(
      * @param signerId Signer ID from createSigner
      * @param network Network string ("mainnet" or "testnet")
      * @param workchain Workchain ID (0 for basechain, -1 for masterchain)
-     * @param walletId Wallet ID for address uniqueness
+     * @param walletId Wallet ID
      * @param publicKey Public key hex string (required for custom signers)
      * @param isCustom Whether this is a custom signer (hardware wallet)
      */
@@ -411,7 +411,7 @@ internal class WalletOperations(
     /**
      * Get a single wallet by walletId using RPC call.
      *
-     * @param walletId Wallet ID (opaque identifier from bridge)
+     * @param walletId Wallet ID
      */
     suspend fun getWallet(walletId: String): WalletAccount? {
         ensureInitialized()
@@ -450,7 +450,7 @@ internal class WalletOperations(
     /**
      * Remove a wallet from the bridge layer.
      *
-     * @param walletId Wallet ID (opaque identifier from bridge)
+     * @param walletId Wallet ID
      */
     suspend fun removeWallet(walletId: String) {
         ensureInitialized()
@@ -475,7 +475,7 @@ internal class WalletOperations(
     /**
      * Retrieve wallet balance in nanoTON.
      *
-     * @param walletId Wallet ID (opaque identifier from bridge)
+     * @param walletId Wallet ID
      */
     suspend fun getBalance(walletId: String): String {
         ensureInitialized()
