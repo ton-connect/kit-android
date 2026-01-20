@@ -13,7 +13,7 @@ Add to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("io.github.ton-connect:tonwalletkit-android:1.0.0-beta01")
+    implementation("org.ton:walletkit-android:+") // Check latest at https://central.sonatype.com/artifact/org.ton/walletkit-android
 }
 ```
 
