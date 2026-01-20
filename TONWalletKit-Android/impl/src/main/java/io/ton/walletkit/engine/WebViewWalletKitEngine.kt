@@ -63,6 +63,7 @@ import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
+import io.ton.walletkit.session.TONConnectSessionManager
 import io.ton.walletkit.storage.BridgeStorageAdapter
 import io.ton.walletkit.storage.CustomBridgeStorageAdapter
 import io.ton.walletkit.storage.MemoryBridgeStorageAdapter
@@ -89,6 +90,7 @@ internal class WebViewWalletKitEngine private constructor(
     context: Context,
     eventsHandler: TONBridgeEventsHandler?,
     private val storageAdapter: BridgeStorageAdapter,
+    private val sessionManager: TONConnectSessionManager?,
     private val assetPath: String = WebViewConstants.DEFAULT_ASSET_PATH,
 ) : WalletKitEngine {
     override val kind: WalletKitEngineKind = WalletKitEngineKind.WEBVIEW
@@ -132,6 +134,8 @@ internal class WebViewWalletKitEngine private constructor(
                 assetPath = assetPath,
                 storageManager = storageManager,
                 signerManager = signerManager,
+                sessionManager = sessionManager,
+                json = json,
                 onMessage = ::handleBridgeMessage,
                 onBridgeError = ::handleBridgeError,
             )
@@ -527,7 +531,7 @@ internal class WebViewWalletKitEngine private constructor(
 
                     Logger.w(TAG, "🔶🔶🔶 Creating NEW WebView engine for network: $network")
                     val storageAdapter = createStorageAdapter(context, configuration.storageType)
-                    WebViewWalletKitEngine(context, eventsHandler, storageAdapter, assetPath).also {
+                    WebViewWalletKitEngine(context, eventsHandler, storageAdapter, configuration.sessionManager, assetPath).also {
                         instances[network] = it
                     }
                 }
@@ -574,10 +578,11 @@ internal class WebViewWalletKitEngine private constructor(
             assetPath: String,
             eventsHandler: TONBridgeEventsHandler? = null,
             storageType: TONWalletKitStorageType = TONWalletKitStorageType.Memory,
+            sessionManager: TONConnectSessionManager? = null,
         ): WebViewWalletKitEngine {
             Logger.w(TAG, "🧪 Creating test WebView engine with asset path: $assetPath")
             val storageAdapter = createStorageAdapter(context, storageType)
-            return WebViewWalletKitEngine(context, eventsHandler, storageAdapter, assetPath)
+            return WebViewWalletKitEngine(context, eventsHandler, storageAdapter, sessionManager, assetPath)
         }
 
         /**

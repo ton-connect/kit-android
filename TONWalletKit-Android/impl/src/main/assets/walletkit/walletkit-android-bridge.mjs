@@ -1909,7 +1909,7 @@ function setupNativeBridge() {
   }
 }
 setupNativeBridge();
-var __async$c = (__this, __arguments, generator2) => {
+var __async$d = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -1938,7 +1938,7 @@ let DefaultSignature$1 = null;
 let WalletV4R2Adapter$1 = null;
 let WalletV5R1Adapter$1 = null;
 function ensureWalletKitLoaded() {
-  return __async$c(this, null, function* () {
+  return __async$d(this, null, function* () {
     var _a2, _b, _c, _d, _e2, _f;
     if (TonWalletKit$1 && Signer$1 && MnemonicToKeyPair$1 && DefaultSignature$1 && WalletV4R2Adapter$1 && WalletV5R1Adapter$1) {
       return;
@@ -25179,8 +25179,8 @@ class WalletManager {
     return createWalletId(wallet.getNetwork(), wallet.getAddress());
   }
 }
-const log$i = globalLogger.createChild("SessionManager");
-class SessionManager {
+const log$i = globalLogger.createChild("TONConnectStoredSessionManager");
+class TONConnectStoredSessionManager {
   sessions = /* @__PURE__ */ new Map();
   storage;
   walletManager;
@@ -25197,72 +25197,38 @@ class SessionManager {
   }
   /**
    * Create new session
+   * @param sessionId - Unique session identifier
+   * @param dAppInfo - Information about the dApp
    * @param wallet - The wallet to associate with this session (optional for connect requests before wallet selection)
+   * @param options - Additional options for session creation
    */
-  async createSession(sessionId, dAppName, domain, dAppIconUrl, dAppDescription, wallet, { disablePersist = false, isJsBridge = false } = {}) {
+  async createSession(sessionId, dAppInfo, wallet, { disablePersist = false, isJsBridge = false } = {}) {
     const now = /* @__PURE__ */ new Date();
     const randomKeyPair = new SessionCrypto().stringifyKeypair();
     const walletId = wallet ? createWalletId(wallet.getNetwork(), wallet.getAddress()) : "";
-    const sessionData = {
+    const session = {
       sessionId,
-      dAppName,
-      domain,
       walletId,
       walletAddress: wallet?.getAddress() ?? "",
       createdAt: now.toISOString(),
       lastActivityAt: now.toISOString(),
       privateKey: randomKeyPair.secretKey,
       publicKey: randomKeyPair.publicKey,
-      dAppIconUrl,
-      dAppDescription,
+      dAppInfo,
       isJsBridge
     };
     if (disablePersist) {
-      return SessionManager.toSessionData(sessionData);
+      return session;
     }
-    this.sessions.set(sessionId, sessionData);
+    this.sessions.set(sessionId, session);
     await this.persistSessions();
     return await this.getSession(sessionId);
   }
-  static toSessionData(session) {
-    return {
-      sessionId: session.sessionId,
-      dAppName: session.dAppName,
-      walletId: session.walletId,
-      walletAddress: session.walletAddress,
-      privateKey: session.privateKey,
-      publicKey: session.publicKey,
-      createdAt: session.createdAt,
-      lastActivityAt: session.lastActivityAt,
-      domain: session.domain,
-      dAppIconUrl: session.dAppIconUrl,
-      dAppDescription: session.dAppDescription,
-      isJsBridge: session.isJsBridge
-    };
-  }
-  // async getSessionData(sessionId: string): Promise<SessionData | undefined> {}
   /**
    * Get session by ID
    */
   async getSession(sessionId) {
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      return {
-        sessionId: session.sessionId,
-        dAppName: session.dAppName,
-        walletId: session.walletId,
-        walletAddress: session.walletAddress,
-        privateKey: session.privateKey,
-        publicKey: session.publicKey,
-        createdAt: session.createdAt,
-        lastActivityAt: session.lastActivityAt,
-        domain: session.domain,
-        dAppIconUrl: session.dAppIconUrl,
-        dAppDescription: session.dAppDescription,
-        isJsBridge: session.isJsBridge
-      };
-    }
-    return void 0;
+    return this.sessions.get(sessionId);
   }
   async getSessionByDomain(domain) {
     let host;
@@ -25272,8 +25238,16 @@ class SessionManager {
       return void 0;
     }
     for (const session of this.sessions.values()) {
-      if (session.domain === host) {
-        return this.getSession(session.sessionId);
+      try {
+        if (session.dAppInfo.url === void 0) {
+          continue;
+        }
+        let dAppHost = new URL(session.dAppInfo.url).host;
+        if (dAppHost === host) {
+          return this.getSession(session.sessionId);
+        }
+      } catch {
+        continue;
       }
     }
     return void 0;
@@ -25313,8 +25287,7 @@ class SessionManager {
   /**
    * Remove all sessions for a wallet by wallet ID or wallet adapter
    */
-  async removeSessionsForWallet(walletOrId) {
-    const walletId = typeof walletOrId === "string" ? walletOrId : createWalletId(walletOrId.getNetwork(), walletOrId.getAddress());
+  async removeSessionsForWallet(walletId) {
     const sessionsToRemove = this.getSessionsForWallet(walletId);
     let removedCount = 0;
     for (const session of sessionsToRemove) {
@@ -25325,7 +25298,6 @@ class SessionManager {
     if (removedCount > 0) {
       await this.persistSessions();
     }
-    return removedCount;
   }
   /**
    * Clear all sessions
@@ -25367,26 +25339,13 @@ class SessionManager {
     return sessionsToRemove.length;
   }
   /**
-   * Get sessions as the format expected by the main API
-   */
-  getSessionsForAPI() {
-    return this.getSessions().map((session) => ({
-      sessionId: session.sessionId,
-      dAppName: session.dAppName,
-      walletId: session.walletId,
-      walletAddress: session.walletAddress,
-      dAppUrl: session.domain,
-      dAppIconUrl: session.dAppIconUrl
-    }));
-  }
-  /**
    * Load sessions from storage
    */
   async loadSessions() {
     try {
-      const sessionData = await this.storage.get(this.storageKey);
-      if (sessionData && Array.isArray(sessionData)) {
-        for (const session of sessionData) {
+      const storedSessions = await this.storage.get(this.storageKey);
+      if (storedSessions && Array.isArray(storedSessions)) {
+        for (const session of storedSessions) {
           if (session.walletId && !session.walletAddress) {
             const wallet = this.walletManager.getWallet(session.walletId);
             if (wallet) {
@@ -25396,11 +25355,9 @@ class SessionManager {
               continue;
             }
           }
-          this.sessions.set(session.sessionId, {
-            ...session
-          });
+          this.sessions.set(session.sessionId, session);
         }
-        log$i.debug("Loaded session metadata", { count: sessionData.length });
+        log$i.debug("Loaded session metadata", { count: storedSessions.length });
       }
     } catch (error2) {
       log$i.warn("Failed to load sessions from storage", { error: error2 });
@@ -25411,21 +25368,8 @@ class SessionManager {
    */
   async persistSessions() {
     try {
-      const sessionMetadata = this.getSessions().map((session) => ({
-        sessionId: session.sessionId,
-        dAppName: session.dAppName,
-        domain: session.domain,
-        walletId: session.walletId,
-        walletAddress: session.walletAddress,
-        createdAt: session.createdAt,
-        lastActivityAt: session.lastActivityAt,
-        privateKey: session.privateKey,
-        publicKey: session.publicKey,
-        dAppIconUrl: session.dAppIconUrl,
-        dAppDescription: session.dAppDescription,
-        isJsBridge: session.isJsBridge
-      }));
-      await this.storage.set(this.storageKey, sessionMetadata);
+      const sessionsToStore = Array.from(this.sessions.values());
+      await this.storage.set(this.storageKey, sessionsToStore);
     } catch (error2) {
       log$i.warn("Failed to persist sessions to storage", { error: error2 });
     }
@@ -27294,10 +27238,9 @@ class BridgeManager {
       if (!rawEvent.traceId) {
         rawEvent.traceId = v7();
       }
-      await this.sessionManager.initialize();
       if (rawEvent.from) {
         const session = await this.sessionManager.getSession(rawEvent.from);
-        rawEvent.domain = session?.domain || "";
+        rawEvent.domain = session?.dAppInfo?.url || "";
         if (session) {
           if (session?.walletId) {
             rawEvent.walletId = session.walletId;
@@ -27306,10 +27249,10 @@ class BridgeManager {
             rawEvent.walletAddress = session.walletAddress;
           }
           rawEvent.dAppInfo = {
-            name: session.dAppName,
-            description: session.dAppDescription,
-            url: session.dAppIconUrl,
-            iconUrl: session.dAppIconUrl
+            name: session.dAppInfo?.name,
+            description: session.dAppInfo?.description,
+            url: session.dAppInfo?.url,
+            iconUrl: session.dAppInfo?.iconUrl
           };
         }
       } else if (rawEvent.domain) {
@@ -27325,10 +27268,10 @@ class BridgeManager {
         }
         if (session) {
           rawEvent.dAppInfo = {
-            name: session.dAppName,
-            description: session.dAppDescription,
-            url: session.dAppIconUrl,
-            iconUrl: session.dAppIconUrl
+            name: session.dAppInfo?.name,
+            description: session.dAppInfo?.description,
+            url: session.dAppInfo?.url,
+            iconUrl: session.dAppInfo?.iconUrl
           };
           if (!rawEvent.from) {
             rawEvent.from = session.sessionId;
@@ -51703,9 +51646,12 @@ class RequestProcessor {
           const error2 = new WalletKitError(ERROR_CODES.WALLET_NOT_FOUND, "Wallet not found for connect request", void 0, { walletId, eventId: event.id });
           throw error2;
         }
-        const url = new URL(event.preview.dAppInfo?.url || "");
-        const domain = url.host;
-        const newSession = await this.sessionManager.createSession(event.from || (await distExports$1.getSecureRandomBytes(32)).toString("hex"), event.preview.dAppInfo?.name || "", domain, event.preview.dAppInfo?.iconUrl || "", event.preview.dAppInfo?.description || "", wallet, {
+        const newSession = await this.sessionManager.createSession(event.from || (await distExports$1.getSecureRandomBytes(32)).toString("hex"), {
+          name: event.preview.dAppInfo?.name || "",
+          url: event.preview.dAppInfo?.url || "",
+          iconUrl: event.preview.dAppInfo?.iconUrl || "",
+          description: event.preview.dAppInfo?.description || ""
+        }, wallet, {
           isJsBridge: event.isJsBridge
         });
         await this.bridgeManager.createSession(newSession.sessionId);
@@ -51749,9 +51695,12 @@ class RequestProcessor {
           const error2 = new WalletKitError(ERROR_CODES.WALLET_NOT_FOUND, "Wallet not found for connect approval result", void 0, { walletId, eventId: event.id });
           throw error2;
         }
-        const url = new URL(event.result.dAppUrl);
-        const domain = url.host;
-        await this.sessionManager.createSession(event.from || (await distExports$1.getSecureRandomBytes(32)).toString("hex"), event.result.dAppName, domain, event.result.dAppIconUrl, event.result.dAppDescription, wallet);
+        await this.sessionManager.createSession(event.from || (await distExports$1.getSecureRandomBytes(32)).toString("hex"), {
+          name: event.result.dAppName,
+          url: event.result.dAppUrl,
+          iconUrl: event.result.dAppIconUrl,
+          description: event.result.dAppDescription
+        }, wallet);
         await this.bridgeManager.sendResponse(event, event.result.response);
         if (this.analytics) {
           const sessionData = event.from ? await this.sessionManager.getSession(event.from) : void 0;
@@ -51810,7 +51759,12 @@ class RequestProcessor {
           message: reason || "User rejected connection"
         }
       };
-      const newSession = await this.sessionManager.createSession(event.from || "", event.preview.dAppInfo?.name || "", "", "", "", void 0, {
+      const newSession = await this.sessionManager.createSession(event.from || "", {
+        name: event.preview.dAppInfo?.name || "",
+        url: "",
+        iconUrl: "",
+        description: ""
+      }, void 0, {
         disablePersist: true
       });
       try {
@@ -52617,7 +52571,7 @@ class StorageEventProcessor {
    */
   async processNextAvailableEvent() {
     try {
-      const allLocalSessions = this.sessionManager.getSessionsForAPI();
+      const allLocalSessions = this.sessionManager.getSessions();
       const allSessions = allLocalSessions.filter((session) => session.walletId && this.registeredWallets.has(session.walletId));
       const enabledEventTypes = this.getEnabledEventTypes();
       const allEvents = [];
@@ -54733,8 +54687,14 @@ class Initializer {
   async initializeManagers(options, storage) {
     const walletManager = new WalletManager(storage);
     await walletManager.initialize();
-    const sessionManager = new SessionManager(storage, walletManager);
-    await sessionManager.initialize();
+    let sessionManager;
+    if (options.sessionManager) {
+      sessionManager = options.sessionManager;
+    } else {
+      const storedSessionManager = new TONConnectStoredSessionManager(storage, walletManager);
+      await storedSessionManager.initialize();
+      sessionManager = storedSessionManager;
+    }
     const eventStore = new StorageEventStore(storage);
     const eventRouter = new EventRouter(options, this.eventEmitter, sessionManager, walletManager, this.analyticsManager);
     const bridgeManager = new BridgeManager(options?.walletManifest, options?.bridge, sessionManager, storage, eventStore, eventRouter, options, this.eventEmitter, this.analyticsManager);
@@ -57924,7 +57884,7 @@ class TonWalletKit {
   }
   async listSessions() {
     await this.ensureInitialized();
-    return this.sessionManager.getSessionsForAPI();
+    return this.sessionManager.getSessions();
   }
   // === Event Handler Registration (Delegated) ===
   onConnectRequest(cb) {
@@ -59006,7 +58966,6 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   },
   SerializeStack,
   SessionError,
-  SessionManager,
   SignDataHandler,
   Signer,
   Storage,
@@ -59014,6 +58973,7 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   StorageEventProcessor,
   StorageEventStore,
   TONCONNECT_BRIDGE_EVENT,
+  TONConnectStoredSessionManager,
   TonWalletKit,
   TransactionHandler,
   Uint8ArrayToBase64,
@@ -59053,6 +59013,147 @@ function ensureInternalBrowserResolverMap() {
     internalBrowserGlobal.__internalBrowserResponseResolvers = /* @__PURE__ */ new Map();
   }
   return internalBrowserGlobal.__internalBrowserResponseResolvers;
+}
+var __async$c = (__this, __arguments, generator2) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator2.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator2.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
+    step((generator2 = generator2.apply(__this, __arguments)).next());
+  });
+};
+function isNativeSessionManagerAvailable() {
+  var _a2;
+  const androidWindow = window;
+  return !!((_a2 = androidWindow.WalletKitNative) == null ? void 0 : _a2.sessionCreate);
+}
+class AndroidSessionManagerAdapter {
+  constructor() {
+    const androidWindow = window;
+    if (!androidWindow.WalletKitNative) {
+      throw new Error("WalletKitNative bridge not available");
+    }
+    if (!androidWindow.WalletKitNative.sessionCreate) {
+      throw new Error("WalletKitNative session manager methods not available");
+    }
+    this.androidBridge = androidWindow.WalletKitNative;
+  }
+  createSession(sessionId, dAppInfo, wallet, options) {
+    return __async$c(this, null, function* () {
+      var _a2;
+      try {
+        const walletId = wallet ? `${wallet.getNetwork().chainId}:${wallet.getAddress()}` : null;
+        const walletAddress = (_a2 = wallet == null ? void 0 : wallet.getAddress()) != null ? _a2 : null;
+        const dAppInfoJson = JSON.stringify(dAppInfo);
+        const optionsJson = options ? JSON.stringify(options) : null;
+        log$l("[AndroidSessionManagerAdapter] createSession:", sessionId, dAppInfoJson);
+        const resultJson = this.androidBridge.sessionCreate(
+          sessionId,
+          dAppInfoJson,
+          walletId,
+          walletAddress,
+          optionsJson
+        );
+        return JSON.parse(resultJson);
+      } catch (err) {
+        error("[AndroidSessionManagerAdapter] Failed to create session:", sessionId, err);
+        throw err;
+      }
+    });
+  }
+  getSession(sessionId) {
+    return __async$c(this, null, function* () {
+      try {
+        log$l("[AndroidSessionManagerAdapter] getSession:", sessionId);
+        const resultJson = this.androidBridge.sessionGet(sessionId);
+        if (!resultJson) {
+          return void 0;
+        }
+        return JSON.parse(resultJson);
+      } catch (err) {
+        error("[AndroidSessionManagerAdapter] Failed to get session:", sessionId, err);
+        return void 0;
+      }
+    });
+  }
+  getSessionByDomain(domain) {
+    return __async$c(this, null, function* () {
+      try {
+        log$l("[AndroidSessionManagerAdapter] getSessionByDomain:", domain);
+        const resultJson = this.androidBridge.sessionGetByDomain(domain);
+        if (!resultJson) {
+          return void 0;
+        }
+        return JSON.parse(resultJson);
+      } catch (err) {
+        error("[AndroidSessionManagerAdapter] Failed to get session by domain:", domain, err);
+        return void 0;
+      }
+    });
+  }
+  getSessions() {
+    try {
+      log$l("[AndroidSessionManagerAdapter] getSessions");
+      const resultJson = this.androidBridge.sessionGetAll();
+      return JSON.parse(resultJson);
+    } catch (err) {
+      error("[AndroidSessionManagerAdapter] Failed to get sessions:", err);
+      return [];
+    }
+  }
+  getSessionsForWallet(walletId) {
+    try {
+      log$l("[AndroidSessionManagerAdapter] getSessionsForWallet:", walletId);
+      const resultJson = this.androidBridge.sessionGetForWallet(walletId);
+      return JSON.parse(resultJson);
+    } catch (err) {
+      error("[AndroidSessionManagerAdapter] Failed to get sessions for wallet:", walletId, err);
+      return [];
+    }
+  }
+  removeSession(sessionId) {
+    return __async$c(this, null, function* () {
+      try {
+        log$l("[AndroidSessionManagerAdapter] removeSession:", sessionId);
+        return this.androidBridge.sessionRemove(sessionId);
+      } catch (err) {
+        error("[AndroidSessionManagerAdapter] Failed to remove session:", sessionId, err);
+        return false;
+      }
+    });
+  }
+  removeSessionsForWallet(walletId) {
+    return __async$c(this, null, function* () {
+      try {
+        log$l("[AndroidSessionManagerAdapter] removeSessionsForWallet:", walletId);
+        this.androidBridge.sessionRemoveForWallet(walletId);
+      } catch (err) {
+        error("[AndroidSessionManagerAdapter] Failed to remove sessions for wallet:", walletId, err);
+      }
+    });
+  }
+  clearSessions() {
+    return __async$c(this, null, function* () {
+      try {
+        log$l("[AndroidSessionManagerAdapter] clearSessions");
+        this.androidBridge.sessionClear();
+      } catch (err) {
+        error("[AndroidSessionManagerAdapter] Failed to clear sessions:", err);
+      }
+    });
+  }
 }
 var __async$b = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
@@ -59156,6 +59257,10 @@ function initTonWalletKit(config, deps) {
     if (window.WalletKitNative) {
       log$l("[walletkitBridge] Using Android native storage adapter");
       kitOptions.storage = new deps.AndroidStorageAdapter();
+      if (isNativeSessionManagerAvailable()) {
+        log$l("[walletkitBridge] Using Android native session manager adapter");
+        kitOptions.sessionManager = new AndroidSessionManagerAdapter();
+      }
     } else if (config == null ? void 0 : config.allowMemoryStorage) {
       log$l("[walletkitBridge] Using memory storage (sessions will not persist)");
       kitOptions.storage = {
