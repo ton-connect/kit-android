@@ -54,6 +54,13 @@ data class TONWalletKitConfiguration(
     @kotlinx.serialization.Transient
     val deviceInfo: DeviceInfo? = null,
     /**
+     * Custom API client implementations.
+     * If provided, these take precedence over apiClientConfiguration.
+     * Each client should be configured for a specific network.
+     */
+    @kotlinx.serialization.Transient
+    val apiClients: List<TONAPIClient> = emptyList(),
+    /**
      * Custom session manager implementation.
      * If not provided, a default storage-backed session manager will be used.
      */
