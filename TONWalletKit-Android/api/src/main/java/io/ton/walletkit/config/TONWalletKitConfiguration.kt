@@ -22,6 +22,7 @@
 package io.ton.walletkit.config
 
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.internal.constants.JsonConsts
 import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.serialization.SerialName
@@ -36,7 +37,8 @@ import kotlinx.serialization.Serializable
  * @property deviceInfo Device and app information (optional, auto-detected if not provided)
  * @property walletManifest Wallet app manifest for TON Connect
  * @property bridge Bridge configuration
- * @property apiClient API client configuration (optional)
+ * @property apiClientConfiguration API client configuration (optional, uses default if not provided)
+ * @property apiClients Custom API client implementations (optional, takes precedence over apiClientConfiguration)
  * @property features Supported wallet features (used if deviceInfo not provided)
  * @property storage Storage configuration
  * @property sessionManager Custom session manager implementation (optional)
@@ -47,12 +49,20 @@ data class TONWalletKitConfiguration(
     val network: TONNetwork,
     val walletManifest: Manifest,
     val bridge: Bridge,
-    val apiClient: APIClient? = null,
+    @SerialName("apiClient")
+    val apiClientConfiguration: APIClientConfiguration? = null,
     val features: List<Feature>,
     @kotlinx.serialization.Transient
     val storageType: TONWalletKitStorageType = TONWalletKitStorageType.Encrypted,
     @kotlinx.serialization.Transient
     val deviceInfo: DeviceInfo? = null,
+    /**
+     * Custom API client implementations.
+     * If provided, these take precedence over apiClientConfiguration.
+     * Each client should be configured for a specific network.
+     */
+    @kotlinx.serialization.Transient
+    val apiClients: List<TONAPIClient> = emptyList(),
     /**
      * Custom session manager implementation.
      * If not provided, a default storage-backed session manager will be used.
@@ -109,7 +119,7 @@ data class TONWalletKitConfiguration(
      * @property key API key for authentication
      */
     @Serializable
-    data class APIClient(
+    data class APIClientConfiguration(
         val url: String? = null,
         val key: String,
     )

@@ -29,6 +29,7 @@ import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONBalance
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.session.TONConnectSession
 import kotlinx.serialization.json.Json
 
 /**
