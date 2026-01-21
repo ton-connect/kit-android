@@ -37,12 +37,17 @@ import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.TONDAppInfo
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.bridge.BuildConfig
+import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.session.TONConnectSessionManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -66,6 +71,7 @@ internal class WebViewManager(
     private val storageManager: StorageManager,
     private val signerManager: io.ton.walletkit.engine.state.SignerManager,
     private val sessionManager: TONConnectSessionManager?,
+    private val apiClients: List<TONAPIClient>,
     private val json: Json,
     private val onMessage: (JSONObject) -> Unit,
     private val onBridgeError: (WalletKitBridgeException, String?) -> Unit,
@@ -491,6 +497,65 @@ internal class WebViewManager(
                     manager.clearSessions()
                 } catch (e: Exception) {
                     Logger.e(TAG, "Failed to clear sessions", e)
+                }
+            }
+        }
+
+        // ======== API Client Methods ========
+        // These methods are only available when custom API clients are configured.
+        // The JS bridge checks for apiGetNetworks to determine if native API clients are available.
+
+        @JavascriptInterface
+        fun apiGetNetworks(): String {
+            if (apiClients.isEmpty()) {
+                return "[]"
+            }
+
+            val networks = apiClients.map { client ->
+                json.encodeToString(client.network)
+            }
+            return "[${ networks.joinToString(",") }]"
+        }
+
+        @JavascriptInterface
+        fun apiSendBoc(networkJson: String, boc: String): String {
+            val network = json.decodeFromString<TONNetwork>(networkJson)
+            val client = apiClients.find { it.network == network }
+                ?: throw IllegalArgumentException("No API client configured for network: $network")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "apiSendBoc: network=$network")
+                    client.sendBoc(TONBase64(boc))
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to send BOC: $network", e)
+                    throw e
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun apiRunGetMethod(
+            networkJson: String,
+            address: String,
+            method: String,
+            stackJson: String?,
+            seqno: Int,
+        ): String {
+            val network = json.decodeFromString<TONNetwork>(networkJson)
+            val client = apiClients.find { it.network == network }
+                ?: throw IllegalArgumentException("No API client configured for network: $network")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "apiRunGetMethod: network=$network, address=$address, method=$method")
+                    val stack = stackJson?.let { json.decodeFromString<List<TONRawStackItem>>(it) }
+                    val seqnoArg = if (seqno == -1) null else seqno
+                    val result = client.runGetMethod(TONUserFriendlyAddress(address), method, stack, seqnoArg)
+                    json.encodeToString(result)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to run get method: $method on $address", e)
+                    throw e
                 }
             }
         }

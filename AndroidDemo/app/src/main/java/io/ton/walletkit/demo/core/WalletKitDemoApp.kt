@@ -309,7 +309,7 @@ object TONWalletKitHelper {
                 bridge = TONWalletKitConfiguration.Bridge(
                     bridgeUrl = DEFAULT_BRIDGE_URL,
                 ),
-                apiClient = null,
+                apiClientConfiguration = null,
                 features = listOf(
                     // V5R1 wallets support up to 255 messages per transaction
                     TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 255),

@@ -21,7 +21,6 @@
  */
 package io.ton.walletkit.session
 
-import io.ton.walletkit.api.generated.TONConnectSession
 import io.ton.walletkit.api.generated.TONDAppInfo
 
 /**

@@ -137,7 +137,7 @@ internal class InitializationManager(
 
         val tonClientEndpoint = resolveTonClientEndpoint(configuration)
         apiBaseUrl = resolveTonApiBase(configuration)
-        tonApiKey = configuration.apiClient?.key?.takeIf { it.isNotBlank() }
+        tonApiKey = configuration.apiClientConfiguration?.key?.takeIf { it.isNotBlank() }
 
         // Use deviceInfo if provided, otherwise auto-detect
         val appVersion = configuration.deviceInfo?.appVersion
@@ -260,10 +260,10 @@ internal class InitializationManager(
         }
 
     private fun resolveTonClientEndpoint(configuration: TONWalletKitConfiguration): String? =
-        configuration.apiClient?.url?.takeIf { it.isNotBlank() }
+        configuration.apiClientConfiguration?.url?.takeIf { it.isNotBlank() }
 
     private fun resolveTonApiBase(configuration: TONWalletKitConfiguration): String {
-        val custom = configuration.apiClient?.url?.takeIf { it.isNotBlank() }
+        val custom = configuration.apiClientConfiguration?.url?.takeIf { it.isNotBlank() }
         return custom ?: when (configuration.network.chainId) {
             TONNetwork.MAINNET.chainId -> NetworkConstants.DEFAULT_MAINNET_API_URL
             TONNetwork.TESTNET.chainId -> NetworkConstants.DEFAULT_TESTNET_API_URL

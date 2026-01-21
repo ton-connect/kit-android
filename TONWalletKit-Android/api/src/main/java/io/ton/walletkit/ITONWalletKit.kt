@@ -253,7 +253,7 @@ interface ITONWalletKit {
      *
      * @return List of all active sessions
      */
-    suspend fun listSessions(): List<io.ton.walletkit.api.generated.TONConnectSession>
+    suspend fun listSessions(): List<io.ton.walletkit.session.TONConnectSession>
 
     /**
      * Disconnect TON Connect session.
