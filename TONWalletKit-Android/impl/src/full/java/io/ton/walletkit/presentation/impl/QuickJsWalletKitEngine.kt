@@ -28,7 +28,6 @@ import androidx.core.content.edit
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
-import io.ton.walletkit.api.generated.TONConnectSession
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
@@ -55,6 +54,7 @@ import io.ton.walletkit.presentation.impl.quickjs.QuickJs
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
+import io.ton.walletkit.session.TONConnectSession
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope

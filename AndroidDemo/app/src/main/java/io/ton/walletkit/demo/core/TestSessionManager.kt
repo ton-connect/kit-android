@@ -26,6 +26,7 @@ import com.google.crypto.tink.subtle.X25519
 import io.ton.walletkit.api.generated.TONConnectSession
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.session.TONConnectSession
 import io.ton.walletkit.session.TONConnectSessionManager
 import java.net.URL
 import java.time.Instant

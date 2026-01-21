@@ -22,7 +22,7 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
-import io.ton.walletkit.api.generated.TONConnectSession
+import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
 import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
@@ -44,6 +44,7 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.session.TONConnectSession
 import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
