@@ -311,4 +311,9 @@ internal object JsonConstants {
      * JSON key for JS bridge indicator.
      */
     const val KEY_IS_JS_BRIDGE = "isJsBridge"
+
+    /**
+     * JSON key for domain.
+     */
+    const val KEY_DOMAIN = "domain"
 }

@@ -39,17 +39,17 @@ interface TONConnectSessionManager {
      *
      * @param sessionId Unique session identifier
      * @param dAppInfo Information about the dApp (name, url, iconUrl, description)
-     * @param walletId The wallet ID to associate with this session (optional for connect requests before wallet selection)
+     * @param walletId The wallet ID to associate with this session
      * @param walletAddress The wallet address to associate with this session
-     * @param options Additional options for session creation
+     * @param isJsBridge If true, indicates this session was created via JS Bridge (internal browser)
      * @return The created session
      */
     suspend fun createSession(
         sessionId: String,
         dAppInfo: TONDAppInfo,
-        walletId: String? = null,
-        walletAddress: String? = null,
-        options: SessionCreationOptions? = null,
+        walletId: String,
+        walletAddress: String,
+        isJsBridge: Boolean,
     ): TONConnectSession
 
     /**
@@ -73,7 +73,7 @@ interface TONConnectSessionManager {
      *
      * @return List of all active sessions
      */
-    fun getSessions(): List<TONConnectSession>
+    suspend fun getSessions(): List<TONConnectSession>
 
     /**
      * Get sessions for a specific wallet by wallet ID.
@@ -81,15 +81,14 @@ interface TONConnectSessionManager {
      * @param walletId The wallet ID to filter by
      * @return List of sessions for that wallet
      */
-    fun getSessionsForWallet(walletId: String): List<TONConnectSession>
+    suspend fun getSessionsForWallet(walletId: String): List<TONConnectSession>
 
     /**
      * Remove session by ID.
      *
      * @param sessionId The session ID to remove
-     * @return true if the session was removed, false otherwise
      */
-    suspend fun removeSession(sessionId: String): Boolean
+    suspend fun removeSession(sessionId: String)
 
     /**
      * Remove all sessions for a wallet by wallet ID.
@@ -103,14 +102,3 @@ interface TONConnectSessionManager {
      */
     suspend fun clearSessions()
 }
-
-/**
- * Options for session creation.
- *
- * @property disablePersist If true, the session will not be persisted to storage
- * @property isJsBridge If true, indicates this session was created via JS Bridge (internal browser)
- */
-data class SessionCreationOptions(
-    val disablePersist: Boolean = false,
-    val isJsBridge: Boolean = false,
-)

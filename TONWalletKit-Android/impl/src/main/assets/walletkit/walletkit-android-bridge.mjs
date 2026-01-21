@@ -25202,10 +25202,12 @@ class TONConnectStoredSessionManager {
    * @param wallet - The wallet to associate with this session (optional for connect requests before wallet selection)
    * @param options - Additional options for session creation
    */
-  async createSession(sessionId, dAppInfo, wallet, { disablePersist = false, isJsBridge = false } = {}) {
+  async createSession(sessionId, dAppInfo, wallet, isJsBridge) {
     const now = /* @__PURE__ */ new Date();
     const randomKeyPair = new SessionCrypto().stringifyKeypair();
-    const walletId = wallet ? createWalletId(wallet.getNetwork(), wallet.getAddress()) : "";
+    const walletId = wallet.getWalletId();
+    const url = new URL(dAppInfo.url || "");
+    const domain = url.host;
     const session = {
       sessionId,
       walletId,
@@ -25214,12 +25216,10 @@ class TONConnectStoredSessionManager {
       lastActivityAt: now.toISOString(),
       privateKey: randomKeyPair.secretKey,
       publicKey: randomKeyPair.publicKey,
+      domain,
       dAppInfo,
       isJsBridge
     };
-    if (disablePersist) {
-      return session;
-    }
     this.sessions.set(sessionId, session);
     await this.persistSessions();
     return await this.getSession(sessionId);
@@ -25238,16 +25238,8 @@ class TONConnectStoredSessionManager {
       return void 0;
     }
     for (const session of this.sessions.values()) {
-      try {
-        if (session.dAppInfo.url === void 0) {
-          continue;
-        }
-        let dAppHost = new URL(session.dAppInfo.url).host;
-        if (dAppHost === host) {
-          return this.getSession(session.sessionId);
-        }
-      } catch {
-        continue;
+      if (session.domain === host) {
+        return this.getSession(session.sessionId);
       }
     }
     return void 0;
@@ -25255,14 +25247,14 @@ class TONConnectStoredSessionManager {
   /**
    * Get all sessions as array
    */
-  getSessions() {
+  async getSessions() {
     return Array.from(this.sessions.values());
   }
   /**
    * Get sessions for specific wallet by wallet ID
    */
-  getSessionsForWallet(walletId) {
-    return this.getSessions().filter((session) => session.walletId === walletId);
+  async getSessionsForWallet(walletId) {
+    return (await this.getSessions()).filter((session) => session.walletId === walletId);
   }
   /**
    * Update session activity timestamp
@@ -25282,13 +25274,12 @@ class TONConnectStoredSessionManager {
     if (removed) {
       await this.persistSessions();
     }
-    return removed;
   }
   /**
    * Remove all sessions for a wallet by wallet ID or wallet adapter
    */
   async removeSessionsForWallet(walletId) {
-    const sessionsToRemove = this.getSessionsForWallet(walletId);
+    const sessionsToRemove = await this.getSessionsForWallet(walletId);
     let removedCount = 0;
     for (const session of sessionsToRemove) {
       if (this.sessions.delete(session.sessionId)) {
@@ -26944,7 +26935,7 @@ class BridgeManager {
   /**
    * Send response to dApp
    */
-  async sendResponse(event, response, _session) {
+  async sendResponse(event, response, sessionCrypto) {
     if (event.isLocal) {
       return;
     }
@@ -26960,19 +26951,25 @@ class BridgeManager {
     if (!sessionId) {
       throw new WalletKitError(ERROR_CODES.SESSION_ID_REQUIRED, "Session ID is required for sending response", void 0, { event: { id: event.id } });
     }
-    const session = _session ?? await this.sessionManager.getSession(sessionId);
-    if (!session) {
-      throw new WalletKitError(ERROR_CODES.SESSION_NOT_FOUND, `Session not found for response`, void 0, {
-        sessionId,
-        eventId: event.id
-      });
+    let _sessionCrypto;
+    if (sessionCrypto) {
+      _sessionCrypto = sessionCrypto;
+    } else {
+      const session = await this.sessionManager.getSession(sessionId);
+      if (session) {
+        _sessionCrypto = new SessionCrypto({
+          publicKey: session.publicKey,
+          secretKey: session.privateKey
+        });
+      } else {
+        throw new WalletKitError(ERROR_CODES.SESSION_NOT_FOUND, `Session not found for response`, void 0, {
+          sessionId,
+          eventId: event.id
+        });
+      }
     }
     try {
-      const sessionCrypto = new SessionCrypto({
-        publicKey: session.publicKey,
-        secretKey: session.privateKey
-      });
-      await this.bridgeProvider.send(response, sessionCrypto, sessionId, {
+      await this.bridgeProvider.send(response, _sessionCrypto, sessionId, {
         traceId: event?.traceId
       });
       log$h.debug("Response sent successfully", { sessionId, requestId: event.id });
@@ -27035,7 +27032,7 @@ class BridgeManager {
   //     return this.sessions.size;
   // }
   async getClients() {
-    return this.sessionManager.getSessions().map((session) => ({
+    return (await this.sessionManager.getSessions()).map((session) => ({
       session: new SessionCrypto({
         publicKey: session.publicKey,
         secretKey: session.privateKey.length > 64 ? session.privateKey.slice(0, 64) : session.privateKey
@@ -51651,9 +51648,7 @@ class RequestProcessor {
           url: event.preview.dAppInfo?.url || "",
           iconUrl: event.preview.dAppInfo?.iconUrl || "",
           description: event.preview.dAppInfo?.description || ""
-        }, wallet, {
-          isJsBridge: event.isJsBridge
-        });
+        }, wallet, event.isJsBridge ?? false);
         await this.bridgeManager.createSession(newSession.sessionId);
         const response = await this.createConnectApprovalResponse(event);
         await this.bridgeManager.sendResponse(event, response.result);
@@ -51695,12 +51690,13 @@ class RequestProcessor {
           const error2 = new WalletKitError(ERROR_CODES.WALLET_NOT_FOUND, "Wallet not found for connect approval result", void 0, { walletId, eventId: event.id });
           throw error2;
         }
+        const isJsBridge = false;
         await this.sessionManager.createSession(event.from || (await distExports$1.getSecureRandomBytes(32)).toString("hex"), {
           name: event.result.dAppName,
           url: event.result.dAppUrl,
           iconUrl: event.result.dAppIconUrl,
           description: event.result.dAppDescription
-        }, wallet);
+        }, wallet, isJsBridge);
         await this.bridgeManager.sendResponse(event, event.result.response);
         if (this.analytics) {
           const sessionData = event.from ? await this.sessionManager.getSession(event.from) : void 0;
@@ -51759,21 +51755,14 @@ class RequestProcessor {
           message: reason || "User rejected connection"
         }
       };
-      const newSession = await this.sessionManager.createSession(event.from || "", {
-        name: event.preview.dAppInfo?.name || "",
-        url: "",
-        iconUrl: "",
-        description: ""
-      }, void 0, {
-        disablePersist: true
-      });
+      const sessionId = event.from || "";
       try {
-        await this.bridgeManager.sendResponse(event, response, newSession);
+        await this.bridgeManager.sendResponse(event, response, new SessionCrypto());
       } catch (error2) {
         log$c.error("Failed to send connect request rejection response", { error: error2 });
       }
       if (this.analytics) {
-        const sessionData = event.from ? await this.sessionManager.getSession(newSession.sessionId) : void 0;
+        const sessionData = event.from ? await this.sessionManager.getSession(sessionId) : void 0;
         this.analytics.emitWalletConnectRejected({
           client_id: event.from,
           wallet_id: sessionData?.publicKey,
@@ -52571,7 +52560,7 @@ class StorageEventProcessor {
    */
   async processNextAvailableEvent() {
     try {
-      const allLocalSessions = this.sessionManager.getSessions();
+      const allLocalSessions = await this.sessionManager.getSessions();
       const allSessions = allLocalSessions.filter((session) => session.walletId && this.registeredWallets.has(session.walletId));
       const enabledEventTypes = this.getEnabledEventTypes();
       const allEvents = [];
@@ -57847,6 +57836,10 @@ class TonWalletKit {
       const session = await this.sessionManager.getSession(sessionId2);
       if (session) {
         try {
+          const sessionCrypto = new SessionCrypto({
+            publicKey: session.publicKey,
+            secretKey: session.privateKey
+          });
           await CallForSuccess(() => this.bridgeManager.sendResponse({
             sessionId: sessionId2,
             isJsBridge: session?.isJsBridge,
@@ -57856,7 +57849,7 @@ class TonWalletKit {
             event: "disconnect",
             id: Date.now(),
             payload: {}
-          }, session), 10, 100);
+          }, sessionCrypto), 10, 100);
         } catch (error2) {
           log$2.error("Failed to send disconnect to bridge", { sessionId: sessionId2, error: error2 });
         }
@@ -57870,7 +57863,7 @@ class TonWalletKit {
         log$2.error("Failed to remove session", { sessionId, error: error2 });
       }
     } else {
-      const sessions = this.sessionManager.getSessions();
+      const sessions = await this.sessionManager.getSessions();
       if (sessions.length > 0) {
         for (const session of sessions) {
           try {
@@ -57884,7 +57877,7 @@ class TonWalletKit {
   }
   async listSessions() {
     await this.ensureInitialized();
-    return this.sessionManager.getSessions();
+    return await this.sessionManager.getSessions();
   }
   // === Event Handler Registration (Delegated) ===
   onConnectRequest(cb) {
@@ -59050,21 +59043,19 @@ class AndroidSessionManagerAdapter {
     }
     this.androidBridge = androidWindow.WalletKitNative;
   }
-  createSession(sessionId, dAppInfo, wallet, options) {
+  createSession(sessionId, dAppInfo, wallet, isJsBridge) {
     return __async$c(this, null, function* () {
-      var _a2;
       try {
-        const walletId = wallet ? `${wallet.getNetwork().chainId}:${wallet.getAddress()}` : null;
-        const walletAddress = (_a2 = wallet == null ? void 0 : wallet.getAddress()) != null ? _a2 : null;
+        const walletId = `${wallet.getNetwork().chainId}:${wallet.getAddress()}`;
+        const walletAddress = wallet.getAddress();
         const dAppInfoJson = JSON.stringify(dAppInfo);
-        const optionsJson = options ? JSON.stringify(options) : null;
         log$l("[AndroidSessionManagerAdapter] createSession:", sessionId, dAppInfoJson);
         const resultJson = this.androidBridge.sessionCreate(
           sessionId,
           dAppInfoJson,
           walletId,
           walletAddress,
-          optionsJson
+          isJsBridge
         );
         return JSON.parse(resultJson);
       } catch (err) {
@@ -59104,33 +59095,36 @@ class AndroidSessionManagerAdapter {
     });
   }
   getSessions() {
-    try {
-      log$l("[AndroidSessionManagerAdapter] getSessions");
-      const resultJson = this.androidBridge.sessionGetAll();
-      return JSON.parse(resultJson);
-    } catch (err) {
-      error("[AndroidSessionManagerAdapter] Failed to get sessions:", err);
-      return [];
-    }
+    return __async$c(this, null, function* () {
+      try {
+        log$l("[AndroidSessionManagerAdapter] getSessions");
+        const resultJson = this.androidBridge.sessionGetAll();
+        return JSON.parse(resultJson);
+      } catch (err) {
+        error("[AndroidSessionManagerAdapter] Failed to get sessions:", err);
+        return [];
+      }
+    });
   }
   getSessionsForWallet(walletId) {
-    try {
-      log$l("[AndroidSessionManagerAdapter] getSessionsForWallet:", walletId);
-      const resultJson = this.androidBridge.sessionGetForWallet(walletId);
-      return JSON.parse(resultJson);
-    } catch (err) {
-      error("[AndroidSessionManagerAdapter] Failed to get sessions for wallet:", walletId, err);
-      return [];
-    }
+    return __async$c(this, null, function* () {
+      try {
+        log$l("[AndroidSessionManagerAdapter] getSessionsForWallet:", walletId);
+        const resultJson = this.androidBridge.sessionGetForWallet(walletId);
+        return JSON.parse(resultJson);
+      } catch (err) {
+        error("[AndroidSessionManagerAdapter] Failed to get sessions for wallet:", walletId, err);
+        return [];
+      }
+    });
   }
   removeSession(sessionId) {
     return __async$c(this, null, function* () {
       try {
         log$l("[AndroidSessionManagerAdapter] removeSession:", sessionId);
-        return this.androidBridge.sessionRemove(sessionId);
+        this.androidBridge.sessionRemove(sessionId);
       } catch (err) {
         error("[AndroidSessionManagerAdapter] Failed to remove session:", sessionId, err);
-        return false;
       }
     });
   }
