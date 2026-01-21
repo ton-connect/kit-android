@@ -25,7 +25,6 @@ import android.util.Log
 import io.ton.walletkit.api.generated.TONConnectSession
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.model.TONUserFriendlyAddress
-import io.ton.walletkit.session.SessionCreationOptions
 import io.ton.walletkit.session.TONConnectSessionManager
 import java.net.URL
 import java.time.Instant
@@ -45,16 +44,16 @@ class TestSessionManager : TONConnectSessionManager {
     override suspend fun createSession(
         sessionId: String,
         dAppInfo: TONDAppInfo,
-        walletId: String?,
-        walletAddress: String?,
-        options: SessionCreationOptions?,
+        walletId: String,
+        walletAddress: String,
+        isJsBridge: Boolean,
     ): TONConnectSession {
         Log.d(TAG, "🔵 createSession called:")
         Log.d(TAG, "   sessionId: $sessionId")
         Log.d(TAG, "   dAppInfo: name=${dAppInfo.name}, url=${dAppInfo.url}")
         Log.d(TAG, "   walletId: $walletId")
         Log.d(TAG, "   walletAddress: $walletAddress")
-        Log.d(TAG, "   options: disablePersist=${options?.disablePersist}, isJsBridge=${options?.isJsBridge}")
+        Log.d(TAG, "   isJsBridge: $isJsBridge")
 
         val now = Instant.now().toString()
 
@@ -63,25 +62,28 @@ class TestSessionManager : TONConnectSessionManager {
         val privateKey = "test-private-key-$keyPairId"
         val publicKey = "test-public-key-$keyPairId"
 
+        // Extract domain from dApp URL
+        val domain = try {
+            dAppInfo.url?.let { URL(it).host } ?: ""
+        } catch (e: Exception) {
+            ""
+        }
+
         val session = TONConnectSession(
             sessionId = sessionId,
-            walletId = walletId ?: "",
-            walletAddress = TONUserFriendlyAddress(walletAddress ?: ""),
+            walletId = walletId,
+            walletAddress = TONUserFriendlyAddress(walletAddress),
             createdAt = now,
             lastActivityAt = now,
             privateKey = privateKey,
             publicKey = publicKey,
+            domain = domain,
             dAppInfo = dAppInfo,
-            isJsBridge = options?.isJsBridge ?: false,
+            isJsBridge = isJsBridge,
         )
 
-        // Only persist if disablePersist is not set
-        if (options?.disablePersist != true) {
-            sessions[sessionId] = session
-            Log.d(TAG, "✅ Session stored. Total sessions: ${sessions.size}")
-        } else {
-            Log.d(TAG, "⚠️ Session NOT stored (disablePersist=true)")
-        }
+        sessions[sessionId] = session
+        Log.d(TAG, "✅ Session stored. Total sessions: ${sessions.size}")
 
         return session
     }
@@ -103,14 +105,9 @@ class TestSessionManager : TONConnectSessionManager {
         }
 
         for (session in sessions.values) {
-            try {
-                val sessionHost = session.dAppInfo.url?.let { URL(it).host }
-                if (sessionHost == host) {
-                    Log.d(TAG, "✅ Found session by domain: ${session.sessionId}")
-                    return session
-                }
-            } catch (e: Exception) {
-                continue
+            if (session.domain == host) {
+                Log.d(TAG, "✅ Found session by domain: ${session.sessionId}")
+                return session
             }
         }
 
@@ -118,22 +115,21 @@ class TestSessionManager : TONConnectSessionManager {
         return null
     }
 
-    override fun getSessions(): List<TONConnectSession> {
+    override suspend fun getSessions(): List<TONConnectSession> {
         val sessionList = sessions.values.toList()
         Log.d(TAG, "📋 getSessions(): returning ${sessionList.size} sessions")
         return sessionList
     }
 
-    override fun getSessionsForWallet(walletId: String): List<TONConnectSession> {
+    override suspend fun getSessionsForWallet(walletId: String): List<TONConnectSession> {
         val walletSessions = sessions.values.filter { it.walletId == walletId }
         Log.d(TAG, "📋 getSessionsForWallet($walletId): returning ${walletSessions.size} sessions")
         return walletSessions
     }
 
-    override suspend fun removeSession(sessionId: String): Boolean {
+    override suspend fun removeSession(sessionId: String) {
         val removed = sessions.remove(sessionId) != null
         Log.d(TAG, "🗑️ removeSession($sessionId): ${if (removed) "removed" else "not found"}")
-        return removed
     }
 
     override suspend fun removeSessionsForWallet(walletId: String) {

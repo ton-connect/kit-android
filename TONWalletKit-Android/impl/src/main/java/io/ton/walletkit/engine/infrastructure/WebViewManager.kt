@@ -43,7 +43,6 @@ import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
-import io.ton.walletkit.session.SessionCreationOptions
 import io.ton.walletkit.session.TONConnectSessionManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -345,9 +344,9 @@ internal class WebViewManager(
         fun sessionCreate(
             sessionId: String,
             dAppInfoJson: String,
-            walletId: String?,
-            walletAddress: String?,
-            optionsJson: String?,
+            walletId: String,
+            walletAddress: String,
+            isJsBridge: Boolean,
         ): String {
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
@@ -364,20 +363,12 @@ internal class WebViewManager(
                         description = dAppInfoObj.optNullableString("description"),
                     )
 
-                    val options = optionsJson?.let {
-                        val optionsObj = JSONObject(it)
-                        SessionCreationOptions(
-                            disablePersist = optionsObj.optBoolean("disablePersist", false),
-                            isJsBridge = optionsObj.optBoolean("isJsBridge", false),
-                        )
-                    }
-
                     val session = manager.createSession(
                         sessionId = sessionId,
                         dAppInfo = dAppInfo,
                         walletId = walletId,
                         walletAddress = walletAddress,
-                        options = options,
+                        isJsBridge = isJsBridge,
                     )
 
                     json.encodeToString(session)
@@ -427,13 +418,15 @@ internal class WebViewManager(
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
-            return try {
-                Logger.d(TAG, "sessionGetAll")
-                val sessions = manager.getSessions()
-                json.encodeToString(sessions)
-            } catch (e: Exception) {
-                Logger.e(TAG, "Failed to get all sessions", e)
-                "[]"
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "sessionGetAll")
+                    val sessions = manager.getSessions()
+                    json.encodeToString(sessions)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get all sessions", e)
+                    "[]"
+                }
             }
         }
 
@@ -442,28 +435,29 @@ internal class WebViewManager(
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
-            return try {
-                Logger.d(TAG, "sessionGetForWallet: walletId=$walletId")
-                val sessions = manager.getSessionsForWallet(walletId)
-                json.encodeToString(sessions)
-            } catch (e: Exception) {
-                Logger.e(TAG, "Failed to get sessions for wallet: $walletId", e)
-                "[]"
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "sessionGetForWallet: walletId=$walletId")
+                    val sessions = manager.getSessionsForWallet(walletId)
+                    json.encodeToString(sessions)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get sessions for wallet: $walletId", e)
+                    "[]"
+                }
             }
         }
 
         @JavascriptInterface
-        fun sessionRemove(sessionId: String): Boolean {
+        fun sessionRemove(sessionId: String) {
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
-            return kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.runBlocking {
                 try {
                     Logger.d(TAG, "sessionRemove: sessionId=$sessionId")
                     manager.removeSession(sessionId)
                 } catch (e: Exception) {
                     Logger.e(TAG, "Failed to remove session: $sessionId", e)
-                    false
                 }
             }
         }

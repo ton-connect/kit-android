@@ -220,6 +220,7 @@ internal class TonConnectOperations(
                         lastActivityAt = entry.optString(ResponseConstants.KEY_LAST_ACTIVITY),
                         privateKey = entry.optString(JsonConstants.KEY_PRIVATE_KEY),
                         publicKey = entry.optString(JsonConstants.KEY_PUBLIC_KEY),
+                        domain = entry.optString(JsonConstants.KEY_DOMAIN),
                         dAppInfo = dAppInfo,
                         isJsBridge = entry.optBoolean(JsonConstants.KEY_IS_JS_BRIDGE, false),
                     ),
