@@ -87,7 +87,12 @@ class TONWalletKitSDKTest {
         withContext(Dispatchers.Main) {
             withTimeout(60_000) { // 60 seconds for WebView initialization
                 val config = TONWalletKitConfiguration(
-                    network = TONNetwork.MAINNET,
+                    networkConfigurations = setOf(
+                        TONWalletKitConfiguration.NetworkConfiguration(
+                            network = TONNetwork.MAINNET,
+                            apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(key = ""),
+                        ),
+                    ),
                     walletManifest = TONWalletKitConfiguration.Manifest(
                         name = "Test Wallet",
                         appName = "Wallet",
@@ -99,7 +104,6 @@ class TONWalletKitSDKTest {
                     bridge = TONWalletKitConfiguration.Bridge(
                         bridgeUrl = "https://bridge.tonapi.io/bridge",
                     ),
-                    apiClient = null,
                     features = listOf(
                         TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 4),
                         TONWalletKitConfiguration.SignDataFeature(
@@ -120,7 +124,12 @@ class TONWalletKitSDKTest {
         withContext(Dispatchers.Main) {
             withTimeout(60_000) {
                 val config = TONWalletKitConfiguration(
-                    network = TONNetwork.TESTNET,
+                    networkConfigurations = setOf(
+                        TONWalletKitConfiguration.NetworkConfiguration(
+                            network = TONNetwork.TESTNET,
+                            apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(key = ""),
+                        ),
+                    ),
                     walletManifest = TONWalletKitConfiguration.Manifest(
                         name = "Test Wallet",
                         appName = "Wallet",
@@ -132,7 +141,6 @@ class TONWalletKitSDKTest {
                     bridge = TONWalletKitConfiguration.Bridge(
                         bridgeUrl = "https://bridge.tonapi.io/bridge",
                     ),
-                    apiClient = null,
                     features = listOf(
                         TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 4),
                         TONWalletKitConfiguration.SignDataFeature(
@@ -243,7 +251,12 @@ class TONWalletKitSDKTest {
 
     private fun createTestConfig(): TONWalletKitConfiguration {
         return TONWalletKitConfiguration(
-            network = TONNetwork.MAINNET,
+            networkConfigurations = setOf(
+                TONWalletKitConfiguration.NetworkConfiguration(
+                    network = TONNetwork.MAINNET,
+                    apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(key = ""),
+                ),
+            ),
             walletManifest = TONWalletKitConfiguration.Manifest(
                 name = "Test Wallet",
                 appName = "Wallet",
@@ -255,7 +268,6 @@ class TONWalletKitSDKTest {
             bridge = TONWalletKitConfiguration.Bridge(
                 bridgeUrl = "https://bridge.tonapi.io/bridge",
             ),
-            apiClient = null,
             features = listOf(
                 TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 4),
                 TONWalletKitConfiguration.SignDataFeature(
