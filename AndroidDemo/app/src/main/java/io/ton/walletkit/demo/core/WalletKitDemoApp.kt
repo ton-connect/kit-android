@@ -237,6 +237,14 @@ object TONWalletKitHelper {
     var useCustomSessionManager: Boolean = true // Enable by default for testing
 
     /**
+     * Flag to use custom API client for testing.
+     * When true, uses TestAPIClient instead of SDK's built-in API client.
+     * Set this BEFORE initializing the SDK.
+     */
+    @Volatile
+    var useCustomApiClient: Boolean = true // Enable by default for testing
+
+    /**
      * The custom session manager instance (if enabled).
      * Exposed so tests can inspect session state.
      */
@@ -296,8 +304,30 @@ object TONWalletKitHelper {
                 null
             }
 
+            // Create network configuration
+            // This demonstrates the iOS-like pattern where each network config has either:
+            // - apiClientConfiguration: Use SDK's built-in API client with your API key
+            // - apiClient: Use your own custom API client implementation
+            val networkConfiguration = if (useCustomApiClient) {
+                Log.w("TONWalletKitHelper", "🌐 Using CUSTOM API client (TestAPIClient)")
+                // Use custom API client - wallet app provides their own API infrastructure
+                TONWalletKitConfiguration.NetworkConfiguration(
+                    network = TONNetwork.MAINNET,
+                    apiClient = TestAPIClient.mainnet(),
+                )
+            } else {
+                Log.w("TONWalletKitHelper", "📡 Using SDK's built-in API client")
+                // Use SDK's built-in API client with default configuration
+                TONWalletKitConfiguration.NetworkConfiguration(
+                    network = TONNetwork.MAINNET,
+                    apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(
+                        key = "", // Empty key uses default behavior
+                    ),
+                )
+            }
+
             val config = TONWalletKitConfiguration(
-                network = TONNetwork.MAINNET,
+                networkConfigurations = setOf(networkConfiguration),
                 walletManifest = TONWalletKitConfiguration.Manifest(
                     name = DEFAULT_MANIFEST_NAME,
                     appName = DEFAULT_APP_NAME,
@@ -309,7 +339,6 @@ object TONWalletKitHelper {
                 bridge = TONWalletKitConfiguration.Bridge(
                     bridgeUrl = DEFAULT_BRIDGE_URL,
                 ),
-                apiClientConfiguration = null,
                 features = listOf(
                     // V5R1 wallets support up to 255 messages per transaction
                     TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 255),

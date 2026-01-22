@@ -268,7 +268,7 @@ internal class QuickJsWalletKitEngine(
             resolveTonClientEndpoint(configuration)?.ifBlank { null }
                 ?: defaultTonClientEndpoint(networkName)
         apiBaseUrl = resolveTonApiBase(configuration)
-        tonApiKey = configuration.apiClient?.key?.takeIf { it.isNotBlank() }
+        tonApiKey = configuration.apiClientConfiguration?.key?.takeIf { it.isNotBlank() }
 
         val payload =
             JSONObject().apply {
@@ -592,6 +592,7 @@ internal class QuickJsWalletKitEngine(
                         lastActivityAt = entry.optString("lastActivityAt"),
                         privateKey = entry.optString("privateKey"),
                         publicKey = entry.optString("publicKey"),
+                        domain = dAppInfo.url ?: "",
                         dAppInfo = dAppInfo,
                         isJsBridge = entry.optBoolean("isJsBridge", false),
                     ),
@@ -1647,10 +1648,10 @@ internal class QuickJsWalletKitEngine(
             }
 
         private fun resolveTonClientEndpoint(configuration: TONWalletKitConfiguration): String? =
-            configuration.apiClient?.url?.takeIf { it.isNotBlank() }
+            configuration.apiClientConfiguration?.url?.takeIf { it.isNotBlank() }
 
         private fun resolveTonApiBase(configuration: TONWalletKitConfiguration): String {
-            val custom = configuration.apiClient?.url?.takeIf { it.isNotBlank() }
+            val custom = configuration.apiClientConfiguration?.url?.takeIf { it.isNotBlank() }
             return custom ?: when (configuration.network) {
                 TONNetwork.MAINNET -> NetworkConstants.DEFAULT_MAINNET_API_URL
                 TONNetwork.TESTNET -> NetworkConstants.DEFAULT_TESTNET_API_URL
