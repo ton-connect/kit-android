@@ -1909,7 +1909,7 @@ function setupNativeBridge() {
   }
 }
 setupNativeBridge();
-var __async$d = (__this, __arguments, generator2) => {
+var __async$e = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -1938,7 +1938,7 @@ let DefaultSignature$1 = null;
 let WalletV4R2Adapter$1 = null;
 let WalletV5R1Adapter$1 = null;
 function ensureWalletKitLoaded() {
-  return __async$d(this, null, function* () {
+  return __async$e(this, null, function* () {
     var _a2, _b, _c, _d, _e2, _f;
     if (TonWalletKit$1 && Signer$1 && MnemonicToKeyPair$1 && DefaultSignature$1 && WalletV4R2Adapter$1 && WalletV5R1Adapter$1) {
       return;
@@ -59006,7 +59006,7 @@ function ensureInternalBrowserResolverMap() {
   }
   return internalBrowserGlobal.__internalBrowserResponseResolvers;
 }
-var __async$c = (__this, __arguments, generator2) => {
+var __async$d = (__this, __arguments, generator2) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -59042,12 +59042,12 @@ class AndroidTONConnectSessionsManager {
     log$l("[AndroidSessionManager] Initialized with native bridge");
   }
   initialize() {
-    return __async$c(this, null, function* () {
+    return __async$d(this, null, function* () {
       log$l("[AndroidSessionManager] initialize() called - no-op for Android");
     });
   }
   createSession(sessionId, dAppInfo, wallet, isJsBridge) {
-    return __async$c(this, null, function* () {
+    return __async$d(this, null, function* () {
       var _a2, _b, _c, _d;
       try {
         log$l("[AndroidSessionManager] createSession:", sessionId);
@@ -59076,7 +59076,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   getSession(sessionId) {
-    return __async$c(this, null, function* () {
+    return __async$d(this, null, function* () {
       try {
         log$l("[AndroidSessionManager] getSession:", sessionId);
         const resultJson = this.bridge.sessionGet(sessionId);
@@ -59091,7 +59091,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   getSessionByDomain(domain) {
-    return __async$c(this, null, function* () {
+    return __async$d(this, null, function* () {
       try {
         log$l("[AndroidSessionManager] getSessionByDomain:", domain);
         const resultJson = this.bridge.sessionGetByDomain(domain);
@@ -59106,7 +59106,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   getSessions() {
-    return __async$c(this, null, function* () {
+    return __async$d(this, null, function* () {
       try {
         log$l("[AndroidSessionManager] getSessions");
         const resultJson = this.bridge.sessionGetAll();
@@ -59118,7 +59118,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   getSessionsForWallet(walletId) {
-    return __async$c(this, null, function* () {
+    return __async$d(this, null, function* () {
       try {
         log$l("[AndroidSessionManager] getSessionsForWallet:", walletId);
         const resultJson = this.bridge.sessionGetForWallet(walletId);
@@ -59130,7 +59130,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   removeSession(sessionId) {
-    return __async$c(this, null, function* () {
+    return __async$d(this, null, function* () {
       try {
         log$l("[AndroidSessionManager] removeSession:", sessionId);
         this.bridge.sessionRemove(sessionId);
@@ -59141,7 +59141,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   removeSessionsForWallet(walletId) {
-    return __async$c(this, null, function* () {
+    return __async$d(this, null, function* () {
       try {
         log$l("[AndroidSessionManager] removeSessionsForWallet:", walletId);
         this.bridge.sessionRemoveForWallet(walletId);
@@ -59152,7 +59152,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   clearSessions() {
-    return __async$c(this, null, function* () {
+    return __async$d(this, null, function* () {
       try {
         log$l("[AndroidSessionManager] clearSessions");
         this.bridge.sessionClear();
@@ -59160,6 +59160,179 @@ class AndroidTONConnectSessionsManager {
         error("[AndroidSessionManager] Failed to clear sessions:", err);
         throw err;
       }
+    });
+  }
+}
+var __async$c = (__this, __arguments, generator2) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator2.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator2.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
+    step((generator2 = generator2.apply(__this, __arguments)).next());
+  });
+};
+class AndroidAPIClientAdapter {
+  constructor(network) {
+    const androidWindow = window;
+    if (!androidWindow.WalletKitNative) {
+      throw new Error("WalletKitNative bridge not available");
+    }
+    this.androidBridge = androidWindow.WalletKitNative;
+    this.network = network;
+  }
+  /**
+   * Check if native API clients are available.
+   */
+  static isAvailable() {
+    var _a2;
+    const androidWindow = window;
+    return typeof ((_a2 = androidWindow.WalletKitNative) == null ? void 0 : _a2.apiGetNetworks) === "function";
+  }
+  /**
+   * Get all networks that have native API clients configured.
+   */
+  static getAvailableNetworks() {
+    var _a2;
+    const androidWindow = window;
+    if (!((_a2 = androidWindow.WalletKitNative) == null ? void 0 : _a2.apiGetNetworks)) {
+      return [];
+    }
+    try {
+      const networksJson = androidWindow.WalletKitNative.apiGetNetworks();
+      return JSON.parse(networksJson);
+    } catch (err) {
+      error("[AndroidAPIClientAdapter] Failed to get available networks:", err);
+      return [];
+    }
+  }
+  sendBoc(boc) {
+    return __async$c(this, null, function* () {
+      log$l("[AndroidAPIClientAdapter] sendBoc:", boc.substring(0, 50) + "...");
+      try {
+        const networkJson = JSON.stringify(this.network);
+        const result = this.androidBridge.apiSendBoc(networkJson, boc);
+        log$l("[AndroidAPIClientAdapter] sendBoc result:", result);
+        return result;
+      } catch (err) {
+        error("[AndroidAPIClientAdapter] sendBoc failed:", err);
+        throw err;
+      }
+    });
+  }
+  runGetMethod(address, method, stack, seqno) {
+    return __async$c(this, null, function* () {
+      log$l("[AndroidAPIClientAdapter] runGetMethod:", address, method);
+      try {
+        const networkJson = JSON.stringify(this.network);
+        const stackJson = stack ? JSON.stringify(stack) : null;
+        const seqnoArg = seqno != null ? seqno : -1;
+        const resultJson = this.androidBridge.apiRunGetMethod(networkJson, address, method, stackJson, seqnoArg);
+        const result = JSON.parse(resultJson);
+        log$l("[AndroidAPIClientAdapter] runGetMethod result:", result);
+        return result;
+      } catch (err) {
+        error("[AndroidAPIClientAdapter] runGetMethod failed:", err);
+        throw err;
+      }
+    });
+  }
+  // Methods not implemented - will throw if called
+  // These are optional for mobile usage
+  nftItemsByAddress(_request) {
+    return __async$c(this, null, function* () {
+      throw new Error("nftItemsByAddress is not implemented yet");
+    });
+  }
+  nftItemsByOwner(_request) {
+    return __async$c(this, null, function* () {
+      throw new Error("nftItemsByOwner is not implemented yet");
+    });
+  }
+  fetchEmulation(_messageBoc, _ignoreSignature) {
+    return __async$c(this, null, function* () {
+      throw new Error("fetchEmulation is not implemented yet");
+    });
+  }
+  getAccountState(_address, _seqno) {
+    return __async$c(this, null, function* () {
+      throw new Error("getAccountState is not implemented yet");
+    });
+  }
+  getBalance(address, seqno) {
+    return __async$c(this, null, function* () {
+      log$l("[AndroidAPIClientAdapter] getBalance:", address);
+      try {
+        const networkJson = JSON.stringify(this.network);
+        const seqnoArg = seqno != null ? seqno : -1;
+        const result = this.androidBridge.apiGetBalance(networkJson, address, seqnoArg);
+        log$l("[AndroidAPIClientAdapter] getBalance result:", result);
+        return result;
+      } catch (err) {
+        error("[AndroidAPIClientAdapter] getBalance failed:", err);
+        throw err;
+      }
+    });
+  }
+  getAccountTransactions(_request) {
+    return __async$c(this, null, function* () {
+      throw new Error("getAccountTransactions is not implemented yet");
+    });
+  }
+  getTransactionsByHash(_request) {
+    return __async$c(this, null, function* () {
+      throw new Error("getTransactionsByHash is not implemented yet");
+    });
+  }
+  getPendingTransactions(_request) {
+    return __async$c(this, null, function* () {
+      throw new Error("getPendingTransactions is not implemented yet");
+    });
+  }
+  getTrace(_request) {
+    return __async$c(this, null, function* () {
+      throw new Error("getTrace is not implemented yet");
+    });
+  }
+  getPendingTrace(_request) {
+    return __async$c(this, null, function* () {
+      throw new Error("getPendingTrace is not implemented yet");
+    });
+  }
+  resolveDnsWallet(_domain) {
+    return __async$c(this, null, function* () {
+      throw new Error("resolveDnsWallet is not implemented yet");
+    });
+  }
+  backResolveDnsWallet(_address) {
+    return __async$c(this, null, function* () {
+      throw new Error("backResolveDnsWallet is not implemented yet");
+    });
+  }
+  jettonsByAddress(_request) {
+    return __async$c(this, null, function* () {
+      throw new Error("jettonsByAddress is not implemented yet");
+    });
+  }
+  jettonsByOwnerAddress(_request) {
+    return __async$c(this, null, function* () {
+      throw new Error("jettonsByOwnerAddress is not implemented yet");
+    });
+  }
+  getEvents(_request) {
+    return __async$c(this, null, function* () {
+      throw new Error("getEvents is not implemented yet");
     });
   }
 }
@@ -59199,6 +59372,17 @@ function initTonWalletKit(config, deps) {
     const networksConfig = {
       [network]: { apiClient: apiClientConfig }
     };
+    if (AndroidAPIClientAdapter.isAvailable()) {
+      log$l("[walletkitBridge] Native API clients available, checking for configured networks");
+      const availableNetworks = AndroidAPIClientAdapter.getAvailableNetworks();
+      log$l("[walletkitBridge] Available native API networks:", JSON.stringify(availableNetworks));
+      for (const nativeNetwork of availableNetworks) {
+        log$l("[walletkitBridge] Using native API client for network:", nativeNetwork.chainId);
+        networksConfig[nativeNetwork.chainId] = {
+          apiClient: new AndroidAPIClientAdapter(nativeNetwork)
+        };
+      }
+    }
     const kitOptions = {
       network,
       networks: networksConfig
