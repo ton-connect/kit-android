@@ -84,7 +84,7 @@ class ConnectE2ETest : BaseE2ETest() {
             dAppController.waitForDAppPage(timeoutMs = 10000)
             dAppController.clearDAppStorage()
             dAppController.closeBrowserFully()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             android.util.Log.w(TAG, "Failed to clean up dApp sessions in tearDown: ${e.message}")
         }
     }
