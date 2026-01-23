@@ -30,7 +30,11 @@ import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.model.TONBase64
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.URL
 
 /**
  * Test implementation of TONAPIClient for demonstration purposes.
@@ -99,6 +103,41 @@ class TestAPIClient(
         Log.d(tag, "✅ runGetMethod completed, exitCode: ${mockResult.exitCode}")
 
         return mockResult
+    }
+
+    override suspend fun getBalance(
+        address: TONUserFriendlyAddress,
+        seqno: Int?,
+    ): String {
+        Log.d(tag, "💰 getBalance called on network: ${network.chainId}")
+        Log.d(tag, "📍 Address: ${address.value}")
+
+        // Make a real HTTP call to toncenter API
+        val baseUrl = when (network) {
+            TONNetwork.MAINNET -> "https://toncenter.com"
+            TONNetwork.TESTNET -> "https://testnet.toncenter.com"
+            else -> "https://toncenter.com"
+        }
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val url = URL("$baseUrl/api/v3/addressInformation?address=${address.value}")
+                val connection = url.openConnection()
+                connection.setRequestProperty("Accept", "application/json")
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+
+                val response = connection.getInputStream().bufferedReader().readText()
+                val json = JSONObject(response)
+                val balance = json.optString("balance", "0")
+
+                Log.d(tag, "✅ getBalance completed, balance: $balance")
+                balance
+            } catch (e: Exception) {
+                Log.e(tag, "❌ getBalance failed", e)
+                throw e
+            }
+        }
     }
 
     companion object {

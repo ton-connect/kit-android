@@ -72,4 +72,17 @@ interface TONAPIClient {
         stack: List<TONRawStackItem>? = null,
         seqno: Int? = null,
     ): TONGetMethodResult
+
+    /**
+     * Get the balance of an account.
+     *
+     * @param address The account address
+     * @param seqno Optional seqno for historical state queries
+     * @return The balance in nanotons as a string
+     * @throws Exception if the query fails
+     */
+    suspend fun getBalance(
+        address: TONUserFriendlyAddress,
+        seqno: Int? = null,
+    ): String
 }
