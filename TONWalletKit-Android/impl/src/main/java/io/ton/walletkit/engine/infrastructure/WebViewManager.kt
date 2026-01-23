@@ -338,7 +338,10 @@ internal class WebViewManager(
 
         // ======== Session Manager Methods ========
         // These methods are only available when a custom session manager is configured.
-        // The JS bridge checks for sessionCreate to determine if native session manager is available.
+        // The JS bridge checks hasSessionManager to determine if native session manager is available.
+
+        @JavascriptInterface
+        fun hasSessionManager(): Boolean = sessionManager != null
 
         @JavascriptInterface
         fun sessionCreate(

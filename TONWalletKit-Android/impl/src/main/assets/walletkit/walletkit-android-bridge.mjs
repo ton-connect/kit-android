@@ -26935,7 +26935,7 @@ class BridgeManager {
   /**
    * Send response to dApp
    */
-  async sendResponse(event, response, sessionCrypto) {
+  async sendResponse(event, response, providedSessionCrypto) {
     if (event.isLocal) {
       return;
     }
@@ -26951,13 +26951,11 @@ class BridgeManager {
     if (!sessionId) {
       throw new WalletKitError(ERROR_CODES.SESSION_ID_REQUIRED, "Session ID is required for sending response", void 0, { event: { id: event.id } });
     }
-    let _sessionCrypto;
-    if (sessionCrypto) {
-      _sessionCrypto = sessionCrypto;
-    } else {
+    let sessionCrypto = providedSessionCrypto;
+    if (!sessionCrypto) {
       const session = await this.sessionManager.getSession(sessionId);
       if (session) {
-        _sessionCrypto = new SessionCrypto({
+        sessionCrypto = new SessionCrypto({
           publicKey: session.publicKey,
           secretKey: session.privateKey
         });
@@ -26969,7 +26967,7 @@ class BridgeManager {
       }
     }
     try {
-      await this.bridgeProvider.send(response, _sessionCrypto, sessionId, {
+      await this.bridgeProvider.send(response, sessionCrypto, sessionId, {
         traceId: event?.traceId
       });
       log$h.debug("Response sent successfully", { sessionId, requestId: event.id });
@@ -27235,9 +27233,10 @@ class BridgeManager {
       if (!rawEvent.traceId) {
         rawEvent.traceId = v7();
       }
+      await this.sessionManager.initialize();
       if (rawEvent.from) {
         const session = await this.sessionManager.getSession(rawEvent.from);
-        rawEvent.domain = session?.dAppInfo?.url || "";
+        rawEvent.domain = session?.domain || "";
         if (session) {
           if (session?.walletId) {
             rawEvent.walletId = session.walletId;
@@ -59027,39 +59026,51 @@ var __async$c = (__this, __arguments, generator2) => {
     step((generator2 = generator2.apply(__this, __arguments)).next());
   });
 };
-function isNativeSessionManagerAvailable() {
-  var _a2;
-  const androidWindow = window;
-  return !!((_a2 = androidWindow.WalletKitNative) == null ? void 0 : _a2.sessionCreate);
+function hasAndroidSessionManager() {
+  var _a2, _b;
+  const win = window;
+  return ((_b = (_a2 = win.WalletKitNative) == null ? void 0 : _a2.hasSessionManager) == null ? void 0 : _b.call(_a2)) === true;
 }
-class AndroidSessionManagerAdapter {
+class AndroidTONConnectSessionsManager {
   constructor() {
-    const androidWindow = window;
-    if (!androidWindow.WalletKitNative) {
-      throw new Error("WalletKitNative bridge not available");
+    var _a2;
+    const win = window;
+    if (!((_a2 = win.WalletKitNative) == null ? void 0 : _a2.sessionCreate)) {
+      throw new Error("Android native session manager bridge not available");
     }
-    if (!androidWindow.WalletKitNative.sessionCreate) {
-      throw new Error("WalletKitNative session manager methods not available");
-    }
-    this.androidBridge = androidWindow.WalletKitNative;
+    this.bridge = win.WalletKitNative;
+    log$l("[AndroidSessionManager] Initialized with native bridge");
+  }
+  initialize() {
+    return __async$c(this, null, function* () {
+      log$l("[AndroidSessionManager] initialize() called - no-op for Android");
+    });
   }
   createSession(sessionId, dAppInfo, wallet, isJsBridge) {
     return __async$c(this, null, function* () {
+      var _a2, _b, _c, _d;
       try {
-        const walletId = `${wallet.getNetwork().chainId}:${wallet.getAddress()}`;
-        const walletAddress = wallet.getAddress();
-        const dAppInfoJson = JSON.stringify(dAppInfo);
-        log$l("[AndroidSessionManagerAdapter] createSession:", sessionId, dAppInfoJson);
-        const resultJson = this.androidBridge.sessionCreate(
+        log$l("[AndroidSessionManager] createSession:", sessionId);
+        const walletId = (_b = (_a2 = wallet.getWalletId) == null ? void 0 : _a2.call(wallet)) != null ? _b : "";
+        const walletAddress = (_d = (_c = wallet.getAddress) == null ? void 0 : _c.call(wallet)) != null ? _d : "";
+        const dAppInfoJson = JSON.stringify({
+          name: dAppInfo.name,
+          url: dAppInfo.url,
+          iconUrl: dAppInfo.iconUrl,
+          description: dAppInfo.description
+        });
+        const resultJson = this.bridge.sessionCreate(
           sessionId,
           dAppInfoJson,
           walletId,
           walletAddress,
           isJsBridge
         );
-        return JSON.parse(resultJson);
+        const session = JSON.parse(resultJson);
+        log$l("[AndroidSessionManager] Session created:", session.sessionId);
+        return session;
       } catch (err) {
-        error("[AndroidSessionManagerAdapter] Failed to create session:", sessionId, err);
+        error("[AndroidSessionManager] Failed to create session:", err);
         throw err;
       }
     });
@@ -59067,14 +59078,14 @@ class AndroidSessionManagerAdapter {
   getSession(sessionId) {
     return __async$c(this, null, function* () {
       try {
-        log$l("[AndroidSessionManagerAdapter] getSession:", sessionId);
-        const resultJson = this.androidBridge.sessionGet(sessionId);
+        log$l("[AndroidSessionManager] getSession:", sessionId);
+        const resultJson = this.bridge.sessionGet(sessionId);
         if (!resultJson) {
           return void 0;
         }
         return JSON.parse(resultJson);
       } catch (err) {
-        error("[AndroidSessionManagerAdapter] Failed to get session:", sessionId, err);
+        warn("[AndroidSessionManager] Failed to get session:", err);
         return void 0;
       }
     });
@@ -59082,14 +59093,14 @@ class AndroidSessionManagerAdapter {
   getSessionByDomain(domain) {
     return __async$c(this, null, function* () {
       try {
-        log$l("[AndroidSessionManagerAdapter] getSessionByDomain:", domain);
-        const resultJson = this.androidBridge.sessionGetByDomain(domain);
+        log$l("[AndroidSessionManager] getSessionByDomain:", domain);
+        const resultJson = this.bridge.sessionGetByDomain(domain);
         if (!resultJson) {
           return void 0;
         }
         return JSON.parse(resultJson);
       } catch (err) {
-        error("[AndroidSessionManagerAdapter] Failed to get session by domain:", domain, err);
+        warn("[AndroidSessionManager] Failed to get session by domain:", err);
         return void 0;
       }
     });
@@ -59097,11 +59108,11 @@ class AndroidSessionManagerAdapter {
   getSessions() {
     return __async$c(this, null, function* () {
       try {
-        log$l("[AndroidSessionManagerAdapter] getSessions");
-        const resultJson = this.androidBridge.sessionGetAll();
+        log$l("[AndroidSessionManager] getSessions");
+        const resultJson = this.bridge.sessionGetAll();
         return JSON.parse(resultJson);
       } catch (err) {
-        error("[AndroidSessionManagerAdapter] Failed to get sessions:", err);
+        warn("[AndroidSessionManager] Failed to get sessions:", err);
         return [];
       }
     });
@@ -59109,11 +59120,11 @@ class AndroidSessionManagerAdapter {
   getSessionsForWallet(walletId) {
     return __async$c(this, null, function* () {
       try {
-        log$l("[AndroidSessionManagerAdapter] getSessionsForWallet:", walletId);
-        const resultJson = this.androidBridge.sessionGetForWallet(walletId);
+        log$l("[AndroidSessionManager] getSessionsForWallet:", walletId);
+        const resultJson = this.bridge.sessionGetForWallet(walletId);
         return JSON.parse(resultJson);
       } catch (err) {
-        error("[AndroidSessionManagerAdapter] Failed to get sessions for wallet:", walletId, err);
+        warn("[AndroidSessionManager] Failed to get sessions for wallet:", err);
         return [];
       }
     });
@@ -59121,30 +59132,33 @@ class AndroidSessionManagerAdapter {
   removeSession(sessionId) {
     return __async$c(this, null, function* () {
       try {
-        log$l("[AndroidSessionManagerAdapter] removeSession:", sessionId);
-        this.androidBridge.sessionRemove(sessionId);
+        log$l("[AndroidSessionManager] removeSession:", sessionId);
+        this.bridge.sessionRemove(sessionId);
       } catch (err) {
-        error("[AndroidSessionManagerAdapter] Failed to remove session:", sessionId, err);
+        error("[AndroidSessionManager] Failed to remove session:", err);
+        throw err;
       }
     });
   }
   removeSessionsForWallet(walletId) {
     return __async$c(this, null, function* () {
       try {
-        log$l("[AndroidSessionManagerAdapter] removeSessionsForWallet:", walletId);
-        this.androidBridge.sessionRemoveForWallet(walletId);
+        log$l("[AndroidSessionManager] removeSessionsForWallet:", walletId);
+        this.bridge.sessionRemoveForWallet(walletId);
       } catch (err) {
-        error("[AndroidSessionManagerAdapter] Failed to remove sessions for wallet:", walletId, err);
+        error("[AndroidSessionManager] Failed to remove sessions for wallet:", err);
+        throw err;
       }
     });
   }
   clearSessions() {
     return __async$c(this, null, function* () {
       try {
-        log$l("[AndroidSessionManagerAdapter] clearSessions");
-        this.androidBridge.sessionClear();
+        log$l("[AndroidSessionManager] clearSessions");
+        this.bridge.sessionClear();
       } catch (err) {
-        error("[AndroidSessionManagerAdapter] Failed to clear sessions:", err);
+        error("[AndroidSessionManager] Failed to clear sessions:", err);
+        throw err;
       }
     });
   }
@@ -59251,15 +59265,17 @@ function initTonWalletKit(config, deps) {
     if (window.WalletKitNative) {
       log$l("[walletkitBridge] Using Android native storage adapter");
       kitOptions.storage = new deps.AndroidStorageAdapter();
-      if (isNativeSessionManagerAvailable()) {
-        log$l("[walletkitBridge] Using Android native session manager adapter");
-        kitOptions.sessionManager = new AndroidSessionManagerAdapter();
-      }
     } else if (config == null ? void 0 : config.allowMemoryStorage) {
       log$l("[walletkitBridge] Using memory storage (sessions will not persist)");
       kitOptions.storage = {
         allowMemory: true
       };
+    }
+    if (hasAndroidSessionManager()) {
+      log$l("[walletkitBridge] Using Android native session manager");
+      kitOptions.sessionManager = new AndroidTONConnectSessionsManager();
+    } else {
+      log$l("[walletkitBridge] Using default WalletKit session manager");
     }
     if (!TonWalletKit$1) {
       throw new Error("TonWalletKit module not loaded");

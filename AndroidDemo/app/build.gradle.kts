@@ -107,6 +107,11 @@ dependencies {
     implementation(libs.androidxDatastorePreferences)
 
     implementation(libs.kotlinxSerializationJson)
+
+    // Google Tink for X25519 keypair generation (used by TestSessionManager)
+    // Tink provides pure Java implementation, no native dependencies
+    implementation(libs.tinkAndroid)
+
     debugImplementation(libs.leakcanaryAndroid)
 
     // Testing - Unit Tests

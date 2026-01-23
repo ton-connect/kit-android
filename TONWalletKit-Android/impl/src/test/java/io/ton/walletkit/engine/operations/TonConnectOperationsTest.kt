@@ -78,12 +78,21 @@ class TonConnectOperationsTest : OperationsTestBase() {
                         put(
                             JSONObject().apply {
                                 put("sessionId", TEST_SESSION_ID)
-                                put("dAppName", "Test dApp")
+                                put("walletId", "-239:$TEST_ADDRESS")
                                 put("walletAddress", TEST_ADDRESS)
-                                put("dAppUrl", TEST_DAPP_URL)
-                                put("iconUrl", "https://example.com/icon.png")
                                 put("createdAt", "2025-01-01T00:00:00Z")
-                                put("lastActivity", "2025-01-02T12:00:00Z")
+                                put("lastActivityAt", "2025-01-02T12:00:00Z")
+                                put("privateKey", "test-private-key")
+                                put("publicKey", "test-public-key")
+                                put("domain", "example.com")
+                                put(
+                                    "dAppInfo",
+                                    JSONObject().apply {
+                                        put("name", "Test dApp")
+                                        put("url", TEST_DAPP_URL)
+                                        put("iconUrl", "https://example.com/icon.png")
+                                    },
+                                )
                             },
                         )
                     },
@@ -95,10 +104,10 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
         assertEquals(1, result.size)
         assertEquals(TEST_SESSION_ID, result[0].sessionId)
-        assertEquals("Test dApp", result[0].dAppName)
-        assertEquals(TEST_ADDRESS, result[0].walletAddress)
-        assertEquals(TEST_DAPP_URL, result[0].dAppUrl)
-        assertEquals("https://example.com/icon.png", result[0].iconUrl)
+        assertEquals("Test dApp", result[0].dAppInfo.name)
+        assertEquals(TEST_ADDRESS, result[0].walletAddress.value)
+        assertEquals(TEST_DAPP_URL, result[0].dAppInfo.url)
+        assertEquals("https://example.com/icon.png", result[0].dAppInfo.iconUrl)
     }
 
     @Test
@@ -124,9 +133,20 @@ class TonConnectOperationsTest : OperationsTestBase() {
                         put(
                             JSONObject().apply {
                                 put("sessionId", TEST_SESSION_ID)
-                                put("dAppName", "Minimal dApp")
+                                put("walletId", "-239:$TEST_ADDRESS")
                                 put("walletAddress", TEST_ADDRESS)
-                                // No optional fields
+                                put("createdAt", "")
+                                put("lastActivityAt", "")
+                                put("privateKey", "")
+                                put("publicKey", "")
+                                put("domain", "")
+                                put(
+                                    "dAppInfo",
+                                    JSONObject().apply {
+                                        put("name", "Minimal dApp")
+                                        // No optional url/iconUrl fields
+                                    },
+                                )
                             },
                         )
                     },
@@ -138,9 +158,8 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
         assertEquals(1, result.size)
         assertEquals(TEST_SESSION_ID, result[0].sessionId)
-        assertNull(result[0].dAppUrl)
-        assertNull(result[0].iconUrl)
-        assertNull(result[0].createdAtIso)
+        assertNull(result[0].dAppInfo.url)
+        assertNull(result[0].dAppInfo.iconUrl)
     }
 
     @Test
@@ -153,22 +172,55 @@ class TonConnectOperationsTest : OperationsTestBase() {
                         put(
                             JSONObject().apply {
                                 put("sessionId", "session-1")
-                                put("dAppName", "dApp 1")
+                                put("walletId", "-239:$TEST_ADDRESS")
                                 put("walletAddress", TEST_ADDRESS)
+                                put("createdAt", "")
+                                put("lastActivityAt", "")
+                                put("privateKey", "")
+                                put("publicKey", "")
+                                put("domain", "")
+                                put(
+                                    "dAppInfo",
+                                    JSONObject().apply {
+                                        put("name", "dApp 1")
+                                    },
+                                )
                             },
                         )
                         put(
                             JSONObject().apply {
                                 put("sessionId", "session-2")
-                                put("dAppName", "dApp 2")
+                                put("walletId", "-239:$TEST_ADDRESS")
                                 put("walletAddress", TEST_ADDRESS)
+                                put("createdAt", "")
+                                put("lastActivityAt", "")
+                                put("privateKey", "")
+                                put("publicKey", "")
+                                put("domain", "")
+                                put(
+                                    "dAppInfo",
+                                    JSONObject().apply {
+                                        put("name", "dApp 2")
+                                    },
+                                )
                             },
                         )
                         put(
                             JSONObject().apply {
                                 put("sessionId", "session-3")
-                                put("dAppName", "dApp 3")
+                                put("walletId", "-239:$TEST_ADDRESS")
                                 put("walletAddress", TEST_ADDRESS)
+                                put("createdAt", "")
+                                put("lastActivityAt", "")
+                                put("privateKey", "")
+                                put("publicKey", "")
+                                put("domain", "")
+                                put(
+                                    "dAppInfo",
+                                    JSONObject().apply {
+                                        put("name", "dApp 3")
+                                    },
+                                )
                             },
                         )
                     },

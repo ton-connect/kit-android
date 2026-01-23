@@ -22,13 +22,12 @@
 package io.ton.walletkit.demo.core
 
 import android.util.Log
-import io.ton.walletkit.api.generated.TONConnectSession
+import com.google.crypto.tink.subtle.X25519
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.session.TONConnectSessionManager
 import java.net.URL
 import java.time.Instant
-import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -57,10 +56,17 @@ class TestSessionManager : TONConnectSessionManager {
 
         val now = Instant.now().toString()
 
-        // Generate keypair for the session (in real implementation, use proper crypto)
-        val keyPairId = UUID.randomUUID().toString()
-        val privateKey = "test-private-key-$keyPairId"
-        val publicKey = "test-public-key-$keyPairId"
+        // Generate real X25519 keypair for session encryption using Google Tink
+        // X25519.generatePrivateKey() returns a 32-byte private key
+        val privateKeyBytes = X25519.generatePrivateKey()
+        // X25519.publicFromPrivate() derives the 32-byte public key
+        val publicKeyBytes = X25519.publicFromPrivate(privateKeyBytes)
+
+        // Encode as hex strings (matching @tonconnect/protocol format)
+        val privateKey = privateKeyBytes.toHexString()
+        val publicKey = publicKeyBytes.toHexString()
+
+        Log.d(TAG, "   Generated X25519 keypair: publicKey=${publicKey.take(16)}...")
 
         // Extract domain from dApp URL
         val domain = try {
@@ -143,6 +149,8 @@ class TestSessionManager : TONConnectSessionManager {
         sessions.clear()
         Log.d(TAG, "🗑️ clearSessions(): cleared $count sessions")
     }
+
+    private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
 
     companion object {
         private const val TAG = "TestSessionManager"
