@@ -560,6 +560,28 @@ internal class WebViewManager(
             }
         }
 
+        @JavascriptInterface
+        fun apiGetBalance(
+            networkJson: String,
+            address: String,
+            seqno: Int,
+        ): String {
+            val network = json.decodeFromString<TONNetwork>(networkJson)
+            val client = apiClients.find { it.network == network }
+                ?: throw IllegalArgumentException("No API client configured for network: $network")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "apiGetBalance: network=$network, address=$address")
+                    val seqnoArg = if (seqno == -1) null else seqno
+                    client.getBalance(TONUserFriendlyAddress(address), seqnoArg)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get balance for: $address", e)
+                    throw e
+                }
+            }
+        }
+
         private fun JSONObject.optNullableString(key: String): String? {
             val value = opt(key)
             return when (value) {
