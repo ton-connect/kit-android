@@ -85,7 +85,11 @@ class TestSessionManager : TONConnectSessionManager {
             privateKey = privateKey,
             publicKey = publicKey,
             domain = domain,
-            dAppInfo = dAppInfo,
+            schemaVersion = SCHEMA_VERSION,
+            dAppName = dAppInfo.name,
+            dAppDescription = dAppInfo.description,
+            dAppUrl = dAppInfo.url,
+            dAppIconUrl = dAppInfo.iconUrl,
             isJsBridge = isJsBridge,
         )
 
@@ -155,5 +159,6 @@ class TestSessionManager : TONConnectSessionManager {
 
     companion object {
         private const val TAG = "TestSessionManager"
+        private const val SCHEMA_VERSION = 1
     }
 }

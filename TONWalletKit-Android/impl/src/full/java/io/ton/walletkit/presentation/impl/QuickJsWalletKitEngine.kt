@@ -28,7 +28,6 @@ import androidx.core.content.edit
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
-import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
@@ -574,14 +573,8 @@ internal class QuickJsWalletKitEngine(
             for (index in 0 until items.length()) {
                 val entry = items.optJSONObject(index) ?: continue
 
-                // Parse dAppInfo from the session entry
+                // Parse dAppInfo from the session entry (for backwards compatibility)
                 val dAppInfoJson = entry.optJSONObject("dAppInfo")
-                val dAppInfo = TONDAppInfo(
-                    name = dAppInfoJson?.optString("name") ?: entry.optString("dAppName"),
-                    url = dAppInfoJson?.optNullableString("url") ?: entry.optNullableString("dAppUrl"),
-                    iconUrl = dAppInfoJson?.optNullableString("iconUrl") ?: entry.optNullableString("iconUrl"),
-                    description = dAppInfoJson?.optNullableString("description"),
-                )
 
                 add(
                     TONConnectSession(
@@ -592,8 +585,12 @@ internal class QuickJsWalletKitEngine(
                         lastActivityAt = entry.optString("lastActivityAt"),
                         privateKey = entry.optString("privateKey"),
                         publicKey = entry.optString("publicKey"),
-                        domain = dAppInfo.url ?: "",
-                        dAppInfo = dAppInfo,
+                        domain = entry.optString("domain").ifEmpty { dAppInfoJson?.optNullableString("url") ?: "" },
+                        schemaVersion = entry.optInt("schemaVersion", 1),
+                        dAppName = dAppInfoJson?.optString("name") ?: entry.optNullableString("dAppName"),
+                        dAppDescription = dAppInfoJson?.optNullableString("description") ?: entry.optNullableString("dAppDescription"),
+                        dAppUrl = dAppInfoJson?.optNullableString("url") ?: entry.optNullableString("dAppUrl"),
+                        dAppIconUrl = dAppInfoJson?.optNullableString("iconUrl") ?: entry.optNullableString("dAppIconUrl"),
                         isJsBridge = entry.optBoolean("isJsBridge", false),
                     ),
                 )
