@@ -21,8 +21,8 @@
  */
 package io.ton.walletkit.session
 
-import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -47,6 +47,15 @@ data class TONConnectSession(
     val privateKey: String,
     val publicKey: String,
     val domain: String,
-    val dAppInfo: TONDAppInfo,
+    val schemaVersion: Int,
+    /** Display name of the dApp */
+    val dAppName: String? = null,
+    /** Brief description of the dApp's purpose */
+    val dAppDescription: String? = null,
+    /** Main website URL of the dApp */
+    val dAppUrl: String? = null,
+    /** Icon/logo URL of the dApp */
+    val dAppIconUrl: String? = null,
+    @SerialName("isJsBridge")
     val isJsBridge: Boolean? = null,
 )

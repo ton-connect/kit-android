@@ -22,7 +22,6 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
-import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
 import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
@@ -202,7 +201,7 @@ internal class TonConnectOperations(
                     "listSessions entry[$index]: keys=${entry.keys().asSequence().toList()}, sessionId=${entry.optString(ResponseConstants.KEY_SESSION_ID)}",
                 )
 
-                // Parse dAppInfo from the session entry
+                // Parse dAppInfo from the session entry (for backwards compatibility)
                 val dAppInfoJson = entry.optJSONObject(JsonConstants.KEY_DAPP_INFO)
 
                 add(
@@ -215,11 +214,11 @@ internal class TonConnectOperations(
                         privateKey = entry.optString(JsonConstants.KEY_PRIVATE_KEY),
                         publicKey = entry.optString(JsonConstants.KEY_PUBLIC_KEY),
                         domain = entry.optString(JsonConstants.KEY_DOMAIN),
-                        schemaVersion = entry.optInt(JsonConstants.KEY_SCHEMA_VERSION, 0),
-                        dAppName = dAppInfoJson?.optString("name") ?: entry.optString(ResponseConstants.KEY_DAPP_NAME),
-                        dAppUrl = dAppInfoJson?.optNullableString("url") ?: entry.optNullableString(JsonConstants.KEY_DAPP_URL),
-                        dAppIconUrl = dAppInfoJson?.optNullableString("iconUrl") ?: entry.optNullableString(JsonConstants.KEY_ICON_URL),
-                        dAppDescription = dAppInfoJson?.optNullableString("description"),
+                        schemaVersion = entry.optInt("schemaVersion", 1),
+                        dAppName = dAppInfoJson?.optString("name") ?: entry.optNullableString("dAppName"),
+                        dAppDescription = dAppInfoJson?.optNullableString("description") ?: entry.optNullableString("dAppDescription"),
+                        dAppUrl = dAppInfoJson?.optNullableString("url") ?: entry.optNullableString("dAppUrl"),
+                        dAppIconUrl = dAppInfoJson?.optNullableString("iconUrl") ?: entry.optNullableString("dAppIconUrl"),
                         isJsBridge = entry.optBoolean(JsonConstants.KEY_IS_JS_BRIDGE, false),
                     ),
                 )
