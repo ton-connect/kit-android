@@ -2,18 +2,8 @@ name: Publish to Maven Central
 
 on:
   push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
-    inputs:
-      publish_type:
-        description: 'Publish type (staging or release)'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - release
+    branches:
+      - release
 
 jobs:
   # Build SDK and Publish to Maven Central
@@ -25,27 +15,42 @@ jobs:
       - name: Checkout kit-android code
         uses: actions/checkout@v4
 
-      - name: Checkout kit repository
+      - name: Get latest kit release info
+        id: kit-release
+        run: |
+          RELEASE_INFO=$(curl -s https://api.github.com/repos/ton-connect/kit/releases/latest)
+          TAG=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
+          ANDROID_BRIDGE_URL=$(echo "$RELEASE_INFO" | jq -r '.assets[] | select(.name | contains("walletkit-android-bridge")) | select(.name | endswith(".tgz")) | .browser_download_url')
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "android_bridge_url=$ANDROID_BRIDGE_URL" >> $GITHUB_OUTPUT
+          echo "📦 Using kit release: $TAG"
+          echo "📦 Android bridge URL: $ANDROID_BRIDGE_URL"
+
+      - name: Download and extract Android bridge bundle
+        run: |
+          mkdir -p dist-android
+          curl -sL "${{ steps.kit-release.outputs.android_bridge_url }}" -o android-bridge.tgz
+          tar -xzf android-bridge.tgz
+          cp package/dist/* dist-android/
+          rm -rf package android-bridge.tgz
+          echo "📦 Extracted Android bridge bundle:"
+          ls -la dist-android/
+
+      - name: Checkout kit repository for OpenAPI spec
         uses: actions/checkout@v4
         with:
           repository: ton-connect/kit
-          ref: fix/android-dto  # Branch with RequestError and nullable fixes
+          ref: ${{ steps.kit-release.outputs.tag }}
           path: ton-repo
           sparse-checkout: |
             packages/walletkit
-            packages/walletkit-android-bridge
 
       - name: Determine version
         id: version
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION="${{ github.ref_name }}"
-            VERSION="${VERSION#v}"
-          else
-            VERSION=$(grep "VERSION_NAME=" TONWalletKit-Android/gradle.properties | cut -d'=' -f2)
-          fi
+          VERSION=$(grep "VERSION_NAME=" TONWalletKit-Android/gradle.properties | cut -d'=' -f2)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Version: $VERSION"
+          echo "📦 SDK Version: $VERSION"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -62,11 +67,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
       - name: Install openapi-generator
         run: |
           npm install -g @openapitools/openapi-generator-cli
@@ -76,17 +76,6 @@ jobs:
         run: |
           chmod +x Scripts/generate-api/generate-api-models.sh
           bash -x ./Scripts/generate-api/generate-api-models.sh ./ton-repo/packages/walletkit
-
-      - name: Build TypeScript Bridge Bundle
-        run: |
-          cd ton-repo
-          pnpm install
-          pnpm turbo run build --filter=walletkit-android-bridge --force
-
-      - name: Copy Bridge Bundle to dist-android
-        run: |
-          mkdir -p dist-android
-          cp ton-repo/packages/walletkit-android-bridge/dist/* dist-android/
 
       - name: Grant execute permission for gradlew
         working-directory: TONWalletKit-Android
@@ -112,19 +101,7 @@ jobs:
           path: TONWalletKit-Android/impl/build/outputs/aar/impl-webview-release.aar
           retention-days: 7
 
-      - name: Publish to Maven Central (Staging)
-        if: github.event_name == 'push' || inputs.publish_type == 'staging'
-        working-directory: TONWalletKit-Android
-        run: ./gradlew publishToMavenCentral --no-configuration-cache -PVERSION_NAME=${{ steps.version.outputs.version }}
-        env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
-
-      - name: Publish to Maven Central (Auto-Release)
-        if: github.event_name == 'workflow_dispatch' && inputs.publish_type == 'release'
+      - name: Publish and Release to Maven Central
         working-directory: TONWalletKit-Android
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache -PVERSION_NAME=${{ steps.version.outputs.version }}
         env:
@@ -136,15 +113,7 @@ jobs:
 
       - name: Publishing summary
         run: |
-          echo "✅ Published to Maven Central"
+          echo "🚀 Published to Maven Central"
           echo ""
           echo "📦 Artifact: org.ton:walletkit-android:${{ steps.version.outputs.version }}"
-          echo ""
-          if [ "${{ inputs.publish_type }}" == "release" ]; then
-            echo "🚀 Auto-released to Maven Central"
-          else
-            echo "📦 Next steps:"
-            echo "1. Go to https://central.sonatype.com/publishing/deployments"
-            echo "2. Review the staged artifacts"
-            echo "3. Click 'Publish' to release to Maven Central"
-          fi
+          echo "📦 Using kit release: ${{ steps.kit-release.outputs.tag }}"
