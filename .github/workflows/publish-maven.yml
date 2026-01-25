@@ -45,7 +45,7 @@ jobs:
           ref: ${{ steps.kit-release.outputs.tag }}
           path: ton-repo
           sparse-checkout: |
-            packages/walletkit
+            packages/walletkit-android-bridge
 
       - name: Determine version
         id: version
@@ -63,21 +63,6 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install openapi-generator
-        run: |
-          npm install -g @openapitools/openapi-generator-cli
-          ln -sf "$(npm config get prefix)/bin/openapi-generator-cli" "$(npm config get prefix)/bin/openapi-generator" || true
-
-      - name: Generate Kotlin models from walletkit API
-        run: |
-          chmod +x Scripts/generate-api/generate-api-models.sh
-          bash -x ./Scripts/generate-api/generate-api-models.sh ./ton-repo/packages/walletkit
 
       - name: Grant execute permission for gradlew
         working-directory: TONWalletKit-Android

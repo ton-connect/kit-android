@@ -1,0 +1,116 @@
+/*
+ * Copyright (c) 2025 TonTech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
+
+package io.ton.walletkit.api.generated
+
+import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+/**
+ * Message sent or received in a transaction.
+ *
+ * @param hash
+ * @param normalizedHash
+ * @param source
+ * @param destination
+ * @param `value`
+ * @param valueExtraCurrencies Map of extra currency IDs to their amounts. Extra currencies are additional tokens that can be attached to TON messages.
+ * @param fwdFee
+ * @param creationLogicalTime
+ * @param createdAt The timestamp when the message was created
+ * @param opcode The opcode included in the message payload
+ * @param ihrDisabled IHR(Immediate hypercube routing) enabled/disabled IHR is a method of message delivery in the TON Blockchain network, where messages are sent directly to the recipient’s shardchain.
+ * @param ihrFee
+ * @param isBounce The flag indicating if the message requested a bounce on failure
+ * @param isBounced The flag indicating if the message was bounced back
+ * @param importFee
+ * @param messageContent
+ */
+@Serializable
+data class TONTransactionMessage(
+
+    @Contextual @SerialName(value = "hash")
+    val hash: io.ton.walletkit.model.TONHex,
+
+    @Contextual @SerialName(value = "normalizedHash")
+    val normalizedHash: io.ton.walletkit.model.TONHex? = null,
+
+    @Contextual @SerialName(value = "source")
+    val source: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
+
+    @Contextual @SerialName(value = "destination")
+    val destination: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
+
+    @SerialName(value = "value")
+    val `value`: kotlin.String? = null,
+
+    /* Map of extra currency IDs to their amounts. Extra currencies are additional tokens that can be attached to TON messages. */
+    @SerialName(value = "valueExtraCurrencies")
+    val valueExtraCurrencies: kotlin.collections.Map<kotlin.String, kotlin.String>? = null,
+
+    @SerialName(value = "fwdFee")
+    val fwdFee: kotlin.String? = null,
+
+    @SerialName(value = "creationLogicalTime")
+    val creationLogicalTime: kotlin.String? = null,
+
+    /* The timestamp when the message was created */
+    @SerialName(value = "createdAt")
+    val createdAt: kotlin.Int? = null,
+
+    /* The opcode included in the message payload */
+    @SerialName(value = "opcode")
+    val opcode: kotlin.String? = null,
+
+    /* IHR(Immediate hypercube routing) enabled/disabled IHR is a method of message delivery in the TON Blockchain network, where messages are sent directly to the recipient’s shardchain. */
+    @SerialName(value = "ihrDisabled")
+    val ihrDisabled: kotlin.Boolean? = null,
+
+    @SerialName(value = "ihrFee")
+    val ihrFee: kotlin.String? = null,
+
+    /* The flag indicating if the message requested a bounce on failure */
+    @SerialName(value = "isBounce")
+    val isBounce: kotlin.Boolean? = null,
+
+    /* The flag indicating if the message was bounced back */
+    @SerialName(value = "isBounced")
+    val isBounced: kotlin.Boolean? = null,
+
+    @SerialName(value = "importFee")
+    val importFee: kotlin.String? = null,
+
+    @SerialName(value = "messageContent")
+    val messageContent: TONTransactionMessageContent? = null,
+
+) {
+
+    companion object
+}

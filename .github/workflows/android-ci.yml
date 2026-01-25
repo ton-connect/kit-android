@@ -76,7 +76,6 @@ jobs:
           ref: fix/android-dto  # Branch with RequestError and nullable fixes
           path: ton-repo
           sparse-checkout: |
-            packages/walletkit
             packages/walletkit-android-bridge
 
       - name: Set up JDK 17
@@ -98,18 +97,6 @@ jobs:
         uses: pnpm/action-setup@v2
         with:
           version: 8
-
-      - name: Install openapi-generator
-        run: |
-          npm install -g @openapitools/openapi-generator-cli
-          # Create symlink for compatibility with script
-          ln -sf "$(npm config get prefix)/bin/openapi-generator-cli" "$(npm config get prefix)/bin/openapi-generator" || true
-
-      - name: Generate Kotlin models from walletkit API
-        run: |
-          chmod +x Scripts/generate-api/generate-api-models.sh
-          # Run with verbose output to debug
-          bash -x ./Scripts/generate-api/generate-api-models.sh ./ton-repo/packages/walletkit
 
       - name: Build TypeScript Bridge Bundle
         run: |
