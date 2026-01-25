@@ -52,7 +52,7 @@ import kotlinx.serialization.Serializable
  * @param isJsBridge
  */
 @Serializable
-data class TONTONConnectSession(
+data class TONConnectSession(
 
     @SerialName(value = "sessionId")
     val sessionId: kotlin.String,
