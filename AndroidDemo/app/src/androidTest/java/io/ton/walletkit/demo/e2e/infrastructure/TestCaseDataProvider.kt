@@ -285,7 +285,7 @@ object TestCaseDataProvider {
 ```json
 {
   "__meta": {
-    "manifestUrl": "https://tonkeeper/tonconnect-manifest.json"
+    "manifestUrl": "https://example.com/tonconnect-manifest.json"
   }
 }
 ```

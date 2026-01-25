@@ -46,16 +46,6 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Integration tests for custom storage implementations.
- *
- * These tests demonstrate how wallet apps like Tonkeeper can:
- * 1. Implement custom storage to bridge their existing session database
- * 2. Track what keys the SDK uses for storage
- * 3. Pre-populate sessions that the SDK will then "know about"
- *
- * The custom storage pattern enables:
- * - Reading sessions from Tonkeeper's existing AppConnectEntity database
- * - Writing sessions to both Tonkeeper's DB AND SDK's expected format
- * - The SDK "knowing" about Tonkeeper's sessions via the storage layer
  */
 @RunWith(AndroidJUnit4::class)
 class CustomStorageIntegrationTest {
@@ -110,8 +100,7 @@ class CustomStorageIntegrationTest {
     }
 
     /**
-     * Test that custom storage can simulate Tonkeeper-style session bridge.
-     * When SDK asks for "sessions", we can return Tonkeeper's sessions.
+     * Test that custom storage can bridge sessions.
      */
     @Test
     fun customStorageCanBridgeSessions() = runBlocking {
@@ -192,50 +181,36 @@ class CustomStorageIntegrationTest {
     }
 
     /**
-     * Storage that simulates bridging Tonkeeper's sessions.
-     * This demonstrates the pattern iOS dev suggested:
-     * - When SDK reads "sessions", return data from Tonkeeper's DB
-     * - When SDK writes "sessions", write to both SDK and Tonkeeper's DB
+     * Storage that bridges sessions between app storage and SDK.
      */
     private class SessionBridgeStorage : TONWalletKitStorage {
-        // Simulates Tonkeeper's existing session database
-        private val tonkeeperSessionDb = ConcurrentHashMap<String, String>()
-
-        // SDK's expected storage
+        private val sessionDb = ConcurrentHashMap<String, String>()
         private val sdkStorage = ConcurrentHashMap<String, String>()
 
         override suspend fun get(key: String): String? {
-            // For session-related keys, prefer Tonkeeper's DB
             return when {
                 key.contains("sessions") -> {
-                    // In real implementation, this would read from Tonkeeper's
-                    // AppConnectEntity table and convert to SDK format
-                    tonkeeperSessionDb[key] ?: sdkStorage[key]
+                    sessionDb[key] ?: sdkStorage[key]
                 }
                 else -> sdkStorage[key]
             }
         }
 
         override suspend fun save(key: String, value: String) {
-            // Write to SDK storage
             sdkStorage[key] = value
 
-            // For session-related keys, also update Tonkeeper's DB
             if (key.contains("sessions")) {
-                // In real implementation, this would parse the JSON and
-                // update Tonkeeper's AppConnectEntity table
-                tonkeeperSessionDb[key] = value
+                sessionDb[key] = value
             }
         }
 
         override suspend fun remove(key: String) {
             sdkStorage.remove(key)
-            tonkeeperSessionDb.remove(key)
+            sessionDb.remove(key)
         }
 
         override suspend fun clear() {
             sdkStorage.clear()
-            // Optionally clear Tonkeeper sessions or not depending on requirements
         }
     }
 

@@ -24,110 +24,27 @@ package io.ton.walletkit.storage
 /**
  * Storage type configuration for TON Wallet Kit.
  *
- * Specifies where the SDK should persist its data (sessions, wallets, preferences).
- * This mirrors the iOS SDK's TONWalletKitStorageType for API parity.
- *
- * ## Default Behavior
- * If not specified in configuration, the SDK uses [Encrypted] storage which provides
- * AES-256-GCM encryption backed by Android Keystore.
- *
- * ## Available Options
- *
- * ### Memory Storage
- * Data is kept only in memory and lost when the app is terminated.
- * Useful for testing or ephemeral sessions.
- * ```kotlin
- * TONWalletKitStorageType.Memory
- * ```
- *
- * ### Encrypted Storage (Default)
- * Uses EncryptedSharedPreferences with hardware-backed encryption when available.
- * Recommended for production use.
- * ```kotlin
- * TONWalletKitStorageType.Encrypted
- * ```
- *
- * ### Custom Storage
- * Provide your own storage implementation to integrate with existing systems.
- * Perfect for wallets like Tonkeeper that have their own session storage.
- * ```kotlin
- * TONWalletKitStorageType.Custom(myStorageImplementation)
- * ```
- *
- * ## Example: Configuration with custom storage
- * ```kotlin
- * val customStorage = MyTonkeeperStorage(dappsRepository)
- *
- * val config = TONWalletKitConfiguration(
- *     network = TONNetwork.MAINNET,
- *     walletManifest = manifest,
- *     bridge = bridge,
- *     features = features,
- *     storageType = TONWalletKitStorageType.Custom(customStorage)
- * )
- *
- * val walletKit = ITONWalletKit.initialize(context, config)
- * ```
- *
  * @see TONWalletKitStorage
  * @see TONWalletKitConfiguration
  */
 sealed class TONWalletKitStorageType {
     /**
-     * In-memory storage only.
-     *
-     * Data is not persisted between app launches. Useful for:
-     * - Testing scenarios
-     * - Ephemeral sessions that shouldn't persist
-     * - Privacy-focused configurations
-     *
-     * Note: Sessions will be lost when the app is terminated.
+     * In-memory storage only. Data is not persisted between app launches.
      */
     data object Memory : TONWalletKitStorageType()
 
     /**
      * Encrypted persistent storage using EncryptedSharedPreferences.
-     *
-     * This is the recommended default for production apps. Features:
-     * - AES-256-GCM encryption for values
-     * - AES-256-SIV encryption for keys
-     * - Hardware-backed master key (StrongBox) when available
-     * - Automatic key rotation and migration
-     *
-     * Data is stored in a dedicated encrypted SharedPreferences file
-     * isolated from other app data.
+     * This is the default and recommended option for production apps.
      */
     data object Encrypted : TONWalletKitStorageType()
 
     /**
      * Custom storage implementation.
      *
-     * Use this to integrate with existing wallet storage systems like:
-     * - Tonkeeper's DAppsRepository and AppConnectEntity
-     * - Custom encrypted databases
-     * - Cross-platform storage solutions
-     *
-     * The custom storage receives keys prefixed with "bridge:" (e.g., "bridge:sessions").
+     * Use this to integrate with existing wallet storage systems.
      *
      * @property storage Your implementation of [TONWalletKitStorage]
-     *
-     * ## Example
-     * ```kotlin
-     * class TonkeeperStorage(
-     *     private val dappsRepository: DAppsRepository
-     * ) : TONWalletKitStorage {
-     *     override suspend fun get(key: String): String? {
-     *         // Bridge existing sessions to SDK format
-     *     }
-     *     override suspend fun set(key: String, value: String) {
-     *         // Store in both Tonkeeper DB and SDK
-     *     }
-     *     override suspend fun remove(key: String) { /* ... */ }
-     *     override suspend fun clear() { /* ... */ }
-     * }
-     *
-     * val storageType = TONWalletKitStorageType.Custom(TonkeeperStorage(repo))
-     * ```
      */
     data class Custom(val storage: TONWalletKitStorage) : TONWalletKitStorageType()
 }

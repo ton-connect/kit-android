@@ -49,12 +49,9 @@ import java.util.concurrent.ConcurrentHashMap
  * Tests for the different storage types supported by TONWalletKit.
  *
  * These tests verify that all three storage types work correctly:
- * 1. Memory - ephemeral in-memory storage (data lost on SDK destroy)
- * 2. Encrypted - persistent secure storage using EncryptedSharedPreferences
+ * 1. Memory - ephemeral in-memory storage
+ * 2. Encrypted - persistent secure storage
  * 3. Custom - user-provided storage implementation
- *
- * This enables apps like Tonkeeper to implement custom storage that bridges
- * between their existing session database and the SDK's storage requirements.
  */
 @RunWith(AndroidJUnit4::class)
 class StorageTypeTest {
@@ -278,8 +275,6 @@ class StorageTypeTest {
 
     /**
      * In-memory implementation of TONWalletKitStorage for testing.
-     * This simulates what Tonkeeper would implement to bridge their existing
-     * session storage with the SDK.
      */
     private class InMemoryCustomStorage : TONWalletKitStorage {
         private val storage = ConcurrentHashMap<String, String>()
