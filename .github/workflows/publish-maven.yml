@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - release
+      - fix/publish-ci  # TODO: Remove after testing
 
 jobs:
   # Build SDK and Publish to Maven Central
@@ -115,5 +116,5 @@ jobs:
         run: |
           echo "🚀 Published to Maven Central"
           echo ""
-          echo "📦 Artifact: org.ton:walletkit-android:${{ steps.version.outputs.version }}"
+          echo "📦 Artifact: org.ton:walletkit:${{ steps.version.outputs.version }}"
           echo "📦 Using kit release: ${{ steps.kit-release.outputs.tag }}"
