@@ -104,10 +104,10 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
         assertEquals(1, result.size)
         assertEquals(TEST_SESSION_ID, result[0].sessionId)
-        assertEquals("Test dApp", result[0].dAppInfo.name)
+        assertEquals("Test dApp", result[0].dAppName)
         assertEquals(TEST_ADDRESS, result[0].walletAddress.value)
-        assertEquals(TEST_DAPP_URL, result[0].dAppInfo.url)
-        assertEquals("https://example.com/icon.png", result[0].dAppInfo.iconUrl)
+        assertEquals(TEST_DAPP_URL, result[0].dAppUrl)
+        assertEquals("https://example.com/icon.png", result[0].dAppIconUrl)
     }
 
     @Test
@@ -158,8 +158,8 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
         assertEquals(1, result.size)
         assertEquals(TEST_SESSION_ID, result[0].sessionId)
-        assertNull(result[0].dAppInfo.url)
-        assertNull(result[0].dAppInfo.iconUrl)
+        assertNull(result[0].dAppUrl)
+        assertNull(result[0].dAppIconUrl)
     }
 
     @Test
