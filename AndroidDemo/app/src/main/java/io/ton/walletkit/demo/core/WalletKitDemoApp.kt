@@ -229,6 +229,21 @@ object TONWalletKitHelper {
     var disableNetworkSend: Boolean = false
 
     /**
+     * Flag to use custom session manager for testing.
+     * When true, uses TestSessionManager instead of SDK's built-in session storage.
+     * Set this BEFORE initializing the SDK.
+     */
+    @Volatile
+    var useCustomSessionManager: Boolean = true // Enable by default for testing
+
+    /**
+     * The custom session manager instance (if enabled).
+     * Exposed so tests can inspect session state.
+     */
+    var sessionManager: TestSessionManager? = null
+        private set
+
+    /**
      * Check if we're running under instrumentation tests and if disableNetworkSend is requested.
      * Uses reflection to avoid compile-time dependency on test libraries.
      */
@@ -272,6 +287,15 @@ object TONWalletKitHelper {
                 null
             }
 
+            // Create custom session manager if enabled
+            val customSessionManager = if (useCustomSessionManager) {
+                Log.w("TONWalletKitHelper", "🔧 Using CUSTOM session manager (TestSessionManager)")
+                TestSessionManager().also { sessionManager = it }
+            } else {
+                Log.w("TONWalletKitHelper", "📦 Using SDK's built-in session storage")
+                null
+            }
+
             val config = TONWalletKitConfiguration(
                 network = TONNetwork.MAINNET,
                 walletManifest = TONWalletKitConfiguration.Manifest(
@@ -294,6 +318,7 @@ object TONWalletKitHelper {
                     ),
                 ),
                 storageType = TONWalletKitStorageType.Encrypted,
+                sessionManager = customSessionManager,
                 dev = devOptions,
             )
 

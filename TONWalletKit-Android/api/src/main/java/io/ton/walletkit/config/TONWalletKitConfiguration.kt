@@ -39,6 +39,7 @@ import kotlinx.serialization.Serializable
  * @property apiClient API client configuration (optional)
  * @property features Supported wallet features (used if deviceInfo not provided)
  * @property storage Storage configuration
+ * @property sessionManager Custom session manager implementation (optional)
  * @property dev Development options for testing
  */
 @Serializable
@@ -52,6 +53,12 @@ data class TONWalletKitConfiguration(
     val storageType: TONWalletKitStorageType = TONWalletKitStorageType.Encrypted,
     @kotlinx.serialization.Transient
     val deviceInfo: DeviceInfo? = null,
+    /**
+     * Custom session manager implementation.
+     * If not provided, a default storage-backed session manager will be used.
+     */
+    @kotlinx.serialization.Transient
+    val sessionManager: io.ton.walletkit.session.TONConnectSessionManager? = null,
     @kotlinx.serialization.Transient
     val dev: DevOptions? = null,
 ) {
