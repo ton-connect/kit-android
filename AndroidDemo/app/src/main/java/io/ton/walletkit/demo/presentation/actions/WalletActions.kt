@@ -27,6 +27,7 @@ import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
+import io.ton.walletkit.demo.presentation.model.SignMessageRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 
@@ -60,6 +61,8 @@ interface WalletActions {
     fun onRejectConnect(request: ConnectRequestUi)
     fun onApproveTransaction(request: TransactionRequestUi)
     fun onRejectTransaction(request: TransactionRequestUi)
+    fun onApproveSignMessage(request: SignMessageRequestUi)
+    fun onRejectSignMessage(request: SignMessageRequestUi)
     fun onApproveSignData(request: SignDataRequestUi)
     fun onRejectSignData(request: SignDataRequestUi)
     fun onConfirmSignerApproval()

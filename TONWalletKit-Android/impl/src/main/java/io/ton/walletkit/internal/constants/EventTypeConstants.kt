@@ -46,6 +46,12 @@ internal object EventTypeConstants {
     const val EVENT_SIGN_DATA_REQUEST = "signDataRequest"
 
     /**
+     * Event type for signMessage requests (gasless transactions).
+     * Similar to transaction request but returns signed internal BOC instead of sending to network.
+     */
+    const val EVENT_SIGN_MESSAGE_REQUEST = "signMessage"
+
+    /**
      * Event type for session disconnection.
      */
     const val EVENT_DISCONNECT = "disconnect"

@@ -31,10 +31,12 @@ import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignMessageApprovalResponse
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
 import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
+import io.ton.walletkit.api.walletkit.TONSignMessageRequestEvent
 import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -368,6 +370,15 @@ internal class WebViewWalletKitEngine private constructor(
         reason: String?,
         errorCode: Int?,
     ) = tonConnectOperations.rejectSignData(event, reason, errorCode)
+
+    override suspend fun approveSignMessage(event: TONSignMessageRequestEvent): TONSignMessageApprovalResponse =
+        tonConnectOperations.approveSignMessage(event)
+
+    override suspend fun rejectSignMessage(
+        event: TONSignMessageRequestEvent,
+        reason: String?,
+        errorCode: Int?,
+    ) = tonConnectOperations.rejectSignMessage(event, reason, errorCode)
 
     override suspend fun listSessions(): List<TONConnectSession> = tonConnectOperations.listSessions()
 

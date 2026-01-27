@@ -22,8 +22,10 @@
 package io.ton.walletkit.request
 
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignMessageApprovalResponse
 import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
 import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
+import io.ton.walletkit.api.walletkit.TONSignMessageRequestEvent
 import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 
 /**
@@ -43,4 +45,11 @@ interface RequestHandler {
 
     suspend fun approveSignData(event: TONSignDataRequestEvent, network: TONNetwork)
     suspend fun rejectSignData(event: TONSignDataRequestEvent, reason: String?, errorCode: Int?)
+
+    /**
+     * Approve a signMessage request for gasless transactions.
+     * Returns the signed internal BOC that can be sent to a gasless provider.
+     */
+    suspend fun approveSignMessage(event: TONSignMessageRequestEvent): TONSignMessageApprovalResponse
+    suspend fun rejectSignMessage(event: TONSignMessageRequestEvent, reason: String?, errorCode: Int?)
 }

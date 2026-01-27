@@ -122,6 +122,10 @@
     <string name="sign_request_type_format">Type: %1$s</string>
     <string name="sign_request_data_hint">Data to Sign (tap to copy)</string>
 
+    <!-- Sign message request (gasless) -->
+    <string name="sign_message_request_title">Sign Message Request</string>
+    <string name="sign_message_request_gasless_hint">⚡ Gasless Transaction</string>
+
     <!-- Transaction request -->
     <string name="transaction_request_title_direct">Confirm Transaction</string>
     <string name="transaction_request_title_dapp">dApp Transaction Request</string>
@@ -261,6 +265,9 @@
     <string name="wallet_event_connect_request">Connect request from %1$s</string>
     <string name="wallet_event_transaction_request">Transaction request from %1$s</string>
     <string name="wallet_event_sign_data_request">Sign data request from %1$s</string>
+    <string name="wallet_event_sign_message_request">Sign message request from %1$s</string>
+    <string name="wallet_event_sign_message_approved">✅ Sign message approved (gasless)</string>
+    <string name="wallet_event_sign_message_rejected">❌ Rejected sign message request</string>
     <string name="wallet_error_setup_password">Failed to setup password: %1$s</string>
     <string name="wallet_error_incorrect_password">Incorrect password</string>
     <string name="wallet_status_wallet_reset">Wallet reset</string>

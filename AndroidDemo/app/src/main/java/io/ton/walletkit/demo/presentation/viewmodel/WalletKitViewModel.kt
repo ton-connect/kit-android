@@ -47,6 +47,7 @@ import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
+import io.ton.walletkit.demo.presentation.model.SignMessageRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionMessageUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
@@ -58,6 +59,7 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
+import io.ton.walletkit.request.TONWalletSignMessageRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -155,6 +157,7 @@ class WalletKitViewModel @Inject constructor(
     private sealed interface TonConnectAction {
         data class Connect(val request: ConnectRequestUi, val wallet: WalletSummary?) : TonConnectAction
         data class Transaction(val request: TransactionRequestUi) : TonConnectAction
+        data class SignMessage(val request: SignMessageRequestUi) : TonConnectAction
         data class SignData(val request: SignDataRequestUi, val viaSigner: Boolean) : TonConnectAction
     }
 
@@ -265,6 +268,10 @@ class WalletKitViewModel @Inject constructor(
             is TONWalletKitEvent.TransactionRequest -> {
                 Log.d(LOG_TAG, "Handling TransactionRequest")
                 onTransactionRequest(event.request)
+            }
+            is TONWalletKitEvent.SignMessageRequest -> {
+                Log.d(LOG_TAG, "Handling SignMessageRequest (gasless)")
+                onSignMessageRequest(event.request)
             }
             is TONWalletKitEvent.SignDataRequest -> {
                 Log.d(LOG_TAG, "Handling SignDataRequest")
@@ -423,6 +430,11 @@ class WalletKitViewModel @Inject constructor(
                     }
                 }
             }
+            is TonConnectAction.SignMessage -> {
+                eventLogger.log(R.string.wallet_event_sign_message_approved)
+                dismissSheet()
+                eventLogger.showTemporaryStatus(uiString(R.string.wallet_status_signed_success))
+            }
             null -> Unit
         }
         pendingTonConnectAction = null
@@ -448,6 +460,11 @@ class WalletKitViewModel @Inject constructor(
                     dismissSheet()
                     eventLogger.showTemporaryStatus(uiString(R.string.wallet_status_sign_rejected))
                 }
+            }
+            is TonConnectAction.SignMessage -> {
+                eventLogger.log(R.string.wallet_event_sign_message_rejected)
+                dismissSheet()
+                eventLogger.showTemporaryStatus(uiString(R.string.wallet_status_sign_rejected))
             }
             null -> Unit
         }
@@ -838,6 +855,18 @@ class WalletKitViewModel @Inject constructor(
     fun rejectSignData(request: SignDataRequestUi, reason: String = DEFAULT_REJECTION_REASON) {
         pendingTonConnectAction = TonConnectAction.SignData(request, viaSigner = false)
         tonConnectViewModel.rejectSignData(request, reason)
+    }
+
+    fun approveSignMessage(request: SignMessageRequestUi) {
+        Log.d(LOG_TAG, "approveSignMessage called for request: ${request.id}")
+        pendingTonConnectAction = TonConnectAction.SignMessage(request)
+        tonConnectViewModel.approveSignMessage(request)
+    }
+
+    fun rejectSignMessage(request: SignMessageRequestUi, reason: String = DEFAULT_REJECTION_REASON) {
+        Log.d(LOG_TAG, "rejectSignMessage called for request: ${request.id}")
+        pendingTonConnectAction = TonConnectAction.SignMessage(request)
+        tonConnectViewModel.rejectSignMessage(request, reason)
     }
 
     fun confirmSignerApproval() {
@@ -1336,6 +1365,56 @@ class WalletKitViewModel @Inject constructor(
             Log.d(LOG_TAG, "Sheet state updated: ${state.value.sheetState}")
             val eventDAppName = dAppInfo?.name ?: fallbackDAppName
             eventLogger.log(R.string.wallet_event_transaction_request, eventDAppName)
+        }
+    }
+
+    /**
+     * Handle signMessage request for gasless transactions.
+     * Similar to transaction request, but returns signed internal BOC instead of sending to network.
+     */
+    private fun onSignMessageRequest(request: TONWalletSignMessageRequest) {
+        Log.d(LOG_TAG, "=== onSignMessageRequest called (gasless) ===")
+        val walletAddress = state.value.activeWalletAddress ?: ""
+        val dAppInfo = request.event.dAppInfo
+        val fallbackDAppName = uiString(R.string.wallet_event_generic_dapp)
+        val txRequest = request.event.request
+
+        Log.d(LOG_TAG, "SignMessage request - walletAddress: $walletAddress, dAppName: ${dAppInfo?.name}")
+
+        viewModelScope.launch {
+            // Map actual transaction messages from request
+            val messages = txRequest.messages.map { msg ->
+                val comment = try {
+                    msg.payload?.let { null }
+                } catch (_: Exception) {
+                    null
+                }
+
+                TransactionMessageUi(
+                    to = msg.address,
+                    amount = msg.amount,
+                    comment = comment,
+                    payload = msg.payload?.value,
+                    stateInit = msg.stateInit?.value,
+                )
+            }
+
+            val uiRequest = SignMessageRequestUi(
+                id = request.hashCode().toString(),
+                walletAddress = walletAddress,
+                dAppName = dAppInfo?.name ?: fallbackDAppName,
+                validUntil = txRequest.validUntil?.toLong(),
+                messages = messages,
+                preview = null,
+                raw = org.json.JSONObject(),
+                signMessageRequest = request,
+            )
+
+            Log.d(LOG_TAG, "Setting sheet to SignMessage state with ${messages.size} messages")
+            uiCoordinator.setSheet(SheetState.SignMessage(uiRequest))
+            Log.d(LOG_TAG, "Sheet state updated: ${state.value.sheetState}")
+            val eventDAppName = dAppInfo?.name ?: fallbackDAppName
+            eventLogger.log(R.string.wallet_event_sign_message_request, eventDAppName)
         }
     }
 

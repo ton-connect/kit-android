@@ -23,6 +23,7 @@ package io.ton.walletkit.engine.operations.requests
 
 import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
 import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
+import io.ton.walletkit.api.walletkit.TONSignMessageRequestEvent
 import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
@@ -90,6 +91,21 @@ internal data class ApproveSignDataRequest(
 internal data class RejectSignDataRequest(
     @Contextual
     val event: TONSignDataRequestEvent,
+    val reason: String? = null,
+    val errorCode: Int? = null,
+)
+
+@Serializable
+internal data class ApproveSignMessageRequest(
+    @Contextual
+    val event: TONSignMessageRequestEvent,
+    val walletId: String,
+)
+
+@Serializable
+internal data class RejectSignMessageRequest(
+    @Contextual
+    val event: TONSignMessageRequestEvent,
     val reason: String? = null,
     val errorCode: Int? = null,
 )

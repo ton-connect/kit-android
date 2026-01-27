@@ -29,7 +29,7 @@ import io.ton.walletkit.event.TONWalletKitEvent
  * Mirrors the canonical TON Wallet Kit protocol for cross-platform consistency.
  *
  * Implement this interface to receive events from the wallet kit
- * such as connection requests, transaction requests, and sign data requests.
+ * such as connection requests, transaction requests, signMessage requests, and sign data requests.
  *
  * Example:
  * ```kotlin
@@ -43,6 +43,11 @@ import io.ton.walletkit.event.TONWalletKitEvent
  *             is TONWalletKitEvent.TransactionRequest -> {
  *                 // Handle transaction request
  *                 event.request.approve()
+ *             }
+ *             is TONWalletKitEvent.SignMessageRequest -> {
+ *                 // Handle signMessage request (for gasless transactions)
+ *                 val response = event.request.approve()
+ *                 // response.signedInternalBoc can be sent to gasless provider
  *             }
  *             is TONWalletKitEvent.SignDataRequest -> {
  *                 // Handle sign data request
