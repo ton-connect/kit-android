@@ -385,7 +385,7 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @return List of active sessions
      */
-    suspend fun listSessions(): List<io.ton.walletkit.api.generated.TONConnectSession>
+    suspend fun listSessions(): List<io.ton.walletkit.session.TONConnectSession>
 
     /**
      * Disconnect a TON Connect session.

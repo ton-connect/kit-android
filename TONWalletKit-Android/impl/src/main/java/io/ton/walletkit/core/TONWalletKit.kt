@@ -397,7 +397,7 @@ internal class TONWalletKit private constructor(
      *
      * @return List of all active sessions
      */
-    override suspend fun listSessions(): List<io.ton.walletkit.api.generated.TONConnectSession> {
+    override suspend fun listSessions(): List<io.ton.walletkit.session.TONConnectSession> {
         checkNotDestroyed()
         return engine.listSessions()
     }

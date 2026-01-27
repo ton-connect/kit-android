@@ -28,8 +28,6 @@ import androidx.core.content.edit
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
-import io.ton.walletkit.api.generated.TONConnectSession
-import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
@@ -55,6 +53,7 @@ import io.ton.walletkit.presentation.impl.quickjs.QuickJs
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
+import io.ton.walletkit.session.TONConnectSession
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -268,7 +267,7 @@ internal class QuickJsWalletKitEngine(
             resolveTonClientEndpoint(configuration)?.ifBlank { null }
                 ?: defaultTonClientEndpoint(networkName)
         apiBaseUrl = resolveTonApiBase(configuration)
-        tonApiKey = configuration.apiClient?.key?.takeIf { it.isNotBlank() }
+        tonApiKey = configuration.apiClientConfiguration?.key?.takeIf { it.isNotBlank() }
 
         val payload =
             JSONObject().apply {
@@ -574,14 +573,8 @@ internal class QuickJsWalletKitEngine(
             for (index in 0 until items.length()) {
                 val entry = items.optJSONObject(index) ?: continue
 
-                // Parse dAppInfo from the session entry
+                // Parse dAppInfo from the session entry (for backwards compatibility)
                 val dAppInfoJson = entry.optJSONObject("dAppInfo")
-                val dAppInfo = TONDAppInfo(
-                    name = dAppInfoJson?.optString("name") ?: entry.optString("dAppName"),
-                    url = dAppInfoJson?.optNullableString("url") ?: entry.optNullableString("dAppUrl"),
-                    iconUrl = dAppInfoJson?.optNullableString("iconUrl") ?: entry.optNullableString("iconUrl"),
-                    description = dAppInfoJson?.optNullableString("description"),
-                )
 
                 add(
                     TONConnectSession(
@@ -592,7 +585,12 @@ internal class QuickJsWalletKitEngine(
                         lastActivityAt = entry.optString("lastActivityAt"),
                         privateKey = entry.optString("privateKey"),
                         publicKey = entry.optString("publicKey"),
-                        dAppInfo = dAppInfo,
+                        domain = entry.optString("domain").ifEmpty { dAppInfoJson?.optNullableString("url") ?: "" },
+                        schemaVersion = entry.optInt("schemaVersion", 1),
+                        dAppName = dAppInfoJson?.optString("name") ?: entry.optNullableString("dAppName"),
+                        dAppDescription = dAppInfoJson?.optNullableString("description") ?: entry.optNullableString("dAppDescription"),
+                        dAppUrl = dAppInfoJson?.optNullableString("url") ?: entry.optNullableString("dAppUrl"),
+                        dAppIconUrl = dAppInfoJson?.optNullableString("iconUrl") ?: entry.optNullableString("dAppIconUrl"),
                         isJsBridge = entry.optBoolean("isJsBridge", false),
                     ),
                 )
@@ -1647,10 +1645,10 @@ internal class QuickJsWalletKitEngine(
             }
 
         private fun resolveTonClientEndpoint(configuration: TONWalletKitConfiguration): String? =
-            configuration.apiClient?.url?.takeIf { it.isNotBlank() }
+            configuration.apiClientConfiguration?.url?.takeIf { it.isNotBlank() }
 
         private fun resolveTonApiBase(configuration: TONWalletKitConfiguration): String {
-            val custom = configuration.apiClient?.url?.takeIf { it.isNotBlank() }
+            val custom = configuration.apiClientConfiguration?.url?.takeIf { it.isNotBlank() }
             return custom ?: when (configuration.network) {
                 TONNetwork.MAINNET -> NetworkConstants.DEFAULT_MAINNET_API_URL
                 TONNetwork.TESTNET -> NetworkConstants.DEFAULT_TESTNET_API_URL
