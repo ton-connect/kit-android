@@ -25,6 +25,7 @@ import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONRequestErrorEvent
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
+import io.ton.walletkit.request.TONWalletSignMessageRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
 
 /**
@@ -57,6 +58,21 @@ sealed class TONWalletKitEvent {
      */
     data class TransactionRequest(
         val request: TONWalletTransactionRequest,
+    ) : TONWalletKitEvent()
+
+    /**
+     * A dApp is requesting to sign a message for gasless transaction.
+     *
+     * This is similar to TransactionRequest but instead of sending to network,
+     * returns the signed internal BOC for a gasless provider to execute.
+     *
+     * Handle by calling [TONWalletSignMessageRequest.approve] to sign
+     * or [TONWalletSignMessageRequest.reject] to deny.
+     *
+     * @property request SignMessage request with approve/reject methods
+     */
+    data class SignMessageRequest(
+        val request: TONWalletSignMessageRequest,
     ) : TONWalletKitEvent()
 
     /**

@@ -30,6 +30,7 @@ import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
+import io.ton.walletkit.demo.presentation.model.SignMessageRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -247,6 +248,57 @@ class TonConnectViewModel(
                 _state.value = _state.value.copy(
                     isProcessing = false,
                     error = error.message ?: "Failed to reject sign data",
+                )
+            }
+        }
+    }
+
+    /**
+     * Approve a sign message request from a dApp (for gasless transactions).
+     */
+    fun approveSignMessage(request: SignMessageRequestUi) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isProcessing = true, error = null)
+
+            runCatching {
+                request.signMessageRequest?.approve()
+                    ?: error("Sign message request not available")
+            }.onSuccess {
+                _state.value = _state.value.copy(
+                    isProcessing = false,
+                    successMessage = "Message signed successfully",
+                )
+                onRequestApproved()
+                Log.d(TAG, "Approved sign message request ${request.id}")
+            }.onFailure { error ->
+                Log.e(TAG, "Failed to approve sign message", error)
+                _state.value = _state.value.copy(
+                    isProcessing = false,
+                    error = error.message ?: "Failed to sign message",
+                )
+            }
+        }
+    }
+
+    /**
+     * Reject a sign message request from a dApp.
+     */
+    fun rejectSignMessage(request: SignMessageRequestUi, reason: String = "User declined the request") {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isProcessing = true, error = null)
+
+            runCatching {
+                request.signMessageRequest?.reject(reason)
+                    ?: error("Sign message request not available")
+            }.onSuccess {
+                _state.value = _state.value.copy(isProcessing = false)
+                onRequestRejected()
+                Log.d(TAG, "Rejected sign message request ${request.id}")
+            }.onFailure { error ->
+                Log.e(TAG, "Failed to reject sign message", error)
+                _state.value = _state.value.copy(
+                    isProcessing = false,
+                    error = error.message ?: "Failed to reject sign message",
                 )
             }
         }

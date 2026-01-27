@@ -27,6 +27,7 @@ import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONSignMessageRequestEvent
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -96,6 +97,21 @@ internal data class ApproveSignDataRequest(
 internal data class RejectSignDataRequest(
     @Contextual
     val event: TONSignDataRequestEvent,
+    val reason: String? = null,
+    val errorCode: Int? = null,
+)
+
+@Serializable
+internal data class ApproveSignMessageRequest(
+    @Contextual
+    val event: TONSignMessageRequestEvent,
+    val walletId: String,
+)
+
+@Serializable
+internal data class RejectSignMessageRequest(
+    @Contextual
+    val event: TONSignMessageRequestEvent,
     val reason: String? = null,
     val errorCode: Int? = null,
 )

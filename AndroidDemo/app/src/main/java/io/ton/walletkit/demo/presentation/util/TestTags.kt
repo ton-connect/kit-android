@@ -77,6 +77,11 @@ object TestTags {
     const val SIGN_DATA_APPROVE_BUTTON = "sign-data-approve"
     const val SIGN_DATA_REJECT_BUTTON = "sign-data-reject"
 
+    // SignMessageSheet (gasless transactions)
+    const val SIGN_MESSAGE_REQUEST_SHEET = "sign-message-request"
+    const val SIGN_MESSAGE_APPROVE_BUTTON = "sign-message-approve"
+    const val SIGN_MESSAGE_REJECT_BUTTON = "sign-message-reject"
+
     // TonConnect URL input (for manual connection testing)
     const val HANDLE_URL_BUTTON = "handle-url"
     const val TONCONNECT_URL_FIELD = "tonconnect-url"

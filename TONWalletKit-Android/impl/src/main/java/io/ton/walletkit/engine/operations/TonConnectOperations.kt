@@ -29,16 +29,20 @@ import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONSignMessageApprovalResponse
+import io.ton.walletkit.api.generated.TONSignMessageRequestEvent
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.operations.requests.ApproveConnectRequest
 import io.ton.walletkit.engine.operations.requests.ApproveSignDataRequest
+import io.ton.walletkit.engine.operations.requests.ApproveSignMessageRequest
 import io.ton.walletkit.engine.operations.requests.ApproveTransactionRequest
 import io.ton.walletkit.engine.operations.requests.DisconnectSessionRequest
 import io.ton.walletkit.engine.operations.requests.HandleTonConnectUrlRequest
 import io.ton.walletkit.engine.operations.requests.ProcessInternalBrowserRequest
 import io.ton.walletkit.engine.operations.requests.RejectConnectRequest
 import io.ton.walletkit.engine.operations.requests.RejectSignDataRequest
+import io.ton.walletkit.engine.operations.requests.RejectSignMessageRequest
 import io.ton.walletkit.engine.operations.requests.RejectTransactionRequest
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.JsonConstants
@@ -207,6 +211,26 @@ internal class TonConnectOperations(
 
         val request = RejectSignDataRequest(event = event, reason = reason, errorCode = errorCode)
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_SIGN_DATA_REQUEST, json.toJSONObject(request))
+    }
+
+    suspend fun approveSignMessage(event: TONSignMessageRequestEvent): TONSignMessageApprovalResponse {
+        ensureInitialized()
+
+        val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+        val walletId = event.walletId ?: throw WalletKitBridgeException(ERROR_WALLET_ID_REQUIRED)
+
+        val request = ApproveSignMessageRequest(event = event, walletId = walletId)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_SIGN_MESSAGE_REQUEST, json.toJSONObject(request))
+
+        val signedInternalBoc = result.optString("signedInternalBoc")
+        return TONSignMessageApprovalResponse(signedInternalBoc = signedInternalBoc)
+    }
+
+    suspend fun rejectSignMessage(event: TONSignMessageRequestEvent, reason: String?, errorCode: Int? = null) {
+        ensureInitialized()
+
+        val request = RejectSignMessageRequest(event = event, reason = reason, errorCode = errorCode)
+        rpcClient.call(BridgeMethodConstants.METHOD_REJECT_SIGN_MESSAGE_REQUEST, json.toJSONObject(request))
     }
 
     suspend fun listSessions(): List<TONConnectSession> {

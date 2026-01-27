@@ -40,6 +40,8 @@ import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONSignMessageApprovalResponse
+import io.ton.walletkit.api.generated.TONSignMessageRequestEvent
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
@@ -581,6 +583,35 @@ internal class QuickJsWalletKitEngine(
                 errorCode?.let { put("errorCode", it) }
             }
         call("rejectSignDataRequest", params)
+    }
+
+    override suspend fun approveSignMessage(event: TONSignMessageRequestEvent): TONSignMessageApprovalResponse {
+        ensureWalletKitInitialized()
+        val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+        val params =
+            JSONObject().apply {
+                put("requestId", event.id)
+                put("walletAddress", walletAddress.value)
+                put("walletId", event.walletId)
+            }
+        val result = call("approveSignMessageRequest", params)
+        val signedInternalBoc = result.optString("signedInternalBoc")
+        return TONSignMessageApprovalResponse(signedInternalBoc = signedInternalBoc)
+    }
+
+    override suspend fun rejectSignMessage(
+        event: TONSignMessageRequestEvent,
+        reason: String?,
+        errorCode: Int?,
+    ) {
+        ensureWalletKitInitialized()
+        val params =
+            JSONObject().apply {
+                put("requestId", event.id)
+                reason?.let { put("reason", it) }
+                errorCode?.let { put("errorCode", it) }
+            }
+        call("rejectSignMessageRequest", params)
     }
 
     override suspend fun listSessions(): List<TONConnectSession> {
