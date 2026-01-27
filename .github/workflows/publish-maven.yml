@@ -38,15 +38,6 @@ jobs:
           echo "📦 Extracted Android bridge bundle:"
           ls -la dist-android/
 
-      - name: Checkout kit repository for OpenAPI spec
-        uses: actions/checkout@v4
-        with:
-          repository: ton-connect/kit
-          ref: ${{ steps.kit-release.outputs.tag }}
-          path: ton-repo
-          sparse-checkout: |
-            packages/walletkit-android-bridge
-
       - name: Determine version
         id: version
         run: |
