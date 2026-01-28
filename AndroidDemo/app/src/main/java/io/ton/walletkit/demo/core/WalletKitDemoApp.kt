@@ -242,7 +242,7 @@ object TONWalletKitHelper {
      * Set this BEFORE initializing the SDK.
      */
     @Volatile
-    var useCustomApiClient: Boolean = true // Enable by default for testing
+    var useCustomApiClient: Boolean = false // Enable by default for testing
 
     /**
      * The custom session manager instance (if enabled).

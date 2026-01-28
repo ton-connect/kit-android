@@ -34,9 +34,11 @@ import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignMessageApprovalResponse
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
 import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
+import io.ton.walletkit.api.walletkit.TONSignMessageRequestEvent
 import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
@@ -563,6 +565,35 @@ internal class QuickJsWalletKitEngine(
                 errorCode?.let { put("errorCode", it) }
             }
         call("rejectSignDataRequest", params)
+    }
+
+    override suspend fun approveSignMessage(event: TONSignMessageRequestEvent): TONSignMessageApprovalResponse {
+        ensureWalletKitInitialized()
+        val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+        val params =
+            JSONObject().apply {
+                put("requestId", event.id)
+                put("walletAddress", walletAddress.value)
+                put("walletId", event.walletId)
+            }
+        val result = call("approveSignMessageRequest", params)
+        val signedInternalBoc = result.optString("signedInternalBoc")
+        return TONSignMessageApprovalResponse(signedInternalBoc = signedInternalBoc)
+    }
+
+    override suspend fun rejectSignMessage(
+        event: TONSignMessageRequestEvent,
+        reason: String?,
+        errorCode: Int?,
+    ) {
+        ensureWalletKitInitialized()
+        val params =
+            JSONObject().apply {
+                put("requestId", event.id)
+                reason?.let { put("reason", it) }
+                errorCode?.let { put("errorCode", it) }
+            }
+        call("rejectSignMessageRequest", params)
     }
 
     override suspend fun listSessions(): List<TONConnectSession> {
