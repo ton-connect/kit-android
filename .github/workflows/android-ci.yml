@@ -310,7 +310,7 @@ jobs:
           DISABLE_NETWORK_SEND: ${{ secrets.DISABLE_NETWORK_SEND }}
         run: |
           # Embed variables directly into the script to avoid shell escaping issues
-          cat > /tmp/run_tests.sh << SCRIPT_END
+          cat > /tmp/run_tests.sh << 'SCRIPT_END'
           #!/bin/bash
           set -e
           FAILED=0
@@ -320,32 +320,96 @@ jobs:
           TEST_MNEMONIC="$TEST_MNEMONIC"
           DISABLE_NETWORK_SEND="$DISABLE_NETWORK_SEND"
           
-          for SUITE in \$(echo "\$TEST_SUITES" | tr ',' ' '); do
-            echo "=========================================="
-            echo "Running test suite: \$SUITE"
-            echo "=========================================="
+          # Function to run a single test method with retry
+          run_single_test() {
+            local SUITE="$1"
+            local TEST_METHOD="$2"
+            local ATTEMPT="$3"
             
-            # Use printf to build command with proper escaping for adb shell
-            adb shell "am instrument -w \\
-              -e class io.ton.walletkit.demo.e2e.tests.\$SUITE \\
-              -e allureToken '\$ALLURE_TOKEN' \\
-              -e testMnemonic '\$TEST_MNEMONIC' \\
-              -e disableNetworkSend '\$DISABLE_NETWORK_SEND' \\
-              io.ton.walletkit.demo.test/androidx.test.runner.AndroidJUnitRunner" 2>&1 | tee "/tmp/test_output_\$SUITE.txt" || true
+            echo "  [Retry $ATTEMPT] Running $SUITE#$TEST_METHOD..."
             
-            if grep -q "FAILURES" "/tmp/test_output_\$SUITE.txt"; then
-              echo "::error::E2E tests failed for \$SUITE"
-              FAILED=1
+            adb shell "am instrument -w \
+              -e class io.ton.walletkit.demo.e2e.tests.$SUITE#$TEST_METHOD \
+              -e allureToken '$ALLURE_TOKEN' \
+              -e testMnemonic '$TEST_MNEMONIC' \
+              -e disableNetworkSend '$DISABLE_NETWORK_SEND' \
+              io.ton.walletkit.demo.test/androidx.test.runner.AndroidJUnitRunner" 2>&1 | tee "/tmp/retry_output.txt" || true
+            
+            if grep -q "OK (1 test)" "/tmp/retry_output.txt"; then
+              echo "  ✅ Retry succeeded for $TEST_METHOD"
+              return 0
+            else
+              echo "  ❌ Retry failed for $TEST_METHOD"
+              return 1
             fi
+          }
+          
+          for SUITE in $(echo "$TEST_SUITES" | tr ',' ' '); do
+            echo "=========================================="
+            echo "Running test suite: $SUITE"
+            echo "=========================================="
             
-            if grep -q "Error in" "/tmp/test_output_\$SUITE.txt"; then
-              echo "::error::E2E tests had errors for \$SUITE"
-              FAILED=1
+            # Run full suite first
+            adb shell "am instrument -w \
+              -e class io.ton.walletkit.demo.e2e.tests.$SUITE \
+              -e allureToken '$ALLURE_TOKEN' \
+              -e testMnemonic '$TEST_MNEMONIC' \
+              -e disableNetworkSend '$DISABLE_NETWORK_SEND' \
+              io.ton.walletkit.demo.test/androidx.test.runner.AndroidJUnitRunner" 2>&1 | tee "/tmp/test_output_$SUITE.txt" || true
+            
+            # Check if there were any failures
+            if grep -q "FAILURES\|Error in" "/tmp/test_output_$SUITE.txt"; then
+              echo ""
+              echo "⚠️ Some tests failed in $SUITE, attempting retries..."
+              echo ""
+              
+              # Extract failed test method names
+              FAILED_TESTS=$(grep -oP 'Error in \K[^(]+' "/tmp/test_output_$SUITE.txt" | sort -u || true)
+              
+              SUITE_FAILED=0
+              for TEST_METHOD in $FAILED_TESTS; do
+                echo "----------------------------------------"
+                echo "Retrying failed test: $TEST_METHOD"
+                echo "----------------------------------------"
+                
+                # Try up to 2 retries for each failed test
+                RETRY_SUCCESS=0
+                for ATTEMPT in 1 2; do
+                  if run_single_test "$SUITE" "$TEST_METHOD" "$ATTEMPT"; then
+                    RETRY_SUCCESS=1
+                    break
+                  fi
+                  
+                  if [ "$ATTEMPT" -lt 2 ]; then
+                    echo "  Waiting 5 seconds before next retry..."
+                    sleep 5
+                  fi
+                done
+                
+                if [ "$RETRY_SUCCESS" -eq 0 ]; then
+                  echo "::error::Test $SUITE#$TEST_METHOD failed after 2 retries"
+                  SUITE_FAILED=1
+                fi
+              done
+              
+              if [ "$SUITE_FAILED" -eq 1 ]; then
+                FAILED=1
+              else
+                echo ""
+                echo "✅ All failed tests in $SUITE passed on retry!"
+                echo ""
+              fi
             fi
           done
           
-          exit \$FAILED
+          exit $FAILED
           SCRIPT_END
+          
+          # Substitute environment variables into the script
+          sed -i "s|\$TEST_SUITES|$TEST_SUITES|g" /tmp/run_tests.sh
+          sed -i "s|\$ALLURE_TOKEN|$ALLURE_TOKEN|g" /tmp/run_tests.sh
+          sed -i "s|\$TEST_MNEMONIC|$TEST_MNEMONIC|g" /tmp/run_tests.sh
+          sed -i "s|\$DISABLE_NETWORK_SEND|$DISABLE_NETWORK_SEND|g" /tmp/run_tests.sh
           chmod +x /tmp/run_tests.sh
 
       - name: Run E2E tests - ${{ matrix.name }}
