@@ -76,6 +76,7 @@ jobs:
           ref: fix/android-dto  # Branch with RequestError and nullable fixes
           path: ton-repo
           sparse-checkout: |
+            packages/walletkit
             packages/walletkit-android-bridge
 
       - name: Set up JDK 17
