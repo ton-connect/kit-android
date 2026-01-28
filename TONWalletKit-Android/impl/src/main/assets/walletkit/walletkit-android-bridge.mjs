@@ -51297,12 +51297,10 @@ class SignMessageHandler extends BasicHandler {
     return event.method === "signMessage";
   }
   async handle(event) {
-    log$e.info("🔵 SignMessageHandler.handle() called", { eventId: event.id, method: event.method });
     const walletId = event.walletId;
     const walletAddress = event.walletAddress;
-    log$e.info("🔵 Wallet info", { walletId, walletAddress });
     if (!walletId && !walletAddress) {
-      log$e.error("🔴 Wallet ID not found", { event });
+      log$e.error("Wallet ID not found", { event });
       return {
         error: {
           code: SEND_TRANSACTION_ERROR_CODES.UNKNOWN_APP_ERROR,
@@ -51312,9 +51310,8 @@ class SignMessageHandler extends BasicHandler {
       };
     }
     const wallet = walletId ? this.walletManager.getWallet(walletId) : void 0;
-    log$e.info("🔵 Got wallet", { hasWallet: !!wallet, walletId });
     if (!wallet) {
-      log$e.error("🔴 Wallet not found", { event, walletId, walletAddress });
+      log$e.error("Wallet not found", { event, walletId, walletAddress });
       return {
         error: {
           code: SEND_TRANSACTION_ERROR_CODES.UNKNOWN_APP_ERROR,
@@ -51323,9 +51320,8 @@ class SignMessageHandler extends BasicHandler {
         id: event.id
       };
     }
-    log$e.info("🔵 Checking wallet.getSignedInternalMessage", { hasMethod: !!wallet.getSignedInternalMessage });
     if (!wallet.getSignedInternalMessage) {
-      log$e.error("🔴 Wallet does not support signMessage", { event, walletId });
+      log$e.error("Wallet does not support signMessage", { event, walletId });
       return {
         error: {
           code: SEND_TRANSACTION_ERROR_CODES.UNKNOWN_APP_ERROR,
@@ -51334,16 +51330,10 @@ class SignMessageHandler extends BasicHandler {
         id: event.id
       };
     }
-    log$e.info("🔵 Calling parseSignMessageRequest");
     const requestValidation = this.parseSignMessageRequest(event, wallet);
-    log$e.info("🔵 parseSignMessageRequest returned", {
-      hasResult: !!requestValidation.result,
-      isValid: requestValidation?.validation?.isValid,
-      errors: JSON.stringify(requestValidation?.validation?.errors)
-    });
     if (!requestValidation.result || !requestValidation?.validation?.isValid) {
-      log$e.error("🔴 Failed to parse signMessage request", {
-        errors: JSON.stringify(requestValidation?.validation?.errors),
+      log$e.error("Failed to parse signMessage request", {
+        errors: requestValidation?.validation?.errors,
         eventId: event.id
       });
       this.eventEmitter.emit("event:error", event);
@@ -51407,18 +51397,10 @@ class SignMessageHandler extends BasicHandler {
   parseSignMessageRequest(event, wallet) {
     let errors2 = [];
     try {
-      log$e.info("parseSignMessageRequest called", {
-        eventId: event.id,
-        paramsLength: event.params?.length,
-        paramsType: typeof event.params,
-        params: event.params
-      });
       if (!event.params || event.params.length !== 1) {
         throw new WalletKitError(ERROR_CODES.INVALID_REQUEST_EVENT, "Invalid signMessage request - expected exactly 1 parameter", void 0, { paramCount: event.params?.length, eventId: event.id });
       }
-      log$e.info("Parsing params[0]", { param0Type: typeof event.params[0], param0: event.params[0] });
       const params = JSON.parse(event.params[0]);
-      log$e.info("Parsed params", { params });
       const validUntilValidation = this.validateValidUntil(params.valid_until);
       if (!validUntilValidation.isValid) {
         errors2 = errors2.concat(validUntilValidation.errors);
@@ -52251,11 +52233,17 @@ class RequestProcessor {
     const walletId = event.walletId;
     const walletAddress = this.getWalletAddressFromEvent(event);
     if (!walletId && !walletAddress) {
-      throw new WalletKitError(ERROR_CODES.WALLET_REQUIRED, "Wallet ID is required for signMessage", void 0, { eventId: event.id });
+      throw new WalletKitError(ERROR_CODES.WALLET_REQUIRED, "Wallet ID is required for signMessage", void 0, {
+        eventId: event.id
+      });
     }
     const wallet = this.getWalletFromEvent(event);
     if (!wallet) {
-      throw new WalletKitError(ERROR_CODES.WALLET_NOT_FOUND, "Wallet not found for signMessage", void 0, { walletId, walletAddress, eventId: event.id });
+      throw new WalletKitError(ERROR_CODES.WALLET_NOT_FOUND, "Wallet not found for signMessage", void 0, {
+        walletId,
+        walletAddress,
+        eventId: event.id
+      });
     }
     if (!wallet.getSignedInternalMessage) {
       throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Wallet does not support signMessage (requires V5 wallet)", void 0, { walletId, eventId: event.id });
