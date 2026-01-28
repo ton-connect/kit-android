@@ -52,6 +52,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
         const val TEST_ADDRESS = "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N"
         const val TEST_SESSION_ID = "session-123"
         const val TEST_DAPP_URL = "https://example.com"
+        const val TEST_WALLET_ID = "test-wallet-id-123"
         val TEST_NETWORK: TONNetwork = TONNetwork(chainId = io.ton.walletkit.api.ChainIds.TESTNET)
     }
 
@@ -220,7 +221,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
         val event = createConnectRequestEvent(
             id = "req-123",
             walletAddress = TONUserFriendlyAddress(TEST_ADDRESS),
-            walletId = "${TEST_NETWORK.chainId}:$TEST_ADDRESS",
+            walletId = "mock-wallet-id-hash",
         )
 
         // Should not throw
@@ -284,6 +285,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
         val event = createTransactionRequestEvent(
             id = "tx-req-123",
             walletAddress = TONUserFriendlyAddress(TEST_ADDRESS),
+            walletId = TEST_WALLET_ID,
         )
 
         // Should not throw

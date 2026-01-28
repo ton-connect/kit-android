@@ -32,6 +32,7 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WebViewWalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -105,7 +106,7 @@ class TONWalletKitSDKTest {
                             types = listOf(SignDataType.TEXT, SignDataType.BINARY, SignDataType.CELL),
                         ),
                     ),
-                    storage = TONWalletKitConfiguration.Storage(persistent = false),
+                    storageType = TONWalletKitStorageType.Memory,
                 )
 
                 sdk = ITONWalletKit.initialize(context, config)
@@ -138,7 +139,7 @@ class TONWalletKitSDKTest {
                             types = listOf(SignDataType.TEXT),
                         ),
                     ),
-                    storage = TONWalletKitConfiguration.Storage(persistent = false),
+                    storageType = TONWalletKitStorageType.Memory,
                 )
 
                 sdk = ITONWalletKit.initialize(context, config)
@@ -261,7 +262,7 @@ class TONWalletKitSDKTest {
                     types = listOf(SignDataType.TEXT, SignDataType.BINARY, SignDataType.CELL),
                 ),
             ),
-            storage = TONWalletKitConfiguration.Storage(persistent = false),
+            storageType = TONWalletKitStorageType.Memory,
         )
     }
 }

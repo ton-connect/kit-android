@@ -53,7 +53,7 @@ import kotlinx.serialization.json.Json
  * wallet.remove()
  * ```
  *
- * @property id Unique wallet identifier in format "chainId:address"
+ * @property id Unique wallet identifier (opaque hash from bridge)
  * @property address Wallet address in user-friendly format
  */
 internal class TONWallet internal constructor(

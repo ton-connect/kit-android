@@ -149,10 +149,13 @@ class TonConnectViewModel(
      * Approve a transaction request from a dApp.
      */
     fun approveTransaction(request: TransactionRequestUi) {
+        Log.d(TAG, "approveTransaction called for request id=${request.id}, hasTransactionRequest=${request.transactionRequest != null}")
         viewModelScope.launch {
+            Log.d(TAG, "approveTransaction coroutine started")
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
             runCatching {
+                Log.d(TAG, "approveTransaction runCatching started, walletId=${request.transactionRequest?.event?.walletId}")
                 request.transactionRequest?.approve(TONNetwork.MAINNET)
                     ?: error("Transaction request not available")
             }.onSuccess {
@@ -165,6 +168,7 @@ class TonConnectViewModel(
                 Log.d(TAG, "Approved transaction request ${request.id}")
             }.onFailure { error ->
                 Log.e(TAG, "Failed to approve transaction", error)
+                Log.d(TAG, "APPROVE_ERROR: ${error.message}")
                 _state.value = _state.value.copy(
                     isProcessing = false,
                     error = error.message ?: "Failed to approve transaction",

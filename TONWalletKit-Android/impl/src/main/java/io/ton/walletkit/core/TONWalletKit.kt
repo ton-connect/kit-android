@@ -70,7 +70,7 @@ import io.ton.walletkit.model.WalletSignerInfo
  *             types = listOf(SignDataType.TEXT, SignDataType.BINARY, SignDataType.CELL)
  *         )
  *     ),
- *     storage = TONWalletKitConfiguration.Storage(persistent = true)
+ *     storageType = TONWalletKitStorageType.Encrypted
  * )
  *
  * // Initialize SDK (returns instance)

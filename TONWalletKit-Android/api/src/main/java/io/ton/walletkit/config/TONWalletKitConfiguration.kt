@@ -23,6 +23,7 @@ package io.ton.walletkit.config
 
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.internal.constants.JsonConsts
+import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -47,7 +48,8 @@ data class TONWalletKitConfiguration(
     val bridge: Bridge,
     val apiClient: APIClient? = null,
     val features: List<Feature>,
-    val storage: Storage = Storage(),
+    @kotlinx.serialization.Transient
+    val storageType: TONWalletKitStorageType = TONWalletKitStorageType.Encrypted,
     @kotlinx.serialization.Transient
     val deviceInfo: DeviceInfo? = null,
     @kotlinx.serialization.Transient
@@ -103,16 +105,6 @@ data class TONWalletKitConfiguration(
     data class APIClient(
         val url: String? = null,
         val key: String,
-    )
-
-    /**
-     * Storage configuration.
-     *
-     * @property persistent Enable persistent storage (true) or memory-only (false)
-     */
-    @Serializable
-    data class Storage(
-        val persistent: Boolean = true,
     )
 
     /**

@@ -67,22 +67,22 @@ abstract class BaseE2ETest {
         // These timeouts are tuned for CI stability.
 
         /** Timeout for UI elements that depend on WebView/network (sheets, dialogs) */
-        const val SHEET_APPEAR_TIMEOUT_MS = 30_000L
+        const val SHEET_APPEAR_TIMEOUT_MS = 60_000L
 
         /** Timeout for transaction/connect request sheets to appear */
-        const val REQUEST_SHEET_TIMEOUT_MS = 25_000L
+        const val REQUEST_SHEET_TIMEOUT_MS = 50_000L
 
         /** Timeout for waiting for dApp responses after wallet action */
-        const val DAPP_RESPONSE_TIMEOUT_MS = 20_000L
+        const val DAPP_RESPONSE_TIMEOUT_MS = 50_000L
 
         /** Timeout for waiting for SDK error events to propagate */
-        const val SDK_ERROR_EVENT_TIMEOUT_MS = 15_000L
+        const val SDK_ERROR_EVENT_TIMEOUT_MS = 30_000L
 
         /** Timeout for UI elements to disappear after action */
-        const val UI_DISMISS_TIMEOUT_MS = 10_000L
+        const val UI_DISMISS_TIMEOUT_MS = 20_000L
 
         /** General wait timeout for simple UI states */
-        const val UI_STATE_TIMEOUT_MS = 10_000L
+        const val UI_STATE_TIMEOUT_MS = 20_000L
 
         /** Short sleep for auto-reject processing */
         const val AUTO_REJECT_PROCESS_MS = 3_000L

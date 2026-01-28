@@ -22,7 +22,6 @@
 package io.ton.walletkit
 
 import android.util.Base64
-import io.ton.walletkit.api.generated.TONNetwork
 
 /**
  * Utility functions for TON Wallet Kit.
@@ -31,14 +30,6 @@ import io.ton.walletkit.api.generated.TONNetwork
  */
 object WalletKitUtils {
     private val HEX_CHARS = "0123456789abcdef".toCharArray()
-
-    /**
-     * Create walletId from network and address.
-     * Format: "{chainId}:{address}" e.g., "-3:UQA..."
-     */
-    fun createWalletId(network: TONNetwork, address: String): String {
-        return "${network.chainId}:$address"
-    }
 
     /**
      * Convert a byte array to a hex string with 0x prefix.

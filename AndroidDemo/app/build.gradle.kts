@@ -97,18 +97,16 @@ dependencies {
     implementation(libs.hiltAndroid)
     ksp(libs.hiltCompiler)
 
+    // TONWalletKit SDK
+//    implementation(libs.walletkitAndroid)
     // TONWalletKit SDK - Use local AAR file
     // Build and copy with: cd ../TONWalletKit-Android && ./gradlew buildAndCopyWebviewToDemo
     implementation(files("libs/tonwalletkit-release.aar"))
     // Required transitive dependencies when using AAR:
     implementation(libs.androidxWebkit)
     implementation(libs.androidxDatastorePreferences)
+
     implementation(libs.kotlinxSerializationJson)
-
-    // Alternative: Use Maven Local for testing published artifact (currently not working - Gradle ignores mavenLocal())
-    // Publish to local maven with: cd ../TONWalletKit-Android && ./gradlew publishToMavenLocal
-    // implementation("io.github.ton-connect:tonwalletkit-android:1.0.0-alpha01")
-
     debugImplementation(libs.leakcanaryAndroid)
 
     // Testing - Unit Tests

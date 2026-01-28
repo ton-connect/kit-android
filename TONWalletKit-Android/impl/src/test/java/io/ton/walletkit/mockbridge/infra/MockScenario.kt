@@ -113,8 +113,9 @@ interface MockScenario {
      */
     fun handleAddWallet(adapterId: String): WalletAccount {
         val address = "EQDTest${adapterId.hashCode().toString(16).padStart(40, '0')}"
+        // Use a mock walletId hash (in real bridge, this comes from SHA256 of chainId:address)
         return WalletAccount(
-            walletId = "${io.ton.walletkit.api.ChainIds.TESTNET}:$address",
+            walletId = "mock-wallet-id-${adapterId.hashCode().toString(16)}",
             address = TONUserFriendlyAddress(address),
             publicKey = "0x${"0".repeat(64)}",
             version = WalletVersions.V5R1,

@@ -64,7 +64,10 @@ import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.storage.BridgeStorageAdapter
+import io.ton.walletkit.storage.CustomBridgeStorageAdapter
+import io.ton.walletkit.storage.MemoryBridgeStorageAdapter
 import io.ton.walletkit.storage.SecureBridgeStorageAdapter
+import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -85,6 +88,7 @@ import org.json.JSONObject
 internal class WebViewWalletKitEngine private constructor(
     context: Context,
     eventsHandler: TONBridgeEventsHandler?,
+    private val storageAdapter: BridgeStorageAdapter,
     private val assetPath: String = WebViewConstants.DEFAULT_ASSET_PATH,
 ) : WalletKitEngine {
     override val kind: WalletKitEngineKind = WalletKitEngineKind.WEBVIEW
@@ -95,8 +99,6 @@ internal class WebViewWalletKitEngine private constructor(
         ignoreUnknownKeys = true
         isLenient = true
     }
-
-    private val storageAdapter: BridgeStorageAdapter = SecureBridgeStorageAdapter(appContext)
 
     @Volatile private var persistentStorageEnabled: Boolean = true
 
@@ -524,7 +526,8 @@ internal class WebViewWalletKitEngine private constructor(
                     }
 
                     Logger.w(TAG, "🔶🔶🔶 Creating NEW WebView engine for network: $network")
-                    WebViewWalletKitEngine(context, eventsHandler, assetPath).also {
+                    val storageAdapter = createStorageAdapter(context, configuration.storageType)
+                    WebViewWalletKitEngine(context, eventsHandler, storageAdapter, assetPath).also {
                         instances[network] = it
                     }
                 }
@@ -562,6 +565,7 @@ internal class WebViewWalletKitEngine private constructor(
          * @param context Android context
          * @param assetPath Path to the HTML file to load (e.g., "mock-bridge/normal-flow.html")
          * @param eventsHandler Optional events handler to track SDK events
+         * @param storageType Storage type to use (defaults to Memory for tests)
          * @return New WebViewWalletKitEngine instance configured for testing
          */
         @JvmStatic
@@ -569,9 +573,34 @@ internal class WebViewWalletKitEngine private constructor(
             context: Context,
             assetPath: String,
             eventsHandler: TONBridgeEventsHandler? = null,
+            storageType: TONWalletKitStorageType = TONWalletKitStorageType.Memory,
         ): WebViewWalletKitEngine {
             Logger.w(TAG, "🧪 Creating test WebView engine with asset path: $assetPath")
-            return WebViewWalletKitEngine(context, eventsHandler, assetPath)
+            val storageAdapter = createStorageAdapter(context, storageType)
+            return WebViewWalletKitEngine(context, eventsHandler, storageAdapter, assetPath)
+        }
+
+        /**
+         * Create storage adapter based on storage type.
+         */
+        private fun createStorageAdapter(
+            context: Context,
+            storageType: TONWalletKitStorageType,
+        ): BridgeStorageAdapter {
+            return when (storageType) {
+                is TONWalletKitStorageType.Memory -> {
+                    Logger.d(TAG, "Using memory storage")
+                    MemoryBridgeStorageAdapter()
+                }
+                is TONWalletKitStorageType.Encrypted -> {
+                    Logger.d(TAG, "Using encrypted storage")
+                    SecureBridgeStorageAdapter(context.applicationContext)
+                }
+                is TONWalletKitStorageType.Custom -> {
+                    Logger.d(TAG, "Using custom storage")
+                    CustomBridgeStorageAdapter(storageType.storage)
+                }
+            }
         }
 
         private const val TAG = LogConstants.TAG_WEBVIEW_ENGINE
