@@ -28,29 +28,23 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONBase64
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
  *
  *
- * @param signature
- * @param timestamp
- * @param domain
+ * @param event
+ * @param response
  */
 @Serializable
-data class TONConnectionApprovalProof(
+data class TONSignDataRequest(
 
-    @Contextual @SerialName(value = "signature")
-    val signature: io.ton.walletkit.model.TONBase64,
+    @SerialName(value = "event")
+    val event: TONSignDataRequestEvent,
 
-    @SerialName(value = "timestamp")
-    val timestamp: kotlin.Int,
-
-    @SerialName(value = "domain")
-    val domain: TONConnectionApprovalProofDomain,
+    @SerialName(value = "response")
+    val response: TONSignDataApprovalResponse? = null,
 
 ) {
 
