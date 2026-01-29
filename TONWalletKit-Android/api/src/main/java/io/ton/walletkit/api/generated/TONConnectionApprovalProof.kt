@@ -39,6 +39,7 @@ import kotlinx.serialization.Serializable
  * @param signature
  * @param timestamp
  * @param domain
+ * @param payload
  */
 @Serializable
 data class TONConnectionApprovalProof(
@@ -51,6 +52,9 @@ data class TONConnectionApprovalProof(
 
     @SerialName(value = "domain")
     val domain: TONConnectionApprovalProofDomain,
+
+    @SerialName(value = "payload")
+    val payload: kotlin.String,
 
 ) {
 
