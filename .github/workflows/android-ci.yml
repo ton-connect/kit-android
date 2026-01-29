@@ -16,7 +16,7 @@ on:
       parallel_emulators:
         description: 'Number of parallel emulators for E2E tests (1-5)'
         required: false
-        default: '2'
+        default: '5'
         type: choice
         options:
           - '1'
@@ -205,8 +205,8 @@ jobs:
       - name: Generate matrix
         id: set-matrix
         run: |
-          # Get parallel count (default 2, configurable for workflow_dispatch)
-          PARALLEL=${{ github.event.inputs.parallel_emulators || '2' }}
+          # Get parallel count (default 5, configurable for workflow_dispatch)
+          PARALLEL=${{ github.event.inputs.parallel_emulators || '5' }}
           
           # All test suites
           SUITES=(
