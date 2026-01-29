@@ -179,18 +179,24 @@ internal class InitializationManager(
                         for (networkConfig in configuration.networkConfigurations) {
                             put(
                                 JSONObject().apply {
-                                    put("network", JSONObject().apply {
-                                        put("chainId", networkConfig.network.chainId)
-                                    })
+                                    put(
+                                        "network",
+                                        JSONObject().apply {
+                                            put("chainId", networkConfig.network.chainId)
+                                        },
+                                    )
                                     networkConfig.apiClientConfiguration?.let { apiConfig ->
-                                        put("apiClientConfiguration", JSONObject().apply {
-                                            apiConfig.url?.takeIf { it.isNotBlank() }?.let {
-                                                put("url", it)
-                                            }
-                                            apiConfig.key?.takeIf { it.isNotBlank() }?.let {
-                                                put("key", it)
-                                            }
-                                        })
+                                        put(
+                                            "apiClientConfiguration",
+                                            JSONObject().apply {
+                                                apiConfig.url?.takeIf { it.isNotBlank() }?.let {
+                                                    put("url", it)
+                                                }
+                                                apiConfig.key?.takeIf { it.isNotBlank() }?.let {
+                                                    put("key", it)
+                                                }
+                                            },
+                                        )
                                     }
                                 },
                             )
