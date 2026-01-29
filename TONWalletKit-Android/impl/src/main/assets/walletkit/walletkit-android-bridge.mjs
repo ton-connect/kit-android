@@ -52024,70 +52024,26 @@ class RequestProcessor {
           {
             name: "ton_addr",
             address: distExports$2.Address.parse(address).toRawString(),
-            // TODO: Support multiple networks
-            network: walletNetwork.chainId === CHAIN.MAINNET ? CHAIN.MAINNET : CHAIN.TESTNET,
+            network: walletNetwork.chainId,
             walletStateInit,
             publicKey
           }
         ]
       }
     };
-    const proofItem = event.requestedItems.find((item) => item.type === "ton_proof");
-    if (proofItem) {
-      if (!proof) {
-        let domain = {
-          lengthBytes: 0,
-          value: ""
-        };
-        try {
-          const dAppUrl = new URL(event.preview.dAppInfo?.url || "");
-          domain = {
-            lengthBytes: Buffer.from(dAppUrl.host).length,
-            value: dAppUrl.host
-          };
-        } catch (error2) {
-          log$c.error("Failed to parse domain", { error: error2 });
-        }
-        const timestamp = Math.floor(Date.now() / 1e3);
-        const signMessage = CreateTonProofMessage({
-          address: distExports$2.Address.parse(address),
-          domain,
-          payload: proofItem.value.payload,
-          stateInit: walletStateInit,
-          timestamp
-        });
-        const signature = await wallet.getSignedTonProof(signMessage);
-        const signatureBase64 = Buffer.from(signature.slice(2), "hex").toString("base64");
-        connectResponse.payload.items.push({
-          name: "ton_proof",
-          proof: {
-            timestamp,
-            domain: {
-              lengthBytes: domain.lengthBytes,
-              value: domain.value
-            },
-            payload: proofItem.value.payload,
-            signature: signatureBase64
-          }
-        });
-      } else {
-        connectResponse.payload.items.push({
-          name: "ton_proof",
-          proof: {
-            timestamp: proof.timestamp,
-            domain: {
-              lengthBytes: proof.domain.lengthBytes,
-              value: proof.domain.value
-            },
-            payload: proofItem.value.payload,
-            signature: proof.signature
-          }
-        });
-      }
+    const proofRequest = event.requestedItems.find((item) => item.type === "ton_proof");
+    if (proofRequest) {
+      const tonProofItem = await createTonProofItem({
+        wallet,
+        address,
+        walletStateInit,
+        dAppUrl: event.preview.dAppInfo?.url,
+        proofPayload: proofRequest.value.payload,
+        providedProof: proof
+      });
+      connectResponse.payload.items.push(tonProofItem);
     }
-    return {
-      result: connectResponse
-    };
+    return { result: connectResponse };
   }
   /**
    * Sign transaction and return BOC
@@ -52136,6 +52092,58 @@ async function signTransactionInternal(wallet, request) {
     validUntil: request.validUntil
   });
   return signedBoc;
+}
+async function createTonProofItem(params) {
+  const { wallet, address, walletStateInit, dAppUrl, proofPayload, providedProof } = params;
+  if (providedProof) {
+    return {
+      name: "ton_proof",
+      proof: {
+        timestamp: providedProof.timestamp,
+        domain: {
+          lengthBytes: providedProof.domain.lengthBytes,
+          value: providedProof.domain.value
+        },
+        payload: providedProof.payload,
+        signature: providedProof.signature
+      }
+    };
+  }
+  const domain = parseDomain(dAppUrl);
+  const timestamp = Math.floor(Date.now() / 1e3);
+  const signMessage = CreateTonProofMessage({
+    address: distExports$2.Address.parse(address),
+    domain,
+    payload: proofPayload,
+    stateInit: walletStateInit,
+    timestamp
+  });
+  const signature = await wallet.getSignedTonProof(signMessage);
+  const signatureBase64 = HexToBase64(signature);
+  return {
+    name: "ton_proof",
+    proof: {
+      timestamp,
+      domain: { lengthBytes: domain.lengthBytes, value: domain.value },
+      payload: proofPayload,
+      signature: signatureBase64
+    }
+  };
+}
+function parseDomain(url) {
+  if (!url) {
+    return { lengthBytes: 0, value: "" };
+  }
+  try {
+    const parsedUrl = new URL(url);
+    return {
+      lengthBytes: Buffer.from(parsedUrl.host).length,
+      value: parsedUrl.host
+    };
+  } catch (error2) {
+    log$c.error("Failed to parse domain", { error: error2 });
+    return { lengthBytes: 0, value: "" };
+  }
 }
 function toTonConnectSignDataPayload(payload) {
   let network;
@@ -57173,29 +57181,29 @@ class TonWalletKit {
     };
   }
   // === Request Processing API (Delegated) ===
-  async approveConnectRequest(request) {
+  async approveConnectRequest(event, response) {
     await this.ensureInitialized();
-    return this.requestProcessor.approveConnectRequest(request.event, request.response);
+    return this.requestProcessor.approveConnectRequest(event, response);
   }
-  async rejectConnectRequest(request, reason, errorCode) {
+  async rejectConnectRequest(event, reason, errorCode) {
     await this.ensureInitialized();
-    return this.requestProcessor.rejectConnectRequest(request.event, reason, errorCode);
+    return this.requestProcessor.rejectConnectRequest(event, reason, errorCode);
   }
-  async approveTransactionRequest(request) {
+  async approveTransactionRequest(event, response) {
     await this.ensureInitialized();
-    return this.requestProcessor.approveTransactionRequest(request.event, request.response);
+    return this.requestProcessor.approveTransactionRequest(event, response);
   }
-  async rejectTransactionRequest(request, reason) {
+  async rejectTransactionRequest(event, reason) {
     await this.ensureInitialized();
-    return this.requestProcessor.rejectTransactionRequest(request.event, reason);
+    return this.requestProcessor.rejectTransactionRequest(event, reason);
   }
-  async approveSignDataRequest(request) {
+  async approveSignDataRequest(event, response) {
     await this.ensureInitialized();
-    return this.requestProcessor.approveSignDataRequest(request.event, request.response);
+    return this.requestProcessor.approveSignDataRequest(event, response);
   }
-  async rejectSignDataRequest(request, reason) {
+  async rejectSignDataRequest(event, reason) {
     await this.ensureInitialized();
-    return this.requestProcessor.rejectSignDataRequest(request.event, reason);
+    return this.requestProcessor.rejectSignDataRequest(event, reason);
   }
   // === TON Client Access ===
   /**
@@ -59338,11 +59346,7 @@ function approveConnectRequest(args) {
         throw new Error("Event is required for connect request approval");
       }
       event.walletId = args.walletId;
-      const request = {
-        event,
-        response: args.response
-      };
-      const result = yield kit.approveConnectRequest(request);
+      const result = yield kit.approveConnectRequest(event, args.response);
       return result;
     }));
   });
@@ -59354,7 +59358,7 @@ function rejectConnectRequest(args) {
       if (!event) {
         throw new Error("Event is required for connect request rejection");
       }
-      const result = yield kit.rejectConnectRequest({ event }, args.reason, args.errorCode);
+      const result = yield kit.rejectConnectRequest(event, args.reason, args.errorCode);
       return result != null ? result : { success: true };
     }));
   });
@@ -59369,11 +59373,7 @@ function approveTransactionRequest(args) {
       if (args.walletId) {
         event.walletId = args.walletId;
       }
-      const request = {
-        event,
-        response: args.response
-      };
-      const result = yield kit.approveTransactionRequest(request);
+      const result = yield kit.approveTransactionRequest(event, args.response);
       return result;
     }));
   });
@@ -59386,7 +59386,7 @@ function rejectTransactionRequest(args) {
         throw new Error("Event is required for transaction request rejection");
       }
       const reason = args.errorCode !== void 0 ? { code: args.errorCode, message: args.reason || "Transaction rejected" } : args.reason;
-      const result = yield kit.rejectTransactionRequest({ event }, reason);
+      const result = yield kit.rejectTransactionRequest(event, reason);
       return result != null ? result : { success: true };
     }));
   });
@@ -59403,12 +59403,8 @@ function approveSignDataRequest(args) {
       if (args.walletId) {
         event.walletId = args.walletId;
       }
-      const request = {
-        event,
-        response: args.response
-      };
-      log$l("approveSignDataRequest calling kit.approveSignDataRequest with:", request);
-      const result = yield kit.approveSignDataRequest(request);
+      log$l("approveSignDataRequest calling kit.approveSignDataRequest with event:", event, "response:", args.response);
+      const result = yield kit.approveSignDataRequest(event, args.response);
       log$l("approveSignDataRequest result:", result);
       return result;
     }));
@@ -59422,7 +59418,7 @@ function rejectSignDataRequest(args) {
         throw new Error("Event is required for sign-data request rejection");
       }
       const reason = args.errorCode !== void 0 ? { code: args.errorCode, message: args.reason || "Sign data rejected" } : args.reason;
-      const result = yield kit.rejectSignDataRequest({ event }, reason);
+      const result = yield kit.rejectSignDataRequest(event, reason);
       return result != null ? result : { success: true };
     }));
   });

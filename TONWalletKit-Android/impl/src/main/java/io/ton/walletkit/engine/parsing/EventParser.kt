@@ -21,12 +21,12 @@
  */
 package io.ton.walletkit.engine.parsing
 
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.api.generated.TONRequestErrorEvent
-import io.ton.walletkit.api.generated.TONConnectionRequestEvent
-import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.exceptions.JSValueConversionException
