@@ -24,6 +24,8 @@ package io.ton.walletkit.engine
 import android.content.Context
 import android.view.ViewGroup
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFT
@@ -31,11 +33,12 @@ import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
+import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
+import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
-import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
-import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
-import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
@@ -341,8 +344,11 @@ internal class WebViewWalletKitEngine private constructor(
         transactionContent: String,
     ): String = transactionOperations.sendTransaction(walletId, transactionContent)
 
-    override suspend fun approveConnect(event: TONConnectionRequestEvent) {
-        tonConnectOperations.approveConnect(event)
+    override suspend fun approveConnect(
+        event: TONConnectionRequestEvent,
+        response: TONConnectionApprovalResponse?,
+    ) {
+        tonConnectOperations.approveConnect(event, response)
     }
 
     override suspend fun rejectConnect(
@@ -351,17 +357,23 @@ internal class WebViewWalletKitEngine private constructor(
         errorCode: Int?,
     ) = tonConnectOperations.rejectConnect(event, reason, errorCode)
 
-    override suspend fun approveTransaction(event: TONTransactionRequestEvent, network: TONNetwork) =
-        tonConnectOperations.approveTransaction(event, network)
+    override suspend fun approveTransaction(
+        event: TONSendTransactionRequestEvent,
+        network: TONNetwork,
+        response: TONSendTransactionApprovalResponse?,
+    ) = tonConnectOperations.approveTransaction(event, network, response)
 
     override suspend fun rejectTransaction(
-        event: TONTransactionRequestEvent,
+        event: TONSendTransactionRequestEvent,
         reason: String?,
         errorCode: Int?,
     ) = tonConnectOperations.rejectTransaction(event, reason, errorCode)
 
-    override suspend fun approveSignData(event: TONSignDataRequestEvent, network: TONNetwork) =
-        tonConnectOperations.approveSignData(event, network)
+    override suspend fun approveSignData(
+        event: TONSignDataRequestEvent,
+        network: TONNetwork,
+        response: TONSignDataApprovalResponse?,
+    ) = tonConnectOperations.approveSignData(event, network, response)
 
     override suspend fun rejectSignData(
         event: TONSignDataRequestEvent,

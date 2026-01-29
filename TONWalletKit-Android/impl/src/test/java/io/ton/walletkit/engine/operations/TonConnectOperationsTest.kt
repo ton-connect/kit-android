@@ -24,8 +24,8 @@ package io.ton.walletkit.engine.operations
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.TONConnectionRequestEventPreview
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
-import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
@@ -431,8 +431,8 @@ class TonConnectOperationsTest : OperationsTestBase() {
         id: String,
         walletAddress: TONUserFriendlyAddress? = null,
         walletId: String? = null,
-    ): TONTransactionRequestEvent {
-        return TONTransactionRequestEvent(
+    ): TONSendTransactionRequestEvent {
+        return TONSendTransactionRequestEvent(
             id = id,
             walletAddress = walletAddress,
             walletId = walletId,
