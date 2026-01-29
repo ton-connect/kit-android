@@ -45,6 +45,16 @@ internal object LogConstants {
      */
     const val TAG_WEBVIEW_ENGINE = "WebViewWalletKitEngine"
 
+    /**
+     * Log tag for CustomBridgeStorageAdapter class.
+     */
+    const val TAG_CUSTOM_STORAGE = "CustomBridgeStorageAdapter"
+
+    /**
+     * Log tag for MemoryBridgeStorageAdapter class.
+     */
+    const val TAG_MEMORY_STORAGE = "MemoryBridgeStorageAdapter"
+
     // Log messages
     /**
      * Log message prefix for malformed payload from JavaScript.

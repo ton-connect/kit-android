@@ -60,6 +60,7 @@ import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -70,6 +71,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.collections.ArrayDeque
 import kotlin.collections.firstOrNull
@@ -1212,14 +1214,18 @@ class WalletKitViewModel @Inject constructor(
                 3 -> "App manifest content error"
                 else -> "Manifest error"
             }
+            // Use NonCancellable to ensure rejection completes even if Activity goes to background
+            // This is critical for E2E tests where the test navigates away immediately
             viewModelScope.launch {
-                try {
-                    // Pass the manifest error code directly to reject with proper TON Connect error code
-                    request.reject(errorMessage, manifestErrorCode)
-                    Log.d(LOG_TAG, "Connection auto-rejected due to manifest error")
-                    eventLogger.log(R.string.wallet_event_connect_request, "Auto-rejected: $errorMessage")
-                } catch (e: Exception) {
-                    Log.e(LOG_TAG, "Failed to auto-reject connection", e)
+                withContext(NonCancellable) {
+                    try {
+                        // Pass the manifest error code directly to reject with proper TON Connect error code
+                        request.reject(errorMessage, manifestErrorCode)
+                        Log.d(LOG_TAG, "Connection auto-rejected due to manifest error")
+                        eventLogger.log(R.string.wallet_event_connect_request, "Auto-rejected: $errorMessage")
+                    } catch (e: Exception) {
+                        Log.e(LOG_TAG, "Failed to auto-reject connection", e)
+                    }
                 }
             }
             return // Don't show connect sheet
@@ -1260,7 +1266,7 @@ class WalletKitViewModel @Inject constructor(
         Log.d(LOG_TAG, "=== onTransactionRequest called ===")
         // Extract wallet address from active wallet
         val walletAddress = state.value.activeWalletAddress ?: ""
-        val dAppInfo = request.event.preview.dAppInfo ?: request.event.dAppInfo
+        val dAppInfo = request.event.dAppInfo
         val fallbackDAppName = uiString(R.string.wallet_event_generic_dapp)
         val txRequest = request.event.request
 
@@ -1279,8 +1285,11 @@ class WalletKitViewModel @Inject constructor(
 
                     if (balance.value.toBigInteger() < totalAmount) {
                         Log.d(LOG_TAG, "Insufficient balance - auto-rejecting transaction")
-                        // Use BAD_REQUEST_ERROR (1) for insufficient balance, matching web demo-wallet
-                        request.reject("Insufficient balance", BAD_REQUEST_ERROR_CODE)
+                        // Use NonCancellable to ensure rejection completes even if Activity goes to background
+                        withContext(NonCancellable) {
+                            // Use BAD_REQUEST_ERROR (1) for insufficient balance, matching web demo-wallet
+                            request.reject("Insufficient balance", BAD_REQUEST_ERROR_CODE)
+                        }
                         return@launch
                     }
                 } catch (e: Exception) {

@@ -44,6 +44,7 @@ import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.SecureDemoAppStorage
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -286,12 +287,13 @@ object TONWalletKitHelper {
                 ),
                 apiClient = null,
                 features = listOf(
-                    TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 4),
+                    // V5R1 wallets support up to 255 messages per transaction
+                    TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 255),
                     TONWalletKitConfiguration.SignDataFeature(
                         types = listOf(SignDataType.TEXT, SignDataType.BINARY, SignDataType.CELL),
                     ),
                 ),
-                storage = TONWalletKitConfiguration.Storage(persistent = true),
+                storageType = TONWalletKitStorageType.Encrypted,
                 dev = devOptions,
             )
 

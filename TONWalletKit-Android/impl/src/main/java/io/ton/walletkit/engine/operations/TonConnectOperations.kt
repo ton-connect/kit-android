@@ -22,7 +22,6 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
-import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
 import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
@@ -156,8 +155,7 @@ internal class TonConnectOperations(
         ensureInitialized()
 
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
-        // Use the walletId from the event if available, otherwise create one from network + address
-        val walletId = event.walletId ?: WalletKitUtils.createWalletId(network, walletAddress.value)
+        val walletId = event.walletId ?: throw WalletKitBridgeException(ERROR_WALLET_ID_REQUIRED)
 
         val request = ApproveTransactionRequest(event = event, walletId = walletId)
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_TRANSACTION_REQUEST, json.toJSONObject(request))
@@ -174,8 +172,7 @@ internal class TonConnectOperations(
         ensureInitialized()
 
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
-        // Use the walletId from the event if available, otherwise create one from network + address
-        val walletId = event.walletId ?: WalletKitUtils.createWalletId(network, walletAddress.value)
+        val walletId = event.walletId ?: throw WalletKitBridgeException(ERROR_WALLET_ID_REQUIRED)
 
         val request = ApproveSignDataRequest(event = event, walletId = walletId)
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_SIGN_DATA_REQUEST, json.toJSONObject(request))
@@ -238,5 +235,6 @@ internal class TonConnectOperations(
 
         internal const val ERROR_FAILED_PROCESS_REQUEST = "Failed to process request"
         internal const val ERROR_WALLET_ADDRESS_REQUIRED = "walletAddress is required for TonConnect approval"
+        internal const val ERROR_WALLET_ID_REQUIRED = "walletId is required for TonConnect approval"
     }
 }
