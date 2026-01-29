@@ -172,6 +172,32 @@ internal class InitializationManager(
                 tonClientEndpoint?.let { put(JsonConstants.KEY_API_URL, it) }
                 put(JsonConstants.KEY_TON_API_URL, apiBaseUrl)
 
+                // Pass all configured networks (matching iOS bridge format: networkConfigurations)
+                put(
+                    "networkConfigurations",
+                    org.json.JSONArray().apply {
+                        for (networkConfig in configuration.networkConfigurations) {
+                            put(
+                                JSONObject().apply {
+                                    put("network", JSONObject().apply {
+                                        put("chainId", networkConfig.network.chainId)
+                                    })
+                                    networkConfig.apiClientConfiguration?.let { apiConfig ->
+                                        put("apiClientConfiguration", JSONObject().apply {
+                                            apiConfig.url?.takeIf { it.isNotBlank() }?.let {
+                                                put("url", it)
+                                            }
+                                            apiConfig.key?.takeIf { it.isNotBlank() }?.let {
+                                                put("key", it)
+                                            }
+                                        })
+                                    }
+                                },
+                            )
+                        }
+                    },
+                )
+
                 configuration.bridge.bridgeUrl.takeIf { it.isNotBlank() }?.let { put(JsonConstants.KEY_BRIDGE_URL, it) }
                 configuration.walletManifest.name.takeIf { it.isNotBlank() }?.let { put(JsonConstants.KEY_BRIDGE_NAME, it) }
 

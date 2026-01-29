@@ -24,9 +24,9 @@ package io.ton.walletkit.engine.parsing
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.api.generated.TONRequestErrorEvent
-import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
-import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
-import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.exceptions.JSValueConversionException
@@ -62,7 +62,7 @@ internal class EventParser(
                     Logger.d(TAG, "Parsing connect request - raw JSON: $rawJson")
                     val event = json.decodeFromString<TONConnectionRequestEvent>(rawJson)
                     Logger.d(TAG, "Parsing connect request - preview: ${event.preview}, dAppInfo: ${event.dAppInfo}")
-                    Logger.d(TAG, "Parsing connect request - request field: ${event.request}, requestedItems: ${event.requestedItems}")
+                    Logger.d(TAG, "Parsing connect request - requestedItems: ${event.requestedItems}")
                     val request = TONWalletConnectionRequest(
                         event = event,
                         handler = engine,
@@ -85,7 +85,7 @@ internal class EventParser(
 
             EventTypeConstants.EVENT_TRANSACTION_REQUEST -> {
                 try {
-                    val event = json.decodeFromString<TONTransactionRequestEvent>(data.toString())
+                    val event = json.decodeFromString<TONSendTransactionRequestEvent>(data.toString())
                     val request = TONWalletTransactionRequest(
                         event = event,
                         handler = engine,
@@ -94,7 +94,7 @@ internal class EventParser(
                 } catch (e: SerializationException) {
                     Logger.e(TAG, ERROR_FAILED_PARSE_TRANSACTION_REQUEST, e)
                     throw JSValueConversionException.DecodingError(
-                        message = "Failed to decode TONTransactionRequestEvent: ${e.message}",
+                        message = "Failed to decode TONSendTransactionRequestEvent: ${e.message}",
                         cause = e,
                     )
                 } catch (e: Exception) {
@@ -189,7 +189,7 @@ internal class EventParser(
     private companion object {
         private const val TAG = LogConstants.TAG_WEBVIEW_ENGINE
         private const val ERROR_FAILED_PARSE_CONNECT_REQUEST = "Failed to parse TONConnectionRequestEvent"
-        private const val ERROR_FAILED_PARSE_TRANSACTION_REQUEST = "Failed to parse TONTransactionRequestEvent"
+        private const val ERROR_FAILED_PARSE_TRANSACTION_REQUEST = "Failed to parse TONSendTransactionRequestEvent"
         private const val ERROR_FAILED_PARSE_SIGN_DATA_REQUEST = "Failed to parse TONSignDataRequestEvent"
     }
 }

@@ -22,7 +22,8 @@
 package io.ton.walletkit.request
 
 import io.ton.walletkit.ITONWallet
-import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 
 /**
  * Represents a connection request from a dApp.
@@ -45,14 +46,19 @@ class TONWalletConnectionRequest(
      * This matches the iOS API where approve takes a wallet parameter.
      *
      * @param wallet The wallet to connect with
+     * @param response Optional pre-computed approval response. If provided, the SDK will use
+     *                 this response directly instead of generating proof internally.
      * @throws io.ton.walletkit.WalletKitBridgeException if approval fails
      */
-    suspend fun approve(wallet: ITONWallet) {
+    suspend fun approve(
+        wallet: ITONWallet,
+        response: TONConnectionApprovalResponse? = null,
+    ) {
         val updatedEvent = event.copy(
             walletId = wallet.id,
             walletAddress = wallet.address,
         )
-        handler.approveConnect(updatedEvent)
+        handler.approveConnect(updatedEvent, response)
     }
 
     /**

@@ -34,15 +34,23 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Response after user approves a transaction request.
  *
- * @param signedBoc
+ *
+ * @param signature
+ * @param timestamp
+ * @param domain
  */
 @Serializable
-data class TONTransactionApprovalResponse(
+data class TONConnectionApprovalProof(
 
-    @Contextual @SerialName(value = "signedBoc")
-    val signedBoc: io.ton.walletkit.model.TONBase64,
+    @Contextual @SerialName(value = "signature")
+    val signature: io.ton.walletkit.model.TONBase64,
+
+    @SerialName(value = "timestamp")
+    val timestamp: kotlin.Int,
+
+    @SerialName(value = "domain")
+    val domain: TONConnectionApprovalProofDomain,
 
 ) {
 

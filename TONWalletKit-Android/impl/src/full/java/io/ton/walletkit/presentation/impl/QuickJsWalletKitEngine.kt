@@ -32,12 +32,15 @@ import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
+import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
+import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
+import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONTransferRequest
-import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
-import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
-import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
@@ -67,6 +70,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Callback
@@ -483,7 +487,10 @@ internal class QuickJsWalletKitEngine(
         return result.getString("signedBoc")
     }
 
-    override suspend fun approveConnect(event: TONConnectionRequestEvent) {
+    override suspend fun approveConnect(
+        event: TONConnectionRequestEvent,
+        response: TONConnectionApprovalResponse?,
+    ) {
         ensureWalletKitInitialized()
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val walletId = event.walletId ?: throw WalletKitBridgeException("Wallet ID is required")
@@ -492,6 +499,7 @@ internal class QuickJsWalletKitEngine(
                 put("requestId", event.id)
                 put("walletAddress", walletAddress.value)
                 put("walletId", walletId)
+                response?.let { put("response", JSONObject(json.encodeToString(it))) }
             }
         call("approveConnectRequest", params)
     }
@@ -511,7 +519,11 @@ internal class QuickJsWalletKitEngine(
         call("rejectConnectRequest", params)
     }
 
-    override suspend fun approveTransaction(event: TONTransactionRequestEvent, network: TONNetwork) {
+    override suspend fun approveTransaction(
+        event: TONSendTransactionRequestEvent,
+        network: TONNetwork,
+        response: TONSendTransactionApprovalResponse?,
+    ) {
         ensureWalletKitInitialized()
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val params =
@@ -519,12 +531,13 @@ internal class QuickJsWalletKitEngine(
                 put("requestId", event.id)
                 put("walletAddress", walletAddress.value)
                 put("walletId", event.walletId)
+                response?.let { put("response", JSONObject(json.encodeToString(it))) }
             }
         call("approveTransactionRequest", params)
     }
 
     override suspend fun rejectTransaction(
-        event: TONTransactionRequestEvent,
+        event: TONSendTransactionRequestEvent,
         reason: String?,
         errorCode: Int?,
     ) {
@@ -538,7 +551,11 @@ internal class QuickJsWalletKitEngine(
         call("rejectTransactionRequest", params)
     }
 
-    override suspend fun approveSignData(event: TONSignDataRequestEvent, network: TONNetwork) {
+    override suspend fun approveSignData(
+        event: TONSignDataRequestEvent,
+        network: TONNetwork,
+        response: TONSignDataApprovalResponse?,
+    ) {
         ensureWalletKitInitialized()
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val params =
@@ -546,6 +563,7 @@ internal class QuickJsWalletKitEngine(
                 put("requestId", event.id)
                 put("walletAddress", walletAddress)
                 put("walletId", event.walletId)
+                response?.let { put("response", JSONObject(json.encodeToString(it))) }
             }
         call("approveSignDataRequest", params)
     }
@@ -990,7 +1008,7 @@ internal class QuickJsWalletKitEngine(
 
             "transactionRequest" -> {
                 try {
-                    val event = json.decodeFromString<TONTransactionRequestEvent>(data.toString())
+                    val event = json.decodeFromString<TONSendTransactionRequestEvent>(data.toString())
                     val request = TONWalletTransactionRequest(
                         event = event,
                         handler = this,

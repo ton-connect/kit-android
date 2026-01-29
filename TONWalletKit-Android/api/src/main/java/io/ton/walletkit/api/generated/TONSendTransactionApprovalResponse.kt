@@ -28,19 +28,21 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONBase64
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Preview data for displaying transaction request in the wallet UI.
+ * Response after user approves a transaction request.
  *
- * @param `data`
+ * @param signedBoc
  */
 @Serializable
-data class TONTransactionRequestEventPreview(
+data class TONSendTransactionApprovalResponse(
 
-    @SerialName(value = "data")
-    val `data`: TONTransactionEmulatedPreview? = null,
+    @Contextual @SerialName(value = "signedBoc")
+    val signedBoc: io.ton.walletkit.model.TONBase64,
 
 ) {
 
