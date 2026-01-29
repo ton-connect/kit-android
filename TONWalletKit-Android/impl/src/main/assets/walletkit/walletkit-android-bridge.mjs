@@ -34474,25 +34474,25 @@ class TonWalletKit {
     await this.ensureInitialized();
     return this.requestProcessor.approveConnectRequest(event, response);
   }
-  async rejectConnectRequest(event, reason, errorCode) {
+  async rejectConnectRequest(request, reason, errorCode) {
     await this.ensureInitialized();
-    return this.requestProcessor.rejectConnectRequest(event, reason, errorCode);
+    return this.requestProcessor.rejectConnectRequest(request.event, reason, errorCode);
   }
   async approveTransactionRequest(event, response) {
     await this.ensureInitialized();
     return this.requestProcessor.approveTransactionRequest(event, response);
   }
-  async rejectTransactionRequest(event, reason) {
+  async rejectTransactionRequest(request, reason) {
     await this.ensureInitialized();
-    return this.requestProcessor.rejectTransactionRequest(event, reason);
+    return this.requestProcessor.rejectTransactionRequest(request.event, reason);
   }
   async approveSignDataRequest(event, response) {
     await this.ensureInitialized();
     return this.requestProcessor.approveSignDataRequest(event, response);
   }
-  async rejectSignDataRequest(event, reason) {
+  async rejectSignDataRequest(request, reason) {
     await this.ensureInitialized();
-    return this.requestProcessor.rejectSignDataRequest(event, reason);
+    return this.requestProcessor.rejectSignDataRequest(request.event, reason);
   }
   // === TON Client Access ===
   /**
