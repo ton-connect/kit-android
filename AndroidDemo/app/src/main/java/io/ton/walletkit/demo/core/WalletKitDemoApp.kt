@@ -309,16 +309,16 @@ object TONWalletKitHelper {
             // - apiClientConfiguration: Use SDK's built-in API client with your API key
             // - apiClient: Use your own custom API client implementation
             val networkConfigurations = if (useCustomApiClient) {
-                Log.w("TONWalletKitHelper", "🌐 Using CUSTOM API clients (TestAPIClient)")
-                // Use custom API client - wallet app provides their own API infrastructure
+                Log.w("TONWalletKitHelper", "🌐 Using CUSTOM API clients (Toncenter for mainnet, TonAPI for testnet)")
+                // Demonstrate using different API providers per network
                 setOf(
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.MAINNET,
-                        apiClient = TestAPIClient.mainnet(),
+                        apiClient = ToncenterAPIClient.mainnet(),
                     ),
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.TESTNET,
-                        apiClient = TestAPIClient.testnet(),
+                        apiClient = TonAPIClient.testnet(),
                     ),
                 )
             } else {
@@ -389,75 +389,4 @@ object TONWalletKitHelper {
     private const val DEFAULT_MANIFEST_UNIVERSAL_LINK = "https://wallet.ton.org/tc"
     private const val DEFAULT_BRIDGE_URL = "https://bridge.tonapi.io/bridge"
 
-    /**
-     * Example: Multi-network config with different API clients per network.
-     */
-    @Suppress("unused")
-    fun createMultiNetworkConfiguration(): TONWalletKitConfiguration = TONWalletKitConfiguration(
-        networkConfigurations = setOf(
-            // Network 1: Mainnet with Toncenter API
-            TONWalletKitConfiguration.NetworkConfiguration(
-                network = TONNetwork.MAINNET,
-                apiClient = ToncenterAPIClient.mainnet(),
-            ),
-            // Network 2: Testnet with TonAPI
-            TONWalletKitConfiguration.NetworkConfiguration(
-                network = TONNetwork.TESTNET,
-                apiClient = TonAPIClient.testnet(),
-            ),
-        ),
-        walletManifest = TONWalletKitConfiguration.Manifest(
-            name = DEFAULT_MANIFEST_NAME,
-            appName = DEFAULT_APP_NAME,
-            imageUrl = DEFAULT_MANIFEST_IMAGE_URL,
-            aboutUrl = DEFAULT_MANIFEST_ABOUT_URL,
-            universalLink = DEFAULT_MANIFEST_UNIVERSAL_LINK,
-            bridgeUrl = DEFAULT_BRIDGE_URL,
-        ),
-        bridge = TONWalletKitConfiguration.Bridge(
-            bridgeUrl = DEFAULT_BRIDGE_URL,
-        ),
-        features = listOf(
-            TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 255),
-            TONWalletKitConfiguration.SignDataFeature(
-                types = listOf(SignDataType.TEXT, SignDataType.BINARY, SignDataType.CELL),
-            ),
-        ),
-    )
-
-    /**
-     * Example: Mixed config - built-in client for mainnet, custom for testnet.
-     */
-    @Suppress("unused")
-    fun createMixedApiClientConfiguration(): TONWalletKitConfiguration = TONWalletKitConfiguration(
-        networkConfigurations = setOf(
-            // Mainnet: Use SDK's built-in API client with API key
-            TONWalletKitConfiguration.NetworkConfiguration(
-                network = TONNetwork.MAINNET,
-                apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(
-                    key = "your-toncenter-api-key",
-                    url = "https://toncenter.com/api/v3", // Optional custom URL
-                ),
-            ),
-            // Testnet: Use custom TonAPIClient
-            TONWalletKitConfiguration.NetworkConfiguration(
-                network = TONNetwork.TESTNET,
-                apiClient = TonAPIClient.testnet(apiKey = "your-tonapi-key"),
-            ),
-        ),
-        walletManifest = TONWalletKitConfiguration.Manifest(
-            name = DEFAULT_MANIFEST_NAME,
-            appName = DEFAULT_APP_NAME,
-            imageUrl = DEFAULT_MANIFEST_IMAGE_URL,
-            aboutUrl = DEFAULT_MANIFEST_ABOUT_URL,
-            universalLink = DEFAULT_MANIFEST_UNIVERSAL_LINK,
-            bridgeUrl = DEFAULT_BRIDGE_URL,
-        ),
-        bridge = TONWalletKitConfiguration.Bridge(
-            bridgeUrl = DEFAULT_BRIDGE_URL,
-        ),
-        features = listOf(
-            TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 255),
-        ),
-    )
 }
