@@ -152,3 +152,117 @@ class TestAPIClient(
         fun testnet(): TestAPIClient = TestAPIClient(TONNetwork.TESTNET)
     }
 }
+
+/**
+ * Example: ToncenterAPIClient - Uses toncenter.com API
+ *
+ * This demonstrates how wallet apps can have specialized API clients
+ * for different networks. For example:
+ * - Toncenter might be preferred for mainnet (stability, caching)
+ * - TonAPI might be preferred for testnet (more detailed responses)
+ */
+class ToncenterAPIClient(
+    override val network: TONNetwork,
+) : TONAPIClient {
+
+    private val tag = "ToncenterAPIClient"
+
+    private val baseUrl: String = when (network) {
+        TONNetwork.MAINNET -> "https://toncenter.com"
+        TONNetwork.TESTNET -> "https://testnet.toncenter.com"
+        else -> "https://toncenter.com"
+    }
+
+    override suspend fun sendBoc(boc: TONBase64): String {
+        Log.d(tag, "🚀 [Toncenter] sendBoc on ${network.chainId}")
+        // Real implementation would call: POST $baseUrl/api/v3/sendBocReturnHash
+        delay(100)
+        return "toncenter_tx_${System.currentTimeMillis()}"
+    }
+
+    override suspend fun runGetMethod(
+        address: TONUserFriendlyAddress,
+        method: String,
+        stack: List<TONRawStackItem>?,
+        seqno: Int?,
+    ): TONGetMethodResult {
+        Log.d(tag, "📞 [Toncenter] runGetMethod: $method on ${address.value}")
+        // Real implementation would call: POST $baseUrl/api/v3/runGetMethod
+        delay(100)
+        return TONGetMethodResult(gasUsed = 1000, stack = emptyList(), exitCode = 0)
+    }
+
+    override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {
+        Log.d(tag, "💰 [Toncenter] getBalance on ${network.chainId}")
+        return withContext(Dispatchers.IO) {
+            val url = URL("$baseUrl/api/v3/addressInformation?address=${address.value}")
+            val connection = url.openConnection()
+            connection.setRequestProperty("Accept", "application/json")
+            val response = connection.getInputStream().bufferedReader().readText()
+            JSONObject(response).optString("balance", "0")
+        }
+    }
+
+    companion object {
+        fun mainnet() = ToncenterAPIClient(TONNetwork.MAINNET)
+        fun testnet() = ToncenterAPIClient(TONNetwork.TESTNET)
+    }
+}
+
+/**
+ * Example: TonAPIClient - Uses tonapi.io API
+ *
+ * Different API provider with different features.
+ * Demonstrates that each network can use a completely different backend.
+ */
+class TonAPIClient(
+    override val network: TONNetwork,
+    private val apiKey: String = "",
+) : TONAPIClient {
+
+    private val tag = "TonAPIClient"
+
+    private val baseUrl: String = when (network) {
+        TONNetwork.MAINNET -> "https://tonapi.io"
+        TONNetwork.TESTNET -> "https://testnet.tonapi.io"
+        else -> "https://tonapi.io"
+    }
+
+    override suspend fun sendBoc(boc: TONBase64): String {
+        Log.d(tag, "🚀 [TonAPI] sendBoc on ${network.chainId}")
+        // Real implementation would call: POST $baseUrl/v2/blockchain/message
+        delay(100)
+        return "tonapi_tx_${System.currentTimeMillis()}"
+    }
+
+    override suspend fun runGetMethod(
+        address: TONUserFriendlyAddress,
+        method: String,
+        stack: List<TONRawStackItem>?,
+        seqno: Int?,
+    ): TONGetMethodResult {
+        Log.d(tag, "📞 [TonAPI] runGetMethod: $method on ${address.value}")
+        // Real implementation would call: POST $baseUrl/v2/blockchain/accounts/{address}/methods/{method}
+        delay(100)
+        return TONGetMethodResult(gasUsed = 1000, stack = emptyList(), exitCode = 0)
+    }
+
+    override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {
+        Log.d(tag, "💰 [TonAPI] getBalance on ${network.chainId}")
+        return withContext(Dispatchers.IO) {
+            val url = URL("$baseUrl/v2/accounts/${address.value}")
+            val connection = url.openConnection()
+            connection.setRequestProperty("Accept", "application/json")
+            if (apiKey.isNotEmpty()) {
+                connection.setRequestProperty("Authorization", "Bearer $apiKey")
+            }
+            val response = connection.getInputStream().bufferedReader().readText()
+            JSONObject(response).optString("balance", "0")
+        }
+    }
+
+    companion object {
+        fun mainnet(apiKey: String = "") = TonAPIClient(TONNetwork.MAINNET, apiKey)
+        fun testnet(apiKey: String = "") = TonAPIClient(TONNetwork.TESTNET, apiKey)
+    }
+}
