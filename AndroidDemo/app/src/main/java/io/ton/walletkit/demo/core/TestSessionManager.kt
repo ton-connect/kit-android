@@ -23,6 +23,7 @@ package io.ton.walletkit.demo.core
 
 import android.util.Log
 import com.google.crypto.tink.subtle.X25519
+import io.ton.walletkit.api.generated.TONConnectSession
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.session.TONConnectSessionManager
@@ -84,7 +85,11 @@ class TestSessionManager : TONConnectSessionManager {
             privateKey = privateKey,
             publicKey = publicKey,
             domain = domain,
-            dAppInfo = dAppInfo,
+            schemaVersion = 2,
+            dAppName = dAppInfo.name,
+            dAppUrl = dAppInfo.url,
+            dAppIconUrl = dAppInfo.iconUrl,
+            dAppDescription = dAppInfo.description,
             isJsBridge = isJsBridge,
         )
 

@@ -316,4 +316,9 @@ internal object JsonConstants {
      * JSON key for domain.
      */
     const val KEY_DOMAIN = "domain"
+
+    /**
+     * JSON key for schema version.
+     */
+    const val KEY_SCHEMA_VERSION = "schemaVersion"
 }

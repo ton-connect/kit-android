@@ -39,7 +39,7 @@ import kotlinx.serialization.Serializable
  * @param signedBoc
  */
 @Serializable
-data class TONTransactionApprovalResponse(
+data class TONSendTransactionApprovalResponse(
 
     @Contextual @SerialName(value = "signedBoc")
     val signedBoc: io.ton.walletkit.model.TONBase64,

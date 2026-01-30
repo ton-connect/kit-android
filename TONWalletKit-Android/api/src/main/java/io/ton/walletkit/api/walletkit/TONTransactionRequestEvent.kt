@@ -22,8 +22,8 @@
 package io.ton.walletkit.api.walletkit
 
 import io.ton.walletkit.api.generated.TONDAppInfo
+import io.ton.walletkit.api.generated.TONSendTransactionRequestEventPreview
 import io.ton.walletkit.api.generated.TONTransactionRequest
-import io.ton.walletkit.api.generated.TONTransactionRequestEventPreview
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
@@ -81,7 +81,7 @@ data class TONTransactionRequestEvent(
     val dAppInfo: TONDAppInfo? = null,
 
     @SerialName(value = "preview")
-    val preview: TONTransactionRequestEventPreview,
+    val preview: TONSendTransactionRequestEventPreview,
 
     @SerialName(value = "request")
     val request: TONTransactionRequest,

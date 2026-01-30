@@ -28,30 +28,23 @@
 
 package io.ton.walletkit.api.generated
 
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Response after user approves a sign data request.
  *
- * @param signature
- * @param timestamp Timestamp when the data was signed
- * @param domain Domain associated with the sign request
+ *
+ * @param lengthBytes
+ * @param `value`
  */
 @Serializable
-data class TONSignDataApprovalResponse(
+data class TONConnectionApprovalProofDomain(
 
-    @Contextual @SerialName(value = "signature")
-    val signature: io.ton.walletkit.model.TONHex,
+    @SerialName(value = "lengthBytes")
+    val lengthBytes: kotlin.Int,
 
-    /* Timestamp when the data was signed */
-    @SerialName(value = "timestamp")
-    val timestamp: kotlin.Int,
-
-    /* Domain associated with the sign request */
-    @SerialName(value = "domain")
-    val domain: kotlin.String,
+    @SerialName(value = "value")
+    val `value`: kotlin.String,
 
 ) {
 
