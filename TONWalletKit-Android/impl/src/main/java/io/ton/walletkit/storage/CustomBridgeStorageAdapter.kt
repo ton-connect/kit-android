@@ -47,14 +47,14 @@ internal class CustomBridgeStorageAdapter(
 
     override suspend fun set(key: String, value: String) {
         try {
-            Logger.d(TAG, "Custom storage save: key=$key, valueLength=${value.length}")
-            customStorage.save(key, value)
+            Logger.d(TAG, "Custom storage set: key=$key, valueLength=${value.length}")
+            customStorage.set(key, value)
         } catch (e: WalletKitStorageException) {
-            Logger.e(TAG, "Custom storage save failed for key=$key", e)
+            Logger.e(TAG, "Custom storage set failed for key=$key", e)
             throw e
         } catch (e: Exception) {
-            Logger.e(TAG, "Custom storage save failed for key=$key", e)
-            throw WalletKitStorageException(StorageOperation.SAVE, key, e)
+            Logger.e(TAG, "Custom storage set failed for key=$key", e)
+            throw WalletKitStorageException(StorageOperation.SET, key, e)
         }
     }
 
