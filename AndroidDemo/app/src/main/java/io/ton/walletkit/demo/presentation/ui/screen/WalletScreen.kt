@@ -93,6 +93,9 @@ import io.ton.walletkit.demo.presentation.ui.sections.WalletsSection
 import io.ton.walletkit.demo.presentation.ui.sheet.AddWalletSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.ConnectRequestSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.IntentActionSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.IntentSignDataSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.IntentTransactionSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.JettonDetailsSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.SignDataSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
@@ -232,6 +235,30 @@ fun WalletScreen(
                             actions.onTransferJetton(sheet.jetton.jettonAddress ?: "", recipient, amount, comment)
                         },
                         isLoading = false,
+                    )
+                }
+
+                is SheetState.IntentTransaction -> {
+                    IntentTransactionSheet(
+                        request = sheet.request,
+                        onApprove = { actions.onApproveTransactionIntent(sheet.request) },
+                        onReject = { actions.onRejectTransactionIntent(sheet.request) },
+                    )
+                }
+
+                is SheetState.IntentSignData -> {
+                    IntentSignDataSheet(
+                        request = sheet.request,
+                        onApprove = { actions.onApproveSignDataIntent(sheet.request) },
+                        onReject = { actions.onRejectSignDataIntent(sheet.request) },
+                    )
+                }
+
+                is SheetState.IntentAction -> {
+                    IntentActionSheet(
+                        request = sheet.request,
+                        onApprove = { actions.onApproveActionIntent(sheet.request) },
+                        onReject = { actions.onRejectActionIntent(sheet.request) },
                     )
                 }
 

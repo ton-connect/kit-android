@@ -90,6 +90,46 @@ internal object BridgeMethodConstants {
     const val METHOD_HANDLE_TON_CONNECT_URL = "handleTonConnectUrl"
 
     /**
+     * Method name for handling intent URL (tc://intent_inline?...).
+     */
+    const val METHOD_HANDLE_INTENT_URL = "handleIntentUrl"
+
+    /**
+     * Method name for checking if a URL is an intent URL.
+     */
+    const val METHOD_IS_INTENT_URL = "isIntentUrl"
+
+    /**
+     * Method name for converting intent items to a transaction request.
+     */
+    const val METHOD_INTENT_ITEMS_TO_TRANSACTION_REQUEST = "intentItemsToTransactionRequest"
+
+    /**
+     * Method name for approving a transaction intent (txIntent or signMsg).
+     */
+    const val METHOD_APPROVE_TRANSACTION_INTENT = "approveTransactionIntent"
+
+    /**
+     * Method name for approving a sign data intent (signIntent).
+     */
+    const val METHOD_APPROVE_SIGN_DATA_INTENT = "approveSignDataIntent"
+
+    /**
+     * Method name for approving an action intent (actionIntent).
+     */
+    const val METHOD_APPROVE_ACTION_INTENT = "approveActionIntent"
+
+    /**
+     * Method name for processing connect request after intent approval.
+     */
+    const val METHOD_PROCESS_CONNECT_AFTER_INTENT = "processConnectAfterIntent"
+
+    /**
+     * Method name for rejecting an intent request.
+     */
+    const val METHOD_REJECT_INTENT = "rejectIntent"
+
+    /**
      * Method name for creating a TON transfer transaction.
      * Matches JS API: wallet.createTransferTonTransaction()
      */

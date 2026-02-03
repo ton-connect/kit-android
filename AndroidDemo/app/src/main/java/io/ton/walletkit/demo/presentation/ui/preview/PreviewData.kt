@@ -43,6 +43,7 @@ import org.json.JSONObject
 
 object PreviewData {
     val wallet: WalletSummary = WalletSummary(
+        walletId = "preview-wallet-id",
         address = "EQpreviewaddressExampleToShowWalletKit123",
         name = "Preview Wallet",
         network = TONNetwork.MAINNET,

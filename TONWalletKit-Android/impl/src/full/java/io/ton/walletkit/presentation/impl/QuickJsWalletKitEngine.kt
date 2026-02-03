@@ -459,6 +459,204 @@ internal class QuickJsWalletKitEngine(
         call("handleTonConnectUrl", params)
     }
 
+    override suspend fun handleIntentUrl(url: String) {
+        ensureWalletKitInitialized()
+        val params = JSONObject().apply { put("url", url) }
+        call("handleIntentUrl", params)
+    }
+
+    override suspend fun isIntentUrl(url: String): Boolean {
+        ensureWalletKitInitialized()
+        val params = JSONObject().apply { put("url", url) }
+        val result = call("isIntentUrl", params)
+        return result.optBoolean("result", false)
+    }
+
+    override suspend fun approveTransactionIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.TransactionIntent,
+        walletId: String,
+    ): String {
+        ensureWalletKitInitialized()
+        val items = JSONArray().apply {
+            event.items.forEach { item ->
+                put(
+                    JSONObject().apply {
+                        when (item) {
+                            is io.ton.walletkit.event.TONIntentItem.SendTon -> {
+                                put("t", "ton")
+                                put("a", item.address)
+                                put("am", item.amount)
+                                item.payload?.let { put("p", it) }
+                                item.stateInit?.let { put("si", it) }
+                            }
+                            is io.ton.walletkit.event.TONIntentItem.SendJetton -> {
+                                put("t", "jetton")
+                                put("ma", item.masterAddress)
+                                put("ja", item.jettonAmount)
+                                put("d", item.destination)
+                                item.queryId?.let { put("qi", it) }
+                                item.responseDestination?.let { put("rd", it) }
+                                item.customPayload?.let { put("cp", it) }
+                                item.forwardTonAmount?.let { put("fta", it) }
+                                item.forwardPayload?.let { put("fp", it) }
+                            }
+                            is io.ton.walletkit.event.TONIntentItem.SendNft -> {
+                                put("t", "nft")
+                                put("na", item.nftAddress)
+                                put("no", item.newOwner)
+                                item.queryId?.let { put("qi", it) }
+                                item.responseDestination?.let { put("rd", it) }
+                                item.customPayload?.let { put("cp", it) }
+                                item.forwardTonAmount?.let { put("fta", it) }
+                                item.forwardPayload?.let { put("fp", it) }
+                            }
+                        }
+                    },
+                )
+            }
+        }
+        val eventJson = JSONObject().apply {
+            put("id", event.id)
+            put("clientId", event.clientId)
+            put("hasConnectRequest", event.hasConnectRequest)
+            put("type", event.type)
+            event.network?.let { put("network", it) }
+            event.validUntil?.let { put("validUntil", it) }
+            put("items", items)
+        }
+        val params = JSONObject().apply {
+            put("event", eventJson)
+            put("walletId", walletId)
+        }
+        val result = call("approveTransactionIntent", params)
+        return result.getString("result")
+    }
+
+    override suspend fun approveSignDataIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.SignDataIntent,
+        walletId: String,
+    ): JSONObject {
+        ensureWalletKitInitialized()
+        val payloadJson = JSONObject().apply {
+            when (val payload = event.payload) {
+                is io.ton.walletkit.event.TONSignDataPayload.Text -> {
+                    put("type", "text")
+                    put("text", payload.text)
+                }
+                is io.ton.walletkit.event.TONSignDataPayload.Binary -> {
+                    put("type", "binary")
+                    put("bytes", payload.bytes)
+                }
+                is io.ton.walletkit.event.TONSignDataPayload.Cell -> {
+                    put("type", "cell")
+                    put("schema", payload.schema)
+                    put("cell", payload.cell)
+                }
+            }
+        }
+        val eventJson = JSONObject().apply {
+            put("id", event.id)
+            put("clientId", event.clientId)
+            put("hasConnectRequest", event.hasConnectRequest)
+            put("type", "signIntent")
+            event.network?.let { put("network", it) }
+            put("manifestUrl", event.manifestUrl)
+            put("payload", payloadJson)
+        }
+        val params = JSONObject().apply {
+            put("event", eventJson)
+            put("walletId", walletId)
+        }
+        return call("approveSignDataIntent", params)
+    }
+
+    override suspend fun rejectIntent(
+        event: io.ton.walletkit.event.TONIntentEvent,
+        reason: String?,
+        errorCode: Int?,
+    ): JSONObject {
+        ensureWalletKitInitialized()
+        val (id, clientId, type) = when (event) {
+            is io.ton.walletkit.event.TONIntentEvent.TransactionIntent -> Triple(event.id, event.clientId, event.type)
+            is io.ton.walletkit.event.TONIntentEvent.SignDataIntent -> Triple(event.id, event.clientId, "signIntent")
+            is io.ton.walletkit.event.TONIntentEvent.ActionIntent -> Triple(event.id, event.clientId, "actionIntent")
+        }
+        val eventJson = JSONObject().apply {
+            put("id", id)
+            put("clientId", clientId)
+            put("type", type)
+        }
+        val params = JSONObject().apply {
+            put("event", eventJson)
+            reason?.let { put("reason", it) }
+            errorCode?.let { put("errorCode", it) }
+        }
+        return call("rejectIntent", params)
+    }
+
+    override suspend fun approveActionIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.ActionIntent,
+        walletId: String,
+    ): JSONObject {
+        ensureWalletKitInitialized()
+        val eventJson = JSONObject().apply {
+            put("id", event.id)
+            put("clientId", event.clientId)
+            put("hasConnectRequest", event.hasConnectRequest)
+            put("type", "actionIntent")
+            put("actionUrl", event.actionUrl)
+        }
+        val params = JSONObject().apply {
+            put("event", eventJson)
+            put("walletId", walletId)
+        }
+        return call("approveActionIntent", params)
+    }
+
+    override suspend fun processConnectAfterIntent(
+        event: io.ton.walletkit.event.TONIntentEvent,
+        walletId: String,
+    ) {
+        ensureWalletKitInitialized()
+        val (id, clientId, hasConnectRequest, type, connectReq) = when (event) {
+            is io.ton.walletkit.event.TONIntentEvent.TransactionIntent -> listOf(event.id, event.clientId, event.hasConnectRequest, event.type, event.connectRequest)
+            is io.ton.walletkit.event.TONIntentEvent.SignDataIntent -> listOf(event.id, event.clientId, event.hasConnectRequest, "signIntent", event.connectRequest)
+            is io.ton.walletkit.event.TONIntentEvent.ActionIntent -> listOf(event.id, event.clientId, event.hasConnectRequest, "actionIntent", event.connectRequest)
+        }
+
+        // Build connect request JSON if present
+        val connectRequestJson = (connectReq as? io.ton.walletkit.event.TONIntentConnectRequest)?.let { req ->
+            JSONObject().apply {
+                put("manifestUrl", req.manifestUrl)
+                req.items?.let { items ->
+                    val itemsArray = JSONArray()
+                    items.forEach { item ->
+                        itemsArray.put(
+                            JSONObject().apply {
+                                put("name", item.name)
+                                item.payload?.let { put("payload", it) }
+                            },
+                        )
+                    }
+                    put("items", itemsArray)
+                }
+            }
+        }
+
+        val eventJson = JSONObject().apply {
+            put("id", id)
+            put("clientId", clientId)
+            put("hasConnectRequest", hasConnectRequest)
+            put("type", type)
+            connectRequestJson?.let { put("connectRequest", it) }
+        }
+        val params = JSONObject().apply {
+            put("event", eventJson)
+            put("walletId", walletId)
+        }
+        call("processConnectAfterIntent", params)
+    }
+
     override suspend fun handleNewTransaction(
         walletAddress: String,
         transactionContent: String,

@@ -27,6 +27,7 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.model.IntentSignDataResult
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletAdapterInfo
@@ -247,6 +248,103 @@ interface ITONWalletKit {
      * @param url TON Connect URL (tc:// or https://)
      */
     suspend fun connect(url: String)
+
+    /**
+     * Handle an intent URL.
+     *
+     * Intent URLs allow dApps to request actions via deep links without prior session.
+     * The URL format is: tc://intent_inline?id=<clientId>&r=<base64url_payload>
+     *
+     * This will parse the URL and emit appropriate intent events
+     * (transaction intent, sign message intent, etc.)
+     *
+     * @param url Intent URL (tc://intent_inline?... or tc://intent?...)
+     */
+    suspend fun handleIntentUrl(url: String)
+
+    /**
+     * Check if a URL is an intent URL.
+     *
+     * Intent URLs start with tc://intent_inline or tc://intent
+     *
+     * @param url URL to check
+     * @return True if the URL is an intent URL
+     */
+    suspend fun isIntentUrl(url: String): Boolean
+
+    /**
+     * Approve a transaction intent and execute it.
+     *
+     * Signs the transaction and sends it to the blockchain.
+     * Returns the signed BOC (Bag of Cells) as a base64 string.
+     *
+     * @param event The transaction intent event to approve
+     * @param walletId ID of the wallet to use for signing
+     * @return Signed transaction BOC as base64 string
+     */
+    suspend fun approveTransactionIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.TransactionIntent,
+        walletId: String,
+    ): String
+
+    /**
+     * Approve a sign data intent.
+     *
+     * Signs the data payload without sending any transaction.
+     * Returns the signature result.
+     *
+     * @param event The sign data intent event to approve
+     * @param walletId ID of the wallet to use for signing
+     * @return Result containing signature, timestamp, and domain info
+     */
+    suspend fun approveSignDataIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.SignDataIntent,
+        walletId: String,
+    ): IntentSignDataResult
+
+    /**
+     * Reject an intent request.
+     *
+     * Sends an error response to the dApp indicating the user rejected the request.
+     *
+     * @param event The intent event to reject
+     * @param reason Optional reason for rejection
+     * @param errorCode Optional error code (defaults to user rejected)
+     */
+    suspend fun rejectIntent(
+        event: io.ton.walletkit.event.TONIntentEvent,
+        reason: String? = null,
+        errorCode: Int? = null,
+    )
+
+    /**
+     * Approve an action intent.
+     *
+     * Fetches action details from the action URL and executes the action.
+     * The action URL returns either a transaction or sign data request.
+     *
+     * @param event The action intent event to approve
+     * @param walletId ID of the wallet to use for signing
+     * @return Result containing the action response
+     */
+    suspend fun approveActionIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.ActionIntent,
+        walletId: String,
+    ): org.json.JSONObject
+
+    /**
+     * Process connect request after intent approval.
+     *
+     * If the intent includes a connect request (hasConnectRequest=true),
+     * this method creates a proper session for the dApp.
+     *
+     * @param event The intent event with connect request
+     * @param walletId ID of the wallet to use for the connection
+     */
+    suspend fun processConnectAfterIntent(
+        event: io.ton.walletkit.event.TONIntentEvent,
+        walletId: String,
+    )
 
     /**
      * List all active TON Connect sessions.

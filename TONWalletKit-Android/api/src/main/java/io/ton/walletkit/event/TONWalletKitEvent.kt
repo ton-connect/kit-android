@@ -93,4 +93,19 @@ sealed class TONWalletKitEvent {
     data class RequestError(
         val event: TONRequestErrorEvent,
     ) : TONWalletKitEvent()
+
+    /**
+     * An intent request from a deep link (without prior TonConnect session).
+     *
+     * Intents allow dApps to request actions via URLs like:
+     * tc://intent_inline?id=<clientId>&r=<base64url_payload>
+     *
+     * The event contains the intent details which the wallet UI should display
+     * for user confirmation.
+     *
+     * @property event Intent event with type and details
+     */
+    data class IntentRequest(
+        val event: TONIntentEvent,
+    ) : TONWalletKitEvent()
 }

@@ -91,6 +91,11 @@ internal object EventTypeConstants {
     const val EVENT_REQUEST_ERROR = "requestError"
 
     /**
+     * Event type for intent requests (deep links without session).
+     */
+    const val EVENT_INTENT_REQUEST = "intentRequest"
+
+    /**
      * Default value for unknown event types.
      */
     const val EVENT_TYPE_UNKNOWN = "unknown"

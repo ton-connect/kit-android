@@ -22,6 +22,7 @@
 package io.ton.walletkit.demo.presentation.state
 
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
+import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionDetailUi
@@ -40,4 +41,9 @@ sealed interface SheetState {
     data class Browser(val url: String, val injectTonConnect: Boolean = true) : SheetState
     data class JettonDetails(val jetton: io.ton.walletkit.demo.presentation.model.JettonDetails) : SheetState
     data class TransferJetton(val jetton: io.ton.walletkit.demo.presentation.model.JettonDetails) : SheetState
+
+    // Intent sheet states
+    data class IntentTransaction(val request: IntentRequestUi.Transaction) : SheetState
+    data class IntentSignData(val request: IntentRequestUi.SignData) : SheetState
+    data class IntentAction(val request: IntentRequestUi.Action) : SheetState
 }

@@ -44,6 +44,8 @@ import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.domain.model.WalletMetadata
 import io.ton.walletkit.demo.presentation.model.ConnectPermissionUi
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
+import io.ton.walletkit.demo.presentation.model.IntentMapper
+import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
@@ -53,6 +55,7 @@ import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.util.TransactionDetailMapper
+import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletSigner
@@ -296,6 +299,10 @@ class WalletKitViewModel @Inject constructor(
                     errorMessage = event.event.error.message ?: "Unknown error",
                 )
                 Log.d(LOG_TAG, "✅ RequestErrorTracker.recordError completed")
+            }
+            is TONWalletKitEvent.IntentRequest -> {
+                Log.d(LOG_TAG, "✅ ===== HANDLING IntentRequest EVENT =====")
+                onIntentRequest(event.event)
             }
         }
     }
@@ -801,7 +808,33 @@ class WalletKitViewModel @Inject constructor(
             _state.update { it.copy(error = uiString(R.string.wallet_error_no_wallet_selected)) }
             return
         }
-        tonConnectViewModel.handleTonConnectUrl(url.trim(), activeAddress)
+        viewModelScope.launch {
+            runCatching {
+                val trimmedUrl = url.trim()
+                val kit = getKit()
+                // Check if it's an intent URL (tc://intent_inline or tc://intent)
+                val isIntent = kit.isIntentUrl(trimmedUrl)
+                if (isIntent) {
+                    Log.d(LOG_TAG, "Handling intent URL: $trimmedUrl")
+                    kit.handleIntentUrl(trimmedUrl)
+                } else {
+                    Log.d(LOG_TAG, "Handling TON Connect URL: $trimmedUrl")
+                    tonConnectViewModel.handleTonConnectUrl(trimmedUrl, activeAddress)
+                }
+            }.onFailure { error ->
+                Log.e(LOG_TAG, "Failed to handle URL", error)
+                _state.update { it.copy(error = error.message ?: "Failed to handle URL") }
+            }
+        }
+    }
+
+    /**
+     * Handle deep link URL from MainActivity.
+     * Supports both TonConnect URLs and Intent URLs.
+     */
+    fun handleDeepLink(url: String) {
+        Log.d(LOG_TAG, "Deep link received: $url")
+        handleTonConnectUrl(url)
     }
 
     fun approveConnect(request: ConnectRequestUi, wallet: WalletSummary) {
@@ -838,6 +871,136 @@ class WalletKitViewModel @Inject constructor(
     fun rejectSignData(request: SignDataRequestUi, reason: String = DEFAULT_REJECTION_REASON) {
         pendingTonConnectAction = TonConnectAction.SignData(request, viaSigner = false)
         tonConnectViewModel.rejectSignData(request, reason)
+    }
+
+    // === Intent Approval/Rejection Methods ===
+
+    fun approveTransactionIntent(request: IntentRequestUi.Transaction) {
+        Log.d(LOG_TAG, "Approving transaction intent: ${request.id}")
+        viewModelScope.launch {
+            try {
+                val kit = getKit()
+                val result = kit.approveTransactionIntent(request.event, request.walletId)
+                Log.d(LOG_TAG, "Transaction intent approved, result: ${result.take(50)}...")
+                eventLogger.log("Intent approved: ${request.type} transaction")
+
+                // Process connect request if applicable
+                if (request.event.hasConnectRequest) {
+                    kit.processConnectAfterIntent(request.event, request.walletId)
+                    Log.d(LOG_TAG, "Connect request processed after transaction intent")
+                    eventLogger.log("Connect request processed after transaction intent")
+                }
+
+                uiCoordinator.dismissSheet()
+                uiCoordinator.hideUrlPrompt()
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Failed to approve transaction intent", e)
+                _state.update { it.copy(error = "Failed to approve intent: ${e.message}") }
+                uiCoordinator.dismissSheet()
+            }
+        }
+    }
+
+    fun rejectTransactionIntent(request: IntentRequestUi.Transaction, reason: String = DEFAULT_REJECTION_REASON) {
+        Log.d(LOG_TAG, "Rejecting transaction intent: ${request.id}")
+        uiCoordinator.dismissSheet()
+        uiCoordinator.hideUrlPrompt()
+        viewModelScope.launch {
+            try {
+                val kit = getKit()
+                kit.rejectIntent(request.event, reason, null)
+                Log.d(LOG_TAG, "Transaction intent rejected")
+                eventLogger.log("Intent rejected: ${request.type} transaction")
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Failed to reject transaction intent", e)
+                _state.update { it.copy(error = "Failed to reject intent: ${e.message}") }
+            }
+        }
+    }
+
+    fun approveSignDataIntent(request: IntentRequestUi.SignData) {
+        Log.d(LOG_TAG, "Approving sign data intent: ${request.id}")
+        viewModelScope.launch {
+            try {
+                val kit = getKit()
+                Log.d(LOG_TAG, "Calling kit.approveSignDataIntent...")
+                val result = kit.approveSignDataIntent(request.event, request.walletId)
+                Log.d(LOG_TAG, "Sign data intent approved, signature: ${result.signature.take(20)}...")
+                eventLogger.log("Sign data intent approved")
+
+                // Process connect request if applicable
+                if (request.event.hasConnectRequest) {
+                    kit.processConnectAfterIntent(request.event, request.walletId)
+                    Log.d(LOG_TAG, "Connect request processed after sign data intent")
+                    eventLogger.log("Connect request processed after sign data intent")
+                }
+
+                uiCoordinator.dismissSheet()
+                uiCoordinator.hideUrlPrompt()
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Failed to approve sign data intent", e)
+                _state.update { it.copy(error = "Failed to approve sign data intent: ${e.message}") }
+                uiCoordinator.dismissSheet()
+            }
+        }
+    }
+
+    fun rejectSignDataIntent(request: IntentRequestUi.SignData, reason: String = DEFAULT_REJECTION_REASON) {
+        Log.d(LOG_TAG, "Rejecting sign data intent: ${request.id}")
+        uiCoordinator.dismissSheet()
+        uiCoordinator.hideUrlPrompt()
+        viewModelScope.launch {
+            try {
+                val kit = getKit()
+                kit.rejectIntent(request.event, reason, null)
+                Log.d(LOG_TAG, "Sign data intent rejected")
+                eventLogger.log("Sign data intent rejected")
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Failed to reject sign data intent", e)
+                _state.update { it.copy(error = "Failed to reject sign data intent: ${e.message}") }
+            }
+        }
+    }
+
+    fun approveActionIntent(request: IntentRequestUi.Action) {
+        Log.d(LOG_TAG, "Approving action intent: ${request.id}")
+        uiCoordinator.dismissSheet()
+        uiCoordinator.hideUrlPrompt()
+        viewModelScope.launch {
+            try {
+                val kit = getKit()
+                val result = kit.approveActionIntent(request.event, request.walletId)
+                Log.d(LOG_TAG, "Action intent approved: $result")
+                eventLogger.log("Action intent approved")
+
+                // Process connect request if applicable
+                if (request.event.hasConnectRequest) {
+                    kit.processConnectAfterIntent(request.event, request.walletId)
+                    Log.d(LOG_TAG, "Connect request processed after action intent")
+                    eventLogger.log("Connect request processed after action intent")
+                }
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Failed to approve action intent", e)
+                _state.update { it.copy(error = "Failed to approve action intent: ${e.message}") }
+            }
+        }
+    }
+
+    fun rejectActionIntent(request: IntentRequestUi.Action, reason: String = DEFAULT_REJECTION_REASON) {
+        Log.d(LOG_TAG, "Rejecting action intent: ${request.id}")
+        uiCoordinator.dismissSheet()
+        uiCoordinator.hideUrlPrompt()
+        viewModelScope.launch {
+            try {
+                val kit = getKit()
+                kit.rejectIntent(request.event, reason, null)
+                Log.d(LOG_TAG, "Action intent rejected")
+                eventLogger.log("Action intent rejected")
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Failed to reject action intent", e)
+                _state.update { it.copy(error = "Failed to reject action intent: ${e.message}") }
+            }
+        }
     }
 
     fun confirmSignerApproval() {
@@ -1377,6 +1540,52 @@ class WalletKitViewModel @Inject constructor(
         uiCoordinator.setSheet(SheetState.SignData(uiRequest))
         val eventDAppName = dAppInfo?.name ?: fallbackDAppName
         eventLogger.log(R.string.wallet_event_sign_data_request, eventDAppName)
+    }
+
+    /**
+     * Handle an intent request from a deep link (without prior TonConnect session).
+     *
+     * Intents are different from regular TonConnect requests - they don't have a session
+     * and the response is sent back via the clientId's public key.
+     */
+    private fun onIntentRequest(event: TONIntentEvent) {
+        Log.d(LOG_TAG, "Intent request received - type: ${event.type}, id: ${event.id}")
+        Log.d(LOG_TAG, "Intent clientId: ${event.clientId}, hasConnectRequest: ${event.hasConnectRequest}")
+
+        // Get current wallet to use for the intent
+        val activeAddress = state.value.activeWalletAddress
+        val currentWallet = if (activeAddress != null) {
+            state.value.wallets.firstOrNull { it.address == activeAddress }
+        } else {
+            state.value.wallets.firstOrNull()
+        }
+        if (currentWallet == null) {
+            Log.e(LOG_TAG, "No wallet available to handle intent")
+            _state.update { it.copy(error = "No wallet available. Please create a wallet first.") }
+            return
+        }
+        val walletId = currentWallet.walletId
+
+        when (event) {
+            is TONIntentEvent.TransactionIntent -> {
+                Log.d(LOG_TAG, "Transaction intent - ${event.items.size} items, network: ${event.network}")
+                val uiRequest = IntentMapper.mapTransactionIntent(event, walletId)
+                uiCoordinator.setSheet(SheetState.IntentTransaction(uiRequest))
+                eventLogger.log("Intent request: ${event.type} (${event.items.size} items)")
+            }
+            is TONIntentEvent.SignDataIntent -> {
+                Log.d(LOG_TAG, "Sign data intent - manifest: ${event.manifestUrl}")
+                val uiRequest = IntentMapper.mapSignDataIntent(event, walletId)
+                uiCoordinator.setSheet(SheetState.IntentSignData(uiRequest))
+                eventLogger.log("Sign data intent from: ${event.manifestUrl}")
+            }
+            is TONIntentEvent.ActionIntent -> {
+                Log.d(LOG_TAG, "Action intent - URL: ${event.actionUrl}")
+                val uiRequest = IntentMapper.mapActionIntent(event, walletId)
+                uiCoordinator.setSheet(SheetState.IntentAction(uiRequest))
+                eventLogger.log("Action intent: ${event.actionUrl}")
+            }
+        }
     }
 
     override fun onCleared() {

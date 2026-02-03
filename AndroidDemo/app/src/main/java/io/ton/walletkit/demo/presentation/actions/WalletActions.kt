@@ -24,6 +24,7 @@ package io.ton.walletkit.demo.presentation.actions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
+import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
@@ -74,4 +75,12 @@ interface WalletActions {
     fun onShowTransferJetton(jetton: JettonDetails)
     fun onLoadMoreJettons()
     fun onRefreshJettons()
+
+    // Intent actions (from deep links without session)
+    fun onApproveTransactionIntent(request: IntentRequestUi.Transaction)
+    fun onRejectTransactionIntent(request: IntentRequestUi.Transaction)
+    fun onApproveSignDataIntent(request: IntentRequestUi.SignData)
+    fun onRejectSignDataIntent(request: IntentRequestUi.SignData)
+    fun onApproveActionIntent(request: IntentRequestUi.Action)
+    fun onRejectActionIntent(request: IntentRequestUi.Action)
 }

@@ -59,6 +59,7 @@ import io.ton.walletkit.engine.operations.WalletOperations
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.EventRouter
 import io.ton.walletkit.engine.state.SignerManager
+import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
@@ -322,6 +323,36 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun getBalance(walletId: String): String = walletOperations.getBalance(walletId)
 
     override suspend fun handleTonConnectUrl(url: String) = tonConnectOperations.handleTonConnectUrl(url)
+
+    override suspend fun handleIntentUrl(url: String) = tonConnectOperations.handleIntentUrl(url)
+
+    override suspend fun isIntentUrl(url: String): Boolean = tonConnectOperations.isIntentUrl(url)
+
+    override suspend fun approveTransactionIntent(
+        event: TONIntentEvent.TransactionIntent,
+        walletId: String,
+    ): String = tonConnectOperations.approveTransactionIntent(event, walletId)
+
+    override suspend fun approveSignDataIntent(
+        event: TONIntentEvent.SignDataIntent,
+        walletId: String,
+    ): JSONObject = tonConnectOperations.approveSignDataIntent(event, walletId)
+
+    override suspend fun rejectIntent(
+        event: TONIntentEvent,
+        reason: String?,
+        errorCode: Int?,
+    ): JSONObject = tonConnectOperations.rejectIntent(event, reason, errorCode)
+
+    override suspend fun approveActionIntent(
+        event: TONIntentEvent.ActionIntent,
+        walletId: String,
+    ): JSONObject = tonConnectOperations.approveActionIntent(event, walletId)
+
+    override suspend fun processConnectAfterIntent(
+        event: TONIntentEvent,
+        walletId: String,
+    ) = tonConnectOperations.processConnectAfterIntent(event, walletId)
 
     override suspend fun handleTonConnectRequest(
         messageId: String,

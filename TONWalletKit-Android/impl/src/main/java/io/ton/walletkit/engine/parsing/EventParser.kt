@@ -165,6 +165,26 @@ internal class EventParser(
                 }
             }
 
+            EventTypeConstants.EVENT_INTENT_REQUEST -> {
+                try {
+                    Logger.d(TAG, "Parsing intent event - raw JSON: $data")
+                    val intentEvent = parseIntentEvent(data)
+                    TONWalletKitEvent.IntentRequest(intentEvent)
+                } catch (e: SerializationException) {
+                    Logger.e(TAG, "Failed to parse IntentEvent", e)
+                    throw JSValueConversionException.DecodingError(
+                        message = "Failed to decode IntentEvent: ${e.message}",
+                        cause = e,
+                    )
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to parse IntentEvent", e)
+                    throw JSValueConversionException.Unknown(
+                        message = "Failed to parse IntentEvent: ${e.message}",
+                        cause = e,
+                    )
+                }
+            }
+
             // Internal browser events - not exposed to public API
             EventTypeConstants.EVENT_BROWSER_PAGE_STARTED,
             EventTypeConstants.EVENT_BROWSER_PAGE_FINISHED,
@@ -178,12 +198,140 @@ internal class EventParser(
             else -> null
         }
 
+    /**
+     * Parse intent event from JSON data.
+     * The intent type determines the structure of the event.
+     */
+    private fun parseIntentEvent(data: JSONObject): io.ton.walletkit.event.TONIntentEvent {
+        val id = data.optString("id", "")
+        val clientId = data.optString("clientId", "")
+        val hasConnectRequest = data.optBoolean("hasConnectRequest", false)
+        val type = data.optString("type", "")
+
+        // Parse connect request if present
+        val connectRequest = parseConnectRequestFromIntent(data.optJSONObject("connectRequest"))
+
+        return when (type) {
+            "txIntent", "signMsg" -> {
+                val itemsArray = data.optJSONArray("items")
+                val items = mutableListOf<io.ton.walletkit.event.TONIntentItem>()
+                if (itemsArray != null) {
+                    for (i in 0 until itemsArray.length()) {
+                        val itemJson = itemsArray.getJSONObject(i)
+                        val itemType = itemJson.optString("t", "")
+                        val item = when (itemType) {
+                            "ton" -> io.ton.walletkit.event.TONIntentItem.SendTon(
+                                address = itemJson.optString("a", ""),
+                                amount = itemJson.optString("am", ""),
+                                payload = itemJson.optNullableString("p"),
+                                stateInit = itemJson.optNullableString("si"),
+                            )
+                            "jetton" -> io.ton.walletkit.event.TONIntentItem.SendJetton(
+                                masterAddress = itemJson.optString("ma", ""),
+                                jettonAmount = itemJson.optString("ja", ""),
+                                destination = itemJson.optString("d", ""),
+                                queryId = if (itemJson.has("qi")) itemJson.optLong("qi") else null,
+                                responseDestination = itemJson.optNullableString("rd"),
+                                customPayload = itemJson.optNullableString("cp"),
+                                forwardTonAmount = itemJson.optNullableString("fta"),
+                                forwardPayload = itemJson.optNullableString("fp"),
+                            )
+                            "nft" -> io.ton.walletkit.event.TONIntentItem.SendNft(
+                                nftAddress = itemJson.optString("na", ""),
+                                newOwner = itemJson.optString("no", ""),
+                                queryId = if (itemJson.has("qi")) itemJson.optLong("qi") else null,
+                                responseDestination = itemJson.optNullableString("rd"),
+                                customPayload = itemJson.optNullableString("cp"),
+                                forwardTonAmount = itemJson.optNullableString("fta"),
+                                forwardPayload = itemJson.optNullableString("fp"),
+                            )
+                            else -> throw IllegalArgumentException("Unknown intent item type: $itemType")
+                        }
+                        items.add(item)
+                    }
+                }
+                io.ton.walletkit.event.TONIntentEvent.TransactionIntent(
+                    id = id,
+                    clientId = clientId,
+                    hasConnectRequest = hasConnectRequest,
+                    type = type,
+                    connectRequest = connectRequest,
+                    network = data.optNullableString("network"),
+                    validUntil = if (data.has("validUntil")) data.optLong("validUntil") else null,
+                    items = items,
+                )
+            }
+            "signIntent" -> {
+                val payloadJson = data.optJSONObject("payload")
+                val payloadType = payloadJson?.optString("type", "") ?: ""
+                val payload = when (payloadType) {
+                    "text" -> io.ton.walletkit.event.TONSignDataPayload.Text(
+                        text = payloadJson?.optString("text", "") ?: "",
+                    )
+                    "binary" -> io.ton.walletkit.event.TONSignDataPayload.Binary(
+                        bytes = payloadJson?.optString("bytes", "") ?: "",
+                    )
+                    "cell" -> io.ton.walletkit.event.TONSignDataPayload.Cell(
+                        schema = payloadJson?.optString("schema", "") ?: "",
+                        cell = payloadJson?.optString("cell", "") ?: "",
+                    )
+                    else -> throw IllegalArgumentException("Unknown sign data payload type: $payloadType")
+                }
+                io.ton.walletkit.event.TONIntentEvent.SignDataIntent(
+                    id = id,
+                    clientId = clientId,
+                    hasConnectRequest = hasConnectRequest,
+                    connectRequest = connectRequest,
+                    manifestUrl = data.optString("manifestUrl", ""),
+                    payload = payload,
+                )
+            }
+            "actionIntent" -> {
+                io.ton.walletkit.event.TONIntentEvent.ActionIntent(
+                    id = id,
+                    clientId = clientId,
+                    hasConnectRequest = hasConnectRequest,
+                    connectRequest = connectRequest,
+                    actionUrl = data.optString("actionUrl", ""),
+                )
+            }
+            else -> throw IllegalArgumentException("Unknown intent type: $type")
+        }
+    }
+
     private fun JSONObject.optNullableString(key: String): String? {
         val value = opt(key)
         return when (value) {
             null, JSONObject.NULL -> null
             else -> value.toString()
         }
+    }
+
+    /**
+     * Parse connect request from intent event JSON.
+     */
+    private fun parseConnectRequestFromIntent(json: JSONObject?): io.ton.walletkit.event.TONIntentConnectRequest? {
+        if (json == null) return null
+        val manifestUrl = json.optString("manifestUrl", "")
+        if (manifestUrl.isEmpty()) return null
+
+        val itemsArray = json.optJSONArray("items")
+        val items = if (itemsArray != null) {
+            (0 until itemsArray.length()).map { i ->
+                val itemJson = itemsArray.getJSONObject(i)
+                io.ton.walletkit.event.TONIntentConnectItem(
+                    name = itemJson.optString("name", ""),
+                    payload = itemJson.optNullableString("payload"),
+                )
+            }
+        } else {
+            null
+        }
+
+        return io.ton.walletkit.event.TONIntentConnectRequest(
+            manifestUrl = manifestUrl,
+            items = items,
+        )
     }
 
     private companion object {

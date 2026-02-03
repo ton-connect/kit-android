@@ -24,6 +24,7 @@ package io.ton.walletkit.demo.presentation.actions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
+import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
@@ -126,4 +127,17 @@ class WalletActionsImpl @Inject constructor(
     override fun onLoadMoreJettons() = viewModel.loadMoreJettons()
 
     override fun onRefreshJettons() = viewModel.refreshJettons()
+
+    // Intent actions (from deep links without session)
+    override fun onApproveTransactionIntent(request: IntentRequestUi.Transaction) = viewModel.approveTransactionIntent(request)
+
+    override fun onRejectTransactionIntent(request: IntentRequestUi.Transaction) = viewModel.rejectTransactionIntent(request)
+
+    override fun onApproveSignDataIntent(request: IntentRequestUi.SignData) = viewModel.approveSignDataIntent(request)
+
+    override fun onRejectSignDataIntent(request: IntentRequestUi.SignData) = viewModel.rejectSignDataIntent(request)
+
+    override fun onApproveActionIntent(request: IntentRequestUi.Action) = viewModel.approveActionIntent(request)
+
+    override fun onRejectActionIntent(request: IntentRequestUi.Action) = viewModel.rejectActionIntent(request)
 }

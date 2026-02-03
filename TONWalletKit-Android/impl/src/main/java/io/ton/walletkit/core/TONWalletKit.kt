@@ -416,6 +416,150 @@ internal class TONWalletKit private constructor(
     }
 
     /**
+     * Handle an intent URL (tc://intent_inline?... or tc://intent?...).
+     *
+     * This will parse the URL and trigger an intent event for the wallet UI.
+     *
+     * @param url Intent URL
+     * @throws io.ton.walletkit.WalletKitBridgeException if URL handling fails
+     */
+    override suspend fun handleIntentUrl(url: String) {
+        checkNotDestroyed()
+        engine.handleIntentUrl(url)
+    }
+
+    /**
+     * Check if a URL is an intent URL (tc://intent_inline?... or tc://intent?...).
+     *
+     * @param url URL to check
+     * @return true if the URL is an intent URL
+     */
+    override suspend fun isIntentUrl(url: String): Boolean {
+        checkNotDestroyed()
+        return engine.isIntentUrl(url)
+    }
+
+    /**
+     * Approve a transaction intent and execute it.
+     *
+     * Signs the transaction and sends it to the blockchain.
+     * Returns the signed BOC (Bag of Cells) as a base64 string.
+     *
+     * @param event The transaction intent event to approve
+     * @param walletId ID of the wallet to use for signing
+     * @return Signed transaction BOC as base64 string
+     */
+    override suspend fun approveTransactionIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.TransactionIntent,
+        walletId: String,
+    ): String {
+        checkNotDestroyed()
+        return engine.approveTransactionIntent(event, walletId)
+    }
+
+    /**
+     * Approve a sign data intent.
+     *
+     * Signs the data payload without sending any transaction.
+     * Returns the signature result.
+     *
+     * @param event The sign data intent event to approve
+     * @param walletId ID of the wallet to use for signing
+     * @return Result containing signature, timestamp, and domain info
+     */
+    override suspend fun approveSignDataIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.SignDataIntent,
+        walletId: String,
+    ): io.ton.walletkit.model.IntentSignDataResult {
+        checkNotDestroyed()
+        val result = engine.approveSignDataIntent(event, walletId)
+        // Parse JSON result from engine
+        val resultObj = result.getJSONObject("result")
+
+        // Domain is a plain string (hostname)
+        val domain = resultObj.optString("domain", "")
+        val address = resultObj.optString("address", "")
+
+        // Parse payload
+        val payloadObj = resultObj.getJSONObject("payload")
+        val payloadType = payloadObj.optString("type", "text")
+        val payload: io.ton.walletkit.model.SignDataIntentPayload = when (payloadType) {
+            "text" -> io.ton.walletkit.model.SignDataIntentPayload.Text(
+                text = payloadObj.optString("text", ""),
+            )
+            "binary" -> io.ton.walletkit.model.SignDataIntentPayload.Binary(
+                bytes = payloadObj.optString("bytes", ""),
+            )
+            "cell" -> io.ton.walletkit.model.SignDataIntentPayload.Cell(
+                schema = payloadObj.optString("schema", ""),
+                cell = payloadObj.optString("cell", ""),
+            )
+            else -> io.ton.walletkit.model.SignDataIntentPayload.Text(text = "")
+        }
+
+        return io.ton.walletkit.model.IntentSignDataResult(
+            signature = resultObj.optString("signature", ""),
+            address = address,
+            timestamp = resultObj.optLong("timestamp", 0),
+            domain = domain,
+            payload = payload,
+        )
+    }
+
+    /**
+     * Reject an intent request.
+     *
+     * Sends an error response to the dApp indicating the user rejected the request.
+     *
+     * @param event The intent event to reject
+     * @param reason Optional reason for rejection
+     * @param errorCode Optional error code (defaults to user rejected)
+     */
+    override suspend fun rejectIntent(
+        event: io.ton.walletkit.event.TONIntentEvent,
+        reason: String?,
+        errorCode: Int?,
+    ) {
+        checkNotDestroyed()
+        engine.rejectIntent(event, reason, errorCode)
+    }
+
+    /**
+     * Approve an action intent.
+     *
+     * Fetches action details from the action URL and executes the action.
+     * The action URL returns either a transaction or sign data request.
+     *
+     * @param event The action intent event to approve
+     * @param walletId ID of the wallet to use for signing
+     * @return Result containing the action response
+     */
+    override suspend fun approveActionIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.ActionIntent,
+        walletId: String,
+    ): org.json.JSONObject {
+        checkNotDestroyed()
+        return engine.approveActionIntent(event, walletId)
+    }
+
+    /**
+     * Process connect request after intent approval.
+     *
+     * If the intent includes a connect request (hasConnectRequest=true),
+     * this method creates a proper session for the dApp.
+     *
+     * @param event The intent event with connect request
+     * @param walletId ID of the wallet to use for the connection
+     */
+    override suspend fun processConnectAfterIntent(
+        event: io.ton.walletkit.event.TONIntentEvent,
+        walletId: String,
+    ) {
+        checkNotDestroyed()
+        engine.processConnectAfterIntent(event, walletId)
+    }
+
+    /**
      * Create a WebView TonConnect injector for the given WebView.
      *
      * @param webView The WebView to inject TonConnect into

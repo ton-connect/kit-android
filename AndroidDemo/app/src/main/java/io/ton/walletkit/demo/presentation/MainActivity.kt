@@ -21,7 +21,9 @@
  */
 package io.ton.walletkit.demo.presentation
 
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -53,6 +55,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Handle deep link on launch
+        handleDeepLink(intent)
+
         setContent {
             MaterialTheme {
                 Surface(color = MaterialTheme.colorScheme.background) {
@@ -60,6 +66,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+        val url = uri.toString()
+        Log.d("MainActivity", "Deep link received: $url")
+        viewModel.handleDeepLink(url)
     }
 }
 

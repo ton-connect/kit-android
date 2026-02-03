@@ -251,6 +251,90 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun handleTonConnectUrl(url: String)
 
     /**
+     * Handle an intent URL (tc://intent_inline?... or tc://intent?...).
+     * Parses the URL and emits an intent event for the wallet UI.
+     *
+     * @param url Intent URL to handle
+     * @throws WalletKitBridgeException if URL handling fails
+     */
+    suspend fun handleIntentUrl(url: String)
+
+    /**
+     * Check if a URL is an intent URL (tc://intent_inline?... or tc://intent?...).
+     *
+     * @param url URL to check
+     * @return true if the URL is an intent URL
+     */
+    suspend fun isIntentUrl(url: String): Boolean
+
+    /**
+     * Approve a transaction intent (txIntent or signMsg).
+     *
+     * For txIntent: Signs and sends the transaction to the blockchain.
+     * For signMsg: Signs but does NOT send (for gasless transactions).
+     *
+     * @param event The transaction intent event to approve.
+     * @param walletId The wallet ID to use for signing.
+     * @return The signed BoC as base64 string.
+     */
+    suspend fun approveTransactionIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.TransactionIntent,
+        walletId: String,
+    ): String
+
+    /**
+     * Approve a sign data intent (signIntent).
+     *
+     * @param event The sign data intent event to approve.
+     * @param walletId The wallet ID to use for signing.
+     * @return The signature result.
+     */
+    suspend fun approveSignDataIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.SignDataIntent,
+        walletId: String,
+    ): org.json.JSONObject
+
+    /**
+     * Reject an intent request.
+     *
+     * @param event The intent event to reject.
+     * @param reason Optional rejection reason.
+     * @param errorCode Optional error code (defaults to 300 = USER_DECLINED).
+     */
+    suspend fun rejectIntent(
+        event: io.ton.walletkit.event.TONIntentEvent,
+        reason: String? = null,
+        errorCode: Int? = null,
+    ): org.json.JSONObject
+
+    /**
+     * Approve an action intent (actionIntent).
+     *
+     * The wallet fetches action details from the action URL and executes the action.
+     *
+     * @param event The action intent event to approve.
+     * @param walletId The wallet ID to use for signing.
+     * @return The action result.
+     */
+    suspend fun approveActionIntent(
+        event: io.ton.walletkit.event.TONIntentEvent.ActionIntent,
+        walletId: String,
+    ): org.json.JSONObject
+
+    /**
+     * Process connect request after intent approval.
+     *
+     * Creates a proper session for the dApp after intent approval.
+     *
+     * @param event The intent event with connect request.
+     * @param walletId The wallet ID to use for the connection.
+     */
+    suspend fun processConnectAfterIntent(
+        event: io.ton.walletkit.event.TONIntentEvent,
+        walletId: String,
+    )
+
+    /**
      * Handle a TonConnect request from a dApp (via internal browser or extension).
      * This processes the request and invokes the callback with the response.
      *
