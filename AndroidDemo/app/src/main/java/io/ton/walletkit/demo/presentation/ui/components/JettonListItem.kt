@@ -110,7 +110,7 @@ fun JettonListItem(
                 }
             } else {
                 SubcomposeAsyncImage(
-                    model = jetton.imageSource,
+                    model = jetton.imageUrl,
                     contentDescription = jetton.name,
                     modifier = Modifier
                         .size(48.dp)

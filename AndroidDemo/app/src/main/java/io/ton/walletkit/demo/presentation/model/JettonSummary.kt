@@ -22,81 +22,91 @@
 package io.ton.walletkit.demo.presentation.model
 
 import io.ton.walletkit.api.generated.TONJetton
+import io.ton.walletkit.demo.data.api.JettonBalance
 import java.math.BigDecimal
 import java.math.RoundingMode
 
 /**
  * UI-friendly jetton summary model for list display.
  *
- * Maps from [TONJetton] SDK model to presentation layer.
- * Mirrors iOS WalletJettonsListItem structure for cross-platform consistency.
+ * Supports both SDK's TONJetton and native API's JettonBalance.
  */
 data class JettonSummary(
     val name: String,
     val symbol: String,
     val address: String,
+    val masterAddress: String,
     val balance: String,
     val formattedBalance: String,
     val imageUrl: String?,
-    val imageData: String?,
     val estimatedValue: String,
-    val jetton: TONJetton,
+    val decimals: Int,
 ) {
-    /**
-     * Get the image source, preferring URL over base64 data.
-     */
-    val imageSource: String?
-        get() = imageUrl ?: imageData
-
     companion object {
         /**
          * Create JettonSummary from SDK's TONJetton.
-         *
-         * @param jetton Jetton from SDK
-         * @return UI-friendly jetton summary
          */
         fun from(jetton: TONJetton): JettonSummary {
             val info = jetton.info
-
             val name = info.name ?: "Unknown Jetton"
             val symbol = info.symbol ?: "UNKNOWN"
-            val address = jetton.walletAddress.value
+            val walletAddress = jetton.walletAddress.value
+            val masterAddress = jetton.address.value
             val balance = jetton.balance
+            val decimals = jetton.decimalsNumber ?: 9
 
-            // Format balance with decimals
-            val formattedBalance = try {
-                val decimals = jetton.decimalsNumber ?: 9
-                val balanceBigInt = BigDecimal(balance)
-                val divisor = BigDecimal.TEN.pow(decimals)
-                val formattedValue = balanceBigInt.divide(divisor, decimals, RoundingMode.DOWN)
-
-                // Remove trailing zeros
-                val strippedValue = formattedValue.stripTrailingZeros()
-                val plainString = strippedValue.toPlainString()
-
-                // Format with symbol
-                "$plainString $symbol"
-            } catch (e: Exception) {
-                "$balance $symbol (raw)"
-            }
-
+            val formattedBalance = formatBalance(balance, decimals, symbol)
             val imageUrl = info.image?.mediumUrl ?: info.image?.url
-            val imageData = info.image?.data
 
-            // Placeholder for estimated value - would need price data
-            val estimatedValue = "≈ \$0.00"
+            return JettonSummary(
+                name = name,
+                symbol = symbol,
+                address = walletAddress,
+                masterAddress = masterAddress,
+                balance = balance,
+                formattedBalance = formattedBalance,
+                imageUrl = imageUrl,
+                estimatedValue = "≈ \$0.00",
+                decimals = decimals,
+            )
+        }
+
+        /**
+         * Create JettonSummary from native API's JettonBalance.
+         */
+        fun from(jetton: JettonBalance): JettonSummary {
+            val info = jetton.jetton
+            val name = info.name
+            val symbol = info.symbol
+            val address = jetton.walletAddress.address
+            val masterAddress = info.address
+            val balance = jetton.balance
+            val decimals = info.decimals
+
+            val formattedBalance = formatBalance(balance, decimals, symbol)
 
             return JettonSummary(
                 name = name,
                 symbol = symbol,
                 address = address,
+                masterAddress = masterAddress,
                 balance = balance,
                 formattedBalance = formattedBalance,
-                imageUrl = imageUrl,
-                imageData = imageData,
-                estimatedValue = estimatedValue,
-                jetton = jetton,
+                imageUrl = info.image,
+                estimatedValue = "≈ \$0.00",
+                decimals = decimals,
             )
+        }
+
+        private fun formatBalance(balance: String, decimals: Int, symbol: String): String = try {
+            val balanceBigInt = BigDecimal(balance)
+            val divisor = BigDecimal.TEN.pow(decimals)
+            val formattedValue = balanceBigInt.divide(divisor, decimals, RoundingMode.DOWN)
+            val strippedValue = formattedValue.stripTrailingZeros()
+            val plainString = strippedValue.toPlainString()
+            "$plainString $symbol"
+        } catch (e: Exception) {
+            "$balance $symbol (raw)"
         }
     }
 }

@@ -96,5 +96,26 @@ data class JettonDetails(
                 verified = false, // TODO: Add isVerified once SDK exposes it
             )
         }
+
+        /**
+         * Create JettonDetails from JettonSummary (native API model).
+         *
+         * @param summary JettonSummary from native API
+         * @return UI-friendly jetton details
+         */
+        fun from(summary: JettonSummary): JettonDetails = JettonDetails(
+            name = summary.name,
+            symbol = summary.symbol,
+            description = null, // Not available in summary
+            jettonAddress = summary.masterAddress,
+            walletAddress = summary.address,
+            balance = summary.balance,
+            formattedBalance = summary.formattedBalance,
+            decimals = summary.decimals,
+            totalSupply = null,
+            imageUrl = summary.imageUrl,
+            imageData = null,
+            verified = false,
+        )
     }
 }
