@@ -780,7 +780,7 @@ class WalletKitViewModel @Inject constructor(
 
                     lifecycleManager.walletMetadata[address.value] = pending.metadata
                     val record = WalletRecord(
-                        mnemonic = emptyList(), // Random mnemonic not saved in demo app
+                        mnemonic = mnemonic, // Save mnemonic for wallet restoration
                         name = pending.metadata.name,
                         network = network.chainId,
                         version = version,
