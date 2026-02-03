@@ -744,10 +744,12 @@ class WalletKitViewModel @Inject constructor(
             }
             lifecycleManager.pendingWallets.addLast(pending)
 
+            // Generate mnemonic outside runCatching so we can save it
+            val kit = getKit()
+            val mnemonic = kit.createTonMnemonic()
+            
             val result = runCatching {
-                val kit = getKit()
                 // Generate a new TON mnemonic explicitly (matches JS docs pattern)
-                val mnemonic = kit.createTonMnemonic()
                 val signer = kit.createSignerFromMnemonic(mnemonic)
                 val adapter = when (version) {
                     WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network)
@@ -767,7 +769,7 @@ class WalletKitViewModel @Inject constructor(
 
                     lifecycleManager.walletMetadata[address.value] = pending.metadata
                     val record = WalletRecord(
-                        mnemonic = emptyList(), // Random mnemonic not saved in demo app
+                        mnemonic = mnemonic, // Save mnemonic for wallet restoration
                         name = pending.metadata.name,
                         network = network.chainId,
                         version = version,
