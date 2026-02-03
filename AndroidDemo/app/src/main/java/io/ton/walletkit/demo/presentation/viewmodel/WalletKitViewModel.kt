@@ -755,10 +755,12 @@ class WalletKitViewModel @Inject constructor(
             }
             lifecycleManager.pendingWallets.addLast(pending)
 
+            // Generate mnemonic outside runCatching so we can save it
+            val kit = getKit()
+            val mnemonic = kit.createTonMnemonic()
+
             val result = runCatching {
-                val kit = getKit()
                 // Generate a new TON mnemonic explicitly (matches JS docs pattern)
-                val mnemonic = kit.createTonMnemonic()
                 val signer = kit.createSignerFromMnemonic(mnemonic)
                 val adapter = when (version) {
                     WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network)
@@ -933,15 +935,7 @@ class WalletKitViewModel @Inject constructor(
             return
         }
 
-        val wallet = lifecycleManager.tonWallets[address]
-        if (wallet == null) {
-            Log.w(LOG_TAG, "updateNftsViewModel: wallet not found for address $address")
-            _nftsViewModel.value = null
-            currentNftsWalletAddress = null
-            return
-        }
-
-        _nftsViewModel.value = NFTsListViewModel(wallet)
+        _nftsViewModel.value = NFTsListViewModel(address, lifecycleManager.currentNetwork)
         currentNftsWalletAddress = address
         Log.d(LOG_TAG, "updateNftsViewModel: created NFTsListViewModel for $address")
     }
@@ -1042,7 +1036,7 @@ class WalletKitViewModel @Inject constructor(
             return
         }
 
-        val viewModel = JettonsListViewModel(wallet)
+        val viewModel = JettonsListViewModel(wallet, lifecycleManager.currentNetwork)
         activeJettonsViewModel.value = viewModel
         currentJettonsWalletAddress = address
 
@@ -1647,7 +1641,7 @@ class WalletKitViewModel @Inject constructor(
      * Show jetton details sheet.
      */
     fun showJettonDetails(jettonSummary: JettonSummary) {
-        val jettonDetails = JettonDetails.from(jettonSummary.jetton)
+        val jettonDetails = JettonDetails.from(jettonSummary)
         uiCoordinator.showJettonDetails(jettonDetails)
     }
 
