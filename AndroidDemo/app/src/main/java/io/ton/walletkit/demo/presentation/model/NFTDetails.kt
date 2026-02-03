@@ -26,7 +26,7 @@ import io.ton.walletkit.api.generated.TONNFT
 /**
  * UI-friendly NFT details model.
  *
- * Maps from [TONNFT] SDK model to presentation layer.
+ * Maps from [TONNFT] SDK model or [NFTSummary] to presentation layer.
  * Mirrors iOS WalletNFTDetails structure for cross-platform consistency.
  */
 data class NFTDetails(
@@ -82,5 +82,24 @@ data class NFTDetails(
                 canTransfer = canTransfer,
             )
         }
+
+        /**
+         * Create NFTDetails from NFTSummary (native API model).
+         *
+         * @param summary NFT summary from native API
+         * @return UI-friendly NFT details
+         */
+        fun from(summary: NFTSummary): NFTDetails = NFTDetails(
+            name = summary.name ?: "Unknown NFT",
+            description = summary.description,
+            imageUrl = summary.imageUrl,
+            collectionName = summary.collectionName
+                ?: summary.collectionAddress?.take(8)?.let { "$it..." },
+            index = null, // Not available from native API
+            status = null, // Not available from native API
+            contractAddress = summary.address,
+            ownerAddress = null, // Not tracked in summary
+            canTransfer = true, // Assume transferable since we don't have sale status
+        )
     }
 }

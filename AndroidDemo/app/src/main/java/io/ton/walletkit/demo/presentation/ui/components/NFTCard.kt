@@ -46,32 +46,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
-import io.ton.walletkit.api.generated.TONNFT
-import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
+import io.ton.walletkit.demo.presentation.model.NFTSummary
 
 /**
  * Card component for displaying an NFT item in a grid.
  *
- * Extracts image URL from NFT info, preferring mediumUrl if available.
+ * Uses NFTSummary which can be created from either SDK's TONNFT or native API's NftItem.
  */
 @Composable
 fun NFTCard(
-    nft: TONNFT,
-    onClick: (TONNFT) -> Unit,
+    nft: NFTSummary,
+    onClick: (NFTSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Get image URL, preferring medium size image
-    val imageUrl = remember(nft.address.value) {
-        try {
-            // Try to get medium image first, fallback to regular url
-            val mediumImage = nft.info?.image?.mediumUrl
-            val url = mediumImage ?: nft.info?.image?.url
-            Log.d("NFTCard", "Image URL for ${nft.address.value}: $url")
-            url
-        } catch (e: Exception) {
-            Log.e("NFTCard", "Error extracting image URL for ${nft.address.value}", e)
-            nft.info?.image?.url
-        }
+    // Get image URL from NFTSummary
+    val imageUrl = remember(nft.address) {
+        Log.d("NFTCard", "Image URL for ${nft.address}: ${nft.imageUrl}")
+        nft.imageUrl
     }
 
     Card(
@@ -85,7 +76,7 @@ fun NFTCard(
             // NFT Image with SubcomposeAsyncImage for better state control
             SubcomposeAsyncImage(
                 model = imageUrl,
-                contentDescription = nft.info?.name ?: "NFT",
+                contentDescription = nft.name ?: "NFT",
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
@@ -126,15 +117,22 @@ fun NFTCard(
                     .padding(12.dp),
             ) {
                 Text(
-                    text = nft.info?.name ?: "Unnamed NFT",
+                    text = nft.name ?: "Unnamed NFT",
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
 
-                nft.collection?.let { collection ->
+                nft.collectionName?.let { collectionName ->
                     Text(
-                        text = (collection.address?.value ?: "").take(8) + "...",
+                        text = collectionName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                } ?: nft.collectionAddress?.let { collectionAddress ->
+                    Text(
+                        text = collectionAddress.take(8) + "...",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -185,7 +183,14 @@ fun EmptyNFTState(
 private fun NFTCardPreview() {
     MaterialTheme {
         NFTCard(
-            nft = PreviewData.nftItem,
+            nft = NFTSummary(
+                address = "EQDtFpEwcFAEcRe5mLVh2N6C0x-_hJEM7W61_JLnSF74p4qo",
+                name = "Sample NFT",
+                description = "A sample NFT for preview",
+                imageUrl = null,
+                collectionName = "Sample Collection",
+                collectionAddress = null,
+            ),
             onClick = {},
         )
     }
