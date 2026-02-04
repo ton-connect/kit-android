@@ -30,7 +30,6 @@ import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
-import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
