@@ -44,7 +44,6 @@ import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
-import io.ton.walletkit.engine.model.TONTransactionWithPreview
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
@@ -521,7 +520,6 @@ internal class QuickJsWalletKitEngine(
 
     override suspend fun approveTransaction(
         event: TONSendTransactionRequestEvent,
-        network: TONNetwork,
         response: TONSendTransactionApprovalResponse?,
     ) {
         ensureWalletKitInitialized()
@@ -553,7 +551,6 @@ internal class QuickJsWalletKitEngine(
 
     override suspend fun approveSignData(
         event: TONSignDataRequestEvent,
-        network: TONNetwork,
         response: TONSignDataApprovalResponse?,
     ) {
         ensureWalletKitInitialized()
@@ -683,7 +680,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun createTransferMultiTonTransaction(
         walletId: String,
         messages: List<TONTransferRequest>,
-    ): TONTransactionWithPreview {
+    ): String {
         TODO("Not yet implemented")
     }
 
@@ -743,7 +740,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun createTransferTonTransaction(
         walletId: String,
         params: TONTransferRequest,
-    ): TONTransactionWithPreview {
+    ): String {
         TODO("Not yet implemented")
     }
 

@@ -23,7 +23,6 @@ package io.ton.walletkit.request
 
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
-import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
@@ -51,13 +50,11 @@ interface RequestHandler {
     /**
      * Approve a transaction request.
      * @param event The transaction request event
-     * @param network The network to execute the transaction on
      * @param response Optional pre-computed approval response. If provided, the SDK will use this
      *                 response directly instead of signing the transaction internally.
      */
     suspend fun approveTransaction(
         event: TONSendTransactionRequestEvent,
-        network: TONNetwork,
         response: TONSendTransactionApprovalResponse? = null,
     )
 
@@ -66,13 +63,11 @@ interface RequestHandler {
     /**
      * Approve a sign data request.
      * @param event The sign data request event
-     * @param network The network to sign on
      * @param response Optional pre-computed approval response. If provided, the SDK will use this
      *                 response directly instead of signing the data internally.
      */
     suspend fun approveSignData(
         event: TONSignDataRequestEvent,
-        network: TONNetwork,
         response: TONSignDataApprovalResponse? = null,
     )
 
