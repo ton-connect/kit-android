@@ -21,6 +21,8 @@
  */
 package io.ton.walletkit.engine
 
+import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFT
@@ -28,16 +30,16 @@ import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
+import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
+import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
-import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
-import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
-import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.model.TONTransactionWithPreview
 import io.ton.walletkit.engine.model.WalletAccount
-import io.ton.walletkit.engine.model.WalletSession
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
@@ -319,9 +321,13 @@ internal interface WalletKitEngine : RequestHandler {
      * The event should have walletId and walletAddress set.
      *
      * @param event Typed event from the connect request with wallet info
+     * @param response Optional pre-computed approval response
      * @throws WalletKitBridgeException if approval fails
      */
-    override suspend fun approveConnect(event: TONConnectionRequestEvent)
+    override suspend fun approveConnect(
+        event: TONConnectionRequestEvent,
+        response: TONConnectionApprovalResponse?,
+    )
 
     /**
      * Reject a connection request from a dApp.
@@ -341,9 +347,15 @@ internal interface WalletKitEngine : RequestHandler {
      * Approve and sign a transaction request.
      *
      * @param event Typed event from the transaction request
+     * @param network Network to execute transaction on
+     * @param response Optional pre-computed approval response
      * @throws WalletKitBridgeException if approval or signing fails
      */
-    override suspend fun approveTransaction(event: TONTransactionRequestEvent, network: TONNetwork)
+    override suspend fun approveTransaction(
+        event: TONSendTransactionRequestEvent,
+        network: TONNetwork,
+        response: TONSendTransactionApprovalResponse?,
+    )
 
     /**
      * Reject a transaction request.
@@ -354,7 +366,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @throws WalletKitBridgeException if rejection fails
      */
     override suspend fun rejectTransaction(
-        event: TONTransactionRequestEvent,
+        event: TONSendTransactionRequestEvent,
         reason: String?,
         errorCode: Int?,
     )
@@ -363,9 +375,15 @@ internal interface WalletKitEngine : RequestHandler {
      * Approve and sign a data signing request.
      *
      * @param event Typed event from the sign data request
+     * @param network Network to sign on
+     * @param response Optional pre-computed approval response
      * @throws WalletKitBridgeException if approval or signing fails
      */
-    override suspend fun approveSignData(event: TONSignDataRequestEvent, network: TONNetwork)
+    override suspend fun approveSignData(
+        event: TONSignDataRequestEvent,
+        network: TONNetwork,
+        response: TONSignDataApprovalResponse?,
+    )
 
     /**
      * Reject a data signing request.
@@ -386,7 +404,7 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @return List of active sessions
      */
-    suspend fun listSessions(): List<WalletSession>
+    suspend fun listSessions(): List<io.ton.walletkit.session.TONConnectSession>
 
     /**
      * Disconnect a TON Connect session.

@@ -137,7 +137,7 @@ internal class InitializationManager(
 
         val tonClientEndpoint = resolveTonClientEndpoint(configuration)
         apiBaseUrl = resolveTonApiBase(configuration)
-        tonApiKey = configuration.apiClient?.key?.takeIf { it.isNotBlank() }
+        tonApiKey = configuration.apiClientConfiguration?.key?.takeIf { it.isNotBlank() }
 
         // Use deviceInfo if provided, otherwise auto-detect
         val appVersion = configuration.deviceInfo?.appVersion
@@ -171,6 +171,38 @@ internal class InitializationManager(
                 put(JsonConstants.KEY_NETWORK, currentNetwork)
                 tonClientEndpoint?.let { put(JsonConstants.KEY_API_URL, it) }
                 put(JsonConstants.KEY_TON_API_URL, apiBaseUrl)
+
+                // Pass all configured networks (matching iOS bridge format: networkConfigurations)
+                put(
+                    "networkConfigurations",
+                    org.json.JSONArray().apply {
+                        for (networkConfig in configuration.networkConfigurations) {
+                            put(
+                                JSONObject().apply {
+                                    put(
+                                        "network",
+                                        JSONObject().apply {
+                                            put("chainId", networkConfig.network.chainId)
+                                        },
+                                    )
+                                    networkConfig.apiClientConfiguration?.let { apiConfig ->
+                                        put(
+                                            "apiClientConfiguration",
+                                            JSONObject().apply {
+                                                apiConfig.url?.takeIf { it.isNotBlank() }?.let {
+                                                    put("url", it)
+                                                }
+                                                apiConfig.key?.takeIf { it.isNotBlank() }?.let {
+                                                    put("key", it)
+                                                }
+                                            },
+                                        )
+                                    }
+                                },
+                            )
+                        }
+                    },
+                )
 
                 configuration.bridge.bridgeUrl.takeIf { it.isNotBlank() }?.let { put(JsonConstants.KEY_BRIDGE_URL, it) }
                 configuration.walletManifest.name.takeIf { it.isNotBlank() }?.let { put(JsonConstants.KEY_BRIDGE_NAME, it) }
@@ -260,10 +292,10 @@ internal class InitializationManager(
         }
 
     private fun resolveTonClientEndpoint(configuration: TONWalletKitConfiguration): String? =
-        configuration.apiClient?.url?.takeIf { it.isNotBlank() }
+        configuration.apiClientConfiguration?.url?.takeIf { it.isNotBlank() }
 
     private fun resolveTonApiBase(configuration: TONWalletKitConfiguration): String {
-        val custom = configuration.apiClient?.url?.takeIf { it.isNotBlank() }
+        val custom = configuration.apiClientConfiguration?.url?.takeIf { it.isNotBlank() }
         return custom ?: when (configuration.network.chainId) {
             TONNetwork.MAINNET.chainId -> NetworkConstants.DEFAULT_MAINNET_API_URL
             TONNetwork.TESTNET.chainId -> NetworkConstants.DEFAULT_TESTNET_API_URL

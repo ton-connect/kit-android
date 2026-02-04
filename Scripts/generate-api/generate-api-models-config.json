@@ -12,7 +12,8 @@
   "sortModelPropertiesByRequiredFlag": true,
   "modelNamePrefix": "TON",
   "modelNameMappings": {
-    "TONTransferRequest": "TONTransferRequest"
+    "TONTransferRequest": "TONTransferRequest",
+    "TONConnectSession": "TONConnectSession"
   },
   "typeMappings": {
     "number": "kotlin.Int",

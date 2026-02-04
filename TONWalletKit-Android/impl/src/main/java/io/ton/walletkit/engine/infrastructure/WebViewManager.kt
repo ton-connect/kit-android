@@ -36,15 +36,24 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.generated.TONDAppInfo
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.bridge.BuildConfig
+import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.session.TONConnectSessionManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -61,6 +70,9 @@ internal class WebViewManager(
     private val assetPath: String,
     private val storageManager: StorageManager,
     private val signerManager: io.ton.walletkit.engine.state.SignerManager,
+    private val sessionManager: TONConnectSessionManager?,
+    private val apiClients: List<TONAPIClient>,
+    private val json: Json,
     private val onMessage: (JSONObject) -> Unit,
     private val onBridgeError: (WalletKitBridgeException, String?) -> Unit,
 ) {
@@ -327,6 +339,254 @@ internal class WebViewManager(
                     Logger.e(TAG, "Failed to sign with custom signer: $signerId", e)
                     throw e
                 }
+            }
+        }
+
+        // ======== Session Manager Methods ========
+        // These methods are only available when a custom session manager is configured.
+        // The JS bridge checks hasSessionManager to determine if native session manager is available.
+
+        @JavascriptInterface
+        fun hasSessionManager(): Boolean = sessionManager != null
+
+        @JavascriptInterface
+        fun sessionCreate(
+            sessionId: String,
+            dAppInfoJson: String,
+            walletId: String,
+            walletAddress: String,
+            isJsBridge: Boolean,
+        ): String {
+            val manager = sessionManager
+                ?: throw IllegalStateException("Session manager not configured")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "sessionCreate: sessionId=$sessionId, dAppInfo=$dAppInfoJson")
+
+                    val dAppInfoObj = JSONObject(dAppInfoJson)
+                    val dAppInfo = TONDAppInfo(
+                        name = dAppInfoObj.optString("name", ""),
+                        url = dAppInfoObj.optNullableString("url"),
+                        iconUrl = dAppInfoObj.optNullableString("iconUrl"),
+                        description = dAppInfoObj.optNullableString("description"),
+                    )
+
+                    val session = manager.createSession(
+                        sessionId = sessionId,
+                        dAppInfo = dAppInfo,
+                        walletId = walletId,
+                        walletAddress = walletAddress,
+                        isJsBridge = isJsBridge,
+                    )
+
+                    json.encodeToString(session)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to create session: $sessionId", e)
+                    throw e
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun sessionGet(sessionId: String): String? {
+            val manager = sessionManager
+                ?: throw IllegalStateException("Session manager not configured")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "sessionGet: sessionId=$sessionId")
+                    val session = manager.getSession(sessionId)
+                    session?.let { json.encodeToString(it) }
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get session: $sessionId", e)
+                    null
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun sessionGetByDomain(domain: String): String? {
+            val manager = sessionManager
+                ?: throw IllegalStateException("Session manager not configured")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "sessionGetByDomain: domain=$domain")
+                    val session = manager.getSessionByDomain(domain)
+                    session?.let { json.encodeToString(it) }
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get session by domain: $domain", e)
+                    null
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun sessionGetAll(): String {
+            val manager = sessionManager
+                ?: throw IllegalStateException("Session manager not configured")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "sessionGetAll")
+                    val sessions = manager.getSessions()
+                    json.encodeToString(sessions)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get all sessions", e)
+                    "[]"
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun sessionGetForWallet(walletId: String): String {
+            val manager = sessionManager
+                ?: throw IllegalStateException("Session manager not configured")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "sessionGetForWallet: walletId=$walletId")
+                    val sessions = manager.getSessionsForWallet(walletId)
+                    json.encodeToString(sessions)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get sessions for wallet: $walletId", e)
+                    "[]"
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun sessionRemove(sessionId: String) {
+            val manager = sessionManager
+                ?: throw IllegalStateException("Session manager not configured")
+
+            kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "sessionRemove: sessionId=$sessionId")
+                    manager.removeSession(sessionId)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to remove session: $sessionId", e)
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun sessionRemoveForWallet(walletId: String) {
+            val manager = sessionManager
+                ?: throw IllegalStateException("Session manager not configured")
+
+            kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "sessionRemoveForWallet: walletId=$walletId")
+                    manager.removeSessionsForWallet(walletId)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to remove sessions for wallet: $walletId", e)
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun sessionClear() {
+            val manager = sessionManager
+                ?: throw IllegalStateException("Session manager not configured")
+
+            kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "sessionClear")
+                    manager.clearSessions()
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to clear sessions", e)
+                }
+            }
+        }
+
+        // ======== API Client Methods ========
+        // These methods are only available when custom API clients are configured.
+        // The JS bridge checks for apiGetNetworks to determine if native API clients are available.
+
+        @JavascriptInterface
+        fun apiGetNetworks(): String {
+            if (apiClients.isEmpty()) {
+                return "[]"
+            }
+
+            val networks = apiClients.map { client ->
+                json.encodeToString(client.network)
+            }
+            return "[${ networks.joinToString(",") }]"
+        }
+
+        @JavascriptInterface
+        fun apiSendBoc(networkJson: String, boc: String): String {
+            val network = json.decodeFromString<TONNetwork>(networkJson)
+            val client = apiClients.find { it.network == network }
+                ?: throw IllegalArgumentException("No API client configured for network: $network")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "apiSendBoc: network=$network")
+                    client.sendBoc(TONBase64(boc))
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to send BOC: $network", e)
+                    throw e
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun apiRunGetMethod(
+            networkJson: String,
+            address: String,
+            method: String,
+            stackJson: String?,
+            seqno: Int,
+        ): String {
+            val network = json.decodeFromString<TONNetwork>(networkJson)
+            val client = apiClients.find { it.network == network }
+                ?: throw IllegalArgumentException("No API client configured for network: $network")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "apiRunGetMethod: network=$network, address=$address, method=$method")
+                    val stack = stackJson?.let { json.decodeFromString<List<TONRawStackItem>>(it) }
+                    val seqnoArg = if (seqno == -1) null else seqno
+                    val result = client.runGetMethod(TONUserFriendlyAddress(address), method, stack, seqnoArg)
+                    json.encodeToString(result)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to run get method: $method on $address", e)
+                    throw e
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun apiGetBalance(
+            networkJson: String,
+            address: String,
+            seqno: Int,
+        ): String {
+            val network = json.decodeFromString<TONNetwork>(networkJson)
+            val client = apiClients.find { it.network == network }
+                ?: throw IllegalArgumentException("No API client configured for network: $network")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "apiGetBalance: network=$network, address=$address")
+                    val seqnoArg = if (seqno == -1) null else seqno
+                    client.getBalance(TONUserFriendlyAddress(address), seqnoArg)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get balance for: $address", e)
+                    throw e
+                }
+            }
+        }
+
+        private fun JSONObject.optNullableString(key: String): String? {
+            val value = opt(key)
+            return when (value) {
+                null, JSONObject.NULL -> null
+                else -> value.toString()
             }
         }
     }

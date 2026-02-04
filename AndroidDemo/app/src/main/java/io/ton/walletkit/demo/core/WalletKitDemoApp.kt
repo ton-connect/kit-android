@@ -229,6 +229,29 @@ object TONWalletKitHelper {
     var disableNetworkSend: Boolean = false
 
     /**
+     * Flag to use custom session manager for testing.
+     * When true, uses TestSessionManager instead of SDK's built-in session storage.
+     * Set this BEFORE initializing the SDK.
+     */
+    @Volatile
+    var useCustomSessionManager: Boolean = true // Enable by default for testing
+
+    /**
+     * Flag to use custom API client for testing.
+     * When true, uses TestAPIClient instead of SDK's built-in API client.
+     * Set this BEFORE initializing the SDK.
+     */
+    @Volatile
+    var useCustomApiClient: Boolean = true // Enable by default for testing
+
+    /**
+     * The custom session manager instance (if enabled).
+     * Exposed so tests can inspect session state.
+     */
+    var sessionManager: TestSessionManager? = null
+        private set
+
+    /**
      * Check if we're running under instrumentation tests and if disableNetworkSend is requested.
      * Uses reflection to avoid compile-time dependency on test libraries.
      */
@@ -272,8 +295,53 @@ object TONWalletKitHelper {
                 null
             }
 
+            // Create custom session manager if enabled
+            val customSessionManager = if (useCustomSessionManager) {
+                Log.w("TONWalletKitHelper", "🔧 Using CUSTOM session manager (TestSessionManager)")
+                TestSessionManager().also { sessionManager = it }
+            } else {
+                Log.w("TONWalletKitHelper", "📦 Using SDK's built-in session storage")
+                null
+            }
+
+            // Create network configurations for both mainnet and testnet
+            // This demonstrates the iOS-like pattern where each network config has either:
+            // - apiClientConfiguration: Use SDK's built-in API client with your API key
+            // - apiClient: Use your own custom API client implementation
+            val networkConfigurations = if (useCustomApiClient) {
+                Log.w("TONWalletKitHelper", "🌐 Using CUSTOM API clients (Toncenter for mainnet, TonAPI for testnet)")
+                // Demonstrate using different API providers per network
+                setOf(
+                    TONWalletKitConfiguration.NetworkConfiguration(
+                        network = TONNetwork.MAINNET,
+                        apiClient = ToncenterAPIClient.mainnet(),
+                    ),
+                    TONWalletKitConfiguration.NetworkConfiguration(
+                        network = TONNetwork.TESTNET,
+                        apiClient = TonAPIClient.testnet(),
+                    ),
+                )
+            } else {
+                Log.w("TONWalletKitHelper", "📡 Using SDK's built-in API client")
+                // Use SDK's built-in API client with default configuration
+                setOf(
+                    TONWalletKitConfiguration.NetworkConfiguration(
+                        network = TONNetwork.MAINNET,
+                        apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(
+                            key = "", // Empty key uses default behavior
+                        ),
+                    ),
+                    TONWalletKitConfiguration.NetworkConfiguration(
+                        network = TONNetwork.TESTNET,
+                        apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(
+                            key = "", // Empty key uses default behavior
+                        ),
+                    ),
+                )
+            }
+
             val config = TONWalletKitConfiguration(
-                network = TONNetwork.MAINNET,
+                networkConfigurations = networkConfigurations,
                 walletManifest = TONWalletKitConfiguration.Manifest(
                     name = DEFAULT_MANIFEST_NAME,
                     appName = DEFAULT_APP_NAME,
@@ -285,7 +353,6 @@ object TONWalletKitHelper {
                 bridge = TONWalletKitConfiguration.Bridge(
                     bridgeUrl = DEFAULT_BRIDGE_URL,
                 ),
-                apiClient = null,
                 features = listOf(
                     // V5R1 wallets support up to 255 messages per transaction
                     TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 255),
@@ -294,6 +361,7 @@ object TONWalletKitHelper {
                     ),
                 ),
                 storageType = TONWalletKitStorageType.Encrypted,
+                sessionManager = customSessionManager,
                 dev = devOptions,
             )
 
@@ -320,4 +388,5 @@ object TONWalletKitHelper {
     private const val DEFAULT_MANIFEST_ABOUT_URL = "https://wallet.ton.org"
     private const val DEFAULT_MANIFEST_UNIVERSAL_LINK = "https://wallet.ton.org/tc"
     private const val DEFAULT_BRIDGE_URL = "https://bridge.tonapi.io/bridge"
+
 }

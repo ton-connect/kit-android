@@ -19,32 +19,43 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
+package io.ton.walletkit.session
 
-package io.ton.walletkit.api.generated
-
-import io.ton.walletkit.model.TONBase64
-import kotlinx.serialization.Contextual
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Response after user approves a transaction request.
+ * Represents a TONConnect session between the wallet and a dApp.
  *
- * @param signedBoc
+ * This model is used internally for session management and matches
+ * the structure expected by the JavaScript bridge.
  */
 @Serializable
-data class TONTransactionApprovalResponse(
-
-    @Contextual @SerialName(value = "signedBoc")
-    val signedBoc: io.ton.walletkit.model.TONBase64,
-
-) {
-
-    companion object
-}
+data class TONConnectSession(
+    val sessionId: String,
+    /**
+     * Wallet ID format: "network:address"
+     * Examples:
+     * - "-239:EQDtFpEwcFAEcRe5mLVh2N6C0x-_hJEM7W61_JLnSF74p4q2" (mainnet)
+     * - "-3:EQDtFpEwcFAEcRe5mLVh2N6C0x-_hJEM7W61_JLnSF74p4q2" (testnet)
+     */
+    val walletId: String,
+    val walletAddress: TONUserFriendlyAddress,
+    val createdAt: String,
+    val lastActivityAt: String,
+    val privateKey: String,
+    val publicKey: String,
+    val domain: String,
+    val schemaVersion: Int,
+    /** Display name of the dApp */
+    val dAppName: String? = null,
+    /** Brief description of the dApp's purpose */
+    val dAppDescription: String? = null,
+    /** Main website URL of the dApp */
+    val dAppUrl: String? = null,
+    /** Icon/logo URL of the dApp */
+    val dAppIconUrl: String? = null,
+    @SerialName("isJsBridge")
+    val isJsBridge: Boolean? = null,
+)

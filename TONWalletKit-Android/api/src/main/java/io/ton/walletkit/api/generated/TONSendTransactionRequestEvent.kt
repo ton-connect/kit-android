@@ -52,14 +52,14 @@ import kotlinx.serialization.Serializable
  * @param dAppInfo
  */
 @Serializable
-data class TONTransactionRequestEvent(
+data class TONSendTransactionRequestEvent(
 
     /* Unique identifier for the bridge event */
     @SerialName(value = "id")
     val id: kotlin.String,
 
     @SerialName(value = "preview")
-    val preview: TONTransactionRequestEventPreview,
+    val preview: TONSendTransactionRequestEventPreview,
 
     @SerialName(value = "request")
     val request: TONTransactionRequest,
