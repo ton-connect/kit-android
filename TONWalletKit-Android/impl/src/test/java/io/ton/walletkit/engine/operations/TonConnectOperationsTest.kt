@@ -418,10 +418,10 @@ class TonConnectOperationsTest : OperationsTestBase() {
     ): TONConnectionRequestEvent {
         return TONConnectionRequestEvent(
             id = id,
+            requestedItems = emptyList(),
             walletAddress = walletAddress,
             walletId = walletId,
             preview = TONConnectionRequestEventPreview(
-
                 permissions = emptyList(),
             ),
         )
