@@ -36616,7 +36616,6 @@ var __async = (__this, __arguments, generator) => {
 };
 function handleTonConnectUrl(args) {
   return __async(this, null, function* () {
-    log$l("[tonconnect] handleTonConnectUrl received:", typeof args, JSON.stringify(args));
     return kit("handleTonConnectUrl", args);
   });
 }
