@@ -666,7 +666,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 const tonWindow = window;
-const frameId = tonWindow.__tonconnect_frameId || (tonWindow.__tonconnect_frameId = window === window.top ? "main" : `frame-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+const frameId = tonWindow.__tonconnect_frameId || (tonWindow.__tonconnect_frameId = window === window.top ? "main" : `frame-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
 const isAndroidWebView = typeof tonWindow.AndroidTonConnect !== "undefined";
 class AndroidWebViewTransport {
   constructor() {
@@ -763,9 +763,10 @@ class AndroidWebViewTransport {
         if (eventStr) {
           const data = JSON.parse(eventStr);
           if (data.type === TONCONNECT_BRIDGE_EVENT && data.event) {
+            const event = data.event;
             this.eventCallbacks.forEach((callback) => {
               try {
-                callback(data.event);
+                callback(event);
               } catch (err) {
                 error("[AndroidTransport] Event callback error:", err);
               }
