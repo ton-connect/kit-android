@@ -34,8 +34,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 internal data class CreateTransferTonRequest(
     val walletId: String,
-    val toAddress: String,
-    val amount: String,
+    val recipientAddress: String,
+    val transferAmount: String,
     val comment: String? = null,
     val body: String? = null,
     val stateInit: String? = null,

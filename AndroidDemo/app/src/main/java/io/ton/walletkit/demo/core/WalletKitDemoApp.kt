@@ -388,5 +388,4 @@ object TONWalletKitHelper {
     private const val DEFAULT_MANIFEST_ABOUT_URL = "https://wallet.ton.org"
     private const val DEFAULT_MANIFEST_UNIVERSAL_LINK = "https://wallet.ton.org/tc"
     private const val DEFAULT_BRIDGE_URL = "https://bridge.tonapi.io/bridge"
-
 }

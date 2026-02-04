@@ -61,8 +61,8 @@ internal class TransactionOperations(
 
         val request = CreateTransferTonRequest(
             walletId = walletId,
-            toAddress = params.recipientAddress.value,
-            amount = params.transferAmount,
+            recipientAddress = params.recipientAddress.value,
+            transferAmount = params.transferAmount,
             comment = params.comment,
             body = params.payload?.value,
             stateInit = params.stateInit?.value,

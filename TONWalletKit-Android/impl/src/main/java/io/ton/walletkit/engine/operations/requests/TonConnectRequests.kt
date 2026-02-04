@@ -56,7 +56,6 @@ internal data class ProcessInternalBrowserRequest(
 internal data class ApproveConnectRequest(
     @Contextual
     val event: TONConnectionRequestEvent,
-    val walletId: String,
     val response: TONConnectionApprovalResponse? = null,
 )
 
@@ -72,7 +71,6 @@ internal data class RejectConnectRequest(
 internal data class ApproveTransactionRequest(
     @Contextual
     val event: TONSendTransactionRequestEvent,
-    val walletId: String,
     val response: TONSendTransactionApprovalResponse? = null,
 )
 
@@ -80,15 +78,13 @@ internal data class ApproveTransactionRequest(
 internal data class RejectTransactionRequest(
     @Contextual
     val event: TONSendTransactionRequestEvent,
-    val reason: String? = null,
-    val errorCode: Int? = null,
+    val reason: kotlinx.serialization.json.JsonElement? = null,
 )
 
 @Serializable
 internal data class ApproveSignDataRequest(
     @Contextual
     val event: TONSignDataRequestEvent,
-    val walletId: String,
     val response: TONSignDataApprovalResponse? = null,
 )
 
@@ -97,7 +93,6 @@ internal data class RejectSignDataRequest(
     @Contextual
     val event: TONSignDataRequestEvent,
     val reason: String? = null,
-    val errorCode: Int? = null,
 )
 
 @Serializable

@@ -44,7 +44,6 @@ internal class StorageManager(
         }
 
         return try {
-            Logger.d(TAG, "storageGet called with key=$key")
             storageAdapter.get(key)
         } catch (e: Exception) {
             Logger.e(TAG, LogConstants.MSG_STORAGE_GET_FAILED + key, e)
@@ -58,7 +57,6 @@ internal class StorageManager(
         }
 
         try {
-            Logger.d(TAG, "storageSet called with key=$key, valueLength=${value.length}")
             storageAdapter.set(key, value)
         } catch (e: Exception) {
             Logger.e(TAG, LogConstants.MSG_STORAGE_SET_FAILED + key, e)

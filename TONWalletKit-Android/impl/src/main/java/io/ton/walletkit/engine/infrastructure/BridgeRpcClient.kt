@@ -49,9 +49,16 @@ internal class BridgeRpcClient(
     private val pending = ConcurrentHashMap<String, CompletableDeferred<BridgeResponse>>()
     private val ready = CompletableDeferred<Unit>()
 
+    /**
+     * Calls a bridge method with optional parameters.
+     *
+     * @param method The method name to invoke.
+     * @param params Optional parameters - can be JSONObject, JSONArray, String, or null.
+     * @return The result as a JSONObject.
+     */
     suspend fun call(
         method: String,
-        params: JSONObject? = null,
+        params: Any? = null,
     ): JSONObject {
         webViewManager.webViewInitialized.await()
         webViewManager.bridgeLoaded.await()
@@ -64,7 +71,15 @@ internal class BridgeRpcClient(
         val deferred = CompletableDeferred<BridgeResponse>()
         pending[callId] = deferred
 
-        val payload = params?.toString()
+        // Convert params to string - supports JSONObject, JSONArray, String, or null
+        // For strings, use JSONObject.quote to produce valid JSON (e.g. "hello" -> '"hello"')
+        val payload: String? = when (params) {
+            null -> null
+            is JSONObject -> params.toString()
+            is JSONArray -> params.toString()
+            is String -> JSONObject.quote(params)
+            else -> params.toString()
+        }
         val idLiteral = JSONObject.quote(callId)
         val methodLiteral = JSONObject.quote(method)
         val script =
