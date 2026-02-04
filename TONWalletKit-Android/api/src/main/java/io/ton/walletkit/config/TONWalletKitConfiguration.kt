@@ -22,6 +22,7 @@
 package io.ton.walletkit.config
 
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.internal.constants.JsonConsts
 import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.serialization.SerialName
@@ -31,23 +32,22 @@ import kotlinx.serialization.Serializable
  * Configuration for TONWalletKit initialization.
  *
  * Mirrors the shared TON Wallet Kit configuration contract for cross-platform consistency.
+ * Follows iOS SDK's structure with NetworkConfiguration for per-network settings.
  *
- * @property network Blockchain network
+ * @property networkConfigurations Set of network-specific configurations (each with either apiClientConfiguration OR apiClient)
  * @property deviceInfo Device and app information (optional, auto-detected if not provided)
  * @property walletManifest Wallet app manifest for TON Connect
  * @property bridge Bridge configuration
- * @property apiClient API client configuration (optional)
  * @property features Supported wallet features (used if deviceInfo not provided)
- * @property storage Storage configuration
+ * @property storageType Storage configuration
  * @property sessionManager Custom session manager implementation (optional)
  * @property dev Development options for testing
  */
 @Serializable
 data class TONWalletKitConfiguration(
-    val network: TONNetwork,
+    val networkConfigurations: Set<NetworkConfiguration>,
     val walletManifest: Manifest,
     val bridge: Bridge,
-    val apiClient: APIClient? = null,
     val features: List<Feature>,
     @kotlinx.serialization.Transient
     val storageType: TONWalletKitStorageType = TONWalletKitStorageType.Encrypted,
@@ -62,6 +62,27 @@ data class TONWalletKitConfiguration(
     @kotlinx.serialization.Transient
     val dev: DevOptions? = null,
 ) {
+    /**
+     * Returns the primary network (first in the set).
+     * Used for backward compatibility and single-network scenarios.
+     */
+    val network: TONNetwork
+        get() = networkConfigurations.first().network
+
+    /**
+     * Extracts all custom API clients from network configurations.
+     * Only includes networks that have a custom apiClient (not apiClientConfiguration).
+     */
+    val apiClients: List<TONAPIClient>
+        get() = networkConfigurations.mapNotNull { it.apiClient }
+
+    /**
+     * Returns the API client configuration for the primary network.
+     * Used for backward compatibility.
+     */
+    val apiClientConfiguration: APIClientConfiguration?
+        get() = networkConfigurations.firstOrNull()?.apiClientConfiguration
+
     /**
      * Wallet manifest for TON Connect.
      *
@@ -109,10 +130,60 @@ data class TONWalletKitConfiguration(
      * @property key API key for authentication
      */
     @Serializable
-    data class APIClient(
+    data class APIClientConfiguration(
         val url: String? = null,
         val key: String,
     )
+
+    /**
+     * Network-specific configuration.
+     *
+     * Each network configuration can have either:
+     * - apiClientConfiguration: Use built-in API client with the provided config (key + optional URL)
+     * - apiClient: Use a custom TONAPIClient implementation
+     *
+     * These are mutually exclusive. Use the appropriate constructor based on your needs.
+     *
+     * @property network The blockchain network this configuration applies to
+     * @property apiClientConfiguration Built-in API client configuration (optional, mutually exclusive with apiClient)
+     * @property apiClient Custom API client implementation (optional, mutually exclusive with apiClientConfiguration)
+     */
+    @Serializable
+    data class NetworkConfiguration(
+        val network: TONNetwork,
+        @SerialName("apiClient")
+        val apiClientConfiguration: APIClientConfiguration? = null,
+        @kotlinx.serialization.Transient
+        val apiClient: TONAPIClient? = null,
+    ) {
+        /**
+         * Create a network configuration with a built-in API client configuration.
+         * Use this when you want to use the SDK's built-in API client with your API key.
+         */
+        constructor(network: TONNetwork, apiClientConfiguration: APIClientConfiguration) : this(
+            network = network,
+            apiClientConfiguration = apiClientConfiguration,
+            apiClient = null,
+        )
+
+        /**
+         * Create a network configuration with a custom API client.
+         * Use this when you want to provide your own API client implementation.
+         */
+        constructor(network: TONNetwork, apiClient: TONAPIClient) : this(
+            network = network,
+            apiClientConfiguration = null,
+            apiClient = apiClient,
+        )
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is NetworkConfiguration) return false
+            return network == other.network
+        }
+
+        override fun hashCode(): Int = network.hashCode()
+    }
 
     /**
      * Development options for testing.

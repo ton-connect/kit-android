@@ -243,7 +243,12 @@ class CustomStorageIntegrationTest {
         storage: TONWalletKitStorage,
     ): TONWalletKitConfiguration {
         return TONWalletKitConfiguration(
-            network = TONNetwork.MAINNET,
+            networkConfigurations = setOf(
+                TONWalletKitConfiguration.NetworkConfiguration(
+                    network = TONNetwork.MAINNET,
+                    apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(key = ""),
+                ),
+            ),
             walletManifest = TONWalletKitConfiguration.Manifest(
                 name = "Custom Storage Test",
                 appName = "Wallet",
@@ -255,7 +260,6 @@ class CustomStorageIntegrationTest {
             bridge = TONWalletKitConfiguration.Bridge(
                 bridgeUrl = "https://bridge.tonapi.io/bridge",
             ),
-            apiClient = null,
             features = listOf(
                 TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 4),
                 TONWalletKitConfiguration.SignDataFeature(

@@ -22,11 +22,13 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
-import io.ton.walletkit.api.generated.TONConnectSession
+import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
-import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
-import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
+import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
+import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.operations.requests.ApproveConnectRequest
@@ -44,6 +46,7 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.session.TONConnectSession
 import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
@@ -126,17 +129,21 @@ internal class TonConnectOperations(
         }
     }
 
-    suspend fun approveConnect(event: TONConnectionRequestEvent) {
+    suspend fun approveConnect(
+        event: TONConnectionRequestEvent,
+        response: TONConnectionApprovalResponse? = null,
+    ) {
         ensureInitialized()
 
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val walletId = event.walletId ?: throw WalletKitBridgeException("Wallet ID is required")
 
-        Logger.d(TAG, "approveConnect - event.request: ${event.request}, event.requestedItems: ${event.requestedItems}")
+        Logger.d(TAG, "approveConnect - event.requestedItems: ${event.requestedItems}")
 
         val request = ApproveConnectRequest(
             event = event,
             walletId = walletId,
+            response = response,
         )
 
         val jsonObj = json.toJSONObject(request)
@@ -152,30 +159,46 @@ internal class TonConnectOperations(
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_CONNECT_REQUEST, json.toJSONObject(request))
     }
 
-    suspend fun approveTransaction(event: TONTransactionRequestEvent, network: TONNetwork) {
+    suspend fun approveTransaction(
+        event: TONSendTransactionRequestEvent,
+        network: TONNetwork,
+        response: TONSendTransactionApprovalResponse? = null,
+    ) {
         ensureInitialized()
 
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val walletId = event.walletId ?: throw WalletKitBridgeException(ERROR_WALLET_ID_REQUIRED)
 
-        val request = ApproveTransactionRequest(event = event, walletId = walletId)
+        val request = ApproveTransactionRequest(
+            event = event,
+            walletId = walletId,
+            response = response,
+        )
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_TRANSACTION_REQUEST, json.toJSONObject(request))
     }
 
-    suspend fun rejectTransaction(event: TONTransactionRequestEvent, reason: String?, errorCode: Int? = null) {
+    suspend fun rejectTransaction(event: TONSendTransactionRequestEvent, reason: String?, errorCode: Int? = null) {
         ensureInitialized()
 
         val request = RejectTransactionRequest(event = event, reason = reason, errorCode = errorCode)
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_TRANSACTION_REQUEST, json.toJSONObject(request))
     }
 
-    suspend fun approveSignData(event: TONSignDataRequestEvent, network: TONNetwork) {
+    suspend fun approveSignData(
+        event: TONSignDataRequestEvent,
+        network: TONNetwork,
+        response: TONSignDataApprovalResponse? = null,
+    ) {
         ensureInitialized()
 
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val walletId = event.walletId ?: throw WalletKitBridgeException(ERROR_WALLET_ID_REQUIRED)
 
-        val request = ApproveSignDataRequest(event = event, walletId = walletId)
+        val request = ApproveSignDataRequest(
+            event = event,
+            walletId = walletId,
+            response = response,
+        )
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_SIGN_DATA_REQUEST, json.toJSONObject(request))
     }
 
@@ -201,7 +224,7 @@ internal class TonConnectOperations(
                     "listSessions entry[$index]: keys=${entry.keys().asSequence().toList()}, sessionId=${entry.optString(ResponseConstants.KEY_SESSION_ID)}",
                 )
 
-                // Parse dAppInfo from the session entry
+                // Parse dAppInfo from the session entry (for backwards compatibility)
                 val dAppInfoJson = entry.optJSONObject(JsonConstants.KEY_DAPP_INFO)
 
                 add(
@@ -214,11 +237,11 @@ internal class TonConnectOperations(
                         privateKey = entry.optString(JsonConstants.KEY_PRIVATE_KEY),
                         publicKey = entry.optString(JsonConstants.KEY_PUBLIC_KEY),
                         domain = entry.optString(JsonConstants.KEY_DOMAIN),
-                        schemaVersion = entry.optInt(JsonConstants.KEY_SCHEMA_VERSION, 0),
-                        dAppName = dAppInfoJson?.optString("name") ?: entry.optString(ResponseConstants.KEY_DAPP_NAME),
-                        dAppUrl = dAppInfoJson?.optNullableString("url") ?: entry.optNullableString(JsonConstants.KEY_DAPP_URL),
-                        dAppIconUrl = dAppInfoJson?.optNullableString("iconUrl") ?: entry.optNullableString(JsonConstants.KEY_ICON_URL),
-                        dAppDescription = dAppInfoJson?.optNullableString("description"),
+                        schemaVersion = entry.optInt("schemaVersion", 1),
+                        dAppName = dAppInfoJson?.optString("name") ?: entry.optNullableString("dAppName"),
+                        dAppDescription = dAppInfoJson?.optNullableString("description") ?: entry.optNullableString("dAppDescription"),
+                        dAppUrl = dAppInfoJson?.optNullableString("url") ?: entry.optNullableString("dAppUrl"),
+                        dAppIconUrl = dAppInfoJson?.optNullableString("iconUrl") ?: entry.optNullableString("dAppIconUrl"),
                         isJsBridge = entry.optBoolean(JsonConstants.KEY_IS_JS_BRIDGE, false),
                     ),
                 )
