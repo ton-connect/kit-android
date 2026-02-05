@@ -1928,7 +1928,7 @@ function setupNativeBridge() {
   }
 }
 setupNativeBridge();
-var __async$d = (__this, __arguments, generator) => {
+var __async$c = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -1957,7 +1957,7 @@ let DefaultSignature$1 = null;
 let WalletV4R2Adapter$1 = null;
 let WalletV5R1Adapter$1 = null;
 function ensureWalletKitLoaded() {
-  return __async$d(this, null, function* () {
+  return __async$c(this, null, function* () {
     var _a, _b, _c, _d, _e, _f;
     if (TonWalletKit$1 && Signer$1 && MnemonicToKeyPair$1 && DefaultSignature$1 && WalletV4R2Adapter$1 && WalletV5R1Adapter$1) {
       return;
@@ -30984,11 +30984,7 @@ class WalletJettonClass {
       const result = await this.getClient().runGetMethod(jettonAddress, "get_wallet_address", SerializeStack([
         { type: "slice", cell: distExports$1.beginCell().storeAddress(distExports$1.Address.parse(this.getAddress())).endCell() }
       ]));
-      console.log("[getJettonWalletAddress] result.stack:", JSON.stringify(result.stack));
-      console.log("[getJettonWalletAddress] result.exitCode:", result.exitCode);
       const parsedStack = ParseStack(result.stack);
-      console.log("[getJettonWalletAddress] parsedStack length:", parsedStack.length);
-      console.log("[getJettonWalletAddress] parsedStack[0]:", parsedStack[0] ? JSON.stringify({ type: parsedStack[0].type }) : "undefined");
       if (!parsedStack || parsedStack.length === 0 || !parsedStack[0]) {
         throw new Error("Empty response from jetton master contract - jetton may not exist");
       }
@@ -33215,7 +33211,9 @@ class IntentHandler {
       throw new WalletKitError(ERROR_CODES.WALLET_NOT_FOUND, `Wallet not found: ${walletId}`);
     }
     const transactionRequest = await this.intentItemsToTransactionRequest(event.items, wallet2, event.network, event.validUntil);
-    const signedBoc = await wallet2.getSignedSendTransaction(transactionRequest);
+    const signedBoc = await wallet2.getSignedSendTransaction(transactionRequest, {
+      internal: event.type === "signMsg"
+    });
     if (event.type === "txIntent") {
       await wallet2.client.sendBoc(signedBoc);
       log$7.info("Transaction sent to blockchain", { id: event.id });
@@ -35164,24 +35162,28 @@ class TonWalletKit {
   /**
    * Check if a URL is an intent URL (tc://intent_inline?... or tc://intent?...)
    */
-  isIntentUrl(url) {
-    return this.intentHandler?.isIntentUrl(url) ?? false;
+  isIntentUrl(args) {
+    return this.intentHandler?.isIntentUrl(args.url) ?? false;
   }
   /**
    * Handle an intent URL
    * Parses the URL and emits an intent event for the wallet UI
    */
-  async handleIntentUrl(url) {
+  async handleIntentUrl(args) {
     await this.ensureInitialized();
-    return this.intentHandler.handleIntentUrl(url);
+    return this.intentHandler.handleIntentUrl(args.url);
   }
   /**
    * Convert intent items to a transaction request
    * Used when approving an intent to build the actual transaction
    */
-  async intentItemsToTransactionRequest(event, wallet2) {
+  async intentItemsToTransactionRequest(args) {
     await this.ensureInitialized();
-    return this.intentHandler.intentItemsToTransactionRequest(event.items, wallet2, event.network, event.validUntil);
+    const wallet2 = this.getWallet(args.walletId);
+    if (!wallet2) {
+      throw new Error(`Wallet not found: ${args.walletId}`);
+    }
+    return this.intentHandler.intentItemsToTransactionRequest(args.event.items, wallet2, args.event.network, args.event.validUntil);
   }
   /**
    * Approve a transaction intent (txIntent or signMsg)
@@ -35189,63 +35191,63 @@ class TonWalletKit {
    * For txIntent: Signs and sends the transaction to the blockchain
    * For signMsg: Signs but does NOT send (for gasless transactions)
    *
-   * @param event - The transaction intent event
-   * @param walletId - The wallet ID to use for signing
+   * @param args.event - The transaction intent event
+   * @param args.walletId - The wallet ID to use for signing
    * @returns The approval response with signed BoC
    */
-  async approveTransactionIntent(event, walletId) {
+  async approveTransactionIntent(args) {
     await this.ensureInitialized();
-    return this.intentHandler.approveTransactionIntent(event, walletId);
+    return this.intentHandler.approveTransactionIntent(args.event, args.walletId);
   }
   /**
    * Approve a sign data intent (signIntent)
    *
    * Signs the data and returns the signature.
    *
-   * @param event - The sign data intent event
-   * @param walletId - The wallet ID to use for signing
+   * @param args.event - The sign data intent event
+   * @param args.walletId - The wallet ID to use for signing
    * @returns The approval response with signature
    */
-  async approveSignDataIntent(event, walletId) {
+  async approveSignDataIntent(args) {
     await this.ensureInitialized();
-    return this.intentHandler.approveSignDataIntent(event, walletId);
+    return this.intentHandler.approveSignDataIntent(args.event, args.walletId);
   }
   /**
    * Approve an action intent (actionIntent)
    *
    * Fetches action details from URL and executes the action.
    *
-   * @param event - The action intent event
-   * @param walletId - The wallet ID to use for signing
+   * @param args.event - The action intent event
+   * @param args.walletId - The wallet ID to use for signing
    * @returns The approval response (transaction or sign data)
    */
-  async approveActionIntent(event, walletId) {
+  async approveActionIntent(args) {
     await this.ensureInitialized();
-    return this.intentHandler.approveActionIntent(event, walletId);
+    return this.intentHandler.approveActionIntent(args.event, args.walletId);
   }
   /**
    * Process connect request after intent approval
    *
    * Creates a proper session for the dApp after intent approval.
    *
-   * @param event - The intent event with connect request
-   * @param walletId - The wallet to use for the connection
-   * @param proof - Optional proof response
+   * @param args.event - The intent event with connect request
+   * @param args.walletId - The wallet to use for the connection
+   * @param args.proof - Optional proof response
    */
-  async processConnectAfterIntent(event, walletId, proof) {
+  async processConnectAfterIntent(args) {
     await this.ensureInitialized();
-    return this.intentHandler.processConnectAfterIntent(event, walletId, proof);
+    return this.intentHandler.processConnectAfterIntent(args.event, args.walletId, args.proof);
   }
   /**
    * Reject an intent request
    *
-   * @param event - The intent event to reject
-   * @param reason - Optional rejection reason
-   * @param errorCode - Optional error code (defaults to USER_DECLINED)
+   * @param args.event - The intent event to reject
+   * @param args.reason - Optional rejection reason
+   * @param args.errorCode - Optional error code (defaults to USER_DECLINED)
    * @returns The rejection response
    */
-  async rejectIntent(event, reason, errorCode) {
-    return this.intentHandler.rejectIntent(event, reason, errorCode);
+  async rejectIntent(args) {
+    return this.intentHandler.rejectIntent(args.event, args.reason, args.errorCode);
   }
   /**
    * Parse TON Connect URL to extract connection parameters
@@ -35697,10 +35699,12 @@ class WalletV5R1Adapter {
   }
   async createBodyV5(seqno, walletId, actionsList, options) {
     const Opcodes2 = {
-      auth_signed: 1936287598
+      auth_signed: 1936287598,
+      auth_signed_internal: 1936289396
     };
+    const opcode = options.internal ? Opcodes2.auth_signed_internal : Opcodes2.auth_signed;
     const expireAt = options.validUntil ?? Math.floor(Date.now() / 1e3) + 300;
-    const payload = distExports$1.beginCell().storeUint(Opcodes2.auth_signed, 32).storeUint(walletId, 32).storeUint(expireAt, 32).storeUint(seqno, 32).storeSlice(actionsList.beginParse()).endCell();
+    const payload = distExports$1.beginCell().storeUint(opcode, 32).storeUint(walletId, 32).storeUint(expireAt, 32).storeUint(seqno, 32).storeSlice(actionsList.beginParse()).endCell();
     const signingData = payload.hash();
     const signature = options.fakeSignature ? FakeSignature(signingData) : await this.sign(signingData);
     return distExports$1.beginCell().storeSlice(payload.beginParse()).storeBuffer(Buffer.from(HexToUint8Array(signature))).endCell();
@@ -36044,7 +36048,10 @@ class WalletV4R2Adapter {
   getWalletId() {
     return createWalletId(this.getNetwork(), this.getAddress());
   }
-  async getSignedSendTransaction(input, _options) {
+  async getSignedSendTransaction(input, options) {
+    if (options?.internal) {
+      throw new Error("WalletV4R2 does not support internal message signing (gasless). Use WalletV5R1.");
+    }
     if (input.messages.length === 0) {
       throw new Error("Ledger does not support empty messages");
     }
@@ -36275,7 +36282,7 @@ function ensureInternalBrowserResolverMap() {
   }
   return internalBrowserGlobal.__internalBrowserResponseResolvers;
 }
-var __async$c = (__this, __arguments, generator) => {
+var __async$b = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -36311,12 +36318,12 @@ class AndroidTONConnectSessionsManager {
     log$m("[AndroidSessionManager] Initialized with native bridge");
   }
   initialize() {
-    return __async$c(this, null, function* () {
+    return __async$b(this, null, function* () {
       log$m("[AndroidSessionManager] initialize() called - no-op for Android");
     });
   }
   createSession(sessionId, dAppInfo, wallet2, isJsBridge) {
-    return __async$c(this, null, function* () {
+    return __async$b(this, null, function* () {
       var _a, _b, _c, _d;
       try {
         log$m("[AndroidSessionManager] createSession:", sessionId);
@@ -36339,7 +36346,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   getSession(sessionId) {
-    return __async$c(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         log$m("[AndroidSessionManager] getSession:", sessionId);
         const resultJson = this.bridge.sessionGet(sessionId);
@@ -36354,7 +36361,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   getSessionByDomain(domain) {
-    return __async$c(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         log$m("[AndroidSessionManager] getSessionByDomain:", domain);
         const resultJson = this.bridge.sessionGetByDomain(domain);
@@ -36369,7 +36376,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   getSessions() {
-    return __async$c(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         log$m("[AndroidSessionManager] getSessions");
         const resultJson = this.bridge.sessionGetAll();
@@ -36381,7 +36388,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   getSessionsForWallet(walletId) {
-    return __async$c(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         log$m("[AndroidSessionManager] getSessionsForWallet:", walletId);
         const resultJson = this.bridge.sessionGetForWallet(walletId);
@@ -36393,7 +36400,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   removeSession(sessionId) {
-    return __async$c(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         log$m("[AndroidSessionManager] removeSession:", sessionId);
         this.bridge.sessionRemove(sessionId);
@@ -36404,7 +36411,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   removeSessionsForWallet(walletId) {
-    return __async$c(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         log$m("[AndroidSessionManager] removeSessionsForWallet:", walletId);
         this.bridge.sessionRemoveForWallet(walletId);
@@ -36415,7 +36422,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   clearSessions() {
-    return __async$c(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         log$m("[AndroidSessionManager] clearSessions");
         this.bridge.sessionClear();
@@ -36426,7 +36433,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
 }
-var __async$b = (__this, __arguments, generator) => {
+var __async$a = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -36481,7 +36488,7 @@ class AndroidAPIClientAdapter {
     }
   }
   sendBoc(boc) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       log$m("[AndroidAPIClientAdapter] sendBoc:", boc.substring(0, 50) + "...");
       try {
         const networkJson = JSON.stringify(this.network);
@@ -36495,7 +36502,7 @@ class AndroidAPIClientAdapter {
     });
   }
   runGetMethod(address, method, stack, seqno) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       log$m("[AndroidAPIClientAdapter] runGetMethod:", address, method);
       try {
         const networkJson = JSON.stringify(this.network);
@@ -36514,27 +36521,27 @@ class AndroidAPIClientAdapter {
   // Methods not implemented - will throw if called
   // These are optional for mobile usage
   nftItemsByAddress(_request) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("nftItemsByAddress is not implemented yet");
     });
   }
   nftItemsByOwner(_request) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("nftItemsByOwner is not implemented yet");
     });
   }
   fetchEmulation(_messageBoc, _ignoreSignature) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("fetchEmulation is not implemented yet");
     });
   }
   getAccountState(_address, _seqno) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getAccountState is not implemented yet");
     });
   }
   getBalance(address, seqno) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       log$m("[AndroidAPIClientAdapter] getBalance:", address);
       try {
         const networkJson = JSON.stringify(this.network);
@@ -36549,57 +36556,57 @@ class AndroidAPIClientAdapter {
     });
   }
   getAccountTransactions(_request) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getAccountTransactions is not implemented yet");
     });
   }
   getTransactionsByHash(_request) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getTransactionsByHash is not implemented yet");
     });
   }
   getPendingTransactions(_request) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getPendingTransactions is not implemented yet");
     });
   }
   getTrace(_request) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getTrace is not implemented yet");
     });
   }
   getPendingTrace(_request) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getPendingTrace is not implemented yet");
     });
   }
   resolveDnsWallet(_domain) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("resolveDnsWallet is not implemented yet");
     });
   }
   backResolveDnsWallet(_address) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("backResolveDnsWallet is not implemented yet");
     });
   }
   jettonsByAddress(_request) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("jettonsByAddress is not implemented yet");
     });
   }
   jettonsByOwnerAddress(_request) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("jettonsByOwnerAddress is not implemented yet");
     });
   }
   getEvents(_request) {
-    return __async$b(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getEvents is not implemented yet");
     });
   }
 }
-var __async$a = (__this, __arguments, generator) => {
+var __async$9 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -36620,7 +36627,7 @@ var __async$a = (__this, __arguments, generator) => {
   });
 };
 function initTonWalletKit(config, deps) {
-  return __async$a(this, null, function* () {
+  return __async$9(this, null, function* () {
     var _a, _b, _c;
     if (walletKit) {
       return { ok: true };
@@ -36663,7 +36670,7 @@ function initTonWalletKit(config, deps) {
     if (config == null ? void 0 : config.bridgeUrl) {
       kitOptions.bridge = {
         bridgeUrl: config.bridgeUrl,
-        jsBridgeTransport: (sessionId, message) => __async$a(null, null, function* () {
+        jsBridgeTransport: (sessionId, message) => __async$9(null, null, function* () {
           var _a2;
           const typedMessage = message;
           log$m("[walletkitBridge] 📤 jsBridgeTransport called:", {
@@ -36745,7 +36752,7 @@ function initTonWalletKit(config, deps) {
     return { ok: true };
   });
 }
-var __async$9 = (__this, __arguments, generator) => {
+var __async$8 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -36766,7 +36773,7 @@ var __async$9 = (__this, __arguments, generator) => {
   });
 };
 function ensureReady() {
-  return __async$9(this, null, function* () {
+  return __async$8(this, null, function* () {
     var _a, _b;
     if (!walletKit) {
       throw new Error("WalletKit not initialized");
@@ -36783,7 +36790,7 @@ function getWalletOrThrow(kit2, walletId) {
   return wallet2;
 }
 function kit(method, ...args) {
-  return __async$9(this, null, function* () {
+  return __async$8(this, null, function* () {
     const instance = yield ensureReady();
     const fn = instance[method];
     if (typeof fn !== "function") {
@@ -36793,7 +36800,7 @@ function kit(method, ...args) {
   });
 }
 function wallet(walletId, method, ...args) {
-  return __async$9(this, null, function* () {
+  return __async$8(this, null, function* () {
     const instance = yield ensureReady();
     const w = getWalletOrThrow(instance, walletId);
     const fn = w[method];
@@ -36804,18 +36811,18 @@ function wallet(walletId, method, ...args) {
   });
 }
 function getKit() {
-  return __async$9(this, null, function* () {
+  return __async$8(this, null, function* () {
     return ensureReady();
   });
 }
 function getWallet(walletId) {
-  return __async$9(this, null, function* () {
+  return __async$8(this, null, function* () {
     const instance = yield ensureReady();
     return getWalletOrThrow(instance, walletId);
   });
 }
 function walletCall(method, args) {
-  return __async$9(this, null, function* () {
+  return __async$8(this, null, function* () {
     const instance = yield ensureReady();
     const w = getWalletOrThrow(instance, args.walletId);
     const fn = w[method];
@@ -36826,7 +36833,7 @@ function walletCall(method, args) {
   });
 }
 function clientCall(method, args) {
-  return __async$9(this, null, function* () {
+  return __async$8(this, null, function* () {
     const instance = yield ensureReady();
     const w = getWalletOrThrow(instance, args.walletId);
     const apiClient = w.getClient();
@@ -36903,7 +36910,7 @@ function emitCallDiagnostic(id, method, stage, message) {
     message
   });
 }
-var __async$8 = (__this, __arguments, generator) => {
+var __async$7 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -36941,7 +36948,7 @@ function setBridgeApi(api2) {
   apiRef = api2;
 }
 function invokeApiMethod(api2, method, params, context) {
-  return __async$8(this, null, function* () {
+  return __async$7(this, null, function* () {
     log$m(`[walletkitBridge] handleCall ${method}, looking up api[${method}]`);
     const fn = api2[method];
     log$m(`[walletkitBridge] fn found:`, typeof fn);
@@ -36961,7 +36968,7 @@ function invokeApiMethod(api2, method, params, context) {
   });
 }
 function handleCall(id, method, params) {
-  return __async$8(this, null, function* () {
+  return __async$7(this, null, function* () {
     if (!apiRef) {
       throw new Error("Bridge API not registered");
     }
@@ -37004,7 +37011,7 @@ const eventListeners = {
   onErrorListener: null,
   onIntentListener: null
 };
-var __async$7 = (__this, __arguments, generator) => {
+var __async$6 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -37033,7 +37040,7 @@ class AndroidStorageAdapter {
     this.androidBridge = androidWindow.WalletKitNative;
   }
   get(key) {
-    return __async$7(this, null, function* () {
+    return __async$6(this, null, function* () {
       try {
         const value = this.androidBridge.storageGet(key);
         if (!value) {
@@ -37047,7 +37054,7 @@ class AndroidStorageAdapter {
     });
   }
   set(key, value) {
-    return __async$7(this, null, function* () {
+    return __async$6(this, null, function* () {
       try {
         const serialized = JSON.stringify(value);
         this.androidBridge.storageSet(key, serialized);
@@ -37057,7 +37064,7 @@ class AndroidStorageAdapter {
     });
   }
   remove(key) {
-    return __async$7(this, null, function* () {
+    return __async$6(this, null, function* () {
       try {
         log$m("[AndroidStorageAdapter] remove:", key);
         this.androidBridge.storageRemove(key);
@@ -37067,7 +37074,7 @@ class AndroidStorageAdapter {
     });
   }
   clear() {
-    return __async$7(this, null, function* () {
+    return __async$6(this, null, function* () {
       try {
         log$m("[AndroidStorageAdapter] clear: clearing all storage");
         this.androidBridge.storageClear();
@@ -37077,7 +37084,7 @@ class AndroidStorageAdapter {
     });
   }
 }
-var __async$6 = (__this, __arguments, generator) => {
+var __async$5 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -37098,7 +37105,7 @@ var __async$6 = (__this, __arguments, generator) => {
   });
 };
 function init(config) {
-  return __async$6(this, null, function* () {
+  return __async$5(this, null, function* () {
     yield ensureWalletKitLoaded();
     return yield initTonWalletKit(config, {
       emit,
@@ -37108,7 +37115,7 @@ function init(config) {
   });
 }
 function setEventsListeners(args) {
-  return __async$6(this, null, function* () {
+  return __async$5(this, null, function* () {
     var _a, _b, _c;
     const kit2 = yield getKit();
     const callback = (_a = args == null ? void 0 : args.callback) != null ? _a : ((type, event) => {
@@ -37160,7 +37167,7 @@ function setEventsListeners(args) {
   });
 }
 function removeEventListeners() {
-  return __async$6(this, null, function* () {
+  return __async$5(this, null, function* () {
     var _a;
     const kit2 = yield getKit();
     if (eventListeners.onConnectListener) {
@@ -37190,58 +37197,6 @@ function removeEventListeners() {
     return { ok: true };
   });
 }
-var __async$5 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-function signWithCustomSigner(signerId, bytes) {
-  return __async$5(this, null, function* () {
-    var _a, _b;
-    const result = yield (_b = (_a = window.WalletKitNative) == null ? void 0 : _a.signWithCustomSigner) == null ? void 0 : _b.call(_a, signerId, Array.from(bytes));
-    return result;
-  });
-}
-function mnemonicToKeyPair(args) {
-  return __async$5(this, null, function* () {
-    var _a;
-    if (!MnemonicToKeyPair$1) {
-      throw new Error("MnemonicToKeyPair module not loaded");
-    }
-    return MnemonicToKeyPair$1(args.mnemonic, (_a = args.mnemonicType) != null ? _a : "ton");
-  });
-}
-function sign(args) {
-  return __async$5(this, null, function* () {
-    if (!DefaultSignature$1) {
-      throw new Error("DefaultSignature module not loaded");
-    }
-    return DefaultSignature$1(Uint8Array.from(args.data), Uint8Array.from(args.secretKey));
-  });
-}
-function createTonMnemonic() {
-  return __async$5(this, null, function* () {
-    if (!CreateTonMnemonic$1) {
-      throw new Error("CreateTonMnemonic module not loaded");
-    }
-    return CreateTonMnemonic$1();
-  });
-}
 var __async$4 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -37262,8 +37217,60 @@ var __async$4 = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
-function getWallets() {
+function signWithCustomSigner(signerId, bytes) {
   return __async$4(this, null, function* () {
+    var _a, _b;
+    const result = yield (_b = (_a = window.WalletKitNative) == null ? void 0 : _a.signWithCustomSigner) == null ? void 0 : _b.call(_a, signerId, Array.from(bytes));
+    return result;
+  });
+}
+function mnemonicToKeyPair(args) {
+  return __async$4(this, null, function* () {
+    var _a;
+    if (!MnemonicToKeyPair$1) {
+      throw new Error("MnemonicToKeyPair module not loaded");
+    }
+    return MnemonicToKeyPair$1(args.mnemonic, (_a = args.mnemonicType) != null ? _a : "ton");
+  });
+}
+function sign(args) {
+  return __async$4(this, null, function* () {
+    if (!DefaultSignature$1) {
+      throw new Error("DefaultSignature module not loaded");
+    }
+    return DefaultSignature$1(Uint8Array.from(args.data), Uint8Array.from(args.secretKey));
+  });
+}
+function createTonMnemonic() {
+  return __async$4(this, null, function* () {
+    if (!CreateTonMnemonic$1) {
+      throw new Error("CreateTonMnemonic module not loaded");
+    }
+    return CreateTonMnemonic$1();
+  });
+}
+var __async$3 = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
+function getWallets() {
+  return __async$3(this, null, function* () {
     const wallets = yield kit("getWallets");
     return wallets.map((w) => {
       var _a;
@@ -37272,7 +37279,7 @@ function getWallets() {
   });
 }
 function getWalletById(args) {
-  return __async$4(this, null, function* () {
+  return __async$3(this, null, function* () {
     var _a;
     const w = yield kit("getWallet", args.walletId);
     if (!w) return null;
@@ -37280,27 +37287,27 @@ function getWalletById(args) {
   });
 }
 function getWalletAddress(args) {
-  return __async$4(this, null, function* () {
+  return __async$3(this, null, function* () {
     return wallet(args.walletId, "getAddress");
   });
 }
 function removeWallet(args) {
-  return __async$4(this, null, function* () {
+  return __async$3(this, null, function* () {
     return kit("removeWallet", args.walletId);
   });
 }
 function getBalance(args) {
-  return __async$4(this, null, function* () {
+  return __async$3(this, null, function* () {
     return wallet(args.walletId, "getBalance");
   });
 }
 const signerStore = /* @__PURE__ */ new Map();
 const adapterStore = /* @__PURE__ */ new Map();
 function getSigner(args) {
-  return __async$4(this, null, function* () {
+  return __async$3(this, null, function* () {
     if (args.isCustom && args.publicKey) {
       return {
-        sign: (bytes) => __async$4(null, null, function* () {
+        sign: (bytes) => __async$3(null, null, function* () {
           return yield signWithCustomSigner(args.signerId, Uint8Array.from(bytes));
         }),
         publicKey: args.publicKey
@@ -37314,7 +37321,7 @@ function getSigner(args) {
   });
 }
 function createSigner(args) {
-  return __async$4(this, null, function* () {
+  return __async$3(this, null, function* () {
     var _a;
     if (!Signer$1) {
       throw new Error("Signer module not loaded");
@@ -37329,7 +37336,7 @@ function createSigner(args) {
   });
 }
 function createAdapter(args) {
-  return __async$4(this, null, function* () {
+  return __async$3(this, null, function* () {
     const instance = yield getKit();
     const signer = yield getSigner(args);
     const AdapterClass = args.walletVersion === "v5r1" ? WalletV5R1Adapter$1 : WalletV4R2Adapter$1;
@@ -37349,7 +37356,7 @@ function createAdapter(args) {
   });
 }
 function getAdapterAddress(args) {
-  return __async$4(this, null, function* () {
+  return __async$3(this, null, function* () {
     const adapter = adapterStore.get(args.adapterId);
     if (!adapter) {
       throw new Error(`Adapter not found: ${args.adapterId}`);
@@ -37358,7 +37365,7 @@ function getAdapterAddress(args) {
   });
 }
 function addWallet(args) {
-  return __async$4(this, null, function* () {
+  return __async$3(this, null, function* () {
     var _a;
     const instance = yield getKit();
     const adapter = adapterStore.get(args.adapterId);
@@ -37371,7 +37378,7 @@ function addWallet(args) {
     return { walletId: (_a = w.getWalletId) == null ? void 0 : _a.call(w), wallet: w };
   });
 }
-var __async$3 = (__this, __arguments, generator) => {
+var __async$2 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -37397,60 +37404,10 @@ const getTransactionPreview = (args) => walletCall("getTransactionPreview", args
 const sendTransaction = (args) => walletCall("sendTransaction", args);
 const getRecentTransactions = (args) => clientCall("getAccountTransactions", args);
 function handleNewTransaction(args) {
-  return __async$3(this, null, function* () {
+  return __async$2(this, null, function* () {
     const k2 = yield getKit();
     const w = yield getWallet(args[0]);
     return k2.handleNewTransaction(w, args[1]);
-  });
-}
-var __async$2 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-function approveConnectRequest(args) {
-  return __async$2(this, null, function* () {
-    return kit("approveConnectRequest", ...args);
-  });
-}
-function rejectConnectRequest(args) {
-  return __async$2(this, null, function* () {
-    return kit("rejectConnectRequest", ...args);
-  });
-}
-function approveTransactionRequest(args) {
-  return __async$2(this, null, function* () {
-    return kit("approveTransactionRequest", ...args);
-  });
-}
-function rejectTransactionRequest(args) {
-  return __async$2(this, null, function* () {
-    return kit("rejectTransactionRequest", ...args);
-  });
-}
-function approveSignDataRequest(args) {
-  return __async$2(this, null, function* () {
-    return kit("approveSignDataRequest", ...args);
-  });
-}
-function rejectSignDataRequest(args) {
-  return __async$2(this, null, function* () {
-    return kit("rejectSignDataRequest", ...args);
   });
 }
 var __async$1 = (__this, __arguments, generator) => {
@@ -37473,23 +37430,73 @@ var __async$1 = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
-function handleTonConnectUrl(args) {
+function approveConnectRequest(args) {
   return __async$1(this, null, function* () {
+    return kit("approveConnectRequest", ...args);
+  });
+}
+function rejectConnectRequest(args) {
+  return __async$1(this, null, function* () {
+    return kit("rejectConnectRequest", ...args);
+  });
+}
+function approveTransactionRequest(args) {
+  return __async$1(this, null, function* () {
+    return kit("approveTransactionRequest", ...args);
+  });
+}
+function rejectTransactionRequest(args) {
+  return __async$1(this, null, function* () {
+    return kit("rejectTransactionRequest", ...args);
+  });
+}
+function approveSignDataRequest(args) {
+  return __async$1(this, null, function* () {
+    return kit("approveSignDataRequest", ...args);
+  });
+}
+function rejectSignDataRequest(args) {
+  return __async$1(this, null, function* () {
+    return kit("rejectSignDataRequest", ...args);
+  });
+}
+var __async = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
+function handleTonConnectUrl(args) {
+  return __async(this, null, function* () {
     return kit("handleTonConnectUrl", args);
   });
 }
 function listSessions() {
-  return __async$1(this, null, function* () {
+  return __async(this, null, function* () {
     return kit("listSessions");
   });
 }
 function disconnectSession(args) {
-  return __async$1(this, null, function* () {
+  return __async(this, null, function* () {
     return kit("disconnect", args);
   });
 }
 function processInternalBrowserRequest(args) {
-  return __async$1(this, null, function* () {
+  return __async(this, null, function* () {
     const messageInfo = args[0];
     const messageId = messageInfo == null ? void 0 : messageInfo.messageId;
     if (!messageId) {
@@ -37519,175 +37526,14 @@ function processInternalBrowserRequest(args) {
     });
   });
 }
-var __async = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-function isIntentUrl(args) {
-  return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    return kit2.isIntentUrl(args.url);
-  });
-}
-function handleIntentUrl(args) {
-  return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    return yield kit2.handleIntentUrl(args.url);
-  });
-}
-function intentItemsToTransactionRequest(args) {
-  return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    const wallet2 = yield getWallet(args.walletId);
-    const event = {
-      id: args.event.id,
-      type: args.event.type,
-      clientId: "",
-      // Not needed for conversion
-      hasConnectRequest: false,
-      network: args.event.network,
-      validUntil: args.event.validUntil,
-      items: args.event.items
-    };
-    return yield kit2.intentItemsToTransactionRequest(event, wallet2);
-  });
-}
-function approveTransactionIntent(args) {
-  return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    const event = {
-      id: args.event.id,
-      clientId: args.event.clientId,
-      hasConnectRequest: args.event.hasConnectRequest,
-      type: args.event.type,
-      network: args.event.network,
-      validUntil: args.event.validUntil,
-      items: args.event.items
-    };
-    if (!kit2.approveTransactionIntent) {
-      throw new Error("approveTransactionIntent not available");
-    }
-    return yield kit2.approveTransactionIntent(event, args.walletId);
-  });
-}
-function approveSignDataIntent(args) {
-  return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    const payload = (() => {
-      switch (args.event.payload.type) {
-        case "text":
-          return { type: "text", text: args.event.payload.text };
-        case "binary":
-          return { type: "binary", bytes: args.event.payload.bytes };
-        case "cell":
-          return {
-            type: "cell",
-            schema: args.event.payload.schema,
-            cell: args.event.payload.cell
-          };
-        default:
-          throw new Error(`Unknown payload type: ${args.event.payload.type}`);
-      }
-    })();
-    const event = {
-      id: args.event.id,
-      clientId: args.event.clientId,
-      hasConnectRequest: args.event.hasConnectRequest,
-      type: "signIntent",
-      network: args.event.network,
-      manifestUrl: args.event.manifestUrl,
-      payload
-    };
-    if (!kit2.approveSignDataIntent) {
-      throw new Error("approveSignDataIntent not available");
-    }
-    return yield kit2.approveSignDataIntent(event, args.walletId);
-  });
-}
-function rejectIntent(args) {
-  return __async(this, null, function* () {
-    var _a, _b;
-    const kit2 = yield getKit();
-    const event = {
-      id: args.event.id,
-      clientId: args.event.clientId
-    };
-    if (!kit2.rejectIntent) {
-      return {
-        error: {
-          code: (_a = args.errorCode) != null ? _a : 300,
-          // USER_DECLINED
-          message: (_b = args.reason) != null ? _b : "User declined the request"
-        },
-        id: args.event.id
-      };
-    }
-    return yield kit2.rejectIntent(event, args.reason, args.errorCode);
-  });
-}
-function approveActionIntent(args) {
-  return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    const event = {
-      id: args.event.id,
-      clientId: args.event.clientId,
-      hasConnectRequest: args.event.hasConnectRequest,
-      type: "actionIntent",
-      actionUrl: args.event.actionUrl
-    };
-    if (!kit2.approveActionIntent) {
-      throw new Error("approveActionIntent not available");
-    }
-    return yield kit2.approveActionIntent(event, args.walletId);
-  });
-}
-function processConnectAfterIntent(args) {
-  return __async(this, null, function* () {
-    var _a;
-    const kit2 = yield getKit();
-    const event = {
-      id: args.event.id,
-      clientId: args.event.clientId,
-      hasConnectRequest: args.event.hasConnectRequest,
-      type: args.event.type,
-      items: [],
-      // Empty items for processConnectAfterIntent
-      connectRequest: args.event.connectRequest ? {
-        manifestUrl: args.event.connectRequest.manifestUrl,
-        items: ((_a = args.event.connectRequest.items) != null ? _a : []).map((item) => ({
-          name: item.name,
-          payload: item.payload
-        }))
-      } : void 0
-    };
-    if (!kit2.processConnectAfterIntent) {
-      throw new Error("processConnectAfterIntent not available");
-    }
-    const proof = args.proof ? {
-      signature: args.proof.signature,
-      timestamp: args.proof.timestamp,
-      domain: args.proof.domain,
-      payload: args.proof.payload
-    } : void 0;
-    return yield kit2.processConnectAfterIntent(event, args.walletId, proof);
-  });
-}
+const isIntentUrl = (args) => kit("isIntentUrl", args);
+const handleIntentUrl = (args) => kit("handleIntentUrl", args);
+const intentItemsToTransactionRequest = (args) => kit("intentItemsToTransactionRequest", args);
+const approveTransactionIntent = (args) => kit("approveTransactionIntent", args);
+const approveSignDataIntent = (args) => kit("approveSignDataIntent", args);
+const rejectIntent = (args) => kit("rejectIntent", args);
+const approveActionIntent = (args) => kit("approveActionIntent", args);
+const processConnectAfterIntent = (args) => kit("processConnectAfterIntent", args);
 const getNfts = (args) => walletCall("getNfts", args);
 const getNft = (args) => walletCall("getNft", args);
 const createTransferNftTransaction = (args) => walletCall("createTransferNftTransaction", args);
