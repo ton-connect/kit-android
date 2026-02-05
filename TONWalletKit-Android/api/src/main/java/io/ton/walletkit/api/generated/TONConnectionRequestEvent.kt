@@ -50,6 +50,7 @@ import kotlinx.serialization.Serializable
  * @param messageId
  * @param traceId
  * @param dAppInfo
+ * @param returnUri URI to redirect to after connection approval. Undefined means no redirect ('back' or 'none' in TonConnect protocol).
  */
 @Serializable
 data class TONConnectionRequestEvent(
@@ -102,6 +103,10 @@ data class TONConnectionRequestEvent(
 
     @SerialName(value = "dAppInfo")
     val dAppInfo: TONDAppInfo? = null,
+
+    /* URI to redirect to after connection approval. Undefined means no redirect ('back' or 'none' in TonConnect protocol). */
+    @SerialName(value = "returnUri")
+    val returnUri: kotlin.String? = null,
 
 ) {
 

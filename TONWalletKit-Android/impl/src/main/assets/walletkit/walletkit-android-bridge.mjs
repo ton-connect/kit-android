@@ -27407,7 +27407,8 @@ class ConnectHandler extends BasicHandler {
       preview,
       dAppInfo: preview.dAppInfo,
       isJsBridge: event.isJsBridge,
-      tabId: event.tabId
+      tabId: event.tabId,
+      returnUri: this.parseReturnUri(event.params.returnStrategy)
     };
     this.analytics?.emitWalletConnectRequestReceived({
       trace_id: event.traceId,
@@ -27434,6 +27435,21 @@ class ConnectHandler extends BasicHandler {
         return { type: "unknown", value: item };
       }
     });
+  }
+  /**
+   * Parse TonConnect return strategy string into redirect URI.
+   * - 'back', 'none', or undefined → undefined (no redirect)
+   * - any other string → the URI to redirect to
+   */
+  parseReturnUri(value) {
+    if (!value) {
+      return void 0;
+    }
+    const lower = value.toLowerCase();
+    if (lower === "none" || lower === "back") {
+      return void 0;
+    }
+    return value;
   }
   /**
    * Extract dApp name from bridge event or manifest
