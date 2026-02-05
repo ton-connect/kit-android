@@ -1849,9 +1849,173 @@ function ensureBuffer(scope) {
     log$l("[walletkitBridge] ✅ Buffer polyfill injected");
   }
 }
+const _NativeEventSource = class _NativeEventSource2 {
+  constructor(url, options) {
+    this.CONNECTING = 0;
+    this.OPEN = 1;
+    this.CLOSED = 2;
+    this.readyState = _NativeEventSource2.CONNECTING;
+    this.onopen = null;
+    this.onmessage = null;
+    this.onerror = null;
+    this._id = 0;
+    this._eventListeners = /* @__PURE__ */ new Map();
+    var _a;
+    this.url = typeof url === "string" ? url : url.toString();
+    this.withCredentials = (_a = options == null ? void 0 : options.withCredentials) != null ? _a : false;
+    const scope = window;
+    const bridge = scope.WalletKitNative;
+    if (!(bridge == null ? void 0 : bridge.nativeEventSourceOpen)) {
+      error("[NativeEventSource] Native bridge not available, falling back to browser EventSource");
+      throw new Error("Native EventSource bridge not available");
+    }
+    if (!scope.__walletkitEventSources) {
+      scope.__walletkitEventSources = /* @__PURE__ */ new Map();
+    }
+    this._id = bridge.nativeEventSourceOpen(this.url, this.withCredentials);
+    scope.__walletkitEventSources.set(this._id, this);
+    log$l(`[NativeEventSource] Created: id=${this._id}, url=${this.url}`);
+  }
+  close() {
+    var _a;
+    if (this.readyState === _NativeEventSource2.CLOSED) {
+      return;
+    }
+    this.readyState = _NativeEventSource2.CLOSED;
+    const scope = window;
+    const bridge = scope.WalletKitNative;
+    if (bridge == null ? void 0 : bridge.nativeEventSourceClose) {
+      bridge.nativeEventSourceClose(this._id);
+    }
+    (_a = scope.__walletkitEventSources) == null ? void 0 : _a.delete(this._id);
+    log$l(`[NativeEventSource] Closed: id=${this._id}`);
+  }
+  addEventListener(type, listener) {
+    if (typeof listener !== "function") return;
+    if (!this._eventListeners.has(type)) {
+      this._eventListeners.set(type, []);
+    }
+    this._eventListeners.get(type).push(listener);
+  }
+  removeEventListener(type, listener) {
+    const listeners = this._eventListeners.get(type);
+    if (!listeners) return;
+    const index2 = listeners.indexOf(listener);
+    if (index2 !== -1) {
+      listeners.splice(index2, 1);
+    }
+  }
+  dispatchEvent(event) {
+    this._dispatchEvent(event);
+    return true;
+  }
+  // Internal dispatch method
+  _dispatchEvent(event) {
+    const type = event.type;
+    if (type === "open" && this.onopen) {
+      this.onopen(event);
+    } else if (type === "message" && this.onmessage) {
+      this.onmessage(event);
+    } else if (type === "error" && this.onerror) {
+      this.onerror(event);
+    }
+    const listeners = this._eventListeners.get(type);
+    if (listeners) {
+      for (const listener of listeners) {
+        try {
+          listener(event);
+        } catch (err) {
+          error("[NativeEventSource] Listener error:", err);
+        }
+      }
+    }
+  }
+  // Called from native when connection is opened
+  _handleOpen() {
+    this.readyState = _NativeEventSource2.OPEN;
+    const event = new Event("open");
+    this._dispatchEvent(event);
+  }
+  // Called from native when a message is received
+  _handleMessage(data, eventType, lastEventId) {
+    const event = new MessageEvent(eventType || "message", {
+      data,
+      lastEventId: lastEventId || "",
+      origin: new URL(this.url).origin
+    });
+    this._dispatchEvent(event);
+  }
+  // Called from native when an error occurs
+  _handleError(message) {
+    this.readyState = _NativeEventSource2.CLOSED;
+    const event = new Event("error");
+    event.message = message != null ? message : void 0;
+    this._dispatchEvent(event);
+  }
+};
+_NativeEventSource.CONNECTING = 0;
+_NativeEventSource.OPEN = 1;
+_NativeEventSource.CLOSED = 2;
+let NativeEventSource = _NativeEventSource;
+function setupNativeEventSource(scope) {
+  const bridge = scope.WalletKitNative;
+  if (bridge) {
+    const methods = Object.getOwnPropertyNames(bridge).filter(
+      (name) => typeof bridge[name] === "function"
+    );
+    console.log(`[WalletKit] [walletkitBridge] WalletKitNative available methods: ${methods.join(", ")}`);
+    console.log(`[WalletKit] [walletkitBridge] nativeEventSourceOpen exists: ${typeof bridge.nativeEventSourceOpen}`);
+    console.log(`[WalletKit] [walletkitBridge] nativeEventSourceClose exists: ${typeof bridge.nativeEventSourceClose}`);
+  } else {
+    console.log("[WalletKit] [walletkitBridge] WalletKitNative bridge is not available");
+  }
+  if (!(bridge == null ? void 0 : bridge.nativeEventSourceOpen) || !(bridge == null ? void 0 : bridge.nativeEventSourceClose)) {
+    console.log("[WalletKit] [walletkitBridge] Native EventSource not available, using browser default");
+    return;
+  }
+  console.log("[WalletKit] [walletkitBridge] Native EventSource AVAILABLE - installing polyfill");
+  if (!scope.__walletkitEventSources) {
+    scope.__walletkitEventSources = /* @__PURE__ */ new Map();
+  }
+  scope.__walletkitEventSourceOnOpen = (id) => {
+    var _a;
+    const instance = (_a = scope.__walletkitEventSources) == null ? void 0 : _a.get(id);
+    if (instance) {
+      instance._handleOpen();
+    }
+  };
+  scope.__walletkitEventSourceOnMessage = (id, eventType, data, lastEventId) => {
+    var _a;
+    const instance = (_a = scope.__walletkitEventSources) == null ? void 0 : _a.get(id);
+    if (instance) {
+      instance._handleMessage(data, eventType, lastEventId);
+    }
+  };
+  scope.__walletkitEventSourceOnError = (id, message) => {
+    var _a;
+    const instance = (_a = scope.__walletkitEventSources) == null ? void 0 : _a.get(id);
+    if (instance) {
+      instance._handleError(message);
+    }
+  };
+  scope.__walletkitEventSourceOnClose = (id, _reason) => {
+    var _a, _b;
+    const instance = (_a = scope.__walletkitEventSources) == null ? void 0 : _a.get(id);
+    if (instance && instance.readyState !== NativeEventSource.CLOSED) {
+      instance.readyState = NativeEventSource.CLOSED;
+      const event = new Event("error");
+      instance._dispatchEvent(event);
+    }
+    (_b = scope.__walletkitEventSources) == null ? void 0 : _b.delete(id);
+  };
+  globalThis.EventSource = NativeEventSource;
+  window.EventSource = NativeEventSource;
+  log$l("[walletkitBridge] ✅ Native EventSource polyfill installed");
+}
 function setupNativeBridge() {
   const scope = window;
   ensureBuffer(scope);
+  setupNativeEventSource(scope);
   const bridge = scope.WalletKitNative;
   if (!bridge) {
     warn("[walletkitBridge] WalletKitNative bridge not found, storage will not be available");

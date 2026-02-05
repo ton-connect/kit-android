@@ -23,6 +23,9 @@ package io.ton.walletkit.engine
 
 import android.content.Context
 import android.view.ViewGroup
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
@@ -116,6 +119,16 @@ internal class WebViewWalletKitEngine private constructor(
 
     @Volatile private var tonApiKey: String? = null
 
+    private val processLifecycleObserver = object : DefaultLifecycleObserver {
+        override fun onStart(owner: LifecycleOwner) {
+            webViewManager.onResume()
+        }
+
+        override fun onStop(owner: LifecycleOwner) {
+            webViewManager.onPause()
+        }
+    }
+
     private val signerManager = SignerManager()
     private val eventRouter = EventRouter()
     private val storageManager = StorageManager(storageAdapter) { persistentStorageEnabled }
@@ -198,6 +211,10 @@ internal class WebViewWalletKitEngine private constructor(
             runBlocking {
                 eventRouter.addHandler(eventsHandler)
             }
+        }
+
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(processLifecycleObserver)
         }
     }
 
@@ -469,6 +486,8 @@ internal class WebViewWalletKitEngine private constructor(
             return
         }
         isDestroyed = true
+
+        ProcessLifecycleOwner.get().lifecycle.removeObserver(processLifecycleObserver)
 
         withContext(Dispatchers.Main) {
             try {

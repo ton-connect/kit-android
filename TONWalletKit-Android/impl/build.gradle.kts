@@ -277,12 +277,13 @@ dependencies {
 
     implementation(libs.androidxCoreKtx)
     implementation(libs.androidxLifecycleRuntimeKtx)
+    implementation(libs.androidxLifecycleProcess) // For ProcessLifecycleOwner (auto lifecycle detection)
     implementation(libs.kotlinxCoroutinesAndroid)
     implementation(libs.kotlinxSerializationJson)
     implementation(libs.androidxWebkit)
 
-    // OkHttp only for Full variant (includes QuickJS)
-    "fullImplementation"(libs.okhttp)
+    // OkHttp for native EventSource (SSE) support - needed for background connectivity
+    implementation(libs.okhttp)
 
     // Storage classes are now included in this module (merged from storage module)
     implementation(libs.androidxDatastorePreferences)

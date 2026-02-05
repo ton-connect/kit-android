@@ -50,12 +50,24 @@ import io.ton.walletkit.model.TONBase64
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.session.TONConnectSessionManager
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okhttp3.Call
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okio.BufferedSource
 import org.json.JSONException
 import org.json.JSONObject
+import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Owns the WebView lifecycle, asset loading, and JavaScript bridge integration.
@@ -85,6 +97,21 @@ internal class WebViewManager(
             .build()
     private val mainHandler = Handler(Looper.getMainLooper())
     private lateinit var webView: WebView
+
+    // Native EventSource (SSE) that persists in background
+    private val httpClient: OkHttpClient = OkHttpClient.Builder()
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .retryOnConnectionFailure(true)
+        .readTimeout(0, TimeUnit.SECONDS)
+        .build()
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val eventSources = ConcurrentHashMap<Int, EventSourceConnection>()
+    private val eventSourceIdGenerator = AtomicInteger(1)
+
+    // Queue for events received while app is backgrounded (WebView can't execute JS)
+    @Volatile private var isResumed = true
+    private val pendingEventScripts = java.util.concurrent.ConcurrentLinkedQueue<String>()
 
     val webViewInitialized = CompletableDeferred<Unit>()
     val bridgeLoaded = CompletableDeferred<Unit>()
@@ -117,6 +144,12 @@ internal class WebViewManager(
     }
 
     fun destroy() {
+        // Close all EventSource connections
+        eventSources.keys.toList().forEach { id ->
+            eventSources.remove(id)?.close()
+        }
+        ioScope.cancel()
+
         if (!::webView.isInitialized) return
         (webView.parent as? ViewGroup)?.removeView(webView)
         webView.removeJavascriptInterface(WebViewConstants.JS_INTERFACE_NAME)
@@ -576,11 +609,252 @@ internal class WebViewManager(
             }
         }
 
+        // ======== Native EventSource Methods ========
+        // These provide native SSE support that keeps working when the app is in background
+
+        @JavascriptInterface
+        fun nativeEventSourceOpen(url: String, withCredentials: Boolean): Int {
+            val id = eventSourceIdGenerator.getAndIncrement()
+            return try {
+                val normalized = url.takeIf { it.isNotBlank() }
+                if (normalized == null) {
+                    Logger.e(TAG, "EventSource open rejected due to empty URL")
+                    deliverEventSourceError(id, "Invalid EventSource URL")
+                    deliverEventSourceClosed(id, "invalid-url")
+                    return id
+                }
+                Logger.d(TAG, "Opening native EventSource: id=$id, url=$normalized")
+                val connection = EventSourceConnection(id, normalized, withCredentials)
+                eventSources[id] = connection
+                ioScope.launch { connection.start() }
+                id
+            } catch (err: Throwable) {
+                Logger.e(TAG, "NativeEventSource.open error", err)
+                deliverEventSourceError(id, err.message ?: "EventSource open failed")
+                deliverEventSourceClosed(id, err::class.java.simpleName)
+                id
+            }
+        }
+
+        @JavascriptInterface
+        fun nativeEventSourceClose(id: Int) {
+            try {
+                Logger.d(TAG, "Closing native EventSource: id=$id")
+                eventSources.remove(id)?.close()
+            } catch (err: Throwable) {
+                Logger.e(TAG, "NativeEventSource.close error", err)
+            }
+        }
+
         private fun JSONObject.optNullableString(key: String): String? {
             val value = opt(key)
             return when (value) {
                 null, JSONObject.NULL -> null
                 else -> value.toString()
+            }
+        }
+    }
+
+    // ======== Lifecycle ========
+
+    fun onResume() {
+        isResumed = true
+        flushPendingEvents()
+    }
+
+    fun onPause() {
+        isResumed = false
+    }
+
+    private fun flushPendingEvents() {
+        mainHandler.post {
+            if (::webView.isInitialized) {
+                var script = pendingEventScripts.poll()
+                while (script != null) {
+                    try {
+                        webView.evaluateJavascript(script, null)
+                    } catch (err: Throwable) {
+                        Logger.e(TAG, "Failed to flush pending event", err)
+                    }
+                    script = pendingEventScripts.poll()
+                }
+            }
+        }
+    }
+
+    // ======== EventSource ========
+
+    private fun executeOrQueueScript(script: String, debugLabel: String) {
+        if (isResumed) {
+            mainHandler.post {
+                if (::webView.isInitialized) {
+                    try {
+                        webView.evaluateJavascript(script, null)
+                    } catch (err: Throwable) {
+                        Logger.e(TAG, "Failed to deliver $debugLabel", err)
+                    }
+                }
+            }
+        } else {
+            pendingEventScripts.offer(script)
+        }
+    }
+
+    private fun deliverEventSourceOpen(id: Int) {
+        val script = "globalThis.__walletkitEventSourceOnOpen($id)"
+        executeOrQueueScript(script, "EventSource open id=$id")
+    }
+
+    private fun deliverEventSourceMessage(
+        id: Int,
+        eventType: String,
+        data: String,
+        lastEventId: String?,
+    ) {
+        val typeLiteral = JSONObject.quote(eventType)
+        val dataLiteral = JSONObject.quote(data)
+        val idLiteral = lastEventId?.let { JSONObject.quote(it) } ?: "null"
+        val script = "globalThis.__walletkitEventSourceOnMessage($id,$typeLiteral,$dataLiteral,$idLiteral)"
+        executeOrQueueScript(script, "EventSource message id=$id type=$eventType")
+    }
+
+    private fun deliverEventSourceError(id: Int, message: String?) {
+        val messageLiteral = message?.let { JSONObject.quote(it) } ?: "null"
+        val script = "globalThis.__walletkitEventSourceOnError($id,$messageLiteral)"
+        executeOrQueueScript(script, "EventSource error id=$id")
+    }
+
+    private fun deliverEventSourceClosed(id: Int, reason: String?) {
+        val reasonLiteral = reason?.let { JSONObject.quote(it) } ?: "null"
+        val script = "globalThis.__walletkitEventSourceOnClose($id,$reasonLiteral)"
+        executeOrQueueScript(script, "EventSource close id=$id")
+    }
+
+    private inner class EventSourceConnection(
+        private val id: Int,
+        private val url: String,
+        private val withCredentials: Boolean,
+    ) {
+        @Volatile private var call: Call? = null
+
+        @Volatile private var closed: Boolean = false
+
+        suspend fun start() {
+            try {
+                val requestBuilder = Request.Builder()
+                    .url(url)
+                    .header("Accept", "text/event-stream")
+                    .header("Cache-Control", "no-cache")
+                    .header("Connection", "keep-alive")
+                if (!withCredentials) {
+                    requestBuilder.header("Cookie", "")
+                }
+                val request = requestBuilder.build()
+                val call = httpClient.newCall(request)
+                this.call = call
+                val response = call.execute()
+                if (!response.isSuccessful) {
+                    deliverEventSourceError(id, "HTTP ${response.code}")
+                    response.close()
+                    deliverEventSourceClosed(id, "http")
+                    return
+                }
+                val body = response.body
+                deliverEventSourceOpen(id)
+                try {
+                    readEventStream(body.source())
+                } finally {
+                    body.close()
+                    response.close()
+                }
+                if (!closed) {
+                    deliverEventSourceClosed(id, null)
+                }
+            } catch (err: Throwable) {
+                if (!closed) {
+                    // Socket errors when backgrounded are expected (Android kills connections)
+                    if (!isResumed && (err is java.net.SocketException || err is java.io.IOException)) {
+                        Logger.d(TAG, "EventSource disconnected while backgrounded: id=$id")
+                    } else {
+                        Logger.e(TAG, "EventSource error: id=$id", err)
+                    }
+                    deliverEventSourceError(id, err.message ?: "EventSource error")
+                    deliverEventSourceClosed(id, err::class.java.simpleName)
+                }
+            } finally {
+                eventSources.remove(id, this)
+            }
+        }
+
+        fun close() {
+            closed = true
+            call?.cancel()
+        }
+
+        private fun readEventStream(source: BufferedSource) {
+            var eventType = "message"
+            val dataBuilder = StringBuilder()
+            var lastEventId: String? = null
+            while (!closed) {
+                val line = try {
+                    source.readUtf8Line()
+                } catch (err: IOException) {
+                    if (!closed) {
+                        throw err
+                    }
+                    null
+                } ?: break
+
+                if (line.isEmpty()) {
+                    if (dataBuilder.isNotEmpty()) {
+                        val payload = if (dataBuilder[dataBuilder.length - 1] == '\n') {
+                            dataBuilder.substring(0, dataBuilder.length - 1)
+                        } else {
+                            dataBuilder.toString()
+                        }
+                        deliverEventSourceMessage(id, eventType.ifBlank { "message" }, payload, lastEventId)
+                        dataBuilder.setLength(0)
+                    }
+                    eventType = "message"
+                    continue
+                }
+
+                if (line.startsWith(":")) {
+                    continue
+                }
+
+                val delimiterIndex = line.indexOf(':')
+                val field: String
+                var value = ""
+                if (delimiterIndex == -1) {
+                    field = line
+                } else {
+                    field = line.substring(0, delimiterIndex)
+                    value = line.substring(delimiterIndex + 1)
+                    if (value.startsWith(" ")) {
+                        value = value.substring(1)
+                    }
+                }
+
+                when (field) {
+                    "event" -> eventType = value.ifBlank { "message" }
+                    "data" -> {
+                        dataBuilder.append(value)
+                        dataBuilder.append('\n')
+                    }
+                    "id" -> lastEventId = value
+                    "retry" -> Unit
+                }
+            }
+
+            if (dataBuilder.isNotEmpty()) {
+                val payload = if (dataBuilder[dataBuilder.length - 1] == '\n') {
+                    dataBuilder.substring(0, dataBuilder.length - 1)
+                } else {
+                    dataBuilder.toString()
+                }
+                deliverEventSourceMessage(id, eventType.ifBlank { "message" }, payload, lastEventId)
+                dataBuilder.setLength(0)
             }
         }
     }
