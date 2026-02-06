@@ -422,7 +422,6 @@ internal class WebViewManager(
 
             return kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "sessionGet: sessionId=$sessionId")
                     val session = manager.getSession(sessionId)
                     session?.let { json.encodeToString(it) }
                 } catch (e: Exception) {
@@ -439,7 +438,6 @@ internal class WebViewManager(
 
             return kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "sessionGetByDomain: domain=$domain")
                     val session = manager.getSessionByDomain(domain)
                     session?.let { json.encodeToString(it) }
                 } catch (e: Exception) {
@@ -456,7 +454,6 @@ internal class WebViewManager(
 
             return kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "sessionGetAll")
                     val sessions = manager.getSessions()
                     json.encodeToString(sessions)
                 } catch (e: Exception) {
@@ -473,7 +470,6 @@ internal class WebViewManager(
 
             return kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "sessionGetForWallet: walletId=$walletId")
                     val sessions = manager.getSessionsForWallet(walletId)
                     json.encodeToString(sessions)
                 } catch (e: Exception) {
@@ -490,7 +486,6 @@ internal class WebViewManager(
 
             kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "sessionRemove: sessionId=$sessionId")
                     manager.removeSession(sessionId)
                 } catch (e: Exception) {
                     Logger.e(TAG, "Failed to remove session: $sessionId", e)
@@ -505,7 +500,6 @@ internal class WebViewManager(
 
             kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "sessionRemoveForWallet: walletId=$walletId")
                     manager.removeSessionsForWallet(walletId)
                 } catch (e: Exception) {
                     Logger.e(TAG, "Failed to remove sessions for wallet: $walletId", e)
@@ -520,7 +514,6 @@ internal class WebViewManager(
 
             kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "sessionClear")
                     manager.clearSessions()
                 } catch (e: Exception) {
                     Logger.e(TAG, "Failed to clear sessions", e)
@@ -552,7 +545,6 @@ internal class WebViewManager(
 
             return kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "apiSendBoc: network=$network")
                     client.sendBoc(TONBase64(boc))
                 } catch (e: Exception) {
                     Logger.e(TAG, "Failed to send BOC: $network", e)
@@ -575,7 +567,6 @@ internal class WebViewManager(
 
             return kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "apiRunGetMethod: network=$network, address=$address, method=$method")
                     val stack = stackJson?.let { json.decodeFromString<List<TONRawStackItem>>(it) }
                     val seqnoArg = if (seqno == -1) null else seqno
                     val result = client.runGetMethod(TONUserFriendlyAddress(address), method, stack, seqnoArg)
@@ -599,7 +590,6 @@ internal class WebViewManager(
 
             return kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "apiGetBalance: network=$network, address=$address")
                     val seqnoArg = if (seqno == -1) null else seqno
                     client.getBalance(TONUserFriendlyAddress(address), seqnoArg)
                 } catch (e: Exception) {
@@ -623,7 +613,6 @@ internal class WebViewManager(
                     deliverEventSourceClosed(id, "invalid-url")
                     return id
                 }
-                Logger.d(TAG, "Opening native EventSource: id=$id, url=$normalized")
                 val connection = EventSourceConnection(id, normalized, withCredentials)
                 eventSources[id] = connection
                 ioScope.launch { connection.start() }
@@ -639,7 +628,6 @@ internal class WebViewManager(
         @JavascriptInterface
         fun nativeEventSourceClose(id: Int) {
             try {
-                Logger.d(TAG, "Closing native EventSource: id=$id")
                 eventSources.remove(id)?.close()
             } catch (err: Throwable) {
                 Logger.e(TAG, "NativeEventSource.close error", err)
@@ -774,7 +762,7 @@ internal class WebViewManager(
                 if (!closed) {
                     // Socket errors when backgrounded are expected (Android kills connections)
                     if (!isResumed && (err is java.net.SocketException || err is java.io.IOException)) {
-                        Logger.d(TAG, "EventSource disconnected while backgrounded: id=$id")
+                        // Expected disconnect while backgrounded — no action needed
                     } else {
                         Logger.e(TAG, "EventSource error: id=$id", err)
                     }
