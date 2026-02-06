@@ -35535,7 +35535,6 @@ class AndroidTONConnectSessionsManager {
   removeSession(sessionId) {
     return __async$b(this, null, function* () {
       try {
-        log$l("[AndroidSessionManager] removeSession:", sessionId);
         const resultJson = this.bridge.sessionRemove(sessionId);
         if (!resultJson) {
           return void 0;
@@ -35550,7 +35549,6 @@ class AndroidTONConnectSessionsManager {
   removeSessions(parameters) {
     return __async$b(this, null, function* () {
       try {
-        log$l("[AndroidSessionManager] removeSessions:", parameters);
         const filterJson = JSON.stringify(parameters != null ? parameters : {});
         const resultJson = this.bridge.sessionRemoveFiltered(filterJson);
         return JSON.parse(resultJson);

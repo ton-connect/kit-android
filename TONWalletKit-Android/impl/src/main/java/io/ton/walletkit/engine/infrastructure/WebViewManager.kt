@@ -451,7 +451,6 @@ internal class WebViewManager(
         }
 
         @JavascriptInterface
-
         fun sessionClear() {
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
