@@ -59,10 +59,7 @@ internal class EventParser(
             EventTypeConstants.EVENT_CONNECT_REQUEST -> {
                 try {
                     val rawJson = data.toString()
-                    Logger.d(TAG, "Parsing connect request - raw JSON: $rawJson")
                     val event = json.decodeFromString<TONConnectionRequestEvent>(rawJson)
-                    Logger.d(TAG, "Parsing connect request - preview: ${event.preview}, dAppInfo: ${event.dAppInfo}")
-                    Logger.d(TAG, "Parsing connect request - requestedItems: ${event.requestedItems}")
                     val request = TONWalletConnectionRequest(
                         event = event,
                         handler = engine,
@@ -145,10 +142,8 @@ internal class EventParser(
             }
 
             EventTypeConstants.EVENT_REQUEST_ERROR -> {
-                Logger.d(TAG, "🔴 Parsing EVENT_REQUEST_ERROR event. Data keys: ${data.keys().asSequence().toList()}")
                 try {
                     val event = json.decodeFromString<TONRequestErrorEvent>(data.toString())
-                    Logger.d(TAG, "✅ Successfully parsed RequestError event: method=${event.data["method"]}, code=${event.error.code}, message=${event.error.message}")
                     TONWalletKitEvent.RequestError(event)
                 } catch (e: SerializationException) {
                     Logger.e(TAG, "Failed to decode RequestErrorEvent", e)

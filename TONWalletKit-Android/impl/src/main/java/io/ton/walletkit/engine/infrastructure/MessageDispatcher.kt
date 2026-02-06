@@ -68,7 +68,6 @@ internal class MessageDispatcher(
 
     fun dispatchMessage(payload: JSONObject) {
         val kind = payload.optString(ResponseConstants.KEY_KIND)
-        Logger.d(TAG, "📨 Message kind: $kind")
 
         when (kind) {
             ResponseConstants.VALUE_KIND_READY -> handleReady(payload)
@@ -77,7 +76,7 @@ internal class MessageDispatcher(
                 if (event != null) {
                     handleEvent(event)
                 } else {
-                    Logger.w(TAG, "⚠️ EVENT kind but no event object in payload")
+                    Logger.w(TAG, "EVENT kind but no event object in payload")
                 }
             }
             ResponseConstants.VALUE_KIND_RESPONSE -> {
@@ -85,42 +84,31 @@ internal class MessageDispatcher(
                 rpcClient.handleResponse(id, payload)
             }
             ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT -> handleJsBridgeEvent(payload)
-            else -> Logger.w(TAG, "⚠️ Unknown message kind: $kind")
+            else -> Logger.w(TAG, "Unknown message kind: $kind")
         }
     }
 
     suspend fun ensureEventListenersSetUp() {
-        Logger.d(TAG, "🔵 ensureEventListenersSetUp() called, areEventListenersSetUp=$areEventListenersSetUp")
         if (areEventListenersSetUp) {
-            Logger.d(TAG, "⚡ Event listeners already set up, skipping")
             return
         }
 
-        Logger.d(TAG, "🔵 Acquiring eventListenersSetupMutex...")
         eventListenersSetupMutex.withLock {
-            Logger.d(TAG, "🔵 eventListenersSetupMutex acquired")
-
             if (areEventListenersSetUp) {
-                Logger.d(TAG, "⚡ Event listeners already set up (double-check), skipping")
                 return@withLock
             }
 
             try {
-                Logger.d(TAG, "🔵 Waiting for WalletKit initialization...")
                 initManager.ensureInitialized()
                 onInitialized()
-                Logger.d(TAG, "✅ WalletKit initialization complete")
 
-                Logger.d(TAG, "🔵 Calling JS setEventsListeners()...")
                 rpcClient.call(BridgeMethodConstants.METHOD_SET_EVENTS_LISTENERS, JSONObject())
                 areEventListenersSetUp = true
-                Logger.d(TAG, "✅✅✅ Event listeners set up successfully! areEventListenersSetUp=true")
             } catch (err: Throwable) {
-                Logger.e(TAG, "❌ Failed to set up event listeners", err)
+                Logger.e(TAG, "Failed to set up event listeners", err)
                 throw WalletKitBridgeException(ERROR_FAILED_SET_UP_EVENT_LISTENERS + err.message)
             }
         }
-        Logger.d(TAG, "🔵 eventListenersSetupMutex released")
     }
 
     suspend fun removeEventListenersIfNeeded() {
@@ -139,8 +127,6 @@ internal class MessageDispatcher(
     fun areEventListenersSetUp(): Boolean = areEventListenersSetUp
 
     private fun handleReady(payload: JSONObject) {
-        Logger.d(TAG, "🚀 handleReady() called")
-
         val network = payload.optNullableString(ResponseConstants.KEY_NETWORK)
         initManager.updateNetwork(network)
         onNetworkChanged(network)
@@ -149,35 +135,25 @@ internal class MessageDispatcher(
         onApiBaseUrlChanged(apiBaseUrl)
         if (!webViewManager.bridgeLoaded.isCompleted) {
             webViewManager.bridgeLoaded.complete(Unit)
-            Logger.d(TAG, "🚀 bridgeLoaded completed")
         }
         webViewManager.markJsBridgeReady()
 
         val wasAlreadyReady = rpcClient.isReady()
-        Logger.d(TAG, "🚀 wasAlreadyReady=$wasAlreadyReady")
 
         if (!wasAlreadyReady) {
-            Logger.d(TAG, "🚀 Completing ready for the first time")
             rpcClient.markReady()
-            Logger.d(TAG, "🚀 After markReady(), isReady = ${rpcClient.isReady()}")
-        } else {
-            Logger.d(TAG, "⚠️ rpcClient already ready, not calling markReady()")
         }
 
         if (wasAlreadyReady && areEventListenersSetUp) {
-            Logger.w(TAG, "⚠️⚠️⚠️ Bridge ready event received again - JavaScript context was lost! Re-setting up event listeners...")
+            Logger.w(TAG, "Bridge ready event received again - JavaScript context was lost! Re-setting up event listeners...")
             areEventListenersSetUp = false
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    Logger.d(TAG, "🔵 Re-setting up event listeners after JS context loss...")
                     ensureEventListenersSetUp()
-                    Logger.d(TAG, "✅ Event listeners re-established after JS context loss")
                 } catch (e: Exception) {
-                    Logger.e(TAG, "❌ Failed to re-setup event listeners after JS context loss", e)
+                    Logger.e(TAG, "Failed to re-setup event listeners after JS context loss", e)
                 }
             }
-        } else {
-            Logger.d(TAG, "🚀 Normal ready event (wasAlreadyReady=$wasAlreadyReady, areEventListenersSetUp=$areEventListenersSetUp)")
         }
 
         val data = JSONObject()
@@ -196,9 +172,7 @@ internal class MessageDispatcher(
                 put(ResponseConstants.KEY_TYPE, ResponseConstants.VALUE_KIND_READY)
                 put(ResponseConstants.KEY_DATA, data)
             }
-        Logger.d(TAG, "🚀 Calling handleEvent for ready event")
         handleEvent(readyEvent)
-        Logger.d(TAG, "🚀 handleReady() complete")
     }
 
     private fun handleEvent(event: JSONObject) {
@@ -206,31 +180,21 @@ internal class MessageDispatcher(
         val data = event.optJSONObject(ResponseConstants.KEY_DATA) ?: JSONObject()
         val eventId = event.optString(JsonConstants.KEY_ID, java.util.UUID.randomUUID().toString())
 
-        Logger.d(TAG, "🟢🟢🟢 === handleEvent called ===")
-        Logger.d(TAG, "🟢 Event type: $type")
-        Logger.d(TAG, "🟢 Event ID: $eventId")
-        Logger.d(TAG, "🟢 Event data keys: ${data.keys().asSequence().toList()}")
-        Logger.d(TAG, "🟢 Thread: ${Thread.currentThread().name}")
-
         val typedEvent = try {
             eventParser.parseEvent(type, data, event)
         } catch (e: Exception) {
-            Logger.e(TAG, "❌ Exception thrown while parsing event type=$type", e)
+            Logger.e(TAG, "Exception thrown while parsing event type=$type", e)
             null
         }
-        Logger.d(TAG, "🟢 Parsed typed event: ${(typedEvent?.javaClass?.simpleName ?: ResponseConstants.VALUE_UNKNOWN)}")
 
         if (typedEvent != null) {
-            Logger.d(TAG, "🟢 Typed event is NOT null, posting to main handler...")
-
             mainHandler.post {
-                Logger.d(TAG, "🟢 Main handler runnable executing for event $type")
                 runBlocking {
                     eventRouter.dispatchEvent(eventId, type, typedEvent)
                 }
             }
         } else {
-            Logger.w(TAG, "⚠️ " + MSG_FAILED_PARSE_TYPED_EVENT_PREFIX + type + " - event will be ignored")
+            Logger.w(TAG, MSG_FAILED_PARSE_TYPED_EVENT_PREFIX + type + " - event will be ignored")
         }
     }
 
@@ -238,13 +202,8 @@ internal class MessageDispatcher(
         val sessionId = payload.optString("sessionId")
         val event = payload.optJSONObject("event")
 
-        Logger.d(TAG, "📤 handleJsBridgeEvent called")
-        Logger.d(TAG, "📤 sessionId: $sessionId")
-        Logger.d(TAG, "📤 event: $event")
-        Logger.d(TAG, "📤 Full payload: $payload")
-
         if (event == null) {
-            Logger.e(TAG, "❌ No event object in ${ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT} payload")
+            Logger.e(TAG, "No event object in ${ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT} payload")
             return
         }
 
@@ -252,31 +211,24 @@ internal class MessageDispatcher(
             try {
                 // If sessionId is empty (e.g., wallet-initiated disconnect), broadcast to all WebViews
                 if (sessionId.isNullOrEmpty()) {
-                    Logger.d(TAG, "📤 sessionId is empty, broadcasting event to all registered WebViews")
                     TonConnectInjector.broadcastEventToAllWebViews(event)
                     return@post
                 }
 
-                Logger.d(TAG, "📤 Looking up WebView for session: $sessionId")
                 val targetWebView = TonConnectInjector.getWebViewForSession(sessionId)
 
                 if (targetWebView != null) {
-                    Logger.d(TAG, "✅ Found WebView for session: $sessionId")
                     val injector = targetWebView.getTonConnectInjector()
                     if (injector != null) {
-                        Logger.d(TAG, "✅ Found TonConnectInjector, sending event to WebView")
-                        Logger.d(TAG, "📤 Event being sent: $event")
                         injector.sendEvent(event)
-                        Logger.d(TAG, "✅ Event sent successfully")
                     } else {
-                        Logger.w(TAG, "⚠️  WebView found but no TonConnectInjector attached for session: $sessionId")
+                        Logger.w(TAG, "WebView found but no TonConnectInjector attached for session: $sessionId")
                     }
                 } else {
-                    Logger.w(TAG, "⚠️  No WebView found for session: $sessionId (browser may have been closed)")
-                    Logger.w(TAG, "⚠️  This means the WebView was never registered or was garbage collected")
+                    Logger.w(TAG, "No WebView found for session: $sessionId (browser may have been closed)")
                 }
             } catch (e: Exception) {
-                Logger.e(TAG, "❌ Failed to send JS Bridge event", e)
+                Logger.e(TAG, "Failed to send JS Bridge event", e)
             }
         }
     }
@@ -292,14 +244,12 @@ internal class MessageDispatcher(
      * If the call ID cannot be extracted, the error is logged but no call is failed.
      */
     fun dispatchError(exception: WalletKitBridgeException, malformedJson: String?) {
-        Logger.e(TAG, "❌ Dispatching error for malformed message", exception)
+        Logger.e(TAG, "Dispatching error for malformed message", exception)
 
         // Try to extract call ID from malformed JSON
         val callId = malformedJson?.let { tryExtractCallId(it) }
 
         if (callId != null) {
-            Logger.d(TAG, "🔍 Extracted call ID from malformed JSON: $callId")
-
             // Create error response for this specific call
             val errorResponse = JSONObject().apply {
                 put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_RESPONSE)
@@ -312,12 +262,10 @@ internal class MessageDispatcher(
                 )
             }
 
-            Logger.d(TAG, "📤 Dispatching error response for call $callId")
             // Dispatch the error response to fail the specific call
             rpcClient.handleResponse(callId, errorResponse)
         } else {
-            Logger.w(TAG, "⚠️  Could not extract call ID from malformed JSON, cannot fail specific call")
-            Logger.w(TAG, "⚠️  Malformed JSON: $malformedJson")
+            Logger.w(TAG, "Could not extract call ID from malformed JSON, cannot fail specific call")
         }
     }
 
@@ -332,7 +280,7 @@ internal class MessageDispatcher(
             val matchResult = regex.find(malformedJson)
             matchResult?.groupValues?.get(1)
         } catch (e: Exception) {
-            Logger.e(TAG, "❌ Failed to extract call ID from malformed JSON", e)
+            Logger.e(TAG, "Failed to extract call ID from malformed JSON", e)
             null
         }
     }

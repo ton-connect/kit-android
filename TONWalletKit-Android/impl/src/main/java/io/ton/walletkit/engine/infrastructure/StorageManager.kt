@@ -69,7 +69,6 @@ internal class StorageManager(
         }
 
         try {
-            Logger.d(TAG, "storageRemove called with key=$key")
             storageAdapter.remove(key)
         } catch (e: Exception) {
             Logger.e(TAG, LogConstants.MSG_STORAGE_REMOVE_FAILED + key, e)

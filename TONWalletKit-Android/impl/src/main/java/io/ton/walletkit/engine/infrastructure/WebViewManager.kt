@@ -273,16 +273,10 @@ internal class WebViewManager(
         @JavascriptInterface
         fun postMessage(json: String) {
             try {
-                Logger.d(TAG, "📨 JsBinding.postMessage received from JS")
-                Logger.d(TAG, "📨 Thread: ${Thread.currentThread().name}")
-                Logger.v(TAG, "📨 Raw JSON: $json")
-
                 val payload = JSONObject(json)
-                Logger.d(TAG, "✅ JSON parsed successfully")
                 onMessage(payload)
             } catch (err: JSONException) {
-                Logger.e(TAG, "❌ JSONException: " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
-                Logger.e(TAG, "❌ Malformed JSON string: $json")
+                Logger.e(TAG, "JSONException: " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
                 onBridgeError(WalletKitBridgeException(LogConstants.ERROR_MALFORMED_PAYLOAD_PREFIX + err.message), json)
             }
         }

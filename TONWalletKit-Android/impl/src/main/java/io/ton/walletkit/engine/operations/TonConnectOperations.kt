@@ -74,8 +74,6 @@ internal class TonConnectOperations(
         try {
             ensureInitialized()
 
-            Logger.d(TAG, "Processing internal browser request: $method (messageId: $messageId)")
-
             // Parse params - could be either JSONObject (for connect) or JSONArray (for other methods)
             val params: Any = paramsJson?.let {
                 try {
@@ -123,13 +121,8 @@ internal class TonConnectOperations(
                 put(request)
             }
 
-            Logger.d(TAG, "🔵 Calling processInternalBrowserRequest via bridge...")
             val result = rpcClient.call(BridgeMethodConstants.METHOD_PROCESS_INTERNAL_BROWSER_REQUEST, argsArray)
-
-            Logger.d(TAG, "🟢 Bridge call returned, result: $result")
             responseCallback(result)
-
-            Logger.d(TAG, "✅ Internal browser request processed: $method")
         } catch (e: Exception) {
             Logger.e(TAG, "Failed to process internal browser request", e)
             val errorResponse =
@@ -155,15 +148,11 @@ internal class TonConnectOperations(
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val walletId = event.walletId ?: throw WalletKitBridgeException("Wallet ID is required")
 
-        Logger.d(TAG, "approveConnect - event.requestedItems: ${event.requestedItems}")
-
         // Send array [event, response] - walletkit expects: approveConnectRequest(event, response?)
         val argsArray = JSONArray().apply {
             put(json.toJSONObject(event))
             put(if (response != null) json.toJSONObject(response) else JSONObject.NULL)
         }
-
-        Logger.d(TAG, "approveConnect - serialized JSON array: $argsArray")
 
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_CONNECT_REQUEST, argsArray)
     }
@@ -249,16 +238,11 @@ internal class TonConnectOperations(
         ensureInitialized()
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_LIST_SESSIONS)
-        Logger.d(TAG, "listSessions raw result: $result")
         val items = result.optJSONArray(ResponseConstants.KEY_ITEMS) ?: JSONArray()
 
         return buildList(items.length()) {
             for (index in 0 until items.length()) {
                 val entry = items.optJSONObject(index) ?: continue
-                Logger.d(
-                    TAG,
-                    "listSessions entry[$index]: keys=${entry.keys().asSequence().toList()}, sessionId=${entry.optString(ResponseConstants.KEY_SESSION_ID)}",
-                )
 
                 // Parse dAppInfo from the session entry (for backwards compatibility)
                 val dAppInfoJson = entry.optJSONObject(JsonConstants.KEY_DAPP_INFO)

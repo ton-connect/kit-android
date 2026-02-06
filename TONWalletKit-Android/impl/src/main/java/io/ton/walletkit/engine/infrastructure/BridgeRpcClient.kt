@@ -116,7 +116,6 @@ internal class BridgeRpcClient(
         webViewManager.executeJavaScript(script)
 
         val response = deferred.await()
-        Logger.d(TAG, "call[$method] completed")
         return response.result
     }
 
@@ -124,16 +123,11 @@ internal class BridgeRpcClient(
         id: String,
         response: JSONObject,
     ) {
-        Logger.d(TAG, "🟡 handleResponse called for id: $id")
-        Logger.d(TAG, "🟡 response: $response")
-        Logger.d(TAG, "🟡 pending.size before remove: ${pending.size}")
         val deferred = pending.remove(id)
         if (deferred == null) {
-            Logger.w(TAG, "⚠️ handleResponse: No deferred found for id: $id")
-            Logger.w(TAG, "⚠️ pending keys: ${pending.keys}")
+            Logger.w(TAG, "handleResponse: No deferred found for id: $id")
             return
         }
-        Logger.d(TAG, "✅ Found deferred for id: $id")
         val error = response.optJSONObject(ResponseConstants.KEY_ERROR)
         if (error != null) {
             val message = error.optString(ResponseConstants.KEY_MESSAGE, ResponseConstants.ERROR_MESSAGE_DEFAULT)
@@ -142,8 +136,6 @@ internal class BridgeRpcClient(
             return
         }
         val result = response.opt(ResponseConstants.KEY_RESULT)
-        Logger.d(TAG, "🟡 result type: ${result?.javaClass?.simpleName}")
-        Logger.d(TAG, "🟡 result: $result")
         val payload =
             when (result) {
                 is JSONObject -> result
@@ -151,9 +143,7 @@ internal class BridgeRpcClient(
                 null -> JSONObject()
                 else -> JSONObject().put(ResponseConstants.KEY_VALUE, result)
             }
-        Logger.d(TAG, "✅ Completing deferred with payload: $payload")
         deferred.complete(BridgeResponse(payload))
-        Logger.d(TAG, "✅ Deferred completed for id: $id")
     }
 
     fun failAll(exception: WalletKitBridgeException) {

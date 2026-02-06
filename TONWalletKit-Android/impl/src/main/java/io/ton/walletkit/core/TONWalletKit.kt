@@ -464,13 +464,7 @@ private class AdapterBackedWalletSigner(
     override fun publicKey(): TONHex = adapter.publicKey()
 
     override suspend fun sign(data: ByteArray): TONHex {
-        // The adapter's signedTonProof is the signing method we need
-        // However, the raw sign() method expects just data bytes, so we create a minimal proof message
-        // For now, we'll create a hex signature directly from the adapter's signing capability
-        //
-        // Note: This is a workaround. In a full implementation, the engine would call
-        // the adapter's specific signing methods (signedSendTransaction, signedSignData, signedTonProof)
-        // directly based on the operation type.
+        // TODO: Implement direct signing through adapter's specific methods
         throw UnsupportedOperationException(
             "Direct signing through AdapterBackedWalletSigner is not supported. " +
                 "The SDK should call the adapter's specific signing methods directly.",

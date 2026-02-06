@@ -49,9 +49,6 @@ internal class EventRouter {
      */
     suspend fun addHandler(handler: TONBridgeEventsHandler, logAcquired: Boolean = false): AddHandlerOutcome =
         mutex.withLock {
-            if (logAcquired) {
-                Logger.d(TAG, "🔵 eventHandlersMutex acquired in addEventsHandler")
-            }
             val existingHandlers = eventHandlers.toList()
             if (eventHandlers.contains(handler)) {
                 AddHandlerOutcome(
@@ -100,26 +97,20 @@ internal class EventRouter {
         event: TONWalletKitEvent,
     ) {
         try {
-            Logger.d(TAG, "🟢 Acquiring eventHandlersMutex to get handlers list...")
             val handlers =
                 mutex.withLock {
-                    Logger.d(TAG, "🟢 eventHandlersMutex acquired, eventHandlers.size=${eventHandlers.size}")
                     eventHandlers.toList()
                 }
 
-            Logger.d(TAG, "🟢 Got ${handlers.size} handlers, notifying each...")
             for (handler in handlers) {
                 try {
-                    Logger.d(TAG, "🟢 Calling handler.handle() for ${handler.javaClass.simpleName}")
                     handler.handle(event)
-                    Logger.d(TAG, "✅ Handler ${handler.javaClass.simpleName} processed event successfully")
                 } catch (e: Exception) {
-                    Logger.e(TAG, "❌ " + MSG_HANDLER_EXCEPTION_PREFIX + eventId + " for handler ${handler.javaClass.simpleName}", e)
+                    Logger.e(TAG, MSG_HANDLER_EXCEPTION_PREFIX + eventId + " for handler ${handler.javaClass.simpleName}", e)
                 }
             }
-            Logger.d(TAG, "✅ All handlers notified for event $type")
         } catch (e: Exception) {
-            Logger.e(TAG, "❌ " + MSG_HANDLER_EXCEPTION_PREFIX + eventId, e)
+            Logger.e(TAG, MSG_HANDLER_EXCEPTION_PREFIX + eventId, e)
         }
     }
 
