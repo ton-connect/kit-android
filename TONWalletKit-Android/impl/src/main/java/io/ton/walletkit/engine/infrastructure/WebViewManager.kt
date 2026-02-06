@@ -48,6 +48,7 @@ import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.TONBase64
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.session.SessionFilter
 import io.ton.walletkit.session.TONConnectSessionManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -400,87 +401,57 @@ internal class WebViewManager(
         }
 
         @JavascriptInterface
-        fun sessionGetByDomain(domain: String): String? {
+        fun sessionGetFiltered(filterJson: String): String {
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
             return kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "sessionGetByDomain: domain=$domain")
-                    val session = manager.getSessionByDomain(domain)
+                    val filter = parseSessionFilter(filterJson)
+                    val sessions = manager.getSessions(filter)
+                    json.encodeToString(sessions)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get filtered sessions", e)
+                    "[]"
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun sessionRemove(sessionId: String): String? {
+            val manager = sessionManager
+                ?: throw IllegalStateException("Session manager not configured")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    val session = manager.removeSession(sessionId)
                     session?.let { json.encodeToString(it) }
                 } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to get session by domain: $domain", e)
+                    Logger.e(TAG, "Failed to remove session: $sessionId", e)
                     null
                 }
             }
         }
 
         @JavascriptInterface
-        fun sessionGetAll(): String {
+        fun sessionRemoveFiltered(filterJson: String): String {
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
             return kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "sessionGetAll")
-                    val sessions = manager.getSessions()
+                    val filter = parseSessionFilter(filterJson)
+                    val sessions = manager.removeSessions(filter)
                     json.encodeToString(sessions)
                 } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to get all sessions", e)
+                    Logger.e(TAG, "Failed to remove filtered sessions", e)
                     "[]"
                 }
             }
         }
 
         @JavascriptInterface
-        fun sessionGetForWallet(walletId: String): String {
-            val manager = sessionManager
-                ?: throw IllegalStateException("Session manager not configured")
 
-            return kotlinx.coroutines.runBlocking {
-                try {
-                    Logger.d(TAG, "sessionGetForWallet: walletId=$walletId")
-                    val sessions = manager.getSessionsForWallet(walletId)
-                    json.encodeToString(sessions)
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to get sessions for wallet: $walletId", e)
-                    "[]"
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun sessionRemove(sessionId: String) {
-            val manager = sessionManager
-                ?: throw IllegalStateException("Session manager not configured")
-
-            kotlinx.coroutines.runBlocking {
-                try {
-                    Logger.d(TAG, "sessionRemove: sessionId=$sessionId")
-                    manager.removeSession(sessionId)
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to remove session: $sessionId", e)
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun sessionRemoveForWallet(walletId: String) {
-            val manager = sessionManager
-                ?: throw IllegalStateException("Session manager not configured")
-
-            kotlinx.coroutines.runBlocking {
-                try {
-                    Logger.d(TAG, "sessionRemoveForWallet: walletId=$walletId")
-                    manager.removeSessionsForWallet(walletId)
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to remove sessions for wallet: $walletId", e)
-                }
-            }
-        }
-
-        @JavascriptInterface
         fun sessionClear() {
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
@@ -581,6 +552,24 @@ internal class WebViewManager(
             return when (value) {
                 null, JSONObject.NULL -> null
                 else -> value.toString()
+            }
+        }
+
+        private fun parseSessionFilter(filterJson: String): SessionFilter? {
+            return try {
+                val jsonObj = org.json.JSONObject(filterJson)
+                if (jsonObj.length() == 0) {
+                    null
+                } else {
+                    SessionFilter(
+                        walletId = jsonObj.optNullableString("walletId"),
+                        domain = jsonObj.optNullableString("domain"),
+                        isJsBridge = if (jsonObj.has("isJsBridge")) jsonObj.getBoolean("isJsBridge") else null,
+                    )
+                }
+            } catch (e: Exception) {
+                Logger.w(TAG, "Failed to parse session filter: $filterJson", e)
+                null
             }
         }
     }
