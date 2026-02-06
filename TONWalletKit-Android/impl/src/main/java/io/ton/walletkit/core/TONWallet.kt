@@ -26,10 +26,10 @@ import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.*
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.engine.model.WalletAccount
-import io.ton.walletkit.engine.model.WalletSession
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONBalance
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.session.TONConnectSession
 import kotlinx.serialization.json.Json
 
 /**
@@ -324,9 +324,9 @@ internal class TONWallet internal constructor(
      * @return List of active sessions associated with this wallet
      * @throws io.ton.walletkit.WalletKitBridgeException if session retrieval fails
      */
-    suspend fun sessions(): List<WalletSession> {
+    suspend fun sessions(): List<TONConnectSession> {
         return engine.listSessions().filter { session ->
-            session.walletAddress == address.value
+            session.walletAddress.value == address.value
         }
     }
 

@@ -91,7 +91,12 @@ abstract class MockBridgeTestBase {
         network: TONNetwork = TONNetwork(chainId = io.ton.walletkit.api.ChainIds.TESTNET),
     ): TONWalletKitConfiguration {
         return TONWalletKitConfiguration(
-            network = network,
+            networkConfigurations = setOf(
+                TONWalletKitConfiguration.NetworkConfiguration(
+                    network = network,
+                    apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(key = ""),
+                ),
+            ),
             walletManifest = TONWalletKitConfiguration.Manifest(
                 name = "Test Wallet",
                 appName = "Wallet",
@@ -103,7 +108,6 @@ abstract class MockBridgeTestBase {
             bridge = TONWalletKitConfiguration.Bridge(
                 bridgeUrl = "https://bridge.tonapi.io/bridge",
             ),
-            apiClient = null,
             features = listOf(
                 TONWalletKitConfiguration.SendTransactionFeature(maxMessages = 4),
                 TONWalletKitConfiguration.SignDataFeature(

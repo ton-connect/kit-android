@@ -98,9 +98,20 @@ dependencies {
     ksp(libs.hiltCompiler)
 
     // TONWalletKit SDK
-    implementation(libs.walletkitAndroid)
+//    implementation(libs.walletkitAndroid)
+    // TONWalletKit SDK - Use local AAR file
+    // Build and copy with: cd ../TONWalletKit-Android && ./gradlew buildAndCopyWebviewToDemo
+    implementation(files("libs/tonwalletkit-release.aar"))
+    // Required transitive dependencies when using AAR:
+    implementation(libs.androidxWebkit)
+    implementation(libs.androidxDatastorePreferences)
 
     implementation(libs.kotlinxSerializationJson)
+
+    // Google Tink for X25519 keypair generation (used by TestSessionManager)
+    // Tink provides pure Java implementation, no native dependencies
+    implementation(libs.tinkAndroid)
+
     debugImplementation(libs.leakcanaryAndroid)
 
     // Testing - Unit Tests

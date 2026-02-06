@@ -24,6 +24,8 @@ package io.ton.walletkit.engine
 import android.content.Context
 import android.view.ViewGroup
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
+import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFT
@@ -31,11 +33,13 @@ import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
+import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
+import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
-import io.ton.walletkit.api.walletkit.TONConnectionRequestEvent
-import io.ton.walletkit.api.walletkit.TONSignDataRequestEvent
-import io.ton.walletkit.api.walletkit.TONTransactionRequestEvent
+import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
@@ -45,7 +49,6 @@ import io.ton.walletkit.engine.infrastructure.StorageManager
 import io.ton.walletkit.engine.infrastructure.WebViewManager
 import io.ton.walletkit.engine.model.TONTransactionWithPreview
 import io.ton.walletkit.engine.model.WalletAccount
-import io.ton.walletkit.engine.model.WalletSession
 import io.ton.walletkit.engine.operations.AssetOperations
 import io.ton.walletkit.engine.operations.CryptoOperations
 import io.ton.walletkit.engine.operations.TonConnectOperations
@@ -63,6 +66,8 @@ import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
+import io.ton.walletkit.session.TONConnectSession
+import io.ton.walletkit.session.TONConnectSessionManager
 import io.ton.walletkit.storage.BridgeStorageAdapter
 import io.ton.walletkit.storage.CustomBridgeStorageAdapter
 import io.ton.walletkit.storage.MemoryBridgeStorageAdapter
@@ -89,6 +94,8 @@ internal class WebViewWalletKitEngine private constructor(
     context: Context,
     eventsHandler: TONBridgeEventsHandler?,
     private val storageAdapter: BridgeStorageAdapter,
+    private val sessionManager: TONConnectSessionManager?,
+    private val apiClients: List<TONAPIClient>,
     private val assetPath: String = WebViewConstants.DEFAULT_ASSET_PATH,
 ) : WalletKitEngine {
     override val kind: WalletKitEngineKind = WalletKitEngineKind.WEBVIEW
@@ -132,6 +139,9 @@ internal class WebViewWalletKitEngine private constructor(
                 assetPath = assetPath,
                 storageManager = storageManager,
                 signerManager = signerManager,
+                sessionManager = sessionManager,
+                apiClients = apiClients,
+                json = json,
                 onMessage = ::handleBridgeMessage,
                 onBridgeError = ::handleBridgeError,
             )
@@ -334,8 +344,11 @@ internal class WebViewWalletKitEngine private constructor(
         transactionContent: String,
     ): String = transactionOperations.sendTransaction(walletId, transactionContent)
 
-    override suspend fun approveConnect(event: TONConnectionRequestEvent) {
-        tonConnectOperations.approveConnect(event)
+    override suspend fun approveConnect(
+        event: TONConnectionRequestEvent,
+        response: TONConnectionApprovalResponse?,
+    ) {
+        tonConnectOperations.approveConnect(event, response)
     }
 
     override suspend fun rejectConnect(
@@ -344,17 +357,23 @@ internal class WebViewWalletKitEngine private constructor(
         errorCode: Int?,
     ) = tonConnectOperations.rejectConnect(event, reason, errorCode)
 
-    override suspend fun approveTransaction(event: TONTransactionRequestEvent, network: TONNetwork) =
-        tonConnectOperations.approveTransaction(event, network)
+    override suspend fun approveTransaction(
+        event: TONSendTransactionRequestEvent,
+        network: TONNetwork,
+        response: TONSendTransactionApprovalResponse?,
+    ) = tonConnectOperations.approveTransaction(event, network, response)
 
     override suspend fun rejectTransaction(
-        event: TONTransactionRequestEvent,
+        event: TONSendTransactionRequestEvent,
         reason: String?,
         errorCode: Int?,
     ) = tonConnectOperations.rejectTransaction(event, reason, errorCode)
 
-    override suspend fun approveSignData(event: TONSignDataRequestEvent, network: TONNetwork) =
-        tonConnectOperations.approveSignData(event, network)
+    override suspend fun approveSignData(
+        event: TONSignDataRequestEvent,
+        network: TONNetwork,
+        response: TONSignDataApprovalResponse?,
+    ) = tonConnectOperations.approveSignData(event, network, response)
 
     override suspend fun rejectSignData(
         event: TONSignDataRequestEvent,
@@ -362,7 +381,7 @@ internal class WebViewWalletKitEngine private constructor(
         errorCode: Int?,
     ) = tonConnectOperations.rejectSignData(event, reason, errorCode)
 
-    override suspend fun listSessions(): List<WalletSession> = tonConnectOperations.listSessions()
+    override suspend fun listSessions(): List<TONConnectSession> = tonConnectOperations.listSessions()
 
     override suspend fun disconnectSession(sessionId: String?) =
         tonConnectOperations.disconnectSession(sessionId)
@@ -527,7 +546,7 @@ internal class WebViewWalletKitEngine private constructor(
 
                     Logger.w(TAG, "🔶🔶🔶 Creating NEW WebView engine for network: $network")
                     val storageAdapter = createStorageAdapter(context, configuration.storageType)
-                    WebViewWalletKitEngine(context, eventsHandler, storageAdapter, assetPath).also {
+                    WebViewWalletKitEngine(context, eventsHandler, storageAdapter, configuration.sessionManager, configuration.apiClients, assetPath).also {
                         instances[network] = it
                     }
                 }
@@ -574,10 +593,12 @@ internal class WebViewWalletKitEngine private constructor(
             assetPath: String,
             eventsHandler: TONBridgeEventsHandler? = null,
             storageType: TONWalletKitStorageType = TONWalletKitStorageType.Memory,
+            sessionManager: TONConnectSessionManager? = null,
+            apiClients: List<TONAPIClient> = emptyList(),
         ): WebViewWalletKitEngine {
             Logger.w(TAG, "🧪 Creating test WebView engine with asset path: $assetPath")
             val storageAdapter = createStorageAdapter(context, storageType)
-            return WebViewWalletKitEngine(context, eventsHandler, storageAdapter, assetPath)
+            return WebViewWalletKitEngine(context, eventsHandler, storageAdapter, sessionManager, apiClients, assetPath)
         }
 
         /**

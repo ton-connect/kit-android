@@ -22,65 +22,21 @@
 package io.ton.walletkit.storage
 
 /**
- * Public storage interface for TON Wallet Kit.
+ * Storage interface for TON Wallet Kit.
  *
- * Implement this interface to provide custom storage for the SDK, enabling
- * integration with existing wallet storage systems like Tonkeeper's AppConnectEntity.
+ * Implement this interface to provide custom storage for the SDK.
  *
- * The SDK stores the following data via this interface:
- * - Session data (session IDs, dApp info, encryption keys) under key "sessions"
- * - Wallet metadata (addresses, public keys) under key "wallets"
- * - User preferences under key "preferences"
- *
- * All values are stored as JSON strings.
- *
- * ## Example: Bridging with existing storage
- * ```kotlin
- * class TonkeeperStorage(
- *     private val dappsRepository: DAppsRepository
- * ) : TONWalletKitStorage {
- *
- *     override suspend fun get(key: String): String? {
- *         return try {
- *             when (key) {
- *                 "sessions" -> convertTonkeeperSessionsToSdkFormat()
- *                 else -> fallbackStorage.get(key)
- *             }
- *         } catch (e: Exception) {
- *             throw WalletKitStorageException(StorageOperation.GET, key, e)
- *         }
- *     }
- *
- *     override suspend fun save(key: String, value: String) {
- *         try {
- *             when (key) {
- *                 "sessions" -> {
- *                     saveToDappsRepository(value)
- *                     fallbackStorage.save(key, value)
- *                 }
- *                 else -> fallbackStorage.save(key, value)
- *             }
- *         } catch (e: Exception) {
- *             throw WalletKitStorageException(StorageOperation.SAVE, key, e)
- *         }
- *     }
- * }
- * ```
- *
- * ## Security Considerations
- * - Session data contains sensitive encryption keys - use secure storage
- * - Consider using EncryptedSharedPreferences or equivalent for the fallback
- * - The SDK's built-in encrypted storage is recommended unless you need custom integration
+ * The SDK stores data as JSON strings under keys like "sessions", "wallets", "preferences".
  *
  * @see TONWalletKitStorageType.Custom
  * @see WalletKitStorageException
  */
 interface TONWalletKitStorage {
     /**
-     * Get a value from storage by key.
+     * Get a value from storage.
      *
-     * @param key The storage key (e.g., "sessions", "wallets", "preferences")
-     * @return The stored value as a JSON string, or null if not found
+     * @param key The storage key
+     * @return The stored value, or null if not found
      * @throws WalletKitStorageException if storage access fails
      */
     suspend fun get(key: String): String?
@@ -88,8 +44,8 @@ interface TONWalletKitStorage {
     /**
      * Save a value to storage.
      *
-     * @param key The storage key (e.g., "sessions", "wallets", "preferences")
-     * @param value The value to store as a JSON string
+     * @param key The storage key
+     * @param value The value to store
      * @throws WalletKitStorageException if storage write fails
      */
     suspend fun save(key: String, value: String)
@@ -104,9 +60,6 @@ interface TONWalletKitStorage {
 
     /**
      * Clear all SDK-related storage data.
-     *
-     * This should clear all keys stored by the SDK, but preserve any
-     * app-specific data that may be in the same storage.
      *
      * @throws WalletKitStorageException if storage clear fails
      */

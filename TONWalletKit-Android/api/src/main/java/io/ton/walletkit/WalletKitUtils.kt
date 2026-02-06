@@ -22,7 +22,6 @@
 package io.ton.walletkit
 
 import android.util.Base64
-import io.ton.walletkit.api.generated.TONNetwork
 
 /**
  * Utility functions for TON Wallet Kit.
@@ -31,18 +30,6 @@ import io.ton.walletkit.api.generated.TONNetwork
  */
 object WalletKitUtils {
     private val HEX_CHARS = "0123456789abcdef".toCharArray()
-
-    /**
-     * @deprecated WalletId is now a hash created by the JavaScript bridge.
-     * Do not create walletId on the Kotlin side - use the walletId from events/responses.
-     */
-    @Deprecated(
-        message = "WalletId format has changed to SHA256 hash. Use walletId from bridge events instead.",
-        level = DeprecationLevel.ERROR,
-    )
-    fun createWalletId(network: TONNetwork, address: String): String {
-        return "${network.chainId}:$address"
-    }
 
     /**
      * Convert a byte array to a hex string with 0x prefix.

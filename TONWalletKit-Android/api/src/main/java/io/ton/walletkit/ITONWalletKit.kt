@@ -124,7 +124,7 @@ interface ITONWalletKit {
      * @param signer Signer info from createSignerFromMnemonic or createSignerFromSecretKey
      * @param network Network to use (MAINNET or TESTNET)
      * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
-     * @param walletId Wallet ID for address uniqueness. Use different IDs to create multiple wallets from same signer.
+     * @param walletId Wallet ID
      * @return Adapter info containing ID and wallet address
      */
     suspend fun createV5R1Adapter(
@@ -142,7 +142,7 @@ interface ITONWalletKit {
      * @param signer Signer info from createSignerFromMnemonic or createSignerFromSecretKey
      * @param network Network to use (MAINNET or TESTNET)
      * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
-     * @param walletId Wallet ID for address uniqueness. Use different IDs to create multiple wallets from same signer.
+     * @param walletId Wallet ID
      * @return Adapter info containing ID and wallet address
      */
     suspend fun createV4R2Adapter(
@@ -247,6 +247,13 @@ interface ITONWalletKit {
      * @param url TON Connect URL (tc:// or https://)
      */
     suspend fun connect(url: String)
+
+    /**
+     * List all active TON Connect sessions.
+     *
+     * @return List of all active sessions
+     */
+    suspend fun listSessions(): List<io.ton.walletkit.session.TONConnectSession>
 
     /**
      * Disconnect TON Connect session.

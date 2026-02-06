@@ -19,74 +19,82 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.api.walletkit
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
 
-import io.ton.walletkit.api.generated.TONConnectionRequestEventPreview
-import io.ton.walletkit.api.generated.TONConnectionRequestEventRequestedItem
-import io.ton.walletkit.api.generated.TONDAppInfo
+package io.ton.walletkit.api.generated
+
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Event containing a connection request from a dApp via TON Connect.
- * Extended model with BridgeEvent fields.
+ * Base event type for TON Connect bridge communication.
+ *
+ * @param id Unique identifier for the bridge event
+ * @param from
+ * @param walletAddress
+ * @param walletId Wallet identifier associated with the event
+ * @param domain Domain of the dApp that initiated the event
+ * @param isJsBridge Whether the event originated from JS Bridge (injected provider)
+ * @param tabId Browser tab ID for JS Bridge events
+ * @param sessionId Session identifier for the connection
+ * @param isLocal
+ * @param messageId
+ * @param traceId
+ * @param dAppInfo
  */
 @Serializable
-data class TONConnectionRequestEvent(
-    /** Unique identifier for the bridge event */
+data class TONBridgeEvent(
+
+    /* Unique identifier for the bridge event */
     @SerialName(value = "id")
-    val id: String,
+    val id: kotlin.String,
 
     @SerialName(value = "from")
-    val from: String? = null,
+    val from: kotlin.String? = null,
 
-    @Contextual
-    @SerialName(value = "walletAddress")
-    val walletAddress: TONUserFriendlyAddress? = null,
+    @Contextual @SerialName(value = "walletAddress")
+    val walletAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
 
-    /** Wallet identifier associated with the event */
+    /* Wallet identifier associated with the event */
     @SerialName(value = "walletId")
-    val walletId: String? = null,
+    val walletId: kotlin.String? = null,
 
-    /** Domain of the dApp that initiated the event */
+    /* Domain of the dApp that initiated the event */
     @SerialName(value = "domain")
-    val domain: String? = null,
+    val domain: kotlin.String? = null,
 
-    /** Whether the event originated from JS Bridge (injected provider) */
+    /* Whether the event originated from JS Bridge (injected provider) */
     @SerialName(value = "isJsBridge")
-    val isJsBridge: Boolean? = null,
+    val isJsBridge: kotlin.Boolean? = null,
 
-    /** Browser tab ID for JS Bridge events */
+    /* Browser tab ID for JS Bridge events */
     @SerialName(value = "tabId")
-    val tabId: String? = null,
+    val tabId: kotlin.String? = null,
 
-    /** Session identifier for the connection */
+    /* Session identifier for the connection */
     @SerialName(value = "sessionId")
-    val sessionId: String? = null,
+    val sessionId: kotlin.String? = null,
 
     @SerialName(value = "isLocal")
-    val isLocal: Boolean? = null,
+    val isLocal: kotlin.Boolean? = null,
 
     @SerialName(value = "messageId")
-    val messageId: String? = null,
+    val messageId: kotlin.String? = null,
 
     @SerialName(value = "traceId")
-    val traceId: String? = null,
+    val traceId: kotlin.String? = null,
 
-    /** dApp information for the connection request */
     @SerialName(value = "dAppInfo")
     val dAppInfo: TONDAppInfo? = null,
 
-    /** Items requested by the dApp (e.g., wallet address, proof) - JS bridge expects 'request' field */
-    @SerialName(value = "request")
-    val request: List<TONConnectionRequestEventRequestedItem>? = null,
+) {
 
-    /** Items requested by the dApp - alias for 'request' for backwards compatibility */
-    @SerialName(value = "requestedItems")
-    val requestedItems: List<TONConnectionRequestEventRequestedItem>? = null,
-
-    @SerialName(value = "preview")
-    val preview: TONConnectionRequestEventPreview,
-)
+    companion object
+}

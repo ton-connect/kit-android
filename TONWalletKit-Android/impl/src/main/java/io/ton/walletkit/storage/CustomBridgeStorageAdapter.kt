@@ -25,19 +25,8 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.util.Logger
 
 /**
- * Adapter that wraps a public [TONWalletKitStorage] implementation to conform to
+ * Adapter that wraps a [TONWalletKitStorage] implementation to conform to
  * the internal [BridgeStorageAdapter] interface.
- *
- * This enables custom storage implementations provided by partners (like Tonkeeper)
- * to be used with the SDK's internal storage system.
- *
- * Keys are passed directly to the custom storage without modification,
- * matching the behavior of the iOS SDK.
- *
- * Exceptions from the custom storage are wrapped in [WalletKitStorageException]
- * if they aren't already.
- *
- * @suppress Internal implementation class.
  */
 internal class CustomBridgeStorageAdapter(
     private val customStorage: TONWalletKitStorage,

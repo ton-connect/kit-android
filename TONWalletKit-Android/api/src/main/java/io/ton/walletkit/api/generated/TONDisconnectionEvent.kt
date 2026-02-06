@@ -19,70 +19,86 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.api.walletkit
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
 
-import io.ton.walletkit.api.generated.TONDAppInfo
-import io.ton.walletkit.api.generated.TONTransactionRequest
-import io.ton.walletkit.api.generated.TONTransactionRequestEventPreview
+package io.ton.walletkit.api.generated
+
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Event containing a transaction request from a dApp via TON Connect.
+ * Event indicating a dApp has disconnected from the wallet.
  *
- * This model extends the generated TransactionRequestEvent with all BridgeEvent fields.
+ * @param id Unique identifier for the bridge event
+ * @param preview
+ * @param from
+ * @param walletAddress
+ * @param walletId Wallet identifier associated with the event
+ * @param domain Domain of the dApp that initiated the event
+ * @param isJsBridge Whether the event originated from JS Bridge (injected provider)
+ * @param tabId Browser tab ID for JS Bridge events
+ * @param sessionId Session identifier for the connection
+ * @param isLocal
+ * @param messageId
+ * @param traceId
+ * @param dAppInfo
  */
 @Serializable
-data class TONTransactionRequestEvent(
-    /** Unique identifier for the bridge event */
+data class TONDisconnectionEvent(
+
+    /* Unique identifier for the bridge event */
     @SerialName(value = "id")
-    val id: String? = null,
+    val id: kotlin.String,
+
+    @SerialName(value = "preview")
+    val preview: TONDisconnectionEventPreview,
 
     @SerialName(value = "from")
-    val from: String? = null,
+    val from: kotlin.String? = null,
 
-    @Contextual
-    @SerialName(value = "walletAddress")
-    val walletAddress: TONUserFriendlyAddress? = null,
+    @Contextual @SerialName(value = "walletAddress")
+    val walletAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
 
-    /** Wallet identifier associated with the event */
+    /* Wallet identifier associated with the event */
     @SerialName(value = "walletId")
-    val walletId: String? = null,
+    val walletId: kotlin.String? = null,
 
-    /** Domain of the dApp that initiated the event */
+    /* Domain of the dApp that initiated the event */
     @SerialName(value = "domain")
-    val domain: String? = null,
+    val domain: kotlin.String? = null,
 
-    /** Whether the event originated from JS Bridge (injected provider) */
+    /* Whether the event originated from JS Bridge (injected provider) */
     @SerialName(value = "isJsBridge")
-    val isJsBridge: Boolean? = null,
+    val isJsBridge: kotlin.Boolean? = null,
 
-    /** Browser tab ID for JS Bridge events */
+    /* Browser tab ID for JS Bridge events */
     @SerialName(value = "tabId")
-    val tabId: String? = null,
+    val tabId: kotlin.String? = null,
 
-    /** Session identifier for the connection */
+    /* Session identifier for the connection */
     @SerialName(value = "sessionId")
-    val sessionId: String? = null,
+    val sessionId: kotlin.String? = null,
 
     @SerialName(value = "isLocal")
-    val isLocal: Boolean? = null,
+    val isLocal: kotlin.Boolean? = null,
 
     @SerialName(value = "messageId")
-    val messageId: String? = null,
+    val messageId: kotlin.String? = null,
 
     @SerialName(value = "traceId")
-    val traceId: String? = null,
+    val traceId: kotlin.String? = null,
 
-    /** Information about the requesting dApp */
     @SerialName(value = "dAppInfo")
     val dAppInfo: TONDAppInfo? = null,
 
-    @SerialName(value = "preview")
-    val preview: TONTransactionRequestEventPreview,
+) {
 
-    @SerialName(value = "request")
-    val request: TONTransactionRequest,
-)
+    companion object
+}
