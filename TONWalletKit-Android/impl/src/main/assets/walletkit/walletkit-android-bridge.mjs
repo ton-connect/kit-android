@@ -27251,7 +27251,8 @@ class BridgeManager {
         tabId: event?.tabId,
         messageId: event?.messageId,
         traceId: event?.traceId,
-        walletId: event?.walletId
+        walletId: event?.walletId,
+        returnStrategy: event?.returnStrategy
       };
       if (!rawEvent.traceId) {
         rawEvent.traceId = v7();
