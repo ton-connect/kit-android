@@ -266,6 +266,7 @@ internal interface WalletKitEngine : RequestHandler {
         paramsJson: String?,
         url: String? = null,
         responseCallback: (org.json.JSONObject) -> Unit,
+        walletId: String? = null,
     )
 
     /**

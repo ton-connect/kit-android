@@ -61,6 +61,8 @@ data class TONWalletKitConfiguration(
     val sessionManager: io.ton.walletkit.session.TONConnectSessionManager? = null,
     @kotlinx.serialization.Transient
     val dev: DevOptions? = null,
+    @kotlinx.serialization.Transient
+    val eventsConfiguration: EventsConfiguration? = null,
 ) {
     /**
      * Returns the primary network (first in the set).
@@ -184,6 +186,11 @@ data class TONWalletKitConfiguration(
 
         override fun hashCode(): Int = network.hashCode()
     }
+
+    data class EventsConfiguration(
+        val disableEvents: Boolean = false,
+        val disableTransactionEmulation: Boolean = false,
+    )
 
     /**
      * Development options for testing.

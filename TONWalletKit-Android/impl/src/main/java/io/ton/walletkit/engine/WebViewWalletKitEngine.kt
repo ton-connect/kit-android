@@ -326,7 +326,8 @@ internal class WebViewWalletKitEngine private constructor(
         paramsJson: String?,
         url: String?,
         responseCallback: (JSONObject) -> Unit,
-    ) = tonConnectOperations.handleTonConnectRequest(messageId, method, paramsJson, url, responseCallback)
+        walletId: String?,
+    ) = tonConnectOperations.handleTonConnectRequest(messageId, method, paramsJson, url, responseCallback, walletId)
 
     override suspend fun createTransferTonTransaction(
         walletId: String,

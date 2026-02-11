@@ -25269,15 +25269,10 @@ class TONConnectStoredSessionManager {
    * Remove session by ID
    */
   async removeSession(sessionId) {
-    const session = await this.getSession(sessionId);
-    if (!session) {
-      return session;
-    }
     const removed = this.sessions.delete(sessionId);
     if (removed) {
       await this.persistSessions();
     }
-    return session;
   }
   async removeSessions(filter) {
     const sessionsToRemove = await this.getSessions(filter);
@@ -25290,7 +25285,6 @@ class TONConnectStoredSessionManager {
     if (removedCount > 0) {
       await this.persistSessions();
     }
-    return sessionsToRemove;
   }
   /**
    * Clear all sessions
@@ -29859,7 +29853,7 @@ class StorageEventProcessor {
         return false;
       }
       const eventToUse = allEvents[0];
-      const walletId = allSessions.find((s2) => s2.sessionId === eventToUse.sessionId)?.walletId || eventToUse.rawEvent.walletId || "no-wallet";
+      const walletId = allSessions.find((s2) => s2.sessionId === eventToUse.sessionId)?.walletId || "no-wallet";
       const processed = await this.processEvent(eventToUse, walletId);
       return processed;
     } catch (error2) {
@@ -35536,11 +35530,7 @@ class AndroidTONConnectSessionsManager {
   removeSession(sessionId) {
     return __async$b(this, null, function* () {
       try {
-        const resultJson = this.bridge.sessionRemove(sessionId);
-        if (!resultJson) {
-          return void 0;
-        }
-        return JSON.parse(resultJson);
+        this.bridge.sessionRemove(sessionId);
       } catch (err) {
         error("[AndroidSessionManager] Failed to remove session:", err);
         throw err;
@@ -35551,8 +35541,7 @@ class AndroidTONConnectSessionsManager {
     return __async$b(this, null, function* () {
       try {
         const filterJson = JSON.stringify(parameters != null ? parameters : {});
-        const resultJson = this.bridge.sessionRemoveFiltered(filterJson);
-        return JSON.parse(resultJson);
+        this.bridge.sessionRemoveFiltered(filterJson);
       } catch (err) {
         error("[AndroidSessionManager] Failed to remove sessions:", err);
         throw err;
@@ -35783,8 +35772,17 @@ function initTonWalletKit(config, deps) {
     const kitOptions = {
       networks: networksConfig
     };
+    const devOptions = {};
     if (config == null ? void 0 : config.disableNetworkSend) {
-      kitOptions.dev = { disableNetworkSend: true };
+      devOptions.disableNetworkSend = true;
+    }
+    if (Object.keys(devOptions).length > 0) {
+      kitOptions.dev = devOptions;
+    }
+    if ((config == null ? void 0 : config.disableTransactionEmulation) !== void 0) {
+      kitOptions.eventProcessor = {
+        disableTransactionEmulation: config.disableTransactionEmulation
+      };
     }
     if (config == null ? void 0 : config.deviceInfo) {
       kitOptions.deviceInfo = config.deviceInfo;

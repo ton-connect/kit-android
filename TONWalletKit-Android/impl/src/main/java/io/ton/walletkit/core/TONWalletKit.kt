@@ -447,8 +447,8 @@ internal class TONWalletKit private constructor(
      * @param webView The WebView to inject TonConnect into
      * @return A WebViewTonConnectInjector that can setup and cleanup TonConnect
      */
-    override fun createWebViewInjector(webView: WebView): WebViewTonConnectInjector {
-        return TonConnectInjector(webView, this)
+    override fun createWebViewInjector(webView: WebView, walletId: String?): WebViewTonConnectInjector {
+        return TonConnectInjector(webView, this, walletId)
     }
 }
 

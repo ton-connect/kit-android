@@ -70,6 +70,7 @@ internal class TonConnectOperations(
         paramsJson: String?,
         url: String?,
         responseCallback: (JSONObject) -> Unit,
+        walletId: String? = null,
     ) {
         try {
             ensureInitialized()
@@ -90,8 +91,6 @@ internal class TonConnectOperations(
                 }
             } ?: JSONArray()
 
-            // Build messageInfo object
-            // Note: domain should be origin (protocol + host) like "https://example.com", not just host
             val messageInfo = JSONObject().apply {
                 put("messageId", messageId)
                 put("tabId", messageId)
@@ -106,16 +105,15 @@ internal class TonConnectOperations(
                         }
                     } ?: "internal-browser",
                 )
+                walletId?.let { put("walletId", it) }
             }
 
-            // Build request object
             val request = JSONObject().apply {
                 put("id", messageId)
                 put("method", method)
                 put("params", params)
             }
 
-            // Send array [messageInfo, request]
             val argsArray = JSONArray().apply {
                 put(messageInfo)
                 put(request)

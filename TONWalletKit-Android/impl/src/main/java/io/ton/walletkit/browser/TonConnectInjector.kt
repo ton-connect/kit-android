@@ -68,6 +68,7 @@ import java.util.concurrent.ConcurrentHashMap
 internal class TonConnectInjector(
     private val webView: WebView,
     private val walletKit: ITONWalletKit,
+    private val walletId: String? = null,
 ) : WebViewTonConnectInjector {
     // Helper to access internal engine - cast to concrete implementation
     private val engine: WalletKitEngine?
@@ -558,6 +559,7 @@ internal class TonConnectInjector(
                     responseCallback = { response ->
                         sendResponse(messageId, response)
                     },
+                    walletId = walletId,
                 )
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to forward request to WalletKit engine", e)

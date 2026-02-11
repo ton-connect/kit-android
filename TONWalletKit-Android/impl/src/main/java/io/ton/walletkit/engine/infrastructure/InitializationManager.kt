@@ -263,6 +263,9 @@ internal class InitializationManager(
                         put(JsonConstants.KEY_DISABLE_NETWORK_SEND, true)
                     }
                 }
+                configuration.eventsConfiguration?.let { eventsConfig ->
+                    put("disableTransactionEmulation", eventsConfig.disableTransactionEmulation)
+                }
             }
 
         Logger.d(
