@@ -661,7 +661,7 @@ internal class TonConnectInjector(
                 about_url = manifest?.aboutUrl ?: "",
                 image = manifest?.imageUrl ?: "",
                 platforms = listOf("android"),
-                jsBridgeKey = manifest?.name ?: "tonwallet",
+                jsBridgeKey = manifest?.jsBridgeKey ?: manifest?.appName ?: "tonwallet",
                 injected = true,
                 embedded = true,
                 tondns = manifest?.tondns,

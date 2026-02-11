@@ -96,6 +96,9 @@ data class TONWalletKitConfiguration(
      * @property universalLink Universal link URL for deep linking
      * @property deepLink Deep link URL scheme (optional)
      * @property bridgeUrl TON Connect bridge URL
+     * @property jsBridgeKey JS bridge key for TonConnect injection (the window property name).
+     *   Must match the key registered in wallets-v2.json (e.g. "tonkeeper").
+     *   Defaults to [appName] if not specified.
      */
     @Serializable
     data class Manifest(
@@ -107,6 +110,7 @@ data class TONWalletKitConfiguration(
         val universalLink: String,
         val deepLink: String? = null,
         val bridgeUrl: String,
+        val jsBridgeKey: String? = null,
     )
 
     /**
