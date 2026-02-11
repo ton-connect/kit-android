@@ -286,10 +286,13 @@ internal class TONWalletKit private constructor(
         // Step 1: Create signer from the adapter's signing capability
         val signerInfo = createSignerFromCustom(walletSigner)
 
-        // Step 2: Create adapter based on network
-        // We derive the wallet version from the identifier or use V5R1 as default
+        // Step 2: Create adapter based on wallet version
         val network = adapter.network()
-        val adapterInfo = createV5R1Adapter(signerInfo, network)
+        val version = adapter.walletVersion()
+        val adapterInfo = when (version?.lowercase()) {
+            "v4r2" -> createV4R2Adapter(signerInfo, network)
+            else -> createV5R1Adapter(signerInfo, network)
+        }
 
         // Step 3: Add wallet
         return addWallet(adapterInfo.adapterId)

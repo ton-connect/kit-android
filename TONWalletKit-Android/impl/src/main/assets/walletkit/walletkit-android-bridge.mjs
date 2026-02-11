@@ -32212,7 +32212,6 @@ class LRUCache {
     const cb = (v3, updateCache = false) => {
       const { aborted } = ac.signal;
       const ignoreAbort = options.ignoreFetchAbort && v3 !== void 0;
-      const proceed = options.ignoreFetchAbort || !!(options.allowStaleOnFetchAbort && v3 !== void 0);
       if (options.status) {
         if (aborted && !updateCache) {
           options.status.fetchAborted = true;
@@ -32224,7 +32223,7 @@ class LRUCache {
         }
       }
       if (aborted && !ignoreAbort && !updateCache) {
-        return fetchFail(ac.signal.reason, proceed);
+        return fetchFail(ac.signal.reason);
       }
       const bf2 = p2;
       const vl = this.#valList[index2];
@@ -32248,16 +32247,16 @@ class LRUCache {
         options.status.fetchRejected = true;
         options.status.fetchError = er;
       }
-      return fetchFail(er, false);
+      return fetchFail(er);
     };
-    const fetchFail = (er, proceed) => {
+    const fetchFail = (er) => {
       const { aborted } = ac.signal;
       const allowStaleAborted = aborted && options.allowStaleOnFetchAbort;
       const allowStale = allowStaleAborted || options.allowStaleOnFetchRejection;
       const noDelete = allowStale || options.noDeleteOnFetchRejection;
       const bf2 = p2;
       if (this.#valList[index2] === p2) {
-        const del = !noDelete || !proceed && bf2.__staleWhileFetching === void 0;
+        const del = !noDelete || bf2.__staleWhileFetching === void 0;
         if (del) {
           this.#delete(k2, "fetch");
         } else if (!allowStaleAborted) {
