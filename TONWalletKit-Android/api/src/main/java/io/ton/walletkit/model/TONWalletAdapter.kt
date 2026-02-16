@@ -140,4 +140,14 @@ interface TONWalletAdapter {
         input: TONProofMessage,
         fakeSignature: Boolean? = null,
     ): TONHex
+
+    /**
+     * Get the wallet contract version.
+     *
+     * Used by the SDK to create the correct wallet adapter (V4R2 vs V5R1) internally.
+     * If null, V5R1 is used as default.
+     *
+     * @return Wallet version string: "v4r2", "v5r1", or null for default (V5R1)
+     */
+    fun walletVersion(): String? = null
 }

@@ -84,6 +84,7 @@ internal class MessageDispatcher(
                 rpcClient.handleResponse(id, payload)
             }
             ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT -> handleJsBridgeEvent(payload)
+            ResponseConstants.VALUE_KIND_DIAGNOSTIC_CALL -> { /* no-op */ }
             else -> Logger.w(TAG, "Unknown message kind: $kind")
         }
     }

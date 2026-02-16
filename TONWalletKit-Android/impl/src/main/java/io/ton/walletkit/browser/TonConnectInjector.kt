@@ -68,6 +68,7 @@ import java.util.concurrent.ConcurrentHashMap
 internal class TonConnectInjector(
     private val webView: WebView,
     private val walletKit: ITONWalletKit,
+    private val walletId: String? = null,
 ) : WebViewTonConnectInjector {
     // Helper to access internal engine - cast to concrete implementation
     private val engine: WalletKitEngine?
@@ -558,6 +559,7 @@ internal class TonConnectInjector(
                     responseCallback = { response ->
                         sendResponse(messageId, response)
                     },
+                    walletId = walletId,
                 )
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to forward request to WalletKit engine", e)
@@ -659,7 +661,7 @@ internal class TonConnectInjector(
                 about_url = manifest?.aboutUrl ?: "",
                 image = manifest?.imageUrl ?: "",
                 platforms = listOf("android"),
-                jsBridgeKey = manifest?.name ?: "tonwallet",
+                jsBridgeKey = manifest?.jsBridgeKey ?: manifest?.appName ?: "tonwallet",
                 injected = true,
                 embedded = true,
                 tondns = manifest?.tondns,
@@ -673,27 +675,27 @@ internal class TonConnectInjector(
     private fun buildFeaturesList(features: List<TONWalletKitConfiguration.Feature>?): List<String> {
         if (features.isNullOrEmpty()) return listOf("SendTransaction")
 
-        return features.flatMap { feature ->
+        val result = mutableListOf<String>()
+        for (feature in features) {
             when (feature) {
                 is TONWalletKitConfiguration.SendTransactionFeature -> {
                     if (feature.maxMessages != null) {
                         val optionsJson = Json.encodeToString(mapOf("maxMessages" to feature.maxMessages))
-                        listOf("SendTransaction", "SendTransaction:$optionsJson")
+                        result.add("SendTransaction")
+                        result.add("SendTransaction:$optionsJson")
                     } else {
-                        listOf("SendTransaction")
+                        result.add("SendTransaction")
                     }
                 }
                 is TONWalletKitConfiguration.SignDataFeature -> {
                     if (feature.types.isNotEmpty()) {
                         val types = feature.types.map { it.name.lowercase() }
                         val typesJson = Json.encodeToString(mapOf("types" to types))
-                        listOf("SignData:$typesJson")
-                    } else {
-                        emptyList()
+                        result.add("SignData:$typesJson")
                     }
                 }
-                else -> emptyList()
             }
-        }.distinct()
+        }
+        return result.distinct()
     }
 }

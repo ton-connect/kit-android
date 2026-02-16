@@ -283,6 +283,9 @@ internal class QuickJsWalletKitEngine(
                 // Note: QuickJS engine doesn't support persistent storage yet
                 // Storage parameter removed from config
                 tonApiKey?.let { put("apiKey", it) }
+                configuration.eventsConfiguration?.let { eventsConfig ->
+                    put("disableTransactionEmulation", eventsConfig.disableTransactionEmulation)
+                }
             }
 
         // Store the configuration after successful initialization
@@ -731,6 +734,7 @@ internal class QuickJsWalletKitEngine(
         paramsJson: String?,
         url: String?,
         responseCallback: (JSONObject) -> Unit,
+        walletId: String?,
     ) {
         // QuickJS engine doesn't support internal browser mode
         // This should never be called for QuickJS

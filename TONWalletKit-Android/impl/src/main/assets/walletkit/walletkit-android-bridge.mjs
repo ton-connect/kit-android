@@ -27245,7 +27245,8 @@ class BridgeManager {
         tabId: event?.tabId,
         messageId: event?.messageId,
         traceId: event?.traceId,
-        walletId: event?.walletId
+        walletId: event?.walletId,
+        returnStrategy: event?.returnStrategy
       };
       if (!rawEvent.traceId) {
         rawEvent.traceId = v7();
@@ -35771,8 +35772,17 @@ function initTonWalletKit(config, deps) {
     const kitOptions = {
       networks: networksConfig
     };
+    const devOptions = {};
     if (config == null ? void 0 : config.disableNetworkSend) {
-      kitOptions.dev = { disableNetworkSend: true };
+      devOptions.disableNetworkSend = true;
+    }
+    if (Object.keys(devOptions).length > 0) {
+      kitOptions.dev = devOptions;
+    }
+    if ((config == null ? void 0 : config.disableTransactionEmulation) !== void 0) {
+      kitOptions.eventProcessor = {
+        disableTransactionEmulation: config.disableTransactionEmulation
+      };
     }
     if (config == null ? void 0 : config.deviceInfo) {
       kitOptions.deviceInfo = config.deviceInfo;
@@ -36569,9 +36579,10 @@ function processInternalBrowserRequest(args) {
     if (!messageId) {
       throw new Error("processInternalBrowserRequest: messageId is required in messageInfo");
     }
-    yield kit("processInjectedBridgeRequest", ...args);
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
+        const resolverMap2 = ensureInternalBrowserResolverMap();
+        resolverMap2.delete(messageId);
         reject(new Error(`Request timeout: ${messageId}`));
       }, 6e4);
       const resolverMap = ensureInternalBrowserResolverMap();
@@ -36589,6 +36600,11 @@ function processInternalBrowserRequest(args) {
           clearTimeout(timeoutId);
           reject(error2 instanceof Error ? error2 : new Error(String(error2)));
         }
+      });
+      kit("processInjectedBridgeRequest", ...args).catch((err) => {
+        clearTimeout(timeoutId);
+        resolverMap.delete(messageId);
+        reject(err);
       });
     });
   });
