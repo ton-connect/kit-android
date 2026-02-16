@@ -294,9 +294,10 @@ interface ITONWalletKit {
      * Used internally by WebView extension functions.
      *
      * @param webView WebView to inject into
+     * @param walletId Optional SDK wallet ID to scope JS bridge events to a specific wallet
      * @return Injector for setup/cleanup
      */
-    fun createWebViewInjector(webView: android.webkit.WebView): WebViewTonConnectInjector
+    fun createWebViewInjector(webView: android.webkit.WebView, walletId: String? = null): WebViewTonConnectInjector
 }
 
 /**

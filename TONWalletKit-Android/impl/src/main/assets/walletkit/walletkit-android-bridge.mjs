@@ -1821,9 +1821,9 @@ function getCurrentLogLevel() {
   const levelStr = logWindow.__WALLETKIT_LOG_LEVEL__ || "OFF";
   return (_a = LogLevel$1[levelStr]) != null ? _a : 0;
 }
-const log$l = (...args) => {
+const info = (...args) => {
   var _a;
-  if (getCurrentLogLevel() >= 4) {
+  if (getCurrentLogLevel() >= 3) {
     (_a = consoleRef == null ? void 0 : consoleRef.log) == null ? void 0 : _a.call(consoleRef, "[WalletKit]", ...args);
   }
 };
@@ -1846,7 +1846,6 @@ function ensureBuffer(scope) {
       writable: true,
       configurable: true
     });
-    log$l("[walletkitBridge] ✅ Buffer polyfill injected");
   }
 }
 function setupNativeBridge() {
@@ -1900,7 +1899,6 @@ function setupNativeBridge() {
         writable: false,
         configurable: true
       });
-      log$l("[walletkitBridge] ✅ WalletKitNativeStorage exposed for secure native storage");
     } else {
       warn("[walletkitBridge] WalletKitNativeStorage already present, not overriding");
     }
@@ -21096,7 +21094,7 @@ function requireMessageRelaxed() {
   const CommonMessageInfoRelaxed_1 = requireCommonMessageInfoRelaxed();
   const StateInit_1 = requireStateInit();
   function loadMessageRelaxed(slice) {
-    const info = (0, CommonMessageInfoRelaxed_1.loadCommonMessageInfoRelaxed)(slice);
+    const info2 = (0, CommonMessageInfoRelaxed_1.loadCommonMessageInfoRelaxed)(slice);
     let init2 = null;
     if (slice.loadBit()) {
       if (!slice.loadBit()) {
@@ -21107,7 +21105,7 @@ function requireMessageRelaxed() {
     }
     const body = slice.loadBit() ? slice.loadRef() : slice.asCell();
     return {
-      info,
+      info: info2,
       init: init2,
       body
     };
@@ -21522,7 +21520,7 @@ function requireMessage() {
   const CommonMessageInfo_1 = requireCommonMessageInfo();
   const StateInit_1 = requireStateInit();
   function loadMessage(slice) {
-    const info = (0, CommonMessageInfo_1.loadCommonMessageInfo)(slice);
+    const info2 = (0, CommonMessageInfo_1.loadCommonMessageInfo)(slice);
     let init2 = null;
     if (slice.loadBit()) {
       if (!slice.loadBit()) {
@@ -21533,7 +21531,7 @@ function requireMessage() {
     }
     const body = slice.loadBit() ? slice.loadRef() : slice.asCell();
     return {
-      info,
+      info: info2,
       init: init2,
       body
     };
@@ -24144,8 +24142,8 @@ function buildJettonInfo(item, walletFriendly, addressBook) {
   let master;
   if (metadata) {
     for (const [raw, infoAny] of Object.entries(metadata)) {
-      const info = infoAny;
-      const tokenInfo = info["token_info"];
+      const info2 = infoAny;
+      const tokenInfo = info2["token_info"];
       if (!Array.isArray(tokenInfo))
         continue;
       for (const tAny of tokenInfo) {
@@ -25240,41 +25238,32 @@ class TONConnectStoredSessionManager {
   async getSession(sessionId) {
     return this.sessions.get(sessionId);
   }
-  async getSessionByDomain(domain) {
-    let host;
-    try {
-      host = new URL(domain).host;
-    } catch {
-      return void 0;
+  async getSessions(filter) {
+    let sessions = Array.from(this.sessions.values());
+    if (!filter) {
+      return sessions;
     }
-    for (const session of this.sessions.values()) {
-      if (session.domain === host) {
-        return this.getSession(session.sessionId);
+    let domain;
+    if (filter.domain) {
+      try {
+        domain = new URL(filter.domain).host;
+      } catch {
+        domain = filter.domain;
       }
     }
-    return void 0;
-  }
-  /**
-   * Get all sessions as array
-   */
-  async getSessions() {
-    return Array.from(this.sessions.values());
-  }
-  /**
-   * Get sessions for specific wallet by wallet ID
-   */
-  async getSessionsForWallet(walletId) {
-    return (await this.getSessions()).filter((session) => session.walletId === walletId);
-  }
-  /**
-   * Update session activity timestamp
-   */
-  async updateSessionActivity(sessionId) {
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      session.lastActivityAt = (/* @__PURE__ */ new Date()).toISOString();
-      await this.persistSessions();
-    }
+    return sessions.filter((session) => {
+      let isIncluded = true;
+      if (filter.walletId) {
+        isIncluded = isIncluded && session.walletId === filter.walletId;
+      }
+      if (filter.domain) {
+        isIncluded = isIncluded && session.domain === domain;
+      }
+      if (filter.isJsBridge !== void 0) {
+        isIncluded = isIncluded && session.isJsBridge === filter.isJsBridge;
+      }
+      return isIncluded;
+    });
   }
   /**
    * Remove session by ID
@@ -25285,11 +25274,8 @@ class TONConnectStoredSessionManager {
       await this.persistSessions();
     }
   }
-  /**
-   * Remove all sessions for a wallet by wallet ID or wallet adapter
-   */
-  async removeSessionsForWallet(walletId) {
-    const sessionsToRemove = await this.getSessionsForWallet(walletId);
+  async removeSessions(filter) {
+    const sessionsToRemove = await this.getSessions(filter);
     let removedCount = 0;
     for (const session of sessionsToRemove) {
       if (this.sessions.delete(session.sessionId)) {
@@ -27183,14 +27169,16 @@ class BridgeManager {
         isJsBridge: true,
         tabId: messageInfo.tabId,
         domain: messageInfo.domain,
-        messageId: messageInfo.messageId
+        messageId: messageInfo.messageId,
+        walletId: messageInfo.walletId
       });
     } else if (event.method == "restoreConnection") {
       this.eventEmitter?.emit("restoreConnection", {
         ...event,
         tabId: messageInfo.tabId,
         domain: messageInfo.domain,
-        messageId: messageInfo.messageId
+        messageId: messageInfo.messageId,
+        walletId: messageInfo.walletId
       });
     } else if (event.method == "send" && event?.params?.length === 1) {
       this.eventQueue.push({
@@ -27200,7 +27188,8 @@ class BridgeManager {
         isJsBridge: true,
         tabId: messageInfo.tabId,
         domain: messageInfo.domain,
-        messageId: messageInfo.messageId
+        messageId: messageInfo.messageId,
+        walletId: messageInfo.walletId
       });
     }
     this.processBridgeEvents().catch((error2) => {
@@ -27255,7 +27244,9 @@ class BridgeManager {
         isJsBridge: event?.isJsBridge,
         tabId: event?.tabId,
         messageId: event?.messageId,
-        traceId: event?.traceId
+        traceId: event?.traceId,
+        walletId: event?.walletId,
+        returnStrategy: event?.returnStrategy
       };
       if (!rawEvent.traceId) {
         rawEvent.traceId = v7();
@@ -27279,7 +27270,12 @@ class BridgeManager {
           };
         }
       } else if (rawEvent.domain) {
-        const session = await this.sessionManager.getSessionByDomain(rawEvent.domain);
+        const sessions = await this.sessionManager.getSessions({
+          walletId: event.walletId,
+          domain: rawEvent.domain,
+          isJsBridge: rawEvent.isJsBridge
+        });
+        const session = sessions.length > 0 ? sessions[0] : void 0;
         if (session?.walletId) {
           rawEvent.walletId = session.walletId;
         }
@@ -27407,7 +27403,8 @@ class ConnectHandler extends BasicHandler {
       preview,
       dAppInfo: preview.dAppInfo,
       isJsBridge: event.isJsBridge,
-      tabId: event.tabId
+      tabId: event.tabId,
+      returnStrategy: event.params.returnStrategy
     };
     this.analytics?.emitWalletConnectRequestReceived({
       trace_id: event.traceId,
@@ -30271,13 +30268,13 @@ function checkOpts(defaults, opts) {
   const merged = Object.assign(defaults, opts);
   return merged;
 }
-function createHasher(hashCons, info = {}) {
+function createHasher(hashCons, info2 = {}) {
   const hashC = (msg, opts) => hashCons(opts).update(msg).digest();
   const tmp = hashCons(void 0);
   hashC.outputLen = tmp.outputLen;
   hashC.blockLen = tmp.blockLen;
   hashC.create = (opts) => hashCons(opts);
-  Object.assign(hashC, info);
+  Object.assign(hashC, info2);
   return Object.freeze(hashC);
 }
 const oidNist = (suffix) => ({
@@ -32767,7 +32764,7 @@ class JettonsManager {
         if (!addressMetadata.is_indexed || !addressMetadata.token_info) {
           continue;
         }
-        const jettonMasterInfo = addressMetadata.token_info.find((info) => typeof info === "object" && info !== null && "type" in info && info.type === "jetton_masters");
+        const jettonMasterInfo = addressMetadata.token_info.find((info2) => typeof info2 === "object" && info2 !== null && "type" in info2 && info2.type === "jetton_masters");
         if (jettonMasterInfo) {
           log$7.debug("Adding jetton from emulation metadata", { jettonAddress, network });
           this.addJettonFromEmulation(network, jettonAddress, jettonMasterInfo);
@@ -33906,7 +33903,7 @@ class ApiClientToncenter {
   }
   extractJettonInfoFromMetadata(jettonAddress, metadata) {
     const jettonMetadata = metadata[jettonAddress];
-    const metadataJettonInfo = jettonMetadata?.token_info?.find((info) => typeof info === "object" && info !== null && "type" in info && info.type === "jetton_masters");
+    const metadataJettonInfo = jettonMetadata?.token_info?.find((info2) => typeof info2 === "object" && info2 !== null && "type" in info2 && info2.type === "jetton_masters");
     if (metadataJettonInfo) {
       const decimals = typeof metadataJettonInfo.extra.decimals === "string" ? parseInt(metadataJettonInfo.extra.decimals, 10) : metadataJettonInfo.extra.decimals;
       return {
@@ -34090,23 +34087,28 @@ class TonWalletKit {
     this.eventEmitter.on("restoreConnection", async (event) => {
       if (!event.domain) {
         log$2.error("Domain is required for restore connection");
-        return;
+        return this.sendErrorConnectResponse(event);
       }
-      const session = await this.sessionManager.getSessionByDomain(event.domain);
+      const sessions = await this.sessionManager.getSessions({
+        walletId: event.walletId,
+        domain: event.domain,
+        isJsBridge: true
+      });
+      const session = sessions.length > 0 ? sessions[0] : void 0;
       if (!session) {
         log$2.error("Session not found for domain", { domain: event.domain });
-        return;
+        return this.sendErrorConnectResponse(event);
       }
       const wallet2 = session.walletId ? this.walletManager?.getWallet(session.walletId) : void 0;
       if (!wallet2) {
         log$2.error("Wallet not found for session", { walletId: session.walletId });
-        return;
+        return this.sendErrorConnectResponse(event);
       }
       const walletAddress = wallet2.getAddress();
       const walletStateInit = await wallet2.getStateInit();
       const publicKey = wallet2.getPublicKey().replace("0x", "");
       const deviceInfo = getDeviceInfoForWallet(wallet2, this.config.deviceInfo);
-      const connectResponse = {
+      const tonConnectEvent = {
         event: "connect",
         id: Date.now(),
         payload: {
@@ -34123,8 +34125,19 @@ class TonWalletKit {
           ]
         }
       };
-      this.bridgeManager.sendJsBridgeResponse(event?.tabId?.toString() || "", true, event?.id ?? event?.messageId, connectResponse);
+      this.bridgeManager.sendJsBridgeResponse(event?.tabId?.toString() || "", true, event?.id ?? event?.messageId, tonConnectEvent);
     });
+  }
+  async sendErrorConnectResponse(event) {
+    const tonConnectEvent = {
+      event: "connect_error",
+      id: Date.now(),
+      payload: {
+        code: CONNECT_EVENT_ERROR_CODES.UNKNOWN_APP_ERROR,
+        message: ""
+      }
+    };
+    await this.bridgeManager.sendJsBridgeResponse(event?.tabId?.toString() || "", true, event?.id ?? event?.messageId, tonConnectEvent);
   }
   // === Initialization ===
   /**
@@ -34240,7 +34253,7 @@ class TonWalletKit {
     }
     await this.eventProcessor.stopProcessing(wallet2.getAddress());
     await this.walletManager.removeWallet(walletId);
-    await this.sessionManager.removeSessionsForWallet(walletId);
+    await this.sessionManager.removeSessions({ walletId });
   }
   async clearWallets() {
     await this.ensureInitialized();
@@ -35462,18 +35475,15 @@ class AndroidTONConnectSessionsManager {
       throw new Error("Android native session manager bridge not available");
     }
     this.bridge = win.WalletKitNative;
-    log$l("[AndroidSessionManager] Initialized with native bridge");
   }
   initialize() {
     return __async$b(this, null, function* () {
-      log$l("[AndroidSessionManager] initialize() called - no-op for Android");
     });
   }
   createSession(sessionId, dAppInfo, wallet2, isJsBridge) {
     return __async$b(this, null, function* () {
       var _a, _b, _c, _d;
       try {
-        log$l("[AndroidSessionManager] createSession:", sessionId);
         const walletId = (_b = (_a = wallet2.getWalletId) == null ? void 0 : _a.call(wallet2)) != null ? _b : "";
         const walletAddress = (_d = (_c = wallet2.getAddress) == null ? void 0 : _c.call(wallet2)) != null ? _d : "";
         const dAppInfoJson = JSON.stringify({
@@ -35484,7 +35494,6 @@ class AndroidTONConnectSessionsManager {
         });
         const resultJson = this.bridge.sessionCreate(sessionId, dAppInfoJson, walletId, walletAddress, isJsBridge);
         const session = JSON.parse(resultJson);
-        log$l("[AndroidSessionManager] Session created:", session.sessionId);
         return session;
       } catch (err) {
         error("[AndroidSessionManager] Failed to create session:", err);
@@ -35495,7 +35504,6 @@ class AndroidTONConnectSessionsManager {
   getSession(sessionId) {
     return __async$b(this, null, function* () {
       try {
-        log$l("[AndroidSessionManager] getSession:", sessionId);
         const resultJson = this.bridge.sessionGet(sessionId);
         if (!resultJson) {
           return void 0;
@@ -35507,26 +35515,11 @@ class AndroidTONConnectSessionsManager {
       }
     });
   }
-  getSessionByDomain(domain) {
+  getSessions(parameters) {
     return __async$b(this, null, function* () {
       try {
-        log$l("[AndroidSessionManager] getSessionByDomain:", domain);
-        const resultJson = this.bridge.sessionGetByDomain(domain);
-        if (!resultJson) {
-          return void 0;
-        }
-        return JSON.parse(resultJson);
-      } catch (err) {
-        warn("[AndroidSessionManager] Failed to get session by domain:", err);
-        return void 0;
-      }
-    });
-  }
-  getSessions() {
-    return __async$b(this, null, function* () {
-      try {
-        log$l("[AndroidSessionManager] getSessions");
-        const resultJson = this.bridge.sessionGetAll();
+        const filterJson = JSON.stringify(parameters != null ? parameters : {});
+        const resultJson = this.bridge.sessionGetFiltered(filterJson);
         return JSON.parse(resultJson);
       } catch (err) {
         warn("[AndroidSessionManager] Failed to get sessions:", err);
@@ -35534,22 +35527,9 @@ class AndroidTONConnectSessionsManager {
       }
     });
   }
-  getSessionsForWallet(walletId) {
-    return __async$b(this, null, function* () {
-      try {
-        log$l("[AndroidSessionManager] getSessionsForWallet:", walletId);
-        const resultJson = this.bridge.sessionGetForWallet(walletId);
-        return JSON.parse(resultJson);
-      } catch (err) {
-        warn("[AndroidSessionManager] Failed to get sessions for wallet:", err);
-        return [];
-      }
-    });
-  }
   removeSession(sessionId) {
     return __async$b(this, null, function* () {
       try {
-        log$l("[AndroidSessionManager] removeSession:", sessionId);
         this.bridge.sessionRemove(sessionId);
       } catch (err) {
         error("[AndroidSessionManager] Failed to remove session:", err);
@@ -35557,13 +35537,13 @@ class AndroidTONConnectSessionsManager {
       }
     });
   }
-  removeSessionsForWallet(walletId) {
+  removeSessions(parameters) {
     return __async$b(this, null, function* () {
       try {
-        log$l("[AndroidSessionManager] removeSessionsForWallet:", walletId);
-        this.bridge.sessionRemoveForWallet(walletId);
+        const filterJson = JSON.stringify(parameters != null ? parameters : {});
+        this.bridge.sessionRemoveFiltered(filterJson);
       } catch (err) {
-        error("[AndroidSessionManager] Failed to remove sessions for wallet:", err);
+        error("[AndroidSessionManager] Failed to remove sessions:", err);
         throw err;
       }
     });
@@ -35571,7 +35551,6 @@ class AndroidTONConnectSessionsManager {
   clearSessions() {
     return __async$b(this, null, function* () {
       try {
-        log$l("[AndroidSessionManager] clearSessions");
         this.bridge.sessionClear();
       } catch (err) {
         error("[AndroidSessionManager] Failed to clear sessions:", err);
@@ -35636,11 +35615,9 @@ class AndroidAPIClientAdapter {
   }
   sendBoc(boc) {
     return __async$a(this, null, function* () {
-      log$l("[AndroidAPIClientAdapter] sendBoc:", boc.substring(0, 50) + "...");
       try {
         const networkJson = JSON.stringify(this.network);
         const result = this.androidBridge.apiSendBoc(networkJson, boc);
-        log$l("[AndroidAPIClientAdapter] sendBoc result:", result);
         return result;
       } catch (err) {
         error("[AndroidAPIClientAdapter] sendBoc failed:", err);
@@ -35650,14 +35627,12 @@ class AndroidAPIClientAdapter {
   }
   runGetMethod(address, method, stack, seqno) {
     return __async$a(this, null, function* () {
-      log$l("[AndroidAPIClientAdapter] runGetMethod:", address, method);
       try {
         const networkJson = JSON.stringify(this.network);
         const stackJson = stack ? JSON.stringify(stack) : null;
         const seqnoArg = seqno != null ? seqno : -1;
         const resultJson = this.androidBridge.apiRunGetMethod(networkJson, address, method, stackJson, seqnoArg);
         const result = JSON.parse(resultJson);
-        log$l("[AndroidAPIClientAdapter] runGetMethod result:", result);
         return result;
       } catch (err) {
         error("[AndroidAPIClientAdapter] runGetMethod failed:", err);
@@ -35689,12 +35664,10 @@ class AndroidAPIClientAdapter {
   }
   getBalance(address, seqno) {
     return __async$a(this, null, function* () {
-      log$l("[AndroidAPIClientAdapter] getBalance:", address);
       try {
         const networkJson = JSON.stringify(this.network);
         const seqnoArg = seqno != null ? seqno : -1;
         const result = this.androidBridge.apiGetBalance(networkJson, address, seqnoArg);
-        log$l("[AndroidAPIClientAdapter] getBalance result:", result);
         return result;
       } catch (err) {
         error("[AndroidAPIClientAdapter] getBalance failed:", err);
@@ -35780,22 +35753,17 @@ function initTonWalletKit(config, deps) {
       return { ok: true };
     }
     yield ensureWalletKitLoaded();
-    log$l("[walletkitBridge] initTonWalletKit config:", JSON.stringify(config, null, 2));
     const networksConfig = {};
     if ((config == null ? void 0 : config.networkConfigurations) && Array.isArray(config.networkConfigurations)) {
       for (const netConfig of config.networkConfigurations) {
         networksConfig[netConfig.network.chainId] = {
           apiClient: netConfig.apiClientConfiguration
         };
-        log$l("[walletkitBridge] Added network from networkConfigurations:", netConfig.network.chainId);
       }
     }
     if (AndroidAPIClientAdapter.isAvailable()) {
-      log$l("[walletkitBridge] Native API clients available, checking for configured networks");
       const availableNetworks = AndroidAPIClientAdapter.getAvailableNetworks();
-      log$l("[walletkitBridge] Available native API networks:", JSON.stringify(availableNetworks));
       for (const nativeNetwork of availableNetworks) {
-        log$l("[walletkitBridge] Using native API client for network:", nativeNetwork.chainId);
         networksConfig[nativeNetwork.chainId] = {
           apiClient: new AndroidAPIClientAdapter(nativeNetwork)
         };
@@ -35804,9 +35772,17 @@ function initTonWalletKit(config, deps) {
     const kitOptions = {
       networks: networksConfig
     };
+    const devOptions = {};
     if (config == null ? void 0 : config.disableNetworkSend) {
-      kitOptions.dev = { disableNetworkSend: true };
-      log$l("[walletkitBridge] ⚠️ disableNetworkSend is enabled - transactions will be simulated only");
+      devOptions.disableNetworkSend = true;
+    }
+    if (Object.keys(devOptions).length > 0) {
+      kitOptions.dev = devOptions;
+    }
+    if ((config == null ? void 0 : config.disableTransactionEmulation) !== void 0) {
+      kitOptions.eventProcessor = {
+        disableTransactionEmulation: config.disableTransactionEmulation
+      };
     }
     if (config == null ? void 0 : config.deviceInfo) {
       kitOptions.deviceInfo = config.deviceInfo;
@@ -35820,19 +35796,12 @@ function initTonWalletKit(config, deps) {
         jsBridgeTransport: (sessionId, message) => __async$9(null, null, function* () {
           var _a2;
           const typedMessage = message;
-          log$l("[walletkitBridge] 📤 jsBridgeTransport called:", {
-            sessionId,
-            messageType: typedMessage.type,
-            hasPayload: "payload" in typedMessage
-          });
-          log$l("[walletkitBridge] 📤 Full message:", JSON.stringify(typedMessage, null, 2));
           let bridgeMessage = typedMessage;
           const DISCONNECT_EVENT = "disconnect";
           if (bridgeMessage.type === TONCONNECT_BRIDGE_RESPONSE) {
             const responseMsg = bridgeMessage;
             const result = responseMsg.result;
             if ((result == null ? void 0 : result.event) === DISCONNECT_EVENT && !responseMsg.messageId) {
-              log$l("[walletkitBridge] 🔄 Transforming disconnect response to event");
               bridgeMessage = {
                 type: TONCONNECT_BRIDGE_EVENT,
                 source: responseMsg.source,
@@ -35842,49 +35811,40 @@ function initTonWalletKit(config, deps) {
                   payload: {}
                 }
               };
-              log$l("[walletkitBridge] 🔄 Transformed message:", JSON.stringify(bridgeMessage, null, 2));
             }
           }
           if (bridgeMessage.type === TONCONNECT_BRIDGE_RESPONSE && bridgeMessage.messageId) {
-            log$l("[walletkitBridge] 🔵 Message has messageId, checking for pending promise");
             const resolvers = getInternalBrowserResolverMap();
             const messageIdStr = String(bridgeMessage.messageId);
             const resolver = resolvers == null ? void 0 : resolvers.get(messageIdStr);
             if (resolver) {
-              log$l("[walletkitBridge] ✅ Resolving response promise for messageId:", messageIdStr);
               resolvers == null ? void 0 : resolvers.delete(messageIdStr);
               resolver.resolve(bridgeMessage);
             } else {
-              warn("[walletkitBridge] ⚠️ No pending promise for messageId:", messageIdStr);
+              warn("[walletkitBridge] No pending promise for messageId:", messageIdStr);
             }
           }
           if (bridgeMessage.type === TONCONNECT_BRIDGE_EVENT) {
-            log$l("[walletkitBridge] 📤 Sending event to WebView for session:", sessionId);
             deps.postToNative({
               kind: "jsBridgeEvent",
               sessionId,
               event: bridgeMessage
             });
-            log$l("[walletkitBridge] ✅ Event sent successfully");
           }
           return Promise.resolve();
         })
       };
     }
     if (window.WalletKitNative) {
-      log$l("[walletkitBridge] Using Android native storage adapter");
       kitOptions.storage = new deps.AndroidStorageAdapter();
     } else if (config == null ? void 0 : config.allowMemoryStorage) {
-      log$l("[walletkitBridge] Using memory storage (sessions will not persist)");
+      info("[walletkitBridge] Using memory storage (sessions will not persist)");
       kitOptions.storage = {
         allowMemory: true
       };
     }
     if (hasAndroidSessionManager()) {
-      log$l("[walletkitBridge] Using Android native session manager");
       kitOptions.sessionManager = new AndroidTONConnectSessionsManager();
-    } else {
-      log$l("[walletkitBridge] Using default WalletKit session manager");
     }
     if (!TonWalletKit$1) {
       throw new Error("TonWalletKit module not loaded");
@@ -35895,7 +35855,7 @@ function initTonWalletKit(config, deps) {
     }
     deps.emit("ready", {});
     deps.postToNative({ kind: "ready" });
-    log$l("[walletkitBridge] WalletKit ready");
+    info("[walletkitBridge] WalletKit ready");
     return { ok: true };
   });
 }
@@ -36045,7 +36005,7 @@ function postToNative(payload) {
   if (payload.kind === "event") {
     throw new Error("Native bridge not available - cannot deliver event");
   }
-  log$l("[walletkitBridge] → native (no handler)", payload);
+  warn("[walletkitBridge] postToNative: no native handler", payload);
 }
 function emitCallDiagnostic(id, method, stage, message) {
   postToNative({
@@ -36083,34 +36043,22 @@ function emit(type, data) {
   postToNative({ kind: "event", event });
 }
 function respond(id, result, error2) {
-  log$l("[walletkitBridge] 🟢 respond() called with:");
-  log$l("[walletkitBridge] 🟢 id:", id);
-  log$l("[walletkitBridge] 🟢 result:", result);
-  log$l("[walletkitBridge] 🟢 error:", error2);
-  log$l("[walletkitBridge] 🟢 About to call postToNative...");
   postToNative({ kind: "response", id, result, error: error2 });
-  log$l("[walletkitBridge] 🟢 postToNative completed");
 }
 function setBridgeApi(api2) {
   apiRef = api2;
 }
 function invokeApiMethod(api2, method, params, context) {
   return __async$7(this, null, function* () {
-    log$l(`[walletkitBridge] handleCall ${method}, looking up api[${method}]`);
     const fn = api2[method];
-    log$l(`[walletkitBridge] fn found:`, typeof fn);
     if (typeof fn !== "function") {
       throw new Error(`Unknown method ${String(method)}`);
     }
-    log$l(`[walletkitBridge] about to call fn for ${method}`);
     const value = yield fn.call(
       api2,
       params,
       context
     );
-    log$l(`[walletkitBridge] fn returned for ${method}`);
-    log$l(`[walletkitBridge] 🔵 fn returned value:`, value);
-    log$l(`[walletkitBridge] 🔵 value type:`, typeof value);
     return value;
   });
 }
@@ -36127,10 +36075,7 @@ function handleCall(id, method, params) {
       respond(id, value);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      error(`[walletkitBridge] handleCall error for ${method}:`, err);
-      error(`[walletkitBridge] error type:`, typeof err);
-      error(`[walletkitBridge] error message:`, message);
-      error(`[walletkitBridge] error stack:`, err instanceof Error ? err.stack : "no stack");
+      error(`[walletkitBridge] handleCall error for ${method}:`, message);
       emitCallDiagnostic(id, method, "error", message);
       respond(id, void 0, { message });
     }
@@ -36212,7 +36157,6 @@ class AndroidStorageAdapter {
   remove(key) {
     return __async$6(this, null, function* () {
       try {
-        log$l("[AndroidStorageAdapter] remove:", key);
         this.androidBridge.storageRemove(key);
       } catch (err) {
         error("[AndroidStorageAdapter] Failed to remove key:", key, err);
@@ -36222,7 +36166,6 @@ class AndroidStorageAdapter {
   clear() {
     return __async$6(this, null, function* () {
       try {
-        log$l("[AndroidStorageAdapter] clear: clearing all storage");
         this.androidBridge.storageClear();
       } catch (err) {
         error("[AndroidStorageAdapter] Failed to clear storage:", err);
@@ -36636,9 +36579,10 @@ function processInternalBrowserRequest(args) {
     if (!messageId) {
       throw new Error("processInternalBrowserRequest: messageId is required in messageInfo");
     }
-    yield kit("processInjectedBridgeRequest", ...args);
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
+        const resolverMap2 = ensureInternalBrowserResolverMap();
+        resolverMap2.delete(messageId);
         reject(new Error(`Request timeout: ${messageId}`));
       }, 6e4);
       const resolverMap = ensureInternalBrowserResolverMap();
@@ -36656,6 +36600,11 @@ function processInternalBrowserRequest(args) {
           clearTimeout(timeoutId);
           reject(error2 instanceof Error ? error2 : new Error(String(error2)));
         }
+      });
+      kit("processInjectedBridgeRequest", ...args).catch((err) => {
+        clearTimeout(timeoutId);
+        resolverMap.delete(messageId);
+        reject(err);
       });
     });
   });
@@ -36741,5 +36690,4 @@ const api = {
 setBridgeApi(api);
 registerNativeCallHandler();
 window.walletkitBridge = api;
-log$l("[walletkitBridge] bootstrap complete");
 //# sourceMappingURL=walletkit-android-bridge.mjs.map

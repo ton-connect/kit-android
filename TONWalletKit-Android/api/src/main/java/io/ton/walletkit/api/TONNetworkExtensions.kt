@@ -33,3 +33,9 @@ val TONNetwork.Companion.MAINNET: TONNetwork
 
 val TONNetwork.Companion.TESTNET: TONNetwork
     get() = TONNetwork(chainId = ChainIds.TESTNET)
+
+val TONNetwork.isTestnet: Boolean
+    get() = this == TONNetwork.TESTNET
+
+val TONNetwork.isMainnet: Boolean
+    get() = this == TONNetwork.MAINNET
