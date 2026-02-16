@@ -28,7 +28,6 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
@@ -38,8 +37,8 @@ import io.ton.walletkit.model.WalletSignerInfo
  * TON Wallet Kit SDK for managing wallets and TON Connect.
  *
  * Create an instance via [initialize], add event handlers with [addEventsHandler],
- * then create wallets using the 3-step pattern: createSigner → createAdapter → addWallet.
- * For external signers (hardware wallets), create a WalletSigner object and use it in step 2.
+ * then add wallets either with the factory methods (createSigner → createV5R1Adapter → addWallet)
+ * or by providing a custom [TONWalletAdapter] implementation.
  */
 interface ITONWalletKit {
     companion object {
@@ -71,20 +70,10 @@ interface ITONWalletKit {
      */
     suspend fun destroy()
 
+    // ── Signer factory (matches iOS signer(mnemonic:) / signer(privateKey:)) ──
+
     /**
-     * Create a signer from mnemonic phrase.
-     *
-     * This is step 1 of the wallet creation pattern matching JS WalletKit:
-     * ```kotlin
-     * // Step 1: Create signer
-     * val signer = walletKit.createSignerFromMnemonic(mnemonic)
-     *
-     * // Step 2: Create adapter
-     * val adapter = walletKit.createV5R1Adapter(signer)
-     *
-     * // Step 3: Add wallet
-     * val wallet = walletKit.addWallet(adapter)
-     * ```
+     * Create a signer from a mnemonic phrase.
      *
      * @param mnemonic 24-word mnemonic phrase
      * @param mnemonicType Mnemonic derivation type: "ton" (default) or "bip39"
@@ -96,9 +85,7 @@ interface ITONWalletKit {
     ): WalletSignerInfo
 
     /**
-     * Create a signer from secret key (private key).
-     *
-     * This is step 1 of the wallet creation pattern matching JS WalletKit.
+     * Create a signer from a secret key (private key).
      *
      * @param secretKey 32-byte secret key
      * @return Signer info containing ID and public key
@@ -106,23 +93,20 @@ interface ITONWalletKit {
     suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo
 
     /**
-     * Create a signer from a custom WalletSigner implementation.
+     * Create a signer from a custom [WalletSigner] implementation (e.g. hardware wallet).
      *
-     * This is step 1 of the wallet creation pattern, enabling hardware wallet integration.
-     * The WalletSigner interface must be implemented to provide custom signing logic.
-     *
-     * @param signer Custom WalletSigner implementation (e.g., hardware wallet)
+     * @param signer Custom WalletSigner implementation
      * @return Signer info containing ID and public key
      * @see WalletSigner
      */
     suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo
 
+    // ── Adapter factory (matches iOS walletV5R1Adapter / walletV4R2Adapter) ──
+
     /**
      * Create a V5R1 wallet adapter from a signer.
      *
-     * This is step 2 of the wallet creation pattern matching JS WalletKit.
-     *
-     * @param signer Signer info from createSignerFromMnemonic or createSignerFromSecretKey
+     * @param signer Signer info from createSignerFrom*
      * @param network Network to use (MAINNET or TESTNET)
      * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
      * @param walletId Wallet ID
@@ -138,9 +122,7 @@ interface ITONWalletKit {
     /**
      * Create a V4R2 wallet adapter from a signer.
      *
-     * This is step 2 of the wallet creation pattern matching JS WalletKit.
-     *
-     * @param signer Signer info from createSignerFromMnemonic or createSignerFromSecretKey
+     * @param signer Signer info from createSignerFrom*
      * @param network Network to use (MAINNET or TESTNET)
      * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
      * @param walletId Wallet ID
@@ -153,24 +135,21 @@ interface ITONWalletKit {
         walletId: Long = WalletKitConstants.DEFAULT_WALLET_ID_V4R2,
     ): WalletAdapterInfo
 
+    // ── Add wallet ──
+
     /**
-     * Add a wallet to the kit using an adapter ID.
+     * Add a wallet using an adapter ID from [createV5R1Adapter] or [createV4R2Adapter].
      *
-     * This is step 3 of the wallet creation pattern matching JS WalletKit.
-     *
-     * @param adapterId Adapter ID from createV5R1Adapter or createV4R2Adapter
+     * @param adapterId Adapter ID
      * @return Created wallet instance
      */
     suspend fun addWallet(adapterId: String): ITONWallet
 
     /**
-     * Add a wallet to the kit using a custom TONWalletAdapter.
+     * Add a wallet to the kit using a custom [TONWalletAdapter].
      *
-     * This is an alternative to the 3-step pattern that allows wrapping existing
-     * wallet entities directly. Useful for integrating with existing wallet apps
-     * that already have their own wallet management.
-     *
-     * Mirrors iOS's `add(walletAdapter:)` method for cross-platform consistency.
+     * This wraps existing wallet entities directly, matching iOS's `add(walletAdapter:)`.
+     * Use this when the host app already manages wallets (e.g. Tonkeeper).
      *
      * **Example:**
      * ```kotlin
@@ -194,20 +173,23 @@ interface ITONWalletKit {
     suspend fun getWallets(): List<ITONWallet>
 
     /**
-     * Get a single wallet by its address.
+     * Get a single wallet by its ID.
      *
-     * @param address Wallet address
+     * The wallet ID is the value returned by [TONWalletAdapter.identifier],
+     * which should be the host app's stable wallet identifier.
+     *
+     * @param walletId Wallet ID (from adapter's identifier())
      * @return Wallet instance or null if not found
      */
-    suspend fun getWallet(address: TONUserFriendlyAddress): ITONWallet?
+    suspend fun getWallet(walletId: String): ITONWallet?
 
     /**
-     * Remove a wallet by its address.
+     * Remove a wallet by its ID.
      *
-     * @param address Wallet address
+     * @param walletId Wallet ID (from adapter's identifier())
      * @return True if wallet was found and removed, false otherwise
      */
-    suspend fun removeWallet(address: TONUserFriendlyAddress): Boolean
+    suspend fun removeWallet(walletId: String): Boolean
 
     /**
      * Clear all wallets from the SDK.

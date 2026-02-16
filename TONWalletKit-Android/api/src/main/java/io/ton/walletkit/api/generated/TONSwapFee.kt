@@ -19,23 +19,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.engine.operations.requests
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
 
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Internal bridge request models for wallet operations.
- * These DTOs represent the exact JSON structure sent to the JavaScript bridge.
+ * Fee information for swap
  *
- * @suppress Internal bridge communication only.
+ * @param amount
+ * @param token
  */
-
 @Serializable
-internal data class AddressRequest(
-    val address: String,
-)
+data class TONSwapFee(
 
-@Serializable
-internal data class WalletIdRequest(
-    val walletId: String,
-)
+    @SerialName(value = "amount")
+    val amount: kotlin.String,
+
+    @SerialName(value = "token")
+    val token: TONSwapToken,
+
+) {
+
+    companion object
+}

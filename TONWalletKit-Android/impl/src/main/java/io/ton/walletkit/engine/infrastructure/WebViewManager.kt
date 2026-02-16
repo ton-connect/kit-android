@@ -70,7 +70,7 @@ internal class WebViewManager(
     context: Context,
     private val assetPath: String,
     private val storageManager: StorageManager,
-    private val signerManager: io.ton.walletkit.engine.state.SignerManager,
+    private val adapterManager: io.ton.walletkit.engine.state.AdapterManager,
     private val sessionManager: TONConnectSessionManager?,
     private val apiClients: List<TONAPIClient>,
     private val json: Json,
@@ -313,25 +313,76 @@ internal class WebViewManager(
             }
         }
 
+        // ======== Native Adapter Proxy Methods ========
+        // Called by the JS proxy adapter created in addWallet.
+        // Each method delegates to the Kotlin TONWalletAdapter registered in AdapterManager.
+
         @JavascriptInterface
-        fun signWithCustomSigner(
-            signerId: String,
-            bytesJson: String,
+        fun adapterGetStateInit(adapterId: String): String {
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    val adapter = adapterManager.getAdapter(adapterId)
+                        ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                    adapter.stateInit().value
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get stateInit for adapter: $adapterId", e)
+                    throw e
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun adapterSignTransaction(
+            adapterId: String,
+            inputJson: String,
+            fakeSignature: Boolean,
         ): String {
             return kotlinx.coroutines.runBlocking {
                 try {
-                    val signer =
-                        signerManager.getSigner(signerId)
-                            ?: throw IllegalArgumentException("Custom signer not found: $signerId")
-
-                    val bytesArray = org.json.JSONArray(bytesJson)
-                    val bytes = ByteArray(bytesArray.length()) { i -> bytesArray.getInt(i).toByte() }
-
-                    val signatureHex = signer.sign(bytes)
-                    // Return hex string with 0x prefix as expected by JavaScript
-                    signatureHex.value
+                    val adapter = adapterManager.getAdapter(adapterId)
+                        ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                    val request = json.decodeFromString<io.ton.walletkit.api.generated.TONTransactionRequest>(inputJson)
+                    adapter.signedSendTransaction(request, fakeSignature).value
                 } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to sign with custom signer: $signerId", e)
+                    Logger.e(TAG, "Failed to sign transaction for adapter: $adapterId", e)
+                    throw e
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun adapterSignData(
+            adapterId: String,
+            inputJson: String,
+            fakeSignature: Boolean,
+        ): String {
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    val adapter = adapterManager.getAdapter(adapterId)
+                        ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                    val request = json.decodeFromString<io.ton.walletkit.api.generated.TONPreparedSignData>(inputJson)
+                    adapter.signedSignData(request, fakeSignature).value
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to sign data for adapter: $adapterId", e)
+                    throw e
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun adapterSignTonProof(
+            adapterId: String,
+            inputJson: String,
+            fakeSignature: Boolean,
+        ): String {
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    val adapter = adapterManager.getAdapter(adapterId)
+                        ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                    val request = json.decodeFromString<io.ton.walletkit.api.generated.TONProofMessage>(inputJson)
+                    adapter.signedTonProof(request, fakeSignature).value
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to sign ton proof for adapter: $adapterId", e)
                     throw e
                 }
             }

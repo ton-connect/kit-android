@@ -47,27 +47,24 @@ internal object BridgeMethodConstants {
     const val METHOD_REMOVE_EVENT_LISTENERS = "removeEventListeners"
 
     /**
-     * Method name for creating a signer from mnemonic or secret key.
-     * Matches JS API: createSigner()
-     */
-    const val METHOD_CREATE_SIGNER = "createSigner"
-
-    /**
-     * Method name for creating a wallet adapter from a signer.
-     * Matches JS API: createAdapter()
-     */
-    const val METHOD_CREATE_ADAPTER = "createAdapter"
-
-    /**
-     * Method name for adding a wallet adapter to the kit.
-     * Matches JS API: walletKit.addWallet(adapter)
-     */
-    const val METHOD_ADD_WALLET = "addWallet"
-
-    /**
      * Method name for getting all wallets.
      */
     const val METHOD_GET_WALLETS = "getWallets"
+
+    /**
+     * Method name for deriving public key from secret key (stateless, no JS storage).
+     */
+    const val METHOD_PUBLIC_KEY_FROM_SECRET_KEY = "publicKeyFromSecretKey"
+
+    /**
+     * Method name for computing wallet address from public key + version + network (stateless).
+     */
+    const val METHOD_COMPUTE_WALLET_ADDRESS = "computeWalletAddress"
+
+    /**
+     * Method name for creating signer + adapter + adding wallet in one stateless call.
+     */
+    const val METHOD_ADD_WALLET_WITH_SIGNER = "addWalletWithSigner"
 
     /**
      * Method name for getting a single wallet by address.

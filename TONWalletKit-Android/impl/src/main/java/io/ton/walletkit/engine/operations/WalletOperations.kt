@@ -26,19 +26,18 @@ import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.api.TESTNET
 import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.isTestnet
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.model.WalletAccount
-import io.ton.walletkit.engine.operations.requests.AddWalletRequest
-import io.ton.walletkit.engine.operations.requests.CreateAdapterRequest
-import io.ton.walletkit.engine.operations.requests.CreateSignerRequest
+import io.ton.walletkit.engine.operations.requests.MnemonicToKeyPairRequest
 import io.ton.walletkit.engine.operations.requests.WalletIdRequest
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.IDGenerator
-import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.internal.util.JsonUtils
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletAdapterInfo
@@ -51,13 +50,8 @@ import org.json.JSONObject
 /**
  * Encapsulates wallet lifecycle and account state operations.
  *
- * Methods here mirror the behaviour of the previous monolithic engine including logging,
- * error contracts, and result handling.
- *
- * @property ensureInitialized Suspended lambda that ensures bridge initialisation.
- * @property rpcClient Bridge RPC client wrapper.
- * @property signerManager Tracks wallet signers to maintain bridge affinity.
- * @property currentNetworkProvider Provides the latest network identifier for defaulting fields.
+ * Signer and adapter state is managed entirely on the Kotlin side.
+ * The JS bridge only provides stateless helpers — no JS-side stores.
  *
  * @suppress Internal component used by [WebViewWalletKitEngine].
  */
@@ -65,139 +59,108 @@ internal class WalletOperations(
     private val ensureInitialized: suspend () -> Unit,
     private val rpcClient: BridgeRpcClient,
     private val signerManager: SignerManager,
+    private val adapterManager: io.ton.walletkit.engine.state.AdapterManager,
     private val currentNetworkProvider: () -> String,
     private val json: Json,
 ) {
-    // Store adapter info by adapterId so we can compute walletId in addWallet
-    private val adapterStore = mutableMapOf<String, WalletAdapterInfo>()
+    /** signerId → secret key hex (no 0x prefix). Managed in Kotlin, never sent to JS stores. */
+    private val secretKeyStore = mutableMapOf<String, String>()
 
-    /**
-     * Create a signer from mnemonic phrase.
-     * Step 1 of the wallet creation pattern from JS docs.
-     *
-     * Example:
-     * ```
-     * val signer = walletOperations.createSignerFromMnemonic(mnemonic)
-     * ```
-     */
+    /** signerId → public key hex (no 0x prefix). */
+    private val publicKeyStore = mutableMapOf<String, String>()
 
-    /**
-     * Create a signer from mnemonic phrase.
-     * Step 1 of the wallet creation pattern from JS docs.
-     *
-     * This is the Android equivalent of JS WalletKit's `Signer.fromMnemonic()`.
-     *
-     * Example:
-     * ```
-     * val signer = walletOperations.createSignerFromMnemonic(mnemonic)
-     * ```
-     */
+    /** adapterId → adapter metadata created by createV5R1Adapter / createV4R2Adapter. */
+    private val internalAdapters = mutableMapOf<String, InternalAdapterInfo>()
+
+    private data class InternalAdapterInfo(
+        val adapterId: String,
+        val signerId: String,
+        val version: String,
+        val network: TONNetwork,
+        val workchain: Int,
+        val walletId: Long,
+        val address: TONUserFriendlyAddress,
+        val publicKey: String,
+        val isCustom: Boolean,
+    )
+
+    // ── Signer factory methods (matches iOS signer(mnemonic:) / signer(privateKey:)) ──
+
     suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String = "ton",
     ): WalletSignerInfo {
         ensureInitialized()
 
-        val request = CreateSignerRequest(mnemonic = mnemonic, mnemonicType = mnemonicType)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, json.toJSONObject(request))
+        val request = MnemonicToKeyPairRequest(mnemonic = mnemonic, mnemonicType = mnemonicType)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_MNEMONIC_TO_KEY_PAIR, json.toJSONObject(request))
 
-        // JS now returns { _tempId, signer } - extract signer object
-        val tempId = result.optString("_tempId")
-        val signerObj = result.optJSONObject("signer") ?: result
+        val publicKeyJson = result.opt(ResponseConstants.KEY_PUBLIC_KEY)
+            ?: throw WalletKitBridgeException("Missing publicKey in mnemonicToKeyPair response")
+        val secretKeyJson = result.opt(ResponseConstants.KEY_SECRET_KEY)
+            ?: throw WalletKitBridgeException("Missing secretKey in mnemonicToKeyPair response")
 
-        // Generate signerId in Kotlin
-        val signerId = tempId.takeIf { it.isNotEmpty() } ?: IDGenerator.generateSignerId()
+        val publicKeyBytes = JsonUtils.jsonToByteArray(publicKeyJson, "publicKey")
+        val secretKeyBytes = JsonUtils.jsonToByteArray(secretKeyJson, "secretKey")
 
-        // Extract publicKey from signer object
-        val rawPublicKey = signerObj.optString("publicKey")
-        val publicKey = TONHex(WalletKitUtils.stripHexPrefix(rawPublicKey))
+        val signerId = IDGenerator.generateSignerId()
+        val publicKeyHex = WalletKitUtils.byteArrayToHexNoPrefix(publicKeyBytes)
+        val secretKeyHex = WalletKitUtils.byteArrayToHexNoPrefix(secretKeyBytes)
 
-        return WalletSignerInfo(
-            signerId = signerId,
-            publicKey = publicKey,
-        )
+        secretKeyStore[signerId] = secretKeyHex
+        publicKeyStore[signerId] = publicKeyHex
+
+        return WalletSignerInfo(signerId = signerId, publicKey = TONHex(publicKeyHex))
     }
 
-    /**
-     * Create a signer from a secret key.
-     * Step 1 of the wallet creation pattern from JS docs.
-     *
-     * This is the Android equivalent of JS WalletKit's `Signer.fromPrivateKey()`.
-     *
-     * Example:
-     * ```
-     * val signer = walletOperations.createSignerFromSecretKey(secretKey)
-     * ```
-     */
     suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo {
         ensureInitialized()
 
-        val request = CreateSignerRequest(secretKey = WalletKitUtils.byteArrayToHexNoPrefix(secretKey))
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER, json.toJSONObject(request))
+        val secretKeyHex = WalletKitUtils.byteArrayToHexNoPrefix(secretKey)
+        val request = JSONObject().apply { put("secretKey", secretKeyHex) }
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_PUBLIC_KEY_FROM_SECRET_KEY, request)
 
-        // JS now returns { _tempId, signer } - extract signer object
-        val tempId = result.optString("_tempId")
-        val signerObj = result.optJSONObject("signer") ?: result
+        val rawPublicKey = result.optString(ResponseConstants.KEY_VALUE, "")
+        val publicKeyHex = WalletKitUtils.stripHexPrefix(rawPublicKey)
 
-        // Generate signerId in Kotlin
-        val signerId = tempId.takeIf { it.isNotEmpty() } ?: IDGenerator.generateSignerId()
+        val signerId = IDGenerator.generateSignerId()
+        secretKeyStore[signerId] = secretKeyHex
+        publicKeyStore[signerId] = publicKeyHex
 
-        // Extract publicKey from signer object
-        val rawPublicKey = signerObj.optString("publicKey")
-        val publicKey = TONHex(WalletKitUtils.stripHexPrefix(rawPublicKey))
-
-        return WalletSignerInfo(
-            signerId = signerId,
-            publicKey = publicKey,
-        )
+        return WalletSignerInfo(signerId = signerId, publicKey = TONHex(publicKeyHex))
     }
 
-    /**
-     * Create a signer from a custom WalletSigner implementation.
-     * Step 1 of the wallet creation pattern, enabling hardware wallet integration.
-     *
-     * This is the Android equivalent of JS WalletKit's `Signer.custom()`.
-     *
-     * Example:
-     * ```
-     * val customSigner = object : WalletSigner {
-     *     override val publicKey = "0x..."
-     *     override suspend fun sign(data: ByteArray) = hardwareDevice.sign(data)
-     * }
-     * val signer = walletOperations.createSignerFromCustom(customSigner)
-     * ```
-     */
     suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo {
         ensureInitialized()
-
-        // Register the custom signer in the SignerManager to handle sign requests from JavaScript
         val signerId = signerManager.registerSigner(signer)
-
-        // Return signer info with the registered ID and public key from the custom signer
-        return WalletSignerInfo(
-            signerId = signerId,
-            publicKey = signer.publicKey(),
-        )
+        val publicKeyHex = WalletKitUtils.stripHexPrefix(signer.publicKey().value)
+        publicKeyStore[signerId] = publicKeyHex
+        return WalletSignerInfo(signerId = signerId, publicKey = signer.publicKey())
     }
 
-    /**
-     * Create a V5R1 wallet adapter from a signer.
-     * Step 2 of the wallet creation pattern from JS docs.
-     *
-     * Example:
-     * ```
-     * val adapter = walletOperations.createV5R1Adapter(signer.signerId, network, workchain, walletId)
-     * ```
-     *
-     * @param signerId Signer ID from createSigner
-     * @param network Network string ("mainnet" or "testnet")
-     * @param workchain Workchain ID (0 for basechain, -1 for masterchain)
-     * @param walletId Wallet ID
-     * @param publicKey Public key hex string (required for custom signers)
-     * @param isCustom Whether this is a custom signer (hardware wallet)
-     */
+    // ── Adapter factory methods (matches iOS walletV5R1Adapter / walletV4R2Adapter) ──
+
     suspend fun createV5R1Adapter(
         signerId: String,
+        network: TONNetwork?,
+        workchain: Int,
+        walletId: Long,
+        publicKey: String?,
+        isCustom: Boolean,
+    ): WalletAdapterInfo = createAdapterInternal(signerId, WalletVersions.V5R1, network, workchain, walletId, publicKey, isCustom)
+
+    suspend fun createV4R2Adapter(
+        signerId: String,
+        network: TONNetwork?,
+        workchain: Int,
+        walletId: Long,
+        publicKey: String?,
+        isCustom: Boolean,
+    ): WalletAdapterInfo = createAdapterInternal(signerId, WalletVersions.V4R2, network, workchain, walletId, publicKey, isCustom)
+
+    private suspend fun createAdapterInternal(
+        signerId: String,
+        walletVersion: String,
         network: TONNetwork?,
         workchain: Int,
         walletId: Long,
@@ -206,152 +169,135 @@ internal class WalletOperations(
     ): WalletAdapterInfo {
         ensureInitialized()
 
-        val request = CreateAdapterRequest(
-            signerId = signerId,
-            walletVersion = WalletVersions.V5R1,
-            network = network,
-            workchain = workchain,
-            walletId = walletId,
-            publicKey = publicKey,
-            isCustom = isCustom,
-        )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
+        val resolvedPublicKey = publicKey
+            ?: publicKeyStore[signerId]
+            ?: throw WalletKitBridgeException("No public key found for signer: $signerId")
 
-        // JavaScript returns { _tempId, adapter } where adapter is the raw object
-        // Since adapter properties are now methods (getAddress(), getPublicKey(), etc.),
-        // we need to call getAddress() on the stored adapter to get the address
-        val tempId = result.optString("_tempId")
-
-        // Use the tempId from JavaScript as the adapterId
-        val adapterId = tempId.takeIf { it.isNotEmpty() } ?: IDGenerator.generateAdapterId()
-
-        // Call getAddress() on the adapter through the bridge
-        // JS returns raw string, BridgeRpcClient wraps it as { value: "..." }
-        val getAddressRequest = JSONObject().apply {
-            put("adapterId", adapterId)
-        }
-        val addressResult = rpcClient.call("getAdapterAddress", getAddressRequest)
-        val address = addressResult.optString(ResponseConstants.KEY_VALUE, "")
-
-        // Use provided network or default to testnet
         val resolvedNetwork = network ?: TONNetwork.TESTNET
 
-        val adapterInfo = WalletAdapterInfo(
+        // Stateless JS call — computes address without storing anything
+        val request = JSONObject().apply {
+            put("publicKey", resolvedPublicKey)
+            put("version", walletVersion)
+            put(
+                "network",
+                JSONObject().apply {
+                    put("chainId", resolvedNetwork.chainId)
+                },
+            )
+            put("workchain", workchain)
+            put("walletId", walletId)
+        }
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_COMPUTE_WALLET_ADDRESS, request)
+        val address = result.optString(ResponseConstants.KEY_VALUE, "")
+
+        val adapterId = IDGenerator.generateAdapterId()
+
+        internalAdapters[adapterId] = InternalAdapterInfo(
+            adapterId = adapterId,
+            signerId = signerId,
+            version = walletVersion,
+            network = resolvedNetwork,
+            workchain = workchain,
+            walletId = walletId,
+            address = TONUserFriendlyAddress(address),
+            publicKey = resolvedPublicKey,
+            isCustom = isCustom,
+        )
+
+        return WalletAdapterInfo(
             adapterId = adapterId,
             address = TONUserFriendlyAddress(address),
             network = resolvedNetwork,
         )
-
-        // Store adapter info for walletId computation in addWallet
-        adapterStore[adapterId] = adapterInfo
-
-        return adapterInfo
     }
 
-    /**
-     * Create a V4R2 wallet adapter from a signer.
-     * Step 2 of the wallet creation pattern from JS docs.
-     *
-     * Example:
-     * ```
-     * val adapter = walletOperations.createV4R2Adapter(signer.signerId, network, workchain, walletId)
-     * ```
-     *
-     * @param signerId Signer ID from createSigner
-     * @param network Network string ("mainnet" or "testnet")
-     * @param workchain Workchain ID (0 for basechain, -1 for masterchain)
-     * @param walletId Wallet ID
-     * @param publicKey Public key hex string (required for custom signers)
-     * @param isCustom Whether this is a custom signer (hardware wallet)
-     */
-    suspend fun createV4R2Adapter(
-        signerId: String,
-        network: TONNetwork?,
-        workchain: Int = 0,
-        walletId: Long = 698983191L,
-        publicKey: String? = null,
-        isCustom: Boolean = false,
-    ): WalletAdapterInfo {
-        ensureInitialized()
+    // ── Add wallet from stored adapter (3-step factory pattern) ──
 
-        val request = CreateAdapterRequest(
-            signerId = signerId,
-            walletVersion = WalletVersions.V4R2,
-            network = network,
-            workchain = workchain,
-            walletId = walletId,
-            publicKey = publicKey,
-            isCustom = isCustom,
-        )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_ADAPTER, json.toJSONObject(request))
-
-        // JavaScript returns { _tempId, adapter } where adapter is the raw object
-        // Since adapter properties are now methods (getAddress(), getPublicKey(), etc.),
-        // we need to call getAddress() on the stored adapter to get the address
-        val tempId = result.optString("_tempId")
-
-        // Use the tempId from JavaScript as the adapterId
-        val adapterId = tempId.takeIf { it.isNotEmpty() } ?: IDGenerator.generateAdapterId()
-
-        // Call getAddress() on the adapter through the bridge
-        // JS returns raw string, BridgeRpcClient wraps it as { value: "..." }
-        val getAddressRequest = JSONObject().apply {
-            put("adapterId", adapterId)
-        }
-        val addressResult = rpcClient.call("getAdapterAddress", getAddressRequest)
-        val address = addressResult.optString(ResponseConstants.KEY_VALUE, "")
-
-        // Use provided network or default to testnet
-        val resolvedNetwork = network ?: TONNetwork.TESTNET
-
-        val adapterInfo = WalletAdapterInfo(
-            adapterId = adapterId,
-            address = TONUserFriendlyAddress(address),
-            network = resolvedNetwork,
-        )
-
-        // Store adapter info for walletId computation in addWallet
-        adapterStore[adapterId] = adapterInfo
-
-        return adapterInfo
-    }
-
-    /**
-     * Add a wallet using the adapter.
-     * Step 3 of the wallet creation pattern from JS docs.
-     *
-     * Example:
-     * ```
-     * val wallet = walletOperations.addWallet(adapter.adapterId)
-     * ```
-     *
-     * @param adapterId Adapter ID from createV5R1Adapter or createV4R2Adapter
-     */
     suspend fun addWallet(adapterId: String): WalletAccount {
         ensureInitialized()
 
-        // Remove adapter from store since JS will delete it too
-        adapterStore.remove(adapterId)
+        val adapterInfo = internalAdapters.remove(adapterId)
+            ?: throw WalletKitBridgeException("No adapter found for ID: $adapterId")
 
-        val request = AddWalletRequest(adapterId = adapterId)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, json.toJSONObject(request))
+        // Single stateless JS call — creates signer + adapter + adds wallet in one shot
+        val request = JSONObject().apply {
+            if (adapterInfo.isCustom) {
+                put("publicKey", adapterInfo.publicKey)
+                put("signerId", adapterInfo.signerId)
+                put("isCustom", true)
+            } else {
+                val secretKey = secretKeyStore[adapterInfo.signerId]
+                    ?: throw WalletKitBridgeException("No secret key found for signer: ${adapterInfo.signerId}")
+                put("secretKey", secretKey)
+            }
+            put("version", adapterInfo.version)
+            put(
+                "network",
+                JSONObject().apply {
+                    put("chainId", adapterInfo.network.chainId)
+                },
+            )
+            put("workchain", adapterInfo.workchain)
+            put("walletId", adapterInfo.walletId)
+        }
 
-        // JS returns { walletId, wallet } where wallet has publicKey, version as properties
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET_WITH_SIGNER, request)
+
         val walletId = result.optString("walletId").takeIf { it.isNotEmpty() }
             ?: throw WalletKitBridgeException(ERROR_NEW_WALLET_NOT_FOUND)
 
         val walletObj = result.optJSONObject("wallet")
         val rawPublicKey = walletObj?.optString("publicKey") ?: ""
-        val publicKey = WalletKitUtils.stripHexPrefix(rawPublicKey)
+        val pubKey = WalletKitUtils.stripHexPrefix(rawPublicKey)
         val version = walletObj?.optString("version")?.takeIf { it.isNotEmpty() } ?: "unknown"
-
-        // Get address via RPC (since getAddress() is a method, not a serialized property)
         val address = getWalletAddress(walletId)
 
         return WalletAccount(
             walletId = walletId,
             address = TONUserFriendlyAddress(address),
-            publicKey = publicKey.takeIf { it.isNotEmpty() },
+            publicKey = pubKey.takeIf { it.isNotEmpty() },
+            version = version,
+        )
+    }
+
+    // ── Add wallet from proxy adapter (Tonkeeper pattern) ──
+
+    suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount {
+        ensureInitialized()
+
+        val adapterId = adapterManager.registerAdapter(adapter)
+
+        val network = adapter.network()
+        val request = JSONObject().apply {
+            put("adapterId", adapterId)
+            put("walletId", adapter.identifier())
+            put("publicKey", adapter.publicKey().value)
+            put(
+                "network",
+                JSONObject().apply {
+                    put("chainId", network.chainId)
+                },
+            )
+            put("address", adapter.address(network.isTestnet).value)
+        }
+
+        val result = rpcClient.call("addWallet", request)
+
+        val returnedWalletId = result.optString("walletId").takeIf { it.isNotEmpty() }
+            ?: throw WalletKitBridgeException(ERROR_NEW_WALLET_NOT_FOUND)
+
+        val walletObj = result.optJSONObject("wallet")
+        val rawPublicKey = walletObj?.optString("publicKey") ?: ""
+        val pubKey = WalletKitUtils.stripHexPrefix(rawPublicKey)
+        val version = walletObj?.optString("version")?.takeIf { it.isNotEmpty() } ?: "unknown"
+
+        val address = getWalletAddress(returnedWalletId)
+
+        return WalletAccount(
+            walletId = returnedWalletId,
+            address = TONUserFriendlyAddress(address),
+            publicKey = pubKey.takeIf { it.isNotEmpty() },
             version = version,
         )
     }
@@ -457,7 +403,6 @@ internal class WalletOperations(
 
         val request = WalletIdRequest(walletId = walletId)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_REMOVE_WALLET, json.toJSONObject(request))
-        Logger.d(TAG, "removeWallet result: $result")
 
         val removed =
             when {

@@ -324,55 +324,48 @@ internal class QuickJsWalletKitEngine(
         TODO("Not yet implemented")
     }
 
-    override suspend fun createSignerFromMnemonic(
-        mnemonic: List<String>,
-        mnemonicType: String,
-    ): io.ton.walletkit.model.WalletSignerInfo {
-        throw UnsupportedOperationException("QuickJS engine does not support signer creation. Use WebView engine.")
+    override suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount {
+        throw UnsupportedOperationException("QuickJS engine does not support addWallet. Use WebView engine.")
+    }
+
+    override suspend fun createSignerFromMnemonic(mnemonic: List<String>, mnemonicType: String): io.ton.walletkit.model.WalletSignerInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support createSignerFromMnemonic. Use WebView engine.")
     }
 
     override suspend fun createSignerFromSecretKey(secretKey: ByteArray): io.ton.walletkit.model.WalletSignerInfo {
-        throw UnsupportedOperationException("QuickJS engine does not support signer creation. Use WebView engine.")
+        throw UnsupportedOperationException("QuickJS engine does not support createSignerFromSecretKey. Use WebView engine.")
     }
 
     override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo {
-        throw UnsupportedOperationException("QuickJS engine does not support custom signer creation. Use WebView engine.")
+        throw UnsupportedOperationException("QuickJS engine does not support createSignerFromCustom. Use WebView engine.")
     }
 
-    override fun isCustomSigner(signerId: String): Boolean {
-        throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
-    }
+    override fun isCustomSigner(signerId: String): Boolean = false
 
     override suspend fun createV5R1Adapter(
         signerId: String,
-        network: TONNetwork?,
+        network: io.ton.walletkit.api.generated.TONNetwork?,
         workchain: Int,
         walletId: Long,
         publicKey: String?,
         isCustom: Boolean,
     ): io.ton.walletkit.model.WalletAdapterInfo {
-        if (isCustom) {
-            throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
-        }
-        throw UnsupportedOperationException("QuickJS engine does not support adapter creation. Use WebView engine.")
+        throw UnsupportedOperationException("QuickJS engine does not support createV5R1Adapter. Use WebView engine.")
     }
 
     override suspend fun createV4R2Adapter(
         signerId: String,
-        network: TONNetwork?,
+        network: io.ton.walletkit.api.generated.TONNetwork?,
         workchain: Int,
         walletId: Long,
         publicKey: String?,
         isCustom: Boolean,
     ): io.ton.walletkit.model.WalletAdapterInfo {
-        if (isCustom) {
-            throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
-        }
-        throw UnsupportedOperationException("QuickJS engine does not support adapter creation. Use WebView engine.")
+        throw UnsupportedOperationException("QuickJS engine does not support createV4R2Adapter. Use WebView engine.")
     }
 
     override suspend fun addWallet(adapterId: String): WalletAccount {
-        throw UnsupportedOperationException("QuickJS engine does not support addWallet. Use WebView engine.")
+        throw UnsupportedOperationException("QuickJS engine does not support addWallet(adapterId). Use WebView engine.")
     }
 
     override suspend fun getWallets(): List<WalletAccount> {
