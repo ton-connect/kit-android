@@ -26,18 +26,12 @@ import android.webkit.WebView
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.WebViewTonConnectInjector
-import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.TONHex
-import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.TONWalletAdapter
-import io.ton.walletkit.model.WalletAdapterInfo
-import io.ton.walletkit.model.WalletSigner
-import io.ton.walletkit.model.WalletSignerInfo
 
 /**
  * Main entry point for TON Wallet Kit SDK.
@@ -92,10 +86,6 @@ import io.ton.walletkit.model.WalletSignerInfo
  * ```
  */
 internal class TONWalletKit private constructor(
-    /**
-     * Internal engine instance. Exposed for TONWallet class access.
-     * @suppress
-     */
     @JvmSynthetic
     internal val engine: WalletKitEngine,
 ) : ITONWalletKit {
@@ -180,88 +170,67 @@ internal class TONWalletKit private constructor(
 
     // === Wallet Management Methods ===
 
-    /**
-     * Create a signer from mnemonic phrase.
-     * Step 1 of the wallet creation pattern matching JS WalletKit.
-     */
+    // ── Signer factory ──
+
     override suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String,
-    ): WalletSignerInfo {
+    ): io.ton.walletkit.model.WalletSignerInfo {
         checkNotDestroyed()
         return engine.createSignerFromMnemonic(mnemonic, mnemonicType)
     }
 
-    /**
-     * Create a signer from secret key (private key).
-     * Step 1 of the wallet creation pattern matching JS WalletKit.
-     */
-    override suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo {
+    override suspend fun createSignerFromSecretKey(secretKey: ByteArray): io.ton.walletkit.model.WalletSignerInfo {
         checkNotDestroyed()
-        return engine.createSignerFromSecretKey(secretKey)
+        val hex = io.ton.walletkit.WalletKitUtils.byteArrayToHexNoPrefix(secretKey)
+        return engine.createSignerFromSecretKey(hex)
     }
 
-    /**
-     * Create a signer from a custom WalletSigner implementation.
-     * Step 1 of the wallet creation pattern, enabling hardware wallet integration.
-     */
-    override suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo {
+    override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo {
         checkNotDestroyed()
         return engine.createSignerFromCustom(signer)
     }
 
-    /**
-     * Create a V5R1 wallet adapter from a signer.
-     * Step 2 of the wallet creation pattern matching JS WalletKit.
-     */
+    // ── Adapter factory ──
+
     override suspend fun createV5R1Adapter(
-        signer: WalletSignerInfo,
-        network: TONNetwork,
+        signer: io.ton.walletkit.model.WalletSignerInfo,
+        network: io.ton.walletkit.api.generated.TONNetwork,
         workchain: Int,
         walletId: Long,
-    ): WalletAdapterInfo {
+    ): io.ton.walletkit.model.WalletAdapterInfo {
         checkNotDestroyed()
-        val isCustom = engine.isCustomSigner(signer.signerId)
-        return engine.createV5R1Adapter(
+        return engine.createAdapter(
             signerId = signer.signerId,
+            version = io.ton.walletkit.api.WalletVersions.V5R1,
             network = network,
             workchain = workchain,
             walletId = walletId,
-            publicKey = if (isCustom) signer.publicKey?.value else null,
-            isCustom = isCustom,
         )
     }
 
-    /**
-     * Create a V4R2 wallet adapter from a signer.
-     * Step 2 of the wallet creation pattern matching JS WalletKit.
-     */
     override suspend fun createV4R2Adapter(
-        signer: WalletSignerInfo,
-        network: TONNetwork,
+        signer: io.ton.walletkit.model.WalletSignerInfo,
+        network: io.ton.walletkit.api.generated.TONNetwork,
         workchain: Int,
         walletId: Long,
-    ): WalletAdapterInfo {
+    ): io.ton.walletkit.model.WalletAdapterInfo {
         checkNotDestroyed()
-        val isCustom = engine.isCustomSigner(signer.signerId)
-        return engine.createV4R2Adapter(
+        return engine.createAdapter(
             signerId = signer.signerId,
+            version = io.ton.walletkit.api.WalletVersions.V4R2,
             network = network,
             workchain = workchain,
             walletId = walletId,
-            publicKey = if (isCustom) signer.publicKey?.value else null,
-            isCustom = isCustom,
         )
     }
 
-    /**
-     * Add a wallet to the kit using an adapter.
-     * Step 3 of the wallet creation pattern matching JS WalletKit.
-     */
-    override suspend fun addWallet(adapterId: String): ITONWallet {
+    // ── Add wallet ──
+
+    override suspend fun addWallet(adapter: io.ton.walletkit.model.WalletAdapterInfo): ITONWallet {
         checkNotDestroyed()
 
-        val account = engine.addWallet(adapterId)
+        val account = engine.addWallet(adapter)
 
         return TONWallet(
             id = account.walletId,
@@ -272,30 +241,19 @@ internal class TONWalletKit private constructor(
     }
 
     /**
-     * Add a wallet to the kit using a custom TONWalletAdapter.
-     *
-     * This wraps the adapter's WalletSigner-like signing into the 3-step pattern internally.
-     * Mirrors iOS's `add(walletAdapter:)` method for cross-platform consistency.
+     * Add a wallet using a TONWalletAdapter.
      */
     override suspend fun addWallet(adapter: TONWalletAdapter): ITONWallet {
         checkNotDestroyed()
 
-        // Create a WalletSigner wrapper around the adapter
-        val walletSigner = AdapterBackedWalletSigner(adapter)
+        val account = engine.addWallet(adapter)
 
-        // Step 1: Create signer from the adapter's signing capability
-        val signerInfo = createSignerFromCustom(walletSigner)
-
-        // Step 2: Create adapter based on wallet version
-        val network = adapter.network()
-        val version = adapter.walletVersion()
-        val adapterInfo = when (version?.lowercase()) {
-            "v4r2" -> createV4R2Adapter(signerInfo, network)
-            else -> createV5R1Adapter(signerInfo, network)
-        }
-
-        // Step 3: Add wallet
-        return addWallet(adapterInfo.adapterId)
+        return TONWallet(
+            id = account.walletId,
+            address = account.address,
+            engine = engine,
+            account = account,
+        )
     }
 
     /**
@@ -318,11 +276,11 @@ internal class TONWalletKit private constructor(
     }
 
     /**
-     * Get a single wallet by its address.
+     * Get a single wallet by its ID.
      */
-    override suspend fun getWallet(address: TONUserFriendlyAddress): ITONWallet? {
+    override suspend fun getWallet(walletId: String): ITONWallet? {
         checkNotDestroyed()
-        val account = engine.getWallet(address.value) ?: return null
+        val account = engine.getWallet(walletId) ?: return null
         return TONWallet(
             id = account.walletId,
             address = account.address,
@@ -332,11 +290,11 @@ internal class TONWalletKit private constructor(
     }
 
     /**
-     * Remove a wallet by its address.
+     * Remove a wallet by its ID.
      */
-    override suspend fun removeWallet(address: TONUserFriendlyAddress): Boolean {
+    override suspend fun removeWallet(walletId: String): Boolean {
         checkNotDestroyed()
-        val wallet = getWallet(address)
+        val wallet = getWallet(walletId)
         return if (wallet != null) {
             (wallet as TONWallet).remove()
             true
@@ -452,25 +410,5 @@ internal class TONWalletKit private constructor(
      */
     override fun createWebViewInjector(webView: WebView, walletId: String?): WebViewTonConnectInjector {
         return TonConnectInjector(webView, this, walletId)
-    }
-}
-
-/**
- * Internal WalletSigner implementation that wraps a TONWalletAdapter.
- *
- * This bridges the TONWalletAdapter interface to the internal WalletSigner interface,
- * allowing adapters to provide their signing capabilities to the SDK engine.
- */
-private class AdapterBackedWalletSigner(
-    private val adapter: TONWalletAdapter,
-) : WalletSigner {
-    override fun publicKey(): TONHex = adapter.publicKey()
-
-    override suspend fun sign(data: ByteArray): TONHex {
-        // TODO: Implement direct signing through adapter's specific methods
-        throw UnsupportedOperationException(
-            "Direct signing through AdapterBackedWalletSigner is not supported. " +
-                "The SDK should call the adapter's specific signing methods directly.",
-        )
     }
 }

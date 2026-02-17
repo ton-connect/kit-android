@@ -54,7 +54,6 @@ import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.util.TransactionDetailMapper
 import io.ton.walletkit.event.TONWalletKitEvent
-import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
@@ -262,8 +261,8 @@ class WalletKitViewModel @Inject constructor(
                 Log.d(LOG_TAG, "Handling ConnectRequest")
                 onConnectRequest(event.request)
             }
-            is TONWalletKitEvent.TransactionRequest -> {
-                Log.d(LOG_TAG, "Handling TransactionRequest")
+            is TONWalletKitEvent.SendTransactionRequest -> {
+                Log.d(LOG_TAG, "Handling SendTransactionRequest")
                 onTransactionRequest(event.request)
             }
             is TONWalletKitEvent.SignDataRequest -> {
@@ -652,7 +651,7 @@ class WalletKitViewModel @Inject constructor(
                 }
 
                 // Add wallet to WalletKit
-                kit.addWallet(adapter.adapterId)
+                kit.addWallet(adapter)
             }
 
             if (result.isSuccess) {
@@ -747,7 +746,7 @@ class WalletKitViewModel @Inject constructor(
                     WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network)
                     else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                 }
-                kit.addWallet(adapter.adapterId)
+                kit.addWallet(adapter)
             }
 
             if (result.isSuccess) {
@@ -1095,7 +1094,7 @@ class WalletKitViewModel @Inject constructor(
         viewModelScope.launch {
             // Use the new SDK method instead of manual removal
             val kit = getKit()
-            val removeResult = runCatching { kit.removeWallet(TONUserFriendlyAddress(address)) }
+            val removeResult = runCatching { kit.removeWallet(address) }
 
             if (removeResult.isFailure) {
                 val fallback = uiString(R.string.wallet_error_remove_wallet)
@@ -1495,7 +1494,7 @@ class WalletKitViewModel @Inject constructor(
                 val kit = getKit()
                 val allWalletAddresses = lifecycleManager.tonWallets.keys.toList()
                 allWalletAddresses.forEach { walletAddress ->
-                    runCatching { kit.removeWallet(TONUserFriendlyAddress(walletAddress)) }.onFailure {
+                    runCatching { kit.removeWallet(walletAddress) }.onFailure {
                         Log.w(LOG_TAG, "Failed to remove wallet during reset", it)
                     }
                 }

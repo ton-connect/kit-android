@@ -55,7 +55,7 @@ sealed class TONWalletKitEvent {
      *
      * @property request Transaction request with approve/reject methods
      */
-    data class TransactionRequest(
+    data class SendTransactionRequest(
         val request: TONWalletTransactionRequest,
     ) : TONWalletKitEvent()
 

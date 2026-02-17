@@ -48,8 +48,7 @@ import io.ton.walletkit.request.RequestHandler
 /**
  * Abstraction over a runtime that can execute the WalletKit JavaScript bundle and expose
  * the wallet APIs to Android callers. Implementations may back the runtime with a WebView or
- * an embedded JavaScript engine such as QuickJS. Every implementation must provide the same
- * JSON-RPC surface as the historical [WalletKitBridge] class.
+ * an embedded JavaScript engine such as QuickJS.
  *
  * **Auto-Initialization:**
  * All methods that require WalletKit initialization will automatically initialize the SDK
@@ -118,12 +117,10 @@ internal interface WalletKitEngine : RequestHandler {
 
     /**
      * Create a signer from mnemonic phrase.
-     * Step 1 of the wallet creation pattern matching JS WalletKit.
      *
      * @param mnemonic Mnemonic phrase as a list of words
      * @param mnemonicType Mnemonic type ("ton" or "bip39"), defaults to "ton"
      * @return Signer info with ID and public key
-     * @throws WalletKitBridgeException if signer creation fails
      */
     suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
@@ -131,83 +128,60 @@ internal interface WalletKitEngine : RequestHandler {
     ): WalletSignerInfo
 
     /**
-     * Create a signer from secret key (private key).
-     * Step 1 of the wallet creation pattern matching JS WalletKit.
+     * Create a signer from a secret key hex string.
      *
-     * @param secretKey Private key as byte array (32 bytes for Ed25519)
+     * @param secretKeyHex Private key as hex string
      * @return Signer info with ID and public key
-     * @throws WalletKitBridgeException if signer creation fails
      */
-    suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo
+    suspend fun createSignerFromSecretKey(secretKeyHex: String): WalletSignerInfo
 
     /**
-     * Create a signer from a custom WalletSigner implementation.
-     * Step 1 of the wallet creation pattern, enabling hardware wallet integration.
+     * Create a signer from a custom [WalletSigner] implementation (e.g. hardware wallet).
      *
-     * @param signer Custom wallet signer (e.g., hardware wallet)
+     * @param signer Custom wallet signer
      * @return Signer info with ID and public key
-     * @throws WalletKitBridgeException if signer creation fails
      */
     suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo
 
     /**
-     * Check if a signer is a custom signer (registered in SignerManager).
-     */
-    fun isCustomSigner(signerId: String): Boolean
-
-    /**
-     * Create a V5R1 wallet adapter from a signer.
-     * Step 2 of the wallet creation pattern matching JS WalletKit.
+     * Create a wallet adapter from a stored signer.
+     * JS creates and stores the live adapter; Kotlin receives an ID + address.
      *
-     * @param signerId Signer ID from createSignerFromMnemonic or createSignerFromSecretKey
-     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
+     * @param signerId Signer ID from createSigner*
+     * @param version Wallet version: "v5r1" or "v4r2"
+     * @param network Network to use, defaults to testnet
      * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
      * @param walletId Wallet ID
-     * @param publicKey Public key hex string (required for custom signers)
-     * @param isCustom Whether this is a custom signer (hardware wallet)
      * @return Adapter info with ID and wallet address
-     * @throws WalletKitBridgeException if adapter creation fails
      */
-    suspend fun createV5R1Adapter(
+    suspend fun createAdapter(
         signerId: String,
+        version: String,
         network: TONNetwork? = null,
         workchain: Int = 0,
         walletId: Long = 2147483409L,
-        publicKey: String? = null,
-        isCustom: Boolean = false,
     ): WalletAdapterInfo
 
     /**
-     * Create a V4R2 wallet adapter from a signer.
-     * Step 2 of the wallet creation pattern matching JS WalletKit.
+     * Add a wallet using a stored adapter (from createAdapter).
+     * Matches iOS `add(walletAdapter:)`.
      *
-     * @param signerId Signer ID from createSignerFromMnemonic or createSignerFromSecretKey
-     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
-     * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
-     * @param walletId Wallet ID
-     * @param publicKey Public key hex string (required for custom signers)
-     * @param isCustom Whether this is a custom signer (hardware wallet)
-     * @return Adapter info with ID and wallet address
-     * @throws WalletKitBridgeException if adapter creation fails
+     * @param adapter Adapter info from createAdapter
+     * @return The newly added wallet account
      */
-    suspend fun createV4R2Adapter(
-        signerId: String,
-        network: TONNetwork? = null,
-        workchain: Int = 0,
-        walletId: Long = 698983191L,
-        publicKey: String? = null,
-        isCustom: Boolean = false,
-    ): WalletAdapterInfo
+    suspend fun addWallet(adapter: WalletAdapterInfo): WalletAccount
 
     /**
-     * Add a wallet to the kit using an adapter.
-     * Step 3 of the wallet creation pattern matching JS WalletKit.
+     * Add a wallet using a native adapter proxy.
      *
-     * @param adapterId Adapter ID from createV5R1Adapter or createV4R2Adapter
+     * Passes the adapter's properties to a JS proxy that delegates async methods
+     * back to Kotlin. Mirrors iOS's `add(walletAdapter:)` pattern.
+     *
+     * @param adapter The native wallet adapter
      * @return The newly added wallet account
      * @throws WalletKitBridgeException if wallet addition fails
      */
-    suspend fun addWallet(adapterId: String): WalletAccount
+    suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount
 
     /**
      * Get all wallets managed by this engine.

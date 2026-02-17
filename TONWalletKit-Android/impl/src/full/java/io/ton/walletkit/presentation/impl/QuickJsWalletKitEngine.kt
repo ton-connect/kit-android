@@ -324,55 +324,34 @@ internal class QuickJsWalletKitEngine(
         TODO("Not yet implemented")
     }
 
-    override suspend fun createSignerFromMnemonic(
-        mnemonic: List<String>,
-        mnemonicType: String,
-    ): io.ton.walletkit.model.WalletSignerInfo {
-        throw UnsupportedOperationException("QuickJS engine does not support signer creation. Use WebView engine.")
+    override suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount {
+        throw UnsupportedOperationException("QuickJS engine does not support addWallet. Use WebView engine.")
     }
 
-    override suspend fun createSignerFromSecretKey(secretKey: ByteArray): io.ton.walletkit.model.WalletSignerInfo {
-        throw UnsupportedOperationException("QuickJS engine does not support signer creation. Use WebView engine.")
+    override suspend fun createSignerFromMnemonic(mnemonic: List<String>, mnemonicType: String): io.ton.walletkit.model.WalletSignerInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support createSignerFromMnemonic. Use WebView engine.")
+    }
+
+    override suspend fun createSignerFromSecretKey(secretKeyHex: String): io.ton.walletkit.model.WalletSignerInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support createSignerFromSecretKey. Use WebView engine.")
     }
 
     override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo {
-        throw UnsupportedOperationException("QuickJS engine does not support custom signer creation. Use WebView engine.")
+        throw UnsupportedOperationException("QuickJS engine does not support createSignerFromCustom. Use WebView engine.")
     }
 
-    override fun isCustomSigner(signerId: String): Boolean {
-        throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
-    }
-
-    override suspend fun createV5R1Adapter(
+    override suspend fun createAdapter(
         signerId: String,
-        network: TONNetwork?,
+        version: String,
+        network: io.ton.walletkit.api.generated.TONNetwork?,
         workchain: Int,
         walletId: Long,
-        publicKey: String?,
-        isCustom: Boolean,
     ): io.ton.walletkit.model.WalletAdapterInfo {
-        if (isCustom) {
-            throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
-        }
-        throw UnsupportedOperationException("QuickJS engine does not support adapter creation. Use WebView engine.")
+        throw UnsupportedOperationException("QuickJS engine does not support createAdapter. Use WebView engine.")
     }
 
-    override suspend fun createV4R2Adapter(
-        signerId: String,
-        network: TONNetwork?,
-        workchain: Int,
-        walletId: Long,
-        publicKey: String?,
-        isCustom: Boolean,
-    ): io.ton.walletkit.model.WalletAdapterInfo {
-        if (isCustom) {
-            throw UnsupportedOperationException("QuickJS engine does not support custom signers. Use WebView engine.")
-        }
-        throw UnsupportedOperationException("QuickJS engine does not support adapter creation. Use WebView engine.")
-    }
-
-    override suspend fun addWallet(adapterId: String): WalletAccount {
-        throw UnsupportedOperationException("QuickJS engine does not support addWallet. Use WebView engine.")
+    override suspend fun addWallet(adapter: io.ton.walletkit.model.WalletAdapterInfo): WalletAccount {
+        throw UnsupportedOperationException("QuickJS engine does not support addWallet(adapter). Use WebView engine.")
     }
 
     override suspend fun getWallets(): List<WalletAccount> {
@@ -1014,7 +993,7 @@ internal class QuickJsWalletKitEngine(
                         event = event,
                         handler = this,
                     )
-                    TONWalletKitEvent.TransactionRequest(request)
+                    TONWalletKitEvent.SendTransactionRequest(request)
                 } catch (e: Exception) {
                     Log.e(logTag, "Failed to parse transaction request", e)
                     null

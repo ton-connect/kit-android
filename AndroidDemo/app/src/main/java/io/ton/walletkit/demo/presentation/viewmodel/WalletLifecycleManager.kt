@@ -215,12 +215,12 @@ class WalletLifecycleManager(
                     WalletVersions.V4R2 -> {
                         val signer = kit.createSignerFromMnemonic(record.mnemonic)
                         val adapter = kit.createV4R2Adapter(signer, networkEnum)
-                        kit.addWallet(adapter.adapterId)
+                        kit.addWallet(adapter)
                     }
                     WalletVersions.V5R1 -> {
                         val signer = kit.createSignerFromMnemonic(record.mnemonic)
                         val adapter = kit.createV5R1Adapter(signer, networkEnum)
-                        kit.addWallet(adapter.adapterId)
+                        kit.addWallet(adapter)
                     }
                     else -> {
                         Log.w(LOG_TAG, "rehydrate: unsupported version $version for $storedAddress")
