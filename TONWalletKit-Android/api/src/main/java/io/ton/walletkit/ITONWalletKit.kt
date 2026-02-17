@@ -138,12 +138,12 @@ interface ITONWalletKit {
     // ── Add wallet ──
 
     /**
-     * Add a wallet using an adapter ID from [createV5R1Adapter] or [createV4R2Adapter].
+     * Add a wallet using an adapter from [createV5R1Adapter] or [createV4R2Adapter].
      *
-     * @param adapterId Adapter ID
+     * @param adapter Adapter info from createV5R1Adapter or createV4R2Adapter
      * @return Created wallet instance
      */
-    suspend fun addWallet(adapterId: String): ITONWallet
+    suspend fun addWallet(adapter: WalletAdapterInfo): ITONWallet
 
     /**
      * Add a wallet to the kit using a custom [TONWalletAdapter].

@@ -177,7 +177,7 @@ class WalletKitDemoApp :
                             continue
                         }
                     }
-                    kit.addWallet(adapter.adapterId)
+                    kit.addWallet(adapter)
                     Log.d(TAG, "Added wallet to SDK: ${walletRecord.address}")
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to add wallet ${walletRecord.address} to SDK", e)

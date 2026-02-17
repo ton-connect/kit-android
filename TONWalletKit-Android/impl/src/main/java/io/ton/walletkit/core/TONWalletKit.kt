@@ -182,7 +182,8 @@ internal class TONWalletKit private constructor(
 
     override suspend fun createSignerFromSecretKey(secretKey: ByteArray): io.ton.walletkit.model.WalletSignerInfo {
         checkNotDestroyed()
-        return engine.createSignerFromSecretKey(secretKey)
+        val hex = io.ton.walletkit.WalletKitUtils.byteArrayToHexNoPrefix(secretKey)
+        return engine.createSignerFromSecretKey(hex)
     }
 
     override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo {
@@ -199,14 +200,12 @@ internal class TONWalletKit private constructor(
         walletId: Long,
     ): io.ton.walletkit.model.WalletAdapterInfo {
         checkNotDestroyed()
-        val isCustom = engine.isCustomSigner(signer.signerId)
-        return engine.createV5R1Adapter(
+        return engine.createAdapter(
             signerId = signer.signerId,
+            version = io.ton.walletkit.api.WalletVersions.V5R1,
             network = network,
             workchain = workchain,
             walletId = walletId,
-            publicKey = signer.publicKey.value,
-            isCustom = isCustom,
         )
     }
 
@@ -217,23 +216,21 @@ internal class TONWalletKit private constructor(
         walletId: Long,
     ): io.ton.walletkit.model.WalletAdapterInfo {
         checkNotDestroyed()
-        val isCustom = engine.isCustomSigner(signer.signerId)
-        return engine.createV4R2Adapter(
+        return engine.createAdapter(
             signerId = signer.signerId,
+            version = io.ton.walletkit.api.WalletVersions.V4R2,
             network = network,
             workchain = workchain,
             walletId = walletId,
-            publicKey = signer.publicKey.value,
-            isCustom = isCustom,
         )
     }
 
     // ── Add wallet ──
 
-    override suspend fun addWallet(adapterId: String): ITONWallet {
+    override suspend fun addWallet(adapter: io.ton.walletkit.model.WalletAdapterInfo): ITONWallet {
         checkNotDestroyed()
 
-        val account = engine.addWallet(adapterId)
+        val account = engine.addWallet(adapter)
 
         return TONWallet(
             id = account.walletId,

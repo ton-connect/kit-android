@@ -136,6 +136,7 @@ internal class WebViewWalletKitEngine private constructor(
                 assetPath = assetPath,
                 storageManager = storageManager,
                 adapterManager = adapterManager,
+                signerManager = signerManager,
                 sessionManager = sessionManager,
                 apiClients = apiClients,
                 json = json,
@@ -282,35 +283,22 @@ internal class WebViewWalletKitEngine private constructor(
         mnemonicType: String,
     ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType)
 
-    override suspend fun createSignerFromSecretKey(secretKey: ByteArray): io.ton.walletkit.model.WalletSignerInfo =
-        walletOperations.createSignerFromSecretKey(secretKey)
+    override suspend fun createSignerFromSecretKey(secretKeyHex: String): io.ton.walletkit.model.WalletSignerInfo =
+        walletOperations.createSignerFromSecretKey(secretKeyHex)
 
     override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo =
         walletOperations.createSignerFromCustom(signer)
 
-    override fun isCustomSigner(signerId: String): Boolean =
-        signerManager.hasCustomSigner(signerId)
-
-    override suspend fun createV5R1Adapter(
+    override suspend fun createAdapter(
         signerId: String,
+        version: String,
         network: TONNetwork?,
         workchain: Int,
         walletId: Long,
-        publicKey: String?,
-        isCustom: Boolean,
-    ): io.ton.walletkit.model.WalletAdapterInfo = walletOperations.createV5R1Adapter(signerId, network, workchain, walletId, publicKey, isCustom)
+    ): io.ton.walletkit.model.WalletAdapterInfo = walletOperations.createAdapter(signerId, version, network, workchain, walletId)
 
-    override suspend fun createV4R2Adapter(
-        signerId: String,
-        network: TONNetwork?,
-        workchain: Int,
-        walletId: Long,
-        publicKey: String?,
-        isCustom: Boolean,
-    ): io.ton.walletkit.model.WalletAdapterInfo = walletOperations.createV4R2Adapter(signerId, network, workchain, walletId, publicKey, isCustom)
-
-    override suspend fun addWallet(adapterId: String): WalletAccount =
-        walletOperations.addWallet(adapterId)
+    override suspend fun addWallet(adapter: io.ton.walletkit.model.WalletAdapterInfo): WalletAccount =
+        walletOperations.addWallet(adapter)
 
     override suspend fun getWallets(): List<WalletAccount> = walletOperations.getWallets()
 

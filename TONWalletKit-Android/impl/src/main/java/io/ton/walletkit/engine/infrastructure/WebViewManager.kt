@@ -71,6 +71,7 @@ internal class WebViewManager(
     private val assetPath: String,
     private val storageManager: StorageManager,
     private val adapterManager: io.ton.walletkit.engine.state.AdapterManager,
+    private val signerManager: io.ton.walletkit.engine.state.SignerManager,
     private val sessionManager: TONConnectSessionManager?,
     private val apiClients: List<TONAPIClient>,
     private val json: Json,
@@ -316,6 +317,22 @@ internal class WebViewManager(
         // ======== Native Adapter Proxy Methods ========
         // Called by the JS proxy adapter created in addWallet.
         // Each method delegates to the Kotlin TONWalletAdapter registered in AdapterManager.
+
+        @JavascriptInterface
+        fun signWithCustomSigner(signerId: String, data: String): String {
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    val signer = signerManager.getSigner(signerId)
+                        ?: throw IllegalArgumentException("Custom signer not found: $signerId")
+                    val dataArray = org.json.JSONArray(data)
+                    val bytes = ByteArray(dataArray.length()) { dataArray.getInt(it).toByte() }
+                    signer.sign(bytes).value
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to sign with custom signer: $signerId", e)
+                    throw e
+                }
+            }
+        }
 
         @JavascriptInterface
         fun adapterGetStateInit(adapterId: String): String {

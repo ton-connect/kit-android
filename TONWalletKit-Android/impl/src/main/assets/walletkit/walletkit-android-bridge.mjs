@@ -36491,6 +36491,22 @@ function createTonMnemonic() {
     return CreateTonMnemonic$1();
   });
 }
+const store = /* @__PURE__ */ new Map();
+let nextId = 1;
+function retain(prefix, obj) {
+  const id = `${prefix}_${nextId++}`;
+  store.set(id, obj);
+  return id;
+}
+function retainWithId(id, obj) {
+  store.set(id, obj);
+}
+function get(id) {
+  return store.get(id);
+}
+function release(id) {
+  return store.delete(id);
+}
 var __async$3 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -36543,137 +36559,157 @@ function getBalance(args) {
     return wallet(args.walletId, "getBalance");
   });
 }
-function publicKeyFromSecretKey(args) {
+function createSignerFromMnemonic(args) {
   return __async$3(this, null, function* () {
-    const signer = yield Signer$1.fromPrivateKey(args.secretKey);
-    return signer.publicKey;
+    var _a;
+    const signer = yield Signer$1.fromMnemonic(args.mnemonic, { type: (_a = args.mnemonicType) != null ? _a : "ton" });
+    const signerId = retain("signer", signer);
+    return { signerId, publicKey: signer.publicKey };
   });
 }
-function computeWalletAddress(args) {
+function createSignerFromPrivateKey(args) {
+  return __async$3(this, null, function* () {
+    const signer = yield Signer$1.fromPrivateKey(args.secretKey);
+    const signerId = retain("signer", signer);
+    return { signerId, publicKey: signer.publicKey };
+  });
+}
+function createSignerFromCustom(args) {
+  return __async$3(this, null, function* () {
+    const { signerId, publicKey } = args;
+    const proxySigner = {
+      publicKey,
+      sign: (bytes) => __async$3(null, null, function* () {
+        var _a, _b;
+        const result = yield (_b = (_a = window.WalletKitNative) == null ? void 0 : _a.signWithCustomSigner) == null ? void 0 : _b.call(_a, signerId, Array.from(bytes));
+        if (!result) throw new Error("signWithCustomSigner not available");
+        return result;
+      })
+    };
+    retainWithId(signerId, proxySigner);
+    return { signerId, publicKey };
+  });
+}
+function createV5R1WalletAdapter(args) {
   return __async$3(this, null, function* () {
     var _a;
     const instance = yield getKit();
+    const signer = get(args.signerId);
+    if (!signer) throw new Error(`Signer not found in registry: ${args.signerId}`);
     const network = args.network;
-    const dummySigner = { publicKey: args.publicKey, sign: () => __async$3(null, null, function* () {
-      return "0x";
-    }) };
-    const AdapterClass = args.version === "v5r1" ? WalletV5R1Adapter$1 : WalletV4R2Adapter$1;
-    const adapter = yield AdapterClass.create(dummySigner, {
+    const adapter = yield WalletV5R1Adapter$1.create(signer, {
       client: instance.getApiClient(network),
       network,
       workchain: (_a = args.workchain) != null ? _a : 0,
       walletId: args.walletId
     });
-    return adapter.getAddress();
+    const adapterId = retain("adapter", adapter);
+    return { adapterId, address: adapter.getAddress() };
   });
 }
-function addWalletWithSigner(args) {
+function createV4R2WalletAdapter(args) {
   return __async$3(this, null, function* () {
-    var _a, _b;
+    var _a;
     const instance = yield getKit();
+    const signer = get(args.signerId);
+    if (!signer) throw new Error(`Signer not found in registry: ${args.signerId}`);
     const network = args.network;
-    let signer;
-    if (args.isCustom && args.publicKey && args.signerId) {
-      const signerId = args.signerId;
-      signer = {
-        publicKey: args.publicKey,
-        sign: (bytes) => __async$3(null, null, function* () {
-          var _a2, _b2;
-          const result = yield (_b2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.signWithCustomSigner) == null ? void 0 : _b2.call(_a2, signerId, Array.from(bytes));
-          return result;
-        })
-      };
-    } else if (args.secretKey) {
-      signer = yield Signer$1.fromPrivateKey(args.secretKey);
-    } else {
-      throw new Error("Either secretKey or (publicKey + signerId + isCustom) required");
-    }
-    const AdapterClass = args.version === "v5r1" ? WalletV5R1Adapter$1 : WalletV4R2Adapter$1;
-    const adapter = yield AdapterClass.create(signer, {
+    const adapter = yield WalletV4R2Adapter$1.create(signer, {
       client: instance.getApiClient(network),
       network,
       workchain: (_a = args.workchain) != null ? _a : 0,
       walletId: args.walletId
     });
-    const w = yield instance.addWallet(adapter);
-    if (!w) return null;
-    return { walletId: (_b = w.getWalletId) == null ? void 0 : _b.call(w), wallet: w };
+    const adapterId = retain("adapter", adapter);
+    return { adapterId, address: adapter.getAddress() };
   });
 }
 function addWallet(args) {
   return __async$3(this, null, function* () {
-    var _b;
+    var _b, _c;
     const instance = yield getKit();
-    const { adapterId, walletId, publicKey, address } = args;
-    const network = args.network;
-    const proxyAdapter = {
-      getPublicKey() {
-        return publicKey;
-      },
-      getNetwork() {
-        return network;
-      },
-      getClient() {
-        return instance.getApiClient(network);
-      },
-      getAddress() {
-        return address;
-      },
-      getWalletId() {
-        return walletId;
-      },
-      getStateInit() {
-        return __async$3(this, null, function* () {
-          var _a2, _b2;
-          const result = yield (_b2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterGetStateInit) == null ? void 0 : _b2.call(_a2, adapterId);
-          if (!result) throw new Error("adapterGetStateInit not available");
-          return result;
-        });
-      },
-      getSignedSendTransaction(input, options) {
-        return __async$3(this, null, function* () {
-          var _a2, _b2, _c;
-          const result = yield (_c = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignTransaction) == null ? void 0 : _c.call(
-            _a2,
-            adapterId,
-            JSON.stringify(input),
-            (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
-          );
-          if (!result) throw new Error("adapterSignTransaction not available");
-          return result;
-        });
-      },
-      getSignedSignData(input, options) {
-        return __async$3(this, null, function* () {
-          var _a2, _b2, _c;
-          const result = yield (_c = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignData) == null ? void 0 : _c.call(
-            _a2,
-            adapterId,
-            JSON.stringify(input),
-            (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
-          );
-          if (!result) throw new Error("adapterSignData not available");
-          return result;
-        });
-      },
-      getSignedTonProof(input, options) {
-        return __async$3(this, null, function* () {
-          var _a2, _b2, _c;
-          const result = yield (_c = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignTonProof) == null ? void 0 : _c.call(
-            _a2,
-            adapterId,
-            JSON.stringify(input),
-            (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
-          );
-          if (!result) throw new Error("adapterSignTonProof not available");
-          return result;
-        });
-      }
-    };
-    const w = yield instance.addWallet(proxyAdapter);
+    if (args.publicKey) {
+      const { adapterId, walletId, publicKey, address } = args;
+      const network = args.network;
+      const proxyAdapter = {
+        getPublicKey() {
+          return publicKey;
+        },
+        getNetwork() {
+          return network;
+        },
+        getClient() {
+          return instance.getApiClient(network);
+        },
+        getAddress() {
+          return address;
+        },
+        getWalletId() {
+          return walletId;
+        },
+        getStateInit() {
+          return __async$3(this, null, function* () {
+            var _a2, _b2;
+            const result = yield (_b2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterGetStateInit) == null ? void 0 : _b2.call(_a2, adapterId);
+            if (!result) throw new Error("adapterGetStateInit not available");
+            return result;
+          });
+        },
+        getSignedSendTransaction(input, options) {
+          return __async$3(this, null, function* () {
+            var _a2, _b2, _c2;
+            const result = yield (_c2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignTransaction) == null ? void 0 : _c2.call(
+              _a2,
+              adapterId,
+              JSON.stringify(input),
+              (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
+            );
+            if (!result) throw new Error("adapterSignTransaction not available");
+            return result;
+          });
+        },
+        getSignedSignData(input, options) {
+          return __async$3(this, null, function* () {
+            var _a2, _b2, _c2;
+            const result = yield (_c2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignData) == null ? void 0 : _c2.call(
+              _a2,
+              adapterId,
+              JSON.stringify(input),
+              (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
+            );
+            if (!result) throw new Error("adapterSignData not available");
+            return result;
+          });
+        },
+        getSignedTonProof(input, options) {
+          return __async$3(this, null, function* () {
+            var _a2, _b2, _c2;
+            const result = yield (_c2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignTonProof) == null ? void 0 : _c2.call(
+              _a2,
+              adapterId,
+              JSON.stringify(input),
+              (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
+            );
+            if (!result) throw new Error("adapterSignTonProof not available");
+            return result;
+          });
+        }
+      };
+      const w2 = yield instance.addWallet(proxyAdapter);
+      if (!w2) return null;
+      return { walletId: (_b = w2.getWalletId) == null ? void 0 : _b.call(w2), wallet: w2 };
+    }
+    const adapter = get(args.adapterId);
+    if (!adapter) throw new Error(`Adapter not found in registry: ${args.adapterId}`);
+    release(args.adapterId);
+    const w = yield instance.addWallet(adapter);
     if (!w) return null;
-    return { walletId: (_b = w.getWalletId) == null ? void 0 : _b.call(w), wallet: w };
+    return { walletId: (_c = w.getWalletId) == null ? void 0 : _c.call(w), wallet: w };
   });
+}
+function releaseRef(args) {
+  release(args.id);
+  return { ok: true };
 }
 var __async$2 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
@@ -36862,12 +36898,15 @@ const api = {
   mnemonicToKeyPair,
   sign,
   createTonMnemonic,
-  // Wallets — stateless factory helpers
-  publicKeyFromSecretKey,
-  computeWalletAddress,
-  addWalletWithSigner,
-  // Wallets — proxy adapter (host apps)
+  // Wallets — 3-step factory
+  createSignerFromMnemonic,
+  createSignerFromPrivateKey,
+  createSignerFromCustom,
+  createV5R1WalletAdapter,
+  createV4R2WalletAdapter,
+  // Wallets — unified addWallet (registry path + proxy adapter path)
   addWallet,
+  releaseRef,
   getWallets,
   getWallet: getWalletById,
   getWalletAddress,
