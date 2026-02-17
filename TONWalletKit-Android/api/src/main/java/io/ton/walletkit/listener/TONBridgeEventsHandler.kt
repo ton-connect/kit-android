@@ -40,7 +40,7 @@ import io.ton.walletkit.event.TONWalletKitEvent
  *                 // Handle connection request
  *                 event.request.approve(walletAddress)
  *             }
- *             is TONWalletKitEvent.TransactionRequest -> {
+ *             is TONWalletKitEvent.SendTransactionRequest -> {
  *                 // Handle transaction request
  *                 event.request.approve()
  *             }

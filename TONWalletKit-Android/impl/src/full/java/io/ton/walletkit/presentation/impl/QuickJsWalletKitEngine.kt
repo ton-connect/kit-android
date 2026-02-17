@@ -993,7 +993,7 @@ internal class QuickJsWalletKitEngine(
                         event = event,
                         handler = this,
                     )
-                    TONWalletKitEvent.TransactionRequest(request)
+                    TONWalletKitEvent.SendTransactionRequest(request)
                 } catch (e: Exception) {
                     Log.e(logTag, "Failed to parse transaction request", e)
                     null

@@ -87,7 +87,7 @@ internal class EventParser(
                         event = event,
                         handler = engine,
                     )
-                    TONWalletKitEvent.TransactionRequest(request)
+                    TONWalletKitEvent.SendTransactionRequest(request)
                 } catch (e: SerializationException) {
                     Logger.e(TAG, ERROR_FAILED_PARSE_TRANSACTION_REQUEST, e)
                     throw JSValueConversionException.DecodingError(

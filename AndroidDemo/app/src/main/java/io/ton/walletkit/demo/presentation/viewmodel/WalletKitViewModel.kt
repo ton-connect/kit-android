@@ -261,8 +261,8 @@ class WalletKitViewModel @Inject constructor(
                 Log.d(LOG_TAG, "Handling ConnectRequest")
                 onConnectRequest(event.request)
             }
-            is TONWalletKitEvent.TransactionRequest -> {
-                Log.d(LOG_TAG, "Handling TransactionRequest")
+            is TONWalletKitEvent.SendTransactionRequest -> {
+                Log.d(LOG_TAG, "Handling SendTransactionRequest")
                 onTransactionRequest(event.request)
             }
             is TONWalletKitEvent.SignDataRequest -> {
