@@ -25,7 +25,6 @@ import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
-import io.ton.walletkit.engine.model.TONTransactionWithPreview
 import io.ton.walletkit.engine.operations.requests.CreateTransferMultiTonRequest
 import io.ton.walletkit.engine.operations.requests.CreateTransferTonRequest
 import io.ton.walletkit.engine.operations.requests.GetTransactionPreviewRequest
@@ -56,72 +55,30 @@ internal class TransactionOperations(
     suspend fun createTransferTonTransaction(
         walletId: String,
         params: TONTransferRequest,
-    ): TONTransactionWithPreview {
+    ): String {
         ensureInitialized()
 
         val request = CreateTransferTonRequest(
             walletId = walletId,
-            toAddress = params.recipientAddress.value,
-            amount = params.transferAmount,
+            recipientAddress = params.recipientAddress.value,
+            transferAmount = params.transferAmount,
             comment = params.comment,
             body = params.payload?.value,
             stateInit = params.stateInit?.value,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_TON_TRANSACTION, json.toJSONObject(request))
-
-        // JS returns { transaction, preview } or { transaction }
-        return if (result.has("transaction")) {
-            val transactionContent = result.get("transaction").toString()
-            val preview = if (result.has("preview") && !result.isNull("preview")) {
-                val previewJson = result.getJSONObject("preview")
-                try {
-                    json.decodeFromString<TONTransactionEmulatedPreview>(previewJson.toString())
-                } catch (e: SerializationException) {
-                    throw JSValueConversionException.DecodingError(
-                        message = "Failed to decode TONTransactionEmulatedPreview in createTransferTonTransaction: ${e.message}",
-                        cause = e,
-                    )
-                }
-            } else {
-                null
-            }
-            TONTransactionWithPreview(transactionContent, preview)
-        } else {
-            // Fallback for legacy response format
-            TONTransactionWithPreview(result.toString(), null)
-        }
+        return result.toString()
     }
 
     suspend fun createTransferMultiTonTransaction(
         walletId: String,
         messages: List<TONTransferRequest>,
-    ): TONTransactionWithPreview {
+    ): String {
         ensureInitialized()
 
         val request = CreateTransferMultiTonRequest(walletId = walletId, messages = messages)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_MULTI_TON_TRANSACTION, json.toJSONObject(request))
-
-        // JS returns { transaction, preview } or { transaction }
-        return if (result.has("transaction")) {
-            val transactionContent = result.get("transaction").toString()
-            val preview = if (result.has("preview") && !result.isNull("preview")) {
-                val previewJson = result.getJSONObject("preview")
-                try {
-                    json.decodeFromString<TONTransactionEmulatedPreview>(previewJson.toString())
-                } catch (e: SerializationException) {
-                    throw JSValueConversionException.DecodingError(
-                        message = "Failed to decode TONTransactionEmulatedPreview in createTransferMultiTonTransaction: ${e.message}",
-                        cause = e,
-                    )
-                }
-            } else {
-                null
-            }
-            TONTransactionWithPreview(transactionContent, preview)
-        } else {
-            // Fallback for legacy response format
-            TONTransactionWithPreview(result.toString(), null)
-        }
+        return result.toString()
     }
 
     suspend fun handleNewTransaction(walletId: String, transactionContent: String) {

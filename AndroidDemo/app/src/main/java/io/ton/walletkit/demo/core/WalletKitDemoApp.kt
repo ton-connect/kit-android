@@ -108,16 +108,10 @@ class WalletKitDemoApp :
     override fun onCreate() {
         super.onCreate()
 
-        Log.w(TAG, "🔴🔴🔴 WalletKitDemoApp.onCreate() CALLED!")
-        Log.w(TAG, "🔴 Process ID: ${android.os.Process.myPid()}")
-        Log.w(TAG, "🔴 Application instance: ${System.identityHashCode(this)}")
-
         // Initialize ITONWalletKit SDK and add event handler
         applicationScope.launch {
             try {
-                Log.w(TAG, "🔴 Launching SDK initialization coroutine...")
                 val kit = TONWalletKitHelper.mainnet(this@WalletKitDemoApp)
-                Log.w(TAG, "🔴 Got kit instance: ${System.identityHashCode(kit)}")
 
                 // CRITICAL: Load and add wallets BEFORE setting up event listeners
                 // This ensures that when events are replayed (which happens when the first
@@ -125,20 +119,16 @@ class WalletKitDemoApp :
                 // for event approval/rejection operations.
                 loadAndAddStoredWallets(kit)
 
-                Log.w(TAG, "🔴🔴🔴 About to add event handler...")
                 // Add event handler (this triggers setEventsListeners() and event replay)
                 kit.addEventsHandler(object : TONBridgeEventsHandler {
                     override fun handle(event: TONWalletKitEvent) {
-                        Log.d(TAG, "🟢 Event handler callback invoked for event: ${event.javaClass.simpleName}")
                         _sdkEvents.tryEmit(event)
                     }
                 })
-                Log.w(TAG, "✅ Event handler added successfully")
 
                 _sdkInitialized.emit(true)
-                Log.w(TAG, "✅ SDK initialization complete, sdkInitialized emitted")
             } catch (e: Exception) {
-                Log.e(TAG, "❌❌❌ Failed to initialize SDK", e)
+                Log.e(TAG, "Failed to initialize SDK", e)
             }
         }
     }
@@ -263,7 +253,7 @@ object TONWalletKitHelper {
         val value = arguments?.getString("disableNetworkSend")
         val result = value?.equals("true", ignoreCase = true) == true
         if (result) {
-            Log.w("TONWalletKitHelper", "🧪 Detected disableNetworkSend=true from instrumentation arguments")
+            Log.d("TONWalletKitHelper", "Detected disableNetworkSend=true from instrumentation arguments")
         }
         result
     } catch (e: Exception) {
@@ -279,17 +269,13 @@ object TONWalletKitHelper {
         return mutex.withLock {
             // Double-check after acquiring lock
             mainnetInstance?.let {
-                Log.d("TONWalletKitHelper", "Returning cached mainnet instance (after lock): ${System.identityHashCode(it)}")
                 return@withLock it
             }
-
-            Log.w("TONWalletKitHelper", "🔶🔶🔶 Creating NEW ITONWalletKit instance...")
 
             // Check both the flag and instrumentation arguments
             val shouldDisableNetwork = disableNetworkSend || checkInstrumentationDisableNetworkSend()
 
             val devOptions = if (shouldDisableNetwork) {
-                Log.w("TONWalletKitHelper", "⚠️ Network send is DISABLED - transactions will be simulated only")
                 TONWalletKitConfiguration.DevOptions(disableNetworkSend = true)
             } else {
                 null
@@ -297,10 +283,8 @@ object TONWalletKitHelper {
 
             // Create custom session manager if enabled
             val customSessionManager = if (useCustomSessionManager) {
-                Log.w("TONWalletKitHelper", "🔧 Using CUSTOM session manager (TestSessionManager)")
                 TestSessionManager().also { sessionManager = it }
             } else {
-                Log.w("TONWalletKitHelper", "📦 Using SDK's built-in session storage")
                 null
             }
 
@@ -309,7 +293,6 @@ object TONWalletKitHelper {
             // - apiClientConfiguration: Use SDK's built-in API client with your API key
             // - apiClient: Use your own custom API client implementation
             val networkConfigurations = if (useCustomApiClient) {
-                Log.w("TONWalletKitHelper", "🌐 Using CUSTOM API clients (Toncenter for mainnet, TonAPI for testnet)")
                 // Demonstrate using different API providers per network
                 setOf(
                     TONWalletKitConfiguration.NetworkConfiguration(
@@ -322,7 +305,6 @@ object TONWalletKitHelper {
                     ),
                 )
             } else {
-                Log.w("TONWalletKitHelper", "📡 Using SDK's built-in API client")
                 // Use SDK's built-in API client with default configuration
                 setOf(
                     TONWalletKitConfiguration.NetworkConfiguration(
@@ -367,7 +349,6 @@ object TONWalletKitHelper {
 
             val kit = ITONWalletKit.initialize(application, config)
             mainnetInstance = kit
-            Log.w("TONWalletKitHelper", "✅ Created and cached mainnet instance: ${System.identityHashCode(kit)}")
             kit
         }
     }
@@ -388,5 +369,4 @@ object TONWalletKitHelper {
     private const val DEFAULT_MANIFEST_ABOUT_URL = "https://wallet.ton.org"
     private const val DEFAULT_MANIFEST_UNIVERSAL_LINK = "https://wallet.ton.org/tc"
     private const val DEFAULT_BRIDGE_URL = "https://bridge.tonapi.io/bridge"
-
 }

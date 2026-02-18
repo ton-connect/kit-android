@@ -52,7 +52,7 @@ object RequestErrorTracker {
     fun recordError(method: String, errorCode: Int, errorMessage: String) {
         val error = CapturedError(method, errorCode, errorMessage)
         lastError = error
-        Log.d(TAG, "✅ Recorded error: $error")
+        Log.d(TAG, "Recorded error: $error")
         Log.d(TAG, "   Method: $method | Code: $errorCode | Message: $errorMessage")
     }
 
@@ -79,7 +79,7 @@ object RequestErrorTracker {
         while (System.currentTimeMillis() - startTime < timeoutMs) {
             val error = lastError
             if (error != null && (method == null || error.method == method)) {
-                Log.d(TAG, "✅ Error received within timeout: $error")
+                Log.d(TAG, "Error received within timeout: $error")
                 return error
             }
             Thread.sleep(100)

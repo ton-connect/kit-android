@@ -48,7 +48,7 @@ class TestSessionManager : TONConnectSessionManager {
         walletAddress: String,
         isJsBridge: Boolean,
     ): TONConnectSession {
-        Log.d(TAG, "🔵 createSession called:")
+        Log.d(TAG, "createSession called:")
         Log.d(TAG, "   sessionId: $sessionId")
         Log.d(TAG, "   dAppInfo: name=${dAppInfo.name}, url=${dAppInfo.url}")
         Log.d(TAG, "   walletId: $walletId")
@@ -94,7 +94,7 @@ class TestSessionManager : TONConnectSessionManager {
         )
 
         sessions[sessionId] = session
-        Log.d(TAG, "✅ Session stored. Total sessions: ${sessions.size}")
+        Log.d(TAG, "Session stored. Total sessions: ${sessions.size}")
 
         return session
     }
@@ -117,12 +117,12 @@ class TestSessionManager : TONConnectSessionManager {
 
         for (session in sessions.values) {
             if (session.domain == host) {
-                Log.d(TAG, "✅ Found session by domain: ${session.sessionId}")
+                Log.d(TAG, "Found session by domain: ${session.sessionId}")
                 return session
             }
         }
 
-        Log.d(TAG, "❌ No session found for domain: $domain")
+        Log.d(TAG, "No session found for domain: $domain")
         return null
     }
 
@@ -140,19 +140,19 @@ class TestSessionManager : TONConnectSessionManager {
 
     override suspend fun removeSession(sessionId: String) {
         val removed = sessions.remove(sessionId) != null
-        Log.d(TAG, "🗑️ removeSession($sessionId): ${if (removed) "removed" else "not found"}")
+        Log.d(TAG, "removeSession($sessionId): ${if (removed) "removed" else "not found"}")
     }
 
     override suspend fun removeSessionsForWallet(walletId: String) {
         val toRemove = sessions.entries.filter { it.value.walletId == walletId }.map { it.key }
         toRemove.forEach { sessions.remove(it) }
-        Log.d(TAG, "🗑️ removeSessionsForWallet($walletId): removed ${toRemove.size} sessions")
+        Log.d(TAG, "removeSessionsForWallet($walletId): removed ${toRemove.size} sessions")
     }
 
     override suspend fun clearSessions() {
         val count = sessions.size
         sessions.clear()
-        Log.d(TAG, "🗑️ clearSessions(): cleared $count sessions")
+        Log.d(TAG, "clearSessions(): cleared $count sessions")
     }
 
     private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }

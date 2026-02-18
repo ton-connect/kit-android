@@ -42,13 +42,13 @@ interface TONWalletKitStorage {
     suspend fun get(key: String): String?
 
     /**
-     * Save a value to storage.
+     * Set a value in storage.
      *
      * @param key The storage key
      * @param value The value to store
      * @throws WalletKitStorageException if storage write fails
      */
-    suspend fun save(key: String, value: String)
+    suspend fun set(key: String, value: String)
 
     /**
      * Remove a value from storage.

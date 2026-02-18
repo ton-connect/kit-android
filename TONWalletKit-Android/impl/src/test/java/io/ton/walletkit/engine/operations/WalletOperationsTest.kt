@@ -169,7 +169,7 @@ class WalletOperationsTest : OperationsTestBase() {
             capturedParams = secondArg()
             when (method) {
                 "getWalletAddress" -> {
-                    val walletId = secondArg<JSONObject?>()?.optString("walletId") ?: ""
+                    val walletId = (secondArg<Any?>() as? JSONObject)?.optString("walletId") ?: ""
                     jsonOf("value" to if (walletId.contains("wallet-1")) TEST_ADDRESS_1 else TEST_ADDRESS_2)
                 }
                 else -> JSONObject().apply {

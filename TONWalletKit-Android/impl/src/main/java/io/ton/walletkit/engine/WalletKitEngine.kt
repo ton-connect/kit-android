@@ -38,7 +38,6 @@ import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
-import io.ton.walletkit.engine.model.TONTransactionWithPreview
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.WalletAdapterInfo
@@ -274,16 +273,17 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * This method creates transaction content matching the JS WalletKit API wallet.createTransferTonTransaction().
      * The returned transaction content can be passed to handleNewTransaction() to trigger the approval flow.
+     * Use getTransactionPreview() to get fee estimation.
      *
      * @param walletId Wallet ID
      * @param params Transfer parameters (recipient, amount, optional comment/body/stateInit)
-     * @return Transaction with optional preview
+     * @return Transaction content as JSON string
      * @throws WalletKitBridgeException if transaction creation fails
      */
     suspend fun createTransferTonTransaction(
         walletId: String,
         params: TONTransferRequest,
-    ): TONTransactionWithPreview
+    ): String
 
     /**
      * Handle a new transaction initiated from the wallet app.
@@ -347,13 +347,11 @@ internal interface WalletKitEngine : RequestHandler {
      * Approve and sign a transaction request.
      *
      * @param event Typed event from the transaction request
-     * @param network Network to execute transaction on
      * @param response Optional pre-computed approval response
      * @throws WalletKitBridgeException if approval or signing fails
      */
     override suspend fun approveTransaction(
         event: TONSendTransactionRequestEvent,
-        network: TONNetwork,
         response: TONSendTransactionApprovalResponse?,
     )
 
@@ -375,13 +373,11 @@ internal interface WalletKitEngine : RequestHandler {
      * Approve and sign a data signing request.
      *
      * @param event Typed event from the sign data request
-     * @param network Network to sign on
      * @param response Optional pre-computed approval response
      * @throws WalletKitBridgeException if approval or signing fails
      */
     override suspend fun approveSignData(
         event: TONSignDataRequestEvent,
-        network: TONNetwork,
         response: TONSignDataApprovalResponse?,
     )
 
@@ -489,13 +485,13 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @param walletId Wallet ID
      * @param messages List of transfer parameters for each recipient
-     * @return Transaction with optional preview
+     * @return Transaction content as JSON string
      * @throws WalletKitBridgeException if transaction creation fails
      */
     suspend fun createTransferMultiTonTransaction(
         walletId: String,
         messages: List<TONTransferRequest>,
-    ): TONTransactionWithPreview
+    ): String
 
     /**
      * Get a preview of a transaction including estimated fees.

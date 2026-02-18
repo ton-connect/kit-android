@@ -209,7 +209,7 @@ class StorageTypeTest {
             withTimeout(60_000) {
                 // Pre-populate storage with some data
                 val customStorage = InMemoryCustomStorage()
-                customStorage.save("test-key", "test-value")
+                customStorage.set("test-key", "test-value")
 
                 val config = createConfigWithStorageType(
                     TONWalletKitStorageType.Custom(customStorage),
@@ -231,8 +231,8 @@ class StorageTypeTest {
         withContext(Dispatchers.Main) {
             withTimeout(60_000) {
                 val customStorage = InMemoryCustomStorage()
-                customStorage.save("key1", "value1")
-                customStorage.save("key2", "value2")
+                customStorage.set("key1", "value1")
+                customStorage.set("key2", "value2")
 
                 val config = createConfigWithStorageType(
                     TONWalletKitStorageType.Custom(customStorage),
@@ -254,8 +254,8 @@ class StorageTypeTest {
         withContext(Dispatchers.Main) {
             withTimeout(60_000) {
                 val customStorage = InMemoryCustomStorage()
-                customStorage.save("key1", "value1")
-                customStorage.save("key2", "value2")
+                customStorage.set("key1", "value1")
+                customStorage.set("key2", "value2")
 
                 val config = createConfigWithStorageType(
                     TONWalletKitStorageType.Custom(customStorage),
@@ -279,15 +279,15 @@ class StorageTypeTest {
     private class InMemoryCustomStorage : TONWalletKitStorage {
         private val storage = ConcurrentHashMap<String, String>()
         private var getCount = 0
-        private var saveCount = 0
+        private var setCount = 0
 
         override suspend fun get(key: String): String? {
             getCount++
             return storage[key]
         }
 
-        override suspend fun save(key: String, value: String) {
-            saveCount++
+        override suspend fun set(key: String, value: String) {
+            setCount++
             storage[key] = value
         }
 
@@ -301,7 +301,7 @@ class StorageTypeTest {
 
         fun getAllKeys(): Set<String> = storage.keys.toSet()
         fun getOperationCount(): Int = getCount
-        fun saveOperationCount(): Int = saveCount
+        fun setOperationCount(): Int = setCount
     }
 
     // ==================== Helper Methods ====================

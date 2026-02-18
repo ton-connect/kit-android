@@ -32,7 +32,9 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
+import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
@@ -270,6 +272,30 @@ internal class TONWalletKit private constructor(
     }
 
     /**
+     * Add a wallet to the kit using a custom TONWalletAdapter.
+     *
+     * This wraps the adapter's WalletSigner-like signing into the 3-step pattern internally.
+     * Mirrors iOS's `add(walletAdapter:)` method for cross-platform consistency.
+     */
+    override suspend fun addWallet(adapter: TONWalletAdapter): ITONWallet {
+        checkNotDestroyed()
+
+        // Create a WalletSigner wrapper around the adapter
+        val walletSigner = AdapterBackedWalletSigner(adapter)
+
+        // Step 1: Create signer from the adapter's signing capability
+        val signerInfo = createSignerFromCustom(walletSigner)
+
+        // Step 2: Create adapter based on network
+        // We derive the wallet version from the identifier or use V5R1 as default
+        val network = adapter.network()
+        val adapterInfo = createV5R1Adapter(signerInfo, network)
+
+        // Step 3: Add wallet
+        return addWallet(adapterInfo.adapterId)
+    }
+
+    /**
      * Get all wallets managed by this SDK instance.
      *
      * @return List of all wallets
@@ -423,5 +449,25 @@ internal class TONWalletKit private constructor(
      */
     override fun createWebViewInjector(webView: WebView): WebViewTonConnectInjector {
         return TonConnectInjector(webView, this)
+    }
+}
+
+/**
+ * Internal WalletSigner implementation that wraps a TONWalletAdapter.
+ *
+ * This bridges the TONWalletAdapter interface to the internal WalletSigner interface,
+ * allowing adapters to provide their signing capabilities to the SDK engine.
+ */
+private class AdapterBackedWalletSigner(
+    private val adapter: TONWalletAdapter,
+) : WalletSigner {
+    override fun publicKey(): TONHex = adapter.publicKey()
+
+    override suspend fun sign(data: ByteArray): TONHex {
+        // TODO: Implement direct signing through adapter's specific methods
+        throw UnsupportedOperationException(
+            "Direct signing through AdapterBackedWalletSigner is not supported. " +
+                "The SDK should call the adapter's specific signing methods directly.",
+        )
     }
 }

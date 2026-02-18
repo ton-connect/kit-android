@@ -29,6 +29,7 @@ import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
@@ -153,14 +154,39 @@ interface ITONWalletKit {
     ): WalletAdapterInfo
 
     /**
-     * Add a wallet to the kit using an adapter.
+     * Add a wallet to the kit using an adapter ID.
      *
      * This is step 3 of the wallet creation pattern matching JS WalletKit.
      *
-     * @param adapter Adapter info from createV5R1Adapter or createV4R2Adapter
+     * @param adapterId Adapter ID from createV5R1Adapter or createV4R2Adapter
      * @return Created wallet instance
      */
     suspend fun addWallet(adapterId: String): ITONWallet
+
+    /**
+     * Add a wallet to the kit using a custom TONWalletAdapter.
+     *
+     * This is an alternative to the 3-step pattern that allows wrapping existing
+     * wallet entities directly. Useful for integrating with existing wallet apps
+     * that already have their own wallet management.
+     *
+     * Mirrors iOS's `add(walletAdapter:)` method for cross-platform consistency.
+     *
+     * **Example:**
+     * ```kotlin
+     * class MyWalletAdapter(wallet: WalletEntity) : TONWalletAdapter {
+     *     // implement interface methods...
+     * }
+     *
+     * val adapter = MyWalletAdapter(myWallet)
+     * val tonWallet = walletKit.addWallet(adapter)
+     * ```
+     *
+     * @param adapter Custom wallet adapter wrapping an existing wallet
+     * @return Created wallet instance
+     * @see TONWalletAdapter
+     */
+    suspend fun addWallet(adapter: TONWalletAdapter): ITONWallet
 
     /**
      * Get all wallets managed by SDK.

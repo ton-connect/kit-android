@@ -341,7 +341,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
         )
 
         // Should not throw
-        tonConnectOperations.approveTransaction(event, TEST_NETWORK)
+        tonConnectOperations.approveTransaction(event)
     }
 
     // --- rejectTransaction tests ---
