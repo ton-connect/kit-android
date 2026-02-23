@@ -32,37 +32,46 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
+ * Origin of the intent request.
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * Values: deepLink,bridge,jsBridge
  */
 @Serializable
-data class TONSwapToken(
+enum class TONIntentOrigin(val value: kotlin.String) {
 
-    @SerialName(value = "address")
-    val address: kotlin.String,
+    @SerialName(value = "deepLink")
+    deepLink("deepLink"),
 
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
+    @SerialName(value = "bridge")
+    bridge("bridge"),
 
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
+    @SerialName(value = "jsBridge")
+    jsBridge("jsBridge"),
+    ;
 
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
+    /**
+     * Override [toString()] to avoid using the enum variable name as the value, and instead use
+     * the actual value defined in the API spec file.
+     *
+     * This solves a problem when the variable name and its value are different, and ensures that
+     * the client sends the correct enum values to the server always.
+     */
+    override fun toString(): kotlin.String = value
 
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
+    companion object {
+        /**
+         * Converts the provided [data] to a [String] on success, null otherwise.
+         */
+        fun encode(data: kotlin.Any?): kotlin.String? = if (data is TONIntentOrigin) "$data" else null
 
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
-
-) {
-
-    companion object
+        /**
+         * Returns a valid [TONIntentOrigin] for [data], null otherwise.
+         */
+        fun decode(data: kotlin.Any?): TONIntentOrigin? = data?.let {
+            val normalizedData = "$it".lowercase()
+            values().firstOrNull { value ->
+                it == value || normalizedData == "$value".lowercase()
+            }
+        }
+    }
 }

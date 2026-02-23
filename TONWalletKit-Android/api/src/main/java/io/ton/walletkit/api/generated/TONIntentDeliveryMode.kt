@@ -32,37 +32,43 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
+ * Delivery mode for the signed transaction.
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * Values: send,signOnly
  */
 @Serializable
-data class TONSwapToken(
+enum class TONIntentDeliveryMode(val value: kotlin.String) {
 
-    @SerialName(value = "address")
-    val address: kotlin.String,
+    @SerialName(value = "send")
+    send("send"),
 
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
+    @SerialName(value = "signOnly")
+    signOnly("signOnly"),
+    ;
 
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
+    /**
+     * Override [toString()] to avoid using the enum variable name as the value, and instead use
+     * the actual value defined in the API spec file.
+     *
+     * This solves a problem when the variable name and its value are different, and ensures that
+     * the client sends the correct enum values to the server always.
+     */
+    override fun toString(): kotlin.String = value
 
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
+    companion object {
+        /**
+         * Converts the provided [data] to a [String] on success, null otherwise.
+         */
+        fun encode(data: kotlin.Any?): kotlin.String? = if (data is TONIntentDeliveryMode) "$data" else null
 
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
-
-) {
-
-    companion object
+        /**
+         * Returns a valid [TONIntentDeliveryMode] for [data], null otherwise.
+         */
+        fun decode(data: kotlin.Any?): TONIntentDeliveryMode? = data?.let {
+            val normalizedData = "$it".lowercase()
+            values().firstOrNull { value ->
+                it == value || normalizedData == "$value".lowercase()
+            }
+        }
+    }
 }

@@ -30,11 +30,13 @@ import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
+import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.model.IntentSignDataResult
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.session.TONConnectSession
 import kotlinx.serialization.json.Json
@@ -269,9 +271,78 @@ internal class TonConnectOperations(
 
     suspend fun disconnectSession(sessionId: String?) {
         ensureInitialized()
-
-        // Send just the sessionId string - walletkit expects: disconnect(sessionId?: string)
         rpcClient.call(BridgeMethodConstants.METHOD_DISCONNECT_SESSION, sessionId)
+    }
+
+    // ── Intents ──
+
+    suspend fun isIntentUrl(url: String): Boolean {
+        ensureInitialized()
+        val args = JSONObject().apply { put("url", url) }
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_IS_INTENT_URL, args)
+        return result.optBoolean("value", false)
+    }
+
+    suspend fun handleIntentUrl(url: String, walletId: String) {
+        ensureInitialized()
+        val args = JSONObject().apply {
+            put("url", url)
+            put("walletId", walletId)
+        }
+        rpcClient.call(BridgeMethodConstants.METHOD_HANDLE_INTENT_URL, args)
+    }
+
+    suspend fun approveTransactionIntent(event: TONIntentEvent.TransactionIntent, walletId: String): String {
+        ensureInitialized()
+        val args = JSONObject().apply {
+            put("event", event.rawJson)
+            put("walletId", walletId)
+        }
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_TRANSACTION_INTENT, args)
+        return result.optString("boc", "")
+    }
+
+    suspend fun approveSignDataIntent(event: TONIntentEvent.SignDataIntent, walletId: String): IntentSignDataResult {
+        ensureInitialized()
+        val args = JSONObject().apply {
+            put("event", event.rawJson)
+            put("walletId", walletId)
+        }
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_SIGN_DATA_INTENT, args)
+        return IntentSignDataResult(
+            signature = result.optString("signature", ""),
+            address = result.optString("address", ""),
+            timestamp = result.optLong("timestamp", 0L),
+            domain = result.optString("domain", ""),
+        )
+    }
+
+    suspend fun approveActionIntent(event: TONIntentEvent.ActionIntent, walletId: String) {
+        ensureInitialized()
+        val args = JSONObject().apply {
+            put("event", event.rawJson)
+            put("walletId", walletId)
+        }
+        rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_ACTION_INTENT, args)
+    }
+
+    suspend fun rejectIntent(event: TONIntentEvent, reason: String?, errorCode: Int?) {
+        ensureInitialized()
+        val args = JSONObject().apply {
+            put("event", event.rawJson)
+            if (reason != null) put("reason", reason)
+            if (errorCode != null) put("errorCode", errorCode)
+        }
+        rpcClient.call(BridgeMethodConstants.METHOD_REJECT_INTENT, args)
+    }
+
+    suspend fun processConnectAfterIntent(event: TONIntentEvent, walletId: String) {
+        ensureInitialized()
+        val args = JSONObject().apply {
+            put("event", event.rawJson)
+            put("walletId", walletId)
+        }
+        rpcClient.call(BridgeMethodConstants.METHOD_PROCESS_CONNECT_AFTER_INTENT, args)
     }
 
     private fun JSONObject.optNullableString(key: String): String? {

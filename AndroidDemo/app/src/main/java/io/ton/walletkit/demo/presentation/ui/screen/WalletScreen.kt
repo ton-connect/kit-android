@@ -93,6 +93,7 @@ import io.ton.walletkit.demo.presentation.ui.sections.WalletsSection
 import io.ton.walletkit.demo.presentation.ui.sheet.AddWalletSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.ConnectRequestSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.IntentRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.JettonDetailsSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.SignDataSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
@@ -234,6 +235,12 @@ fun WalletScreen(
                         isLoading = false,
                     )
                 }
+
+                is SheetState.Intent -> IntentRequestSheet(
+                    request = sheet.request,
+                    onApprove = { actions.onApproveIntent(sheet.request) },
+                    onReject = { actions.onRejectIntent(sheet.request) },
+                )
 
                 SheetState.None -> Unit
             }

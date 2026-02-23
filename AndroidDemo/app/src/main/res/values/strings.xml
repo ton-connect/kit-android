@@ -237,6 +237,14 @@
     <string name="wallet_event_sign_request_cancelled">❌ Sign request cancelled</string>
     <string name="wallet_status_sign_cancelled">Sign data request cancelled</string>
     <string name="wallet_error_cancel_sign_request">Failed to cancel sign request</string>
+
+    <!-- Intent events -->
+    <string name="wallet_event_intent_request">Intent request (%1$s)</string>
+    <string name="wallet_event_intent_approved">Approved intent %1$s</string>
+    <string name="wallet_event_intent_rejected">Rejected intent %1$s</string>
+    <string name="wallet_error_approve_intent">Failed to approve intent</string>
+    <string name="wallet_error_reject_intent">Failed to reject intent</string>
+
     <string name="wallet_event_session_disconnected">Disconnected session %1$s</string>
     <string name="wallet_error_session_not_found">Session not found</string>
     <string name="wallet_error_disconnect_session">Failed to disconnect session</string>

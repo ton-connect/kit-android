@@ -32,35 +32,15 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
+ * Preview data for transaction intent.
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * @param `data`
  */
 @Serializable
-data class TONSwapToken(
+data class TONTransactionIntentPreview(
 
-    @SerialName(value = "address")
-    val address: kotlin.String,
-
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
-
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
-
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
-
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
+    @SerialName(value = "data")
+    val `data`: TONTransactionEmulatedPreview? = null,
 
 ) {
 

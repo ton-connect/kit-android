@@ -32,37 +32,34 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
+ * Successful response for transaction intent.
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * @param resultType Result type discriminator
+ * @param boc Signed BoC (base64)
  */
 @Serializable
-data class TONSwapToken(
+data class TONIntentTransactionResponse(
 
-    @SerialName(value = "address")
-    val address: kotlin.String,
+    /* Result type discriminator */
+    @SerialName(value = "resultType")
+    val resultType: TONIntentTransactionResponse.ResultType,
 
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
-
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
-
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
-
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
+    /* Signed BoC (base64) */
+    @SerialName(value = "boc")
+    val boc: kotlin.String,
 
 ) {
 
     companion object
+
+    /**
+     * Result type discriminator
+     *
+     * Values: transaction
+     */
+    @Serializable
+    enum class ResultType(val value: kotlin.String) {
+        @SerialName(value = "transaction")
+        transaction("transaction"),
+    }
 }

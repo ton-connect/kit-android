@@ -28,41 +28,57 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONBase64
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
+ * TON native coin transfer action.
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * @param type Action type discriminator
+ * @param address Destination address (user-friendly)
+ * @param amount Amount in nanotons
+ * @param payload
+ * @param stateInit
+ * @param extraCurrency
  */
 @Serializable
-data class TONSwapToken(
+data class TONSendTonAction(
 
+    /* Action type discriminator */
+    @SerialName(value = "type")
+    val type: TONSendTonAction.Type,
+
+    /* Destination address (user-friendly) */
     @SerialName(value = "address")
     val address: kotlin.String,
 
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
+    /* Amount in nanotons */
+    @SerialName(value = "amount")
+    val amount: kotlin.String,
 
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
+    @Contextual @SerialName(value = "payload")
+    val payload: io.ton.walletkit.model.TONBase64? = null,
 
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
+    @Contextual @SerialName(value = "stateInit")
+    val stateInit: io.ton.walletkit.model.TONBase64? = null,
 
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
+    @SerialName(value = "extraCurrency")
+    val extraCurrency: kotlin.collections.Map<kotlin.String, kotlin.String>? = null,
 
 ) {
 
     companion object
+
+    /**
+     * Action type discriminator
+     *
+     * Values: sendTon
+     */
+    @Serializable
+    enum class Type(val value: kotlin.String) {
+        @SerialName(value = "sendTon")
+        sendTon("sendTon"),
+    }
 }

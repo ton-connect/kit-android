@@ -32,35 +32,21 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
+ * Intent error details.
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * @param code Error code
+ * @param message Human-readable message
  */
 @Serializable
-data class TONSwapToken(
+data class TONIntentError(
 
-    @SerialName(value = "address")
-    val address: kotlin.String,
+    /* Error code */
+    @SerialName(value = "code")
+    val code: kotlin.Int,
 
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
-
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
-
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
-
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
+    /* Human-readable message */
+    @SerialName(value = "message")
+    val message: kotlin.String,
 
 ) {
 

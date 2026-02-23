@@ -32,37 +32,62 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
+ * Union of all intent responses.
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * @param resultType Result type discriminator
+ * @param boc Signed BoC (base64)
+ * @param signature Signature (base64)
+ * @param address Signer address (raw format: 0:hex)
+ * @param timestamp UNIX timestamp (seconds, UTC)
+ * @param domain App domain
+ * @param payload
+ * @param error
  */
 @Serializable
-data class TONSwapToken(
+data class TONIntentResponseResult(
 
+    /* Result type discriminator */
+    @SerialName(value = "resultType")
+    val resultType: TONIntentResponseResult.ResultType,
+
+    /* Signed BoC (base64) */
+    @SerialName(value = "boc")
+    val boc: kotlin.String,
+
+    /* Signature (base64) */
+    @SerialName(value = "signature")
+    val signature: kotlin.String,
+
+    /* Signer address (raw format: 0:hex) */
     @SerialName(value = "address")
     val address: kotlin.String,
 
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
+    /* UNIX timestamp (seconds, UTC) */
+    @SerialName(value = "timestamp")
+    val timestamp: kotlin.Int,
 
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
+    /* App domain */
+    @SerialName(value = "domain")
+    val domain: kotlin.String,
 
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
+    @SerialName(value = "payload")
+    val payload: TONSignDataPayload,
 
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
+    @SerialName(value = "error")
+    val error: TONIntentError,
 
 ) {
 
     companion object
+
+    /**
+     * Result type discriminator
+     *
+     * Values: error
+     */
+    @Serializable
+    enum class ResultType(val value: kotlin.String) {
+        @SerialName(value = "error")
+        error("error"),
+    }
 }
