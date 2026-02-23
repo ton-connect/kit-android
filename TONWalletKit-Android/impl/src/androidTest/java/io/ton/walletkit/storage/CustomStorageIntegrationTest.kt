@@ -117,7 +117,7 @@ class CustomStorageIntegrationTest {
                 val mnemonic = testMnemonic()
                 val signer = sdk!!.createSignerFromMnemonic(mnemonic)
                 val adapter = sdk!!.createV4R2Adapter(signer, TONNetwork.MAINNET)
-                val wallet = sdk!!.addWallet(adapter.adapterId)
+                val wallet = sdk!!.addWallet(adapter)
 
                 assertNotNull("Wallet creation should work with bridge storage", wallet)
             }
@@ -139,7 +139,7 @@ class CustomStorageIntegrationTest {
                 val mnemonic = testMnemonic()
                 val signer = sdk!!.createSignerFromMnemonic(mnemonic)
                 val adapter = sdk!!.createV4R2Adapter(signer, TONNetwork.MAINNET)
-                sdk!!.addWallet(adapter.adapterId)
+                sdk!!.addWallet(adapter)
 
                 // If we get here without crashes, thread safety is working
                 assertTrue("Thread-safe storage should work correctly", true)

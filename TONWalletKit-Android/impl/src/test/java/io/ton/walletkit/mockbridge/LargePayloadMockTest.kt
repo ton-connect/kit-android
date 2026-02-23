@@ -86,7 +86,7 @@ class LargePayloadMockTest : MockBridgeTestBase() {
 
         val signer = sdk.createSignerFromMnemonic(mnemonic)
         val adapter = sdk.createV5R1Adapter(signer)
-        val wallet = sdk.addWallet(adapter.adapterId)
+        val wallet = sdk.addWallet(adapter)
 
         // Mock returns 150 NFTs (large payload)
         val response = wallet.nfts(
@@ -111,7 +111,7 @@ class LargePayloadMockTest : MockBridgeTestBase() {
         val mnemonic = sdk.createTonMnemonic()
         val signer = sdk.createSignerFromMnemonic(mnemonic)
         val adapter = sdk.createV5R1Adapter(signer)
-        val wallet = sdk.addWallet(adapter.adapterId)
+        val wallet = sdk.addWallet(adapter)
 
         // Make 3 calls, each returning 100 NFTs
         var totalNfts = 0

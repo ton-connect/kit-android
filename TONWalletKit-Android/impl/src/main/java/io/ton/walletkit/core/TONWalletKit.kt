@@ -198,10 +198,11 @@ internal class TONWalletKit private constructor(
         network: io.ton.walletkit.api.generated.TONNetwork,
         workchain: Int,
         walletId: Long,
-    ): io.ton.walletkit.model.WalletAdapterInfo {
+    ): io.ton.walletkit.model.TONWalletAdapter {
         checkNotDestroyed()
         return engine.createAdapter(
             signerId = signer.signerId,
+            publicKey = signer.publicKey,
             version = io.ton.walletkit.api.WalletVersions.V5R1,
             network = network,
             workchain = workchain,
@@ -214,10 +215,11 @@ internal class TONWalletKit private constructor(
         network: io.ton.walletkit.api.generated.TONNetwork,
         workchain: Int,
         walletId: Long,
-    ): io.ton.walletkit.model.WalletAdapterInfo {
+    ): io.ton.walletkit.model.TONWalletAdapter {
         checkNotDestroyed()
         return engine.createAdapter(
             signerId = signer.signerId,
+            publicKey = signer.publicKey,
             version = io.ton.walletkit.api.WalletVersions.V4R2,
             network = network,
             workchain = workchain,
@@ -227,22 +229,6 @@ internal class TONWalletKit private constructor(
 
     // ── Add wallet ──
 
-    override suspend fun addWallet(adapter: io.ton.walletkit.model.WalletAdapterInfo): ITONWallet {
-        checkNotDestroyed()
-
-        val account = engine.addWallet(adapter)
-
-        return TONWallet(
-            id = account.walletId,
-            address = account.address,
-            engine = engine,
-            account = account,
-        )
-    }
-
-    /**
-     * Add a wallet using a TONWalletAdapter.
-     */
     override suspend fun addWallet(adapter: TONWalletAdapter): ITONWallet {
         checkNotDestroyed()
 
@@ -258,8 +244,6 @@ internal class TONWalletKit private constructor(
 
     /**
      * Get all wallets managed by this SDK instance.
-     *
-     * @return List of all wallets
      */
     override suspend fun getWallets(): List<ITONWallet> {
         checkNotDestroyed()

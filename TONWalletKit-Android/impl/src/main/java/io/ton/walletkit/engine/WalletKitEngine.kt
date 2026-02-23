@@ -40,7 +40,8 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.WalletAdapterInfo
+import io.ton.walletkit.model.TONHex
+import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.RequestHandler
@@ -135,75 +136,23 @@ internal interface WalletKitEngine : RequestHandler {
      */
     suspend fun createSignerFromSecretKey(secretKeyHex: String): WalletSignerInfo
 
-    /**
-     * Create a signer from a custom [WalletSigner] implementation (e.g. hardware wallet).
-     *
-     * @param signer Custom wallet signer
-     * @return Signer info with ID and public key
-     */
     suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo
 
-    /**
-     * Create a wallet adapter from a stored signer.
-     * JS creates and stores the live adapter; Kotlin receives an ID + address.
-     *
-     * @param signerId Signer ID from createSigner*
-     * @param version Wallet version: "v5r1" or "v4r2"
-     * @param network Network to use, defaults to testnet
-     * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
-     * @param walletId Wallet ID
-     * @return Adapter info with ID and wallet address
-     */
     suspend fun createAdapter(
         signerId: String,
+        publicKey: TONHex,
         version: String,
         network: TONNetwork? = null,
         workchain: Int = 0,
         walletId: Long = 2147483409L,
-    ): WalletAdapterInfo
+    ): TONWalletAdapter
 
-    /**
-     * Add a wallet using a stored adapter (from createAdapter).
-     * Matches iOS `add(walletAdapter:)`.
-     *
-     * @param adapter Adapter info from createAdapter
-     * @return The newly added wallet account
-     */
-    suspend fun addWallet(adapter: WalletAdapterInfo): WalletAccount
-
-    /**
-     * Add a wallet using a native adapter proxy.
-     *
-     * Passes the adapter's properties to a JS proxy that delegates async methods
-     * back to Kotlin. Mirrors iOS's `add(walletAdapter:)` pattern.
-     *
-     * @param adapter The native wallet adapter
-     * @return The newly added wallet account
-     * @throws WalletKitBridgeException if wallet addition fails
-     */
     suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount
 
-    /**
-     * Get all wallets managed by this engine.
-     *
-     * @return List of wallet accounts
-     */
     suspend fun getWallets(): List<WalletAccount>
 
-    /**
-     * Get a single wallet by walletId using RPC call.
-     *
-     * @param walletId Wallet ID
-     * @return Wallet account or null if not found
-     */
     suspend fun getWallet(walletId: String): WalletAccount?
 
-    /**
-     * Remove a wallet by walletId.
-     *
-     * @param walletId Wallet ID
-     * @throws WalletKitBridgeException if removal fails
-     */
     suspend fun removeWallet(walletId: String)
 
     /**

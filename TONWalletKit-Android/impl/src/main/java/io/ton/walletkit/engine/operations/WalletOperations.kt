@@ -24,7 +24,7 @@ package io.ton.walletkit.engine.operations
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.isTestnet
+import io.ton.walletkit.engine.adapter.BridgeWalletAdapter
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.model.WalletAccount
@@ -34,6 +34,7 @@ import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
@@ -105,11 +106,12 @@ internal class WalletOperations(
 
     suspend fun createAdapter(
         signerId: String,
+        publicKey: TONHex,
         version: String,
         network: TONNetwork?,
         workchain: Int,
         walletId: Long,
-    ): WalletAdapterInfo {
+    ): TONWalletAdapter {
         ensureInitialized()
 
         val resolvedNetwork = network ?: TONNetwork(chainId = "-239")
@@ -131,10 +133,13 @@ internal class WalletOperations(
             ?: throw WalletKitBridgeException("JS did not return adapterId")
         val address = result.optString("address", "")
 
-        return WalletAdapterInfo(
+        return BridgeWalletAdapter(
             adapterId = adapterId,
-            address = TONUserFriendlyAddress(address),
-            network = resolvedNetwork,
+            cachedPublicKey = publicKey,
+            cachedNetwork = resolvedNetwork,
+            cachedAddress = TONUserFriendlyAddress(address),
+            cachedWalletVersion = version,
+            rpcClient = rpcClient,
         )
     }
 
@@ -163,23 +168,19 @@ internal class WalletOperations(
         )
     }
 
-    suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount {
+    suspend fun addWallet(adapter: TONWalletAdapter): WalletAccount {
         ensureInitialized()
+
+        // BridgeWalletAdapter wraps a JS-side adapter — route through WalletAdapterInfo path
+        // to avoid re-registering in AdapterManager or creating a duplicate proxy in JS.
+        if (adapter is BridgeWalletAdapter) {
+            return addWallet(adapter.toWalletAdapterInfo())
+        }
 
         val adapterId = adapterManager.registerAdapter(adapter)
 
-        val network = adapter.network()
         val request = JSONObject().apply {
             put("adapterId", adapterId)
-            put("walletId", adapter.identifier())
-            put("publicKey", adapter.publicKey().value)
-            put(
-                "network",
-                JSONObject().apply {
-                    put("chainId", network.chainId)
-                },
-            )
-            put("address", adapter.address(network.isTestnet).value)
         }
 
         val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, request)

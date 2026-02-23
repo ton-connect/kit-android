@@ -458,6 +458,11 @@ internal object ResponseConstants {
     const val VALUE_KIND_DIAGNOSTIC_CALL = "diagnostic-call"
 
     /**
+     * Value for 'request' message kind (JS→Kotlin reverse RPC).
+     */
+    const val VALUE_KIND_REQUEST = "request"
+
+    /**
      * Schema type value for text data.
      */
     const val VALUE_SCHEMA_TEXT = "text"

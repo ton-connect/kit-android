@@ -36129,6 +36129,51 @@ function bigIntReplacer(_key, value) {
   }
   return value;
 }
+const pendingRequests = /* @__PURE__ */ new Map();
+function bridgeRequestSync(method, params) {
+  const native = window.WalletKitNative;
+  if (!native || typeof native.adapterCallSync !== "function") {
+    throw new Error("WalletKitNative.adapterCallSync not available");
+  }
+  return native.adapterCallSync(method, JSON.stringify(params));
+}
+function bridgeRequest(method, params) {
+  const id = v7();
+  return new Promise((resolve, reject) => {
+    pendingRequests.set(id, { resolve, reject });
+    postToNative({ kind: "request", id, method, params });
+  });
+}
+function registerNativeResponseHandler() {
+  window.__walletkitResponse = (id, resultJson, errorJson) => {
+    var _a;
+    const entry = pendingRequests.get(id);
+    if (!entry) {
+      warn("[walletkitBridge] __walletkitResponse: no pending request for id", id);
+      return;
+    }
+    pendingRequests.delete(id);
+    if (errorJson) {
+      try {
+        const err = JSON.parse(errorJson);
+        entry.reject(new Error((_a = err.message) != null ? _a : "Native request failed"));
+      } catch (e) {
+        entry.reject(new Error(errorJson));
+      }
+      return;
+    }
+    if (resultJson) {
+      try {
+        entry.resolve(JSON.parse(resultJson));
+      } catch (e) {
+        entry.resolve(resultJson);
+      }
+    } else {
+      entry.resolve(void 0);
+    }
+  };
+  info("[walletkitBridge] __walletkitResponse handler registered");
+}
 function resolveNativeBridge(scope) {
   const candidate = scope.WalletKitNative;
   if (candidate && typeof candidate.postMessage === "function") {
@@ -36527,6 +36572,72 @@ var __async$3 = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
+class ProxyWalletAdapter {
+  constructor(adapterId, apiClientProvider) {
+    this.adapterId = adapterId;
+    this.apiClientProvider = apiClientProvider;
+  }
+  getPublicKey() {
+    return bridgeRequestSync("getPublicKey", { adapterId: this.adapterId });
+  }
+  getNetwork() {
+    const raw = bridgeRequestSync("getNetwork", { adapterId: this.adapterId });
+    const parsed = JSON.parse(raw);
+    return parsed;
+  }
+  getClient() {
+    return this.apiClientProvider(this.getNetwork());
+  }
+  getAddress() {
+    return bridgeRequestSync("getAddress", { adapterId: this.adapterId });
+  }
+  getWalletId() {
+    return bridgeRequestSync("getWalletId", { adapterId: this.adapterId });
+  }
+  getStateInit() {
+    return __async$3(this, null, function* () {
+      const result = yield bridgeRequest("adapterGetStateInit", { adapterId: this.adapterId });
+      if (!result) throw new Error("adapterGetStateInit: no result from native");
+      return result;
+    });
+  }
+  getSignedSendTransaction(input, options) {
+    return __async$3(this, null, function* () {
+      var _a;
+      const result = yield bridgeRequest("adapterSignTransaction", {
+        adapterId: this.adapterId,
+        input: JSON.stringify(input),
+        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
+      });
+      if (!result) throw new Error("adapterSignTransaction: no result from native");
+      return result;
+    });
+  }
+  getSignedSignData(input, options) {
+    return __async$3(this, null, function* () {
+      var _a;
+      const result = yield bridgeRequest("adapterSignData", {
+        adapterId: this.adapterId,
+        input: JSON.stringify(input),
+        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
+      });
+      if (!result) throw new Error("adapterSignData: no result from native");
+      return result;
+    });
+  }
+  getSignedTonProof(input, options) {
+    return __async$3(this, null, function* () {
+      var _a;
+      const result = yield bridgeRequest("adapterSignTonProof", {
+        adapterId: this.adapterId,
+        input: JSON.stringify(input),
+        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
+      });
+      if (!result) throw new Error("adapterSignTonProof: no result from native");
+      return result;
+    });
+  }
+}
 function getWallets() {
   return __async$3(this, null, function* () {
     const wallets = yield kit("getWallets");
@@ -36562,6 +36673,7 @@ function getBalance(args) {
 function createSignerFromMnemonic(args) {
   return __async$3(this, null, function* () {
     var _a;
+    if (!Signer$1) throw new Error("Signer module not loaded");
     const signer = yield Signer$1.fromMnemonic(args.mnemonic, { type: (_a = args.mnemonicType) != null ? _a : "ton" });
     const signerId = retain("signer", signer);
     return { signerId, publicKey: signer.publicKey };
@@ -36569,6 +36681,7 @@ function createSignerFromMnemonic(args) {
 }
 function createSignerFromPrivateKey(args) {
   return __async$3(this, null, function* () {
+    if (!Signer$1) throw new Error("Signer module not loaded");
     const signer = yield Signer$1.fromPrivateKey(args.secretKey);
     const signerId = retain("signer", signer);
     return { signerId, publicKey: signer.publicKey };
@@ -36580,9 +36693,11 @@ function createSignerFromCustom(args) {
     const proxySigner = {
       publicKey,
       sign: (bytes) => __async$3(null, null, function* () {
-        var _a, _b;
-        const result = yield (_b = (_a = window.WalletKitNative) == null ? void 0 : _a.signWithCustomSigner) == null ? void 0 : _b.call(_a, signerId, Array.from(bytes));
-        if (!result) throw new Error("signWithCustomSigner not available");
+        const result = yield bridgeRequest("signWithCustomSigner", {
+          signerId,
+          data: Array.from(bytes)
+        });
+        if (!result) throw new Error("signWithCustomSigner: no result from native");
         return result;
       })
     };
@@ -36597,6 +36712,7 @@ function createV5R1WalletAdapter(args) {
     const signer = get(args.signerId);
     if (!signer) throw new Error(`Signer not found in registry: ${args.signerId}`);
     const network = args.network;
+    if (!WalletV5R1Adapter$1) throw new Error("WalletV5R1Adapter module not loaded");
     const adapter = yield WalletV5R1Adapter$1.create(signer, {
       client: instance.getApiClient(network),
       network,
@@ -36614,6 +36730,7 @@ function createV4R2WalletAdapter(args) {
     const signer = get(args.signerId);
     if (!signer) throw new Error(`Signer not found in registry: ${args.signerId}`);
     const network = args.network;
+    if (!WalletV4R2Adapter$1) throw new Error("WalletV4R2Adapter module not loaded");
     const adapter = yield WalletV4R2Adapter$1.create(signer, {
       client: instance.getApiClient(network),
       network,
@@ -36626,85 +36743,18 @@ function createV4R2WalletAdapter(args) {
 }
 function addWallet(args) {
   return __async$3(this, null, function* () {
-    var _b, _c;
+    var _a, _b;
     const instance = yield getKit();
-    if (args.publicKey) {
-      const { adapterId, walletId, publicKey, address } = args;
-      const network = args.network;
-      const proxyAdapter = {
-        getPublicKey() {
-          return publicKey;
-        },
-        getNetwork() {
-          return network;
-        },
-        getClient() {
-          return instance.getApiClient(network);
-        },
-        getAddress() {
-          return address;
-        },
-        getWalletId() {
-          return walletId;
-        },
-        getStateInit() {
-          return __async$3(this, null, function* () {
-            var _a2, _b2;
-            const result = yield (_b2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterGetStateInit) == null ? void 0 : _b2.call(_a2, adapterId);
-            if (!result) throw new Error("adapterGetStateInit not available");
-            return result;
-          });
-        },
-        getSignedSendTransaction(input, options) {
-          return __async$3(this, null, function* () {
-            var _a2, _b2, _c2;
-            const result = yield (_c2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignTransaction) == null ? void 0 : _c2.call(
-              _a2,
-              adapterId,
-              JSON.stringify(input),
-              (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
-            );
-            if (!result) throw new Error("adapterSignTransaction not available");
-            return result;
-          });
-        },
-        getSignedSignData(input, options) {
-          return __async$3(this, null, function* () {
-            var _a2, _b2, _c2;
-            const result = yield (_c2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignData) == null ? void 0 : _c2.call(
-              _a2,
-              adapterId,
-              JSON.stringify(input),
-              (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
-            );
-            if (!result) throw new Error("adapterSignData not available");
-            return result;
-          });
-        },
-        getSignedTonProof(input, options) {
-          return __async$3(this, null, function* () {
-            var _a2, _b2, _c2;
-            const result = yield (_c2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignTonProof) == null ? void 0 : _c2.call(
-              _a2,
-              adapterId,
-              JSON.stringify(input),
-              (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
-            );
-            if (!result) throw new Error("adapterSignTonProof not available");
-            return result;
-          });
-        }
-      };
-      const w2 = yield instance.addWallet(proxyAdapter);
+    const existingAdapter = get(args.adapterId);
+    if (existingAdapter) {
+      const w2 = yield instance.addWallet(existingAdapter);
       if (!w2) return null;
-      return { walletId: (_b = w2.getWalletId) == null ? void 0 : _b.call(w2), wallet: w2 };
+      return { walletId: (_a = w2.getWalletId) == null ? void 0 : _a.call(w2), wallet: w2 };
     }
-    const adapter = get(args.adapterId);
-    if (!adapter) throw new Error(`Adapter not found in registry: ${args.adapterId}`);
-    release(args.adapterId);
-    const w = yield instance.addWallet(adapter);
+    const proxyAdapter = new ProxyWalletAdapter(args.adapterId, (network) => instance.getApiClient(network));
+    const w = yield instance.addWallet(proxyAdapter);
     if (!w) return null;
-    return { walletId: (_c = w.getWalletId) == null ? void 0 : _c.call(w), wallet: w };
+    return { walletId: (_b = w.getWalletId) == null ? void 0 : _b.call(w), wallet: w };
   });
 }
 function releaseRef(args) {
@@ -36949,5 +36999,6 @@ const api = {
 };
 setBridgeApi(api);
 registerNativeCallHandler();
+registerNativeResponseHandler();
 window.walletkitBridge = api;
 //# sourceMappingURL=walletkit-android-bridge.mjs.map

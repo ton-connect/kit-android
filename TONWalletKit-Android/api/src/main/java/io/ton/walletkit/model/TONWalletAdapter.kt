@@ -29,125 +29,38 @@ import io.ton.walletkit.api.generated.TONTransactionRequest
 /**
  * Wallet adapter interface for wrapping existing wallet implementations.
  *
- * Implement this interface to integrate existing wallet entities with WalletKit.
- * This allows wallet apps to wrap their own wallet types (e.g., `WalletEntity`)
- * and use them directly with the SDK without going through the 3-step signer/adapter pattern.
- *
- * Mirrors iOS `TONWalletAdapterProtocol` for cross-platform consistency.
- *
- * **Example usage:**
- * ```kotlin
- * class MyWalletAdapter(private val wallet: WalletEntity) : TONWalletAdapter {
- *     override fun identifier(): String = wallet.id
- *     override fun publicKey(): TONHex = TONHex("0x" + wallet.publicKey.hex())
- *     override fun network(): TONNetwork = if (wallet.testnet) TONNetwork.TESTNET else TONNetwork.MAINNET
- *     override fun address(testnet: Boolean): TONUserFriendlyAddress = TONUserFriendlyAddress(wallet.address)
- *     override suspend fun stateInit(): TONBase64 = TONBase64(wallet.computeStateInit())
- *     // ... signing methods
- * }
- *
- * // Use with WalletKit
- * val tonWallet = walletKit.addWalletFromAdapter(myWalletAdapter)
- * ```
- *
- * @see WalletSigner For custom signing-only integration
+ * Implement this to integrate existing wallet entities with WalletKit
+ * without going through the signer/adapter factory pattern.
+ * Mirrors iOS `TONWalletAdapterProtocol`.
  */
 interface TONWalletAdapter {
-    /**
-     * Get the unique identifier for this wallet.
-     *
-     * This should be a stable identifier that uniquely identifies the wallet.
-     * Typically the wallet ID or a derived identifier.
-     *
-     * @return Unique wallet identifier string
-     */
+    /** Stable unique wallet identifier. */
     fun identifier(): String
 
-    /**
-     * Get the wallet's public key.
-     *
-     * @return Public key as hex string (with or without 0x prefix)
-     */
     fun publicKey(): TONHex
 
-    /**
-     * Get the network this wallet operates on.
-     *
-     * @return TONNetwork.MAINNET or TONNetwork.TESTNET
-     */
     fun network(): TONNetwork
 
-    /**
-     * Get the wallet's user-friendly address.
-     *
-     * @param testnet Whether to format for testnet (affects bounceable flag display)
-     * @return User-friendly wallet address
-     */
     fun address(testnet: Boolean): TONUserFriendlyAddress
 
-    /**
-     * Get the wallet's state init for deployment.
-     *
-     * This is the initial code and data of the wallet contract, encoded as base64 BOC.
-     * Used when connecting to dApps that request stateInit.
-     *
-     * @return State init as base64-encoded BOC
-     */
+    /** State init (base64 BOC) for contract deployment. */
     suspend fun stateInit(): TONBase64
 
-    /**
-     * Sign a transaction and return the signed BOC.
-     *
-     * This method is called when the SDK needs to sign a transaction.
-     * Implementations should sign the transaction using their secure key storage.
-     *
-     * @param input Transaction to sign
-     * @param fakeSignature If true, return a fake signature (for emulation)
-     * @return Signed transaction as base64-encoded BOC
-     * @throws UnsupportedOperationException if not implemented
-     */
     suspend fun signedSendTransaction(
         input: TONTransactionRequest,
         fakeSignature: Boolean? = null,
     ): TONBase64
 
-    /**
-     * Sign data and return the signature.
-     *
-     * This method is called when the SDK needs to sign arbitrary data (sign_data RPC).
-     *
-     * @param input Prepared sign data payload
-     * @param fakeSignature If true, return a fake signature (for emulation)
-     * @return Signature as hex string
-     * @throws UnsupportedOperationException if not implemented
-     */
     suspend fun signedSignData(
         input: TONPreparedSignData,
         fakeSignature: Boolean? = null,
     ): TONHex
 
-    /**
-     * Sign a TON proof message and return the signature.
-     *
-     * This method is called during TonConnect authentication to prove wallet ownership.
-     *
-     * @param input Proof message to sign
-     * @param fakeSignature If true, return a fake signature (for emulation)
-     * @return Signature as hex string
-     * @throws UnsupportedOperationException if not implemented
-     */
     suspend fun signedTonProof(
         input: TONProofMessage,
         fakeSignature: Boolean? = null,
     ): TONHex
 
-    /**
-     * Get the wallet contract version.
-     *
-     * Used by the SDK to create the correct wallet adapter (V4R2 vs V5R1) internally.
-     * If null, V5R1 is used as default.
-     *
-     * @return Wallet version string: "v4r2", "v5r1", or null for default (V5R1)
-     */
+    /** Wallet contract version ("v4r2", "v5r1"), or null for default (V5R1). */
     fun walletVersion(): String? = null
 }

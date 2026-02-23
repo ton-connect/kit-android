@@ -25,8 +25,11 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.WalletVersions
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.NetworkConstants
+import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.model.WalletAdapterInfo
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -65,6 +68,7 @@ class WalletOperationsTest : OperationsTestBase() {
             ensureInitialized = ensureInitialized,
             rpcClient = rpcClient,
             signerManager = signerManager,
+            adapterManager = mockk(relaxed = true),
             currentNetworkProvider = { currentNetwork },
             json = json,
         )
@@ -455,7 +459,13 @@ class WalletOperationsTest : OperationsTestBase() {
             }
         }
 
-        val result = walletOperations.addWallet("adapter-123")
+        val result = walletOperations.addWallet(
+            WalletAdapterInfo(
+                adapterId = "adapter-123",
+                address = TONUserFriendlyAddress(""),
+                network = TONNetwork.MAINNET,
+            ),
+        )
 
         assertEquals(TEST_ADDRESS_1, result.address.value)
         assertEquals("newkey", result.publicKey)
@@ -477,7 +487,13 @@ class WalletOperationsTest : OperationsTestBase() {
             }
         }
 
-        val result = walletOperations.addWallet("adapter-123")
+        val result = walletOperations.addWallet(
+            WalletAdapterInfo(
+                adapterId = "adapter-123",
+                address = TONUserFriendlyAddress(""),
+                network = TONNetwork.MAINNET,
+            ),
+        )
 
         assertEquals("unknown", result.version)
     }

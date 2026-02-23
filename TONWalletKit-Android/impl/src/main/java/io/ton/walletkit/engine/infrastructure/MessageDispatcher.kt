@@ -25,12 +25,15 @@ import android.os.Handler
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.engine.parsing.EventParser
+import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.EventRouter
+import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.EventTypeConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
+import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +41,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.Json
 import org.json.JSONObject
 
 /**
@@ -57,6 +61,9 @@ internal class MessageDispatcher(
     private val eventRouter: EventRouter,
     private val initManager: InitializationManager,
     private val webViewManager: WebViewManager,
+    private val adapterManager: AdapterManager,
+    private val signerManager: SignerManager,
+    private val json: Json,
     private val onInitialized: () -> Unit,
     private val onNetworkChanged: (String?) -> Unit,
     private val onApiBaseUrlChanged: (String?) -> Unit,
@@ -83,6 +90,7 @@ internal class MessageDispatcher(
                 val id = payload.optString(ResponseConstants.KEY_ID)
                 rpcClient.handleResponse(id, payload)
             }
+            ResponseConstants.VALUE_KIND_REQUEST -> handleRequest(payload)
             ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT -> handleJsBridgeEvent(payload)
             ResponseConstants.VALUE_KIND_DIAGNOSTIC_CALL -> { /* no-op */ }
             else -> Logger.w(TAG, "Unknown message kind: $kind")
@@ -126,6 +134,107 @@ internal class MessageDispatcher(
     }
 
     fun areEventListenersSetUp(): Boolean = areEventListenersSetUp
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Reverse-RPC: JS sends {kind:"request", id, method, params} to invoke
+    // adapter/signer operations on the Kotlin side.  The result (or error) is
+    // delivered back via  window.__walletkitResponse(id, resultJson, errorJson).
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private fun handleRequest(payload: JSONObject) {
+        val id = payload.optString(ResponseConstants.KEY_ID)
+        val method = payload.optString(ResponseConstants.KEY_METHOD)
+        val params = payload.optJSONObject(ResponseConstants.KEY_PARAMS) ?: JSONObject()
+
+        if (id.isNullOrEmpty() || method.isNullOrEmpty()) {
+            Logger.e(TAG, "Reverse-RPC request missing id or method")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val result = executeNativeRequest(method, params)
+                respondToJs(id, result, null)
+            } catch (e: Exception) {
+                Logger.e(TAG, "Reverse-RPC request failed: method=$method", e)
+                respondToJs(id, null, e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    /**
+     * Dispatches a reverse-RPC method to the appropriate native manager.
+     *
+     * @return The result as a raw string (already a JSON-safe value).
+     */
+    private suspend fun executeNativeRequest(method: String, params: JSONObject): String {
+        return when (method) {
+            REQUEST_METHOD_SIGN_WITH_CUSTOM_SIGNER -> {
+                val signerId = params.getString(ResponseConstants.KEY_SIGNER_ID)
+                val dataArray = params.getJSONArray("data")
+                val bytes = ByteArray(dataArray.length()) { dataArray.getInt(it).toByte() }
+                val signer = signerManager.getSigner(signerId)
+                    ?: throw IllegalArgumentException("Custom signer not found: $signerId")
+                signer.sign(bytes).value
+            }
+
+            REQUEST_METHOD_ADAPTER_GET_STATE_INIT -> {
+                val adapterId = params.getString("adapterId")
+                val adapter = adapterManager.getAdapter(adapterId)
+                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                adapter.stateInit().value
+            }
+
+            REQUEST_METHOD_ADAPTER_SIGN_TRANSACTION -> {
+                val adapterId = params.getString("adapterId")
+                val inputJson = params.getString("input")
+                val fakeSignature = params.optBoolean("fakeSignature", false)
+                val adapter = adapterManager.getAdapter(adapterId)
+                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONTransactionRequest>(inputJson)
+                adapter.signedSendTransaction(request, fakeSignature).value
+            }
+
+            REQUEST_METHOD_ADAPTER_SIGN_DATA -> {
+                val adapterId = params.getString("adapterId")
+                val inputJson = params.getString("input")
+                val fakeSignature = params.optBoolean("fakeSignature", false)
+                val adapter = adapterManager.getAdapter(adapterId)
+                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONPreparedSignData>(inputJson)
+                adapter.signedSignData(request, fakeSignature).value
+            }
+
+            REQUEST_METHOD_ADAPTER_SIGN_TON_PROOF -> {
+                val adapterId = params.getString("adapterId")
+                val inputJson = params.getString("input")
+                val fakeSignature = params.optBoolean("fakeSignature", false)
+                val adapter = adapterManager.getAdapter(adapterId)
+                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONProofMessage>(inputJson)
+                adapter.signedTonProof(request, fakeSignature).value
+            }
+
+            else -> throw IllegalArgumentException("Unknown reverse-RPC method: $method")
+        }
+    }
+
+    /**
+     * Delivers a reverse-RPC response back to the JS side via
+     * `window.__walletkitResponse(id, resultJson, errorJson)`.
+     */
+    private suspend fun respondToJs(id: String, result: String?, errorMessage: String?) {
+        val idLiteral = JSONObject.quote(id)
+        val resultLiteral = if (result != null) JSONObject.quote(result) else "null"
+        val errorLiteral = if (errorMessage != null) {
+            val errorObj = JSONObject().put(ResponseConstants.KEY_MESSAGE, errorMessage)
+            JSONObject.quote(errorObj.toString())
+        } else {
+            "null"
+        }
+        val script = "${WebViewConstants.JS_FUNCTION_WALLETKIT_RESPONSE}($idLiteral,$resultLiteral,$errorLiteral)"
+        webViewManager.executeJavaScript(script)
+    }
 
     private fun handleReady(payload: JSONObject) {
         val network = payload.optNullableString(ResponseConstants.KEY_NETWORK)
@@ -298,6 +407,13 @@ internal class MessageDispatcher(
         private const val TAG = LogConstants.TAG_WEBVIEW_ENGINE
         private const val MSG_FAILED_PARSE_TYPED_EVENT_PREFIX = "Failed to parse typed event for type: "
         private const val ERROR_FAILED_SET_UP_EVENT_LISTENERS = "Failed to set up event listeners: "
+
+        // Reverse-RPC method names (must match the JS bridgeRequest() method strings)
+        private const val REQUEST_METHOD_SIGN_WITH_CUSTOM_SIGNER = "signWithCustomSigner"
+        private const val REQUEST_METHOD_ADAPTER_GET_STATE_INIT = "adapterGetStateInit"
+        private const val REQUEST_METHOD_ADAPTER_SIGN_TRANSACTION = "adapterSignTransaction"
+        private const val REQUEST_METHOD_ADAPTER_SIGN_DATA = "adapterSignData"
+        private const val REQUEST_METHOD_ADAPTER_SIGN_TON_PROOF = "adapterSignTonProof"
     }
 }
 

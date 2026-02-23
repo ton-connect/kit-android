@@ -342,16 +342,13 @@ internal class QuickJsWalletKitEngine(
 
     override suspend fun createAdapter(
         signerId: String,
+        publicKey: io.ton.walletkit.model.TONHex,
         version: String,
         network: io.ton.walletkit.api.generated.TONNetwork?,
         workchain: Int,
         walletId: Long,
-    ): io.ton.walletkit.model.WalletAdapterInfo {
+    ): io.ton.walletkit.model.TONWalletAdapter {
         throw UnsupportedOperationException("QuickJS engine does not support createAdapter. Use WebView engine.")
-    }
-
-    override suspend fun addWallet(adapter: io.ton.walletkit.model.WalletAdapterInfo): WalletAccount {
-        throw UnsupportedOperationException("QuickJS engine does not support addWallet(adapter). Use WebView engine.")
     }
 
     override suspend fun getWallets(): List<WalletAccount> {

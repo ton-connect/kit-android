@@ -141,7 +141,7 @@ class DuplicateCallIdMockTest : MockBridgeTestBase() {
             assertNotNull(signer)
             assertTrue(signer.signerId.isNotEmpty())
             assertNotNull(adapter)
-            assertTrue(adapter.adapterId.isNotEmpty())
+            assertTrue(adapter.identifier().isNotEmpty())
 
             // No events expected
             assertEquals(0, events.size)

@@ -91,6 +91,11 @@ internal object WebViewConstants {
     const val JS_FUNCTION_WALLETKIT_CALL = "window.__walletkitCall"
 
     /**
+     * JavaScript function call template for responding to reverse-RPC requests.
+     */
+    const val JS_FUNCTION_WALLETKIT_RESPONSE = "window.__walletkitResponse"
+
+    /**
      * JavaScript function name for base64 decoding.
      */
     const val JS_FUNCTION_ATOB = "atob"

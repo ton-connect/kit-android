@@ -39,8 +39,10 @@ import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
+import io.ton.walletkit.api.isTestnet
 import io.ton.walletkit.bridge.BuildConfig
 import io.ton.walletkit.client.TONAPIClient
+import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
@@ -53,6 +55,7 @@ import io.ton.walletkit.session.TONConnectSessionManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.json.JSONException
@@ -70,10 +73,9 @@ internal class WebViewManager(
     context: Context,
     private val assetPath: String,
     private val storageManager: StorageManager,
-    private val adapterManager: io.ton.walletkit.engine.state.AdapterManager,
-    private val signerManager: io.ton.walletkit.engine.state.SignerManager,
     private val sessionManager: TONConnectSessionManager?,
     private val apiClients: List<TONAPIClient>,
+    private val adapterManager: AdapterManager,
     private val json: Json,
     private val onMessage: (JSONObject) -> Unit,
     private val onBridgeError: (WalletKitBridgeException, String?) -> Unit,
@@ -314,93 +316,19 @@ internal class WebViewManager(
             }
         }
 
-        // ======== Native Adapter Proxy Methods ========
-        // Called by the JS proxy adapter created in addWallet.
-        // Each method delegates to the Kotlin TONWalletAdapter registered in AdapterManager.
-
         @JavascriptInterface
-        fun signWithCustomSigner(signerId: String, data: String): String {
-            return kotlinx.coroutines.runBlocking {
-                try {
-                    val signer = signerManager.getSigner(signerId)
-                        ?: throw IllegalArgumentException("Custom signer not found: $signerId")
-                    val dataArray = org.json.JSONArray(data)
-                    val bytes = ByteArray(dataArray.length()) { dataArray.getInt(it).toByte() }
-                    signer.sign(bytes).value
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to sign with custom signer: $signerId", e)
-                    throw e
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun adapterGetStateInit(adapterId: String): String {
-            return kotlinx.coroutines.runBlocking {
-                try {
-                    val adapter = adapterManager.getAdapter(adapterId)
-                        ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                    adapter.stateInit().value
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to get stateInit for adapter: $adapterId", e)
-                    throw e
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun adapterSignTransaction(
-            adapterId: String,
-            inputJson: String,
-            fakeSignature: Boolean,
-        ): String {
-            return kotlinx.coroutines.runBlocking {
-                try {
-                    val adapter = adapterManager.getAdapter(adapterId)
-                        ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                    val request = json.decodeFromString<io.ton.walletkit.api.generated.TONTransactionRequest>(inputJson)
-                    adapter.signedSendTransaction(request, fakeSignature).value
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to sign transaction for adapter: $adapterId", e)
-                    throw e
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun adapterSignData(
-            adapterId: String,
-            inputJson: String,
-            fakeSignature: Boolean,
-        ): String {
-            return kotlinx.coroutines.runBlocking {
-                try {
-                    val adapter = adapterManager.getAdapter(adapterId)
-                        ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                    val request = json.decodeFromString<io.ton.walletkit.api.generated.TONPreparedSignData>(inputJson)
-                    adapter.signedSignData(request, fakeSignature).value
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to sign data for adapter: $adapterId", e)
-                    throw e
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun adapterSignTonProof(
-            adapterId: String,
-            inputJson: String,
-            fakeSignature: Boolean,
-        ): String {
-            return kotlinx.coroutines.runBlocking {
-                try {
-                    val adapter = adapterManager.getAdapter(adapterId)
-                        ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                    val request = json.decodeFromString<io.ton.walletkit.api.generated.TONProofMessage>(inputJson)
-                    adapter.signedTonProof(request, fakeSignature).value
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to sign ton proof for adapter: $adapterId", e)
-                    throw e
+        fun adapterCallSync(method: String, paramsJson: String): String = kotlinx.coroutines.runBlocking {
+            withTimeout(1000) {
+                val params = JSONObject(paramsJson)
+                val adapterId = params.getString("adapterId")
+                val adapter = adapterManager.getAdapter(adapterId)
+                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                when (method) {
+                    "getPublicKey" -> adapter.publicKey().value
+                    "getNetwork" -> JSONObject().apply { put("chainId", adapter.network().chainId) }.toString()
+                    "getAddress" -> adapter.address(adapter.network().isTestnet).value
+                    "getWalletId" -> adapter.identifier()
+                    else -> throw IllegalArgumentException("Unknown sync adapter method: $method")
                 }
             }
         }

@@ -98,7 +98,7 @@ class StorageTypeTest {
                 val mnemonic = testMnemonic()
                 val signer = sdk!!.createSignerFromMnemonic(mnemonic)
                 val adapter = sdk!!.createV4R2Adapter(signer, TONNetwork.MAINNET)
-                val wallet = sdk!!.addWallet(adapter.adapterId)
+                val wallet = sdk!!.addWallet(adapter)
 
                 assertNotNull("Wallet should be created with memory storage", wallet)
                 assertNotNull("Wallet should have address", wallet.address)
@@ -130,7 +130,7 @@ class StorageTypeTest {
                 val mnemonic = testMnemonic()
                 val signer = sdk!!.createSignerFromMnemonic(mnemonic)
                 val adapter = sdk!!.createV4R2Adapter(signer, TONNetwork.MAINNET)
-                val wallet = sdk!!.addWallet(adapter.adapterId)
+                val wallet = sdk!!.addWallet(adapter)
 
                 assertNotNull("Wallet should be created with encrypted storage", wallet)
                 assertNotNull("Wallet should have address", wallet.address)
@@ -168,7 +168,7 @@ class StorageTypeTest {
                 val mnemonic = testMnemonic()
                 val signer = sdk!!.createSignerFromMnemonic(mnemonic)
                 val adapter = sdk!!.createV4R2Adapter(signer, TONNetwork.MAINNET)
-                val wallet = sdk!!.addWallet(adapter.adapterId)
+                val wallet = sdk!!.addWallet(adapter)
 
                 assertNotNull("Wallet should be created with custom storage", wallet)
                 assertNotNull("Wallet should have address", wallet.address)

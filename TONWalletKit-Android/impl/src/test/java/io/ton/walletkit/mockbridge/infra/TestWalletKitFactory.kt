@@ -132,33 +132,22 @@ internal object TestWalletKitFactory {
             scenario.handleCreateSignerFromMnemonic(firstArg(), secondArg())
         }
 
-        // Setup createV5R1Adapter
-        coEvery { mockEngine.createV5R1Adapter(any(), any(), any(), any(), any(), any()) } answers {
-            scenario.handleCreateV5R1Adapter(
+        // Setup createAdapter (used by createV5R1Adapter / createV4R2Adapter via TONWalletKit)
+        coEvery { mockEngine.createAdapter(any(), any(), any(), any(), any(), any()) } answers {
+            scenario.handleCreateAdapter(
                 signerId = firstArg(),
-                network = secondArg(),
-                workchain = thirdArg(),
-                walletId = arg(3),
-                publicKey = arg(4),
-                isCustom = arg(5),
-            )
-        }
-
-        // Setup createV4R2Adapter
-        coEvery { mockEngine.createV4R2Adapter(any(), any(), any(), any(), any(), any()) } answers {
-            scenario.handleCreateV4R2Adapter(
-                signerId = firstArg(),
-                network = secondArg(),
-                workchain = thirdArg(),
-                walletId = arg(3),
-                publicKey = arg(4),
-                isCustom = arg(5),
+                publicKey = secondArg(),
+                version = thirdArg(),
+                network = arg(3),
+                workchain = arg(4),
+                walletId = arg(5),
             )
         }
 
         // Setup addWallet
-        coEvery { mockEngine.addWallet(any()) } answers {
-            scenario.handleAddWallet(firstArg())
+        coEvery { mockEngine.addWallet(any<io.ton.walletkit.model.TONWalletAdapter>()) } answers {
+            val adapter = firstArg<io.ton.walletkit.model.TONWalletAdapter>()
+            scenario.handleAddWallet(adapter.identifier())
         }
 
         // Setup getWallets

@@ -199,7 +199,7 @@ class TONWalletKitSDKTest {
                 // Create V4R2 wallet using 3-step pattern
                 val signer = sdk.createSignerFromMnemonic(mnemonic)
                 val adapter = sdk.createV4R2Adapter(signer, TONNetwork.MAINNET)
-                val wallet = sdk.addWallet(adapter.adapterId)
+                val wallet = sdk.addWallet(adapter)
 
                 assertNotNull("Wallet should be created", wallet)
                 assertNotNull("Wallet should have address", wallet.address)
@@ -226,7 +226,7 @@ class TONWalletKitSDKTest {
                 // Create V5R1 wallet using 3-step pattern
                 val signer = sdk.createSignerFromMnemonic(mnemonic)
                 val adapter = sdk.createV5R1Adapter(signer, TONNetwork.MAINNET)
-                val wallet = sdk.addWallet(adapter.adapterId)
+                val wallet = sdk.addWallet(adapter)
 
                 assertNotNull("V5R1 wallet should be created", wallet)
                 assertNotNull("Wallet should have address", wallet.address)

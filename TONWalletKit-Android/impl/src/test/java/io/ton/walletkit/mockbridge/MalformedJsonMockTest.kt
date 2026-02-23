@@ -190,7 +190,7 @@ class MalformedJsonMockTest : MockBridgeTestBase() {
         val adapter = sdk.createV5R1Adapter(signer)
 
         // Add wallet
-        val wallet = sdk.addWallet(adapter.adapterId)
+        val wallet = sdk.addWallet(adapter)
         assertNotNull(wallet)
 
         // Now trigger error with createTonMnemonic (reset count and make 3 calls)

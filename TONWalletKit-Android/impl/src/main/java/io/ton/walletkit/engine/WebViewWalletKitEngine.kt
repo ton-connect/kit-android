@@ -135,10 +135,9 @@ internal class WebViewWalletKitEngine private constructor(
                 context = appContext,
                 assetPath = assetPath,
                 storageManager = storageManager,
-                adapterManager = adapterManager,
-                signerManager = signerManager,
                 sessionManager = sessionManager,
                 apiClients = apiClients,
+                adapterManager = adapterManager,
                 json = json,
                 onMessage = ::handleBridgeMessage,
                 onBridgeError = ::handleBridgeError,
@@ -153,6 +152,9 @@ internal class WebViewWalletKitEngine private constructor(
                 eventRouter = eventRouter,
                 initManager = initManager,
                 webViewManager = webViewManager,
+                adapterManager = adapterManager,
+                signerManager = signerManager,
+                json = json,
                 onInitialized = ::refreshDerivedState,
                 onNetworkChanged = ::handleNetworkChanged,
                 onApiBaseUrlChanged = ::handleApiBaseUrlChanged,
@@ -291,14 +293,12 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun createAdapter(
         signerId: String,
+        publicKey: io.ton.walletkit.model.TONHex,
         version: String,
         network: TONNetwork?,
         workchain: Int,
         walletId: Long,
-    ): io.ton.walletkit.model.WalletAdapterInfo = walletOperations.createAdapter(signerId, version, network, workchain, walletId)
-
-    override suspend fun addWallet(adapter: io.ton.walletkit.model.WalletAdapterInfo): WalletAccount =
-        walletOperations.addWallet(adapter)
+    ): io.ton.walletkit.model.TONWalletAdapter = walletOperations.createAdapter(signerId, publicKey, version, network, workchain, walletId)
 
     override suspend fun getWallets(): List<WalletAccount> = walletOperations.getWallets()
 
