@@ -44,6 +44,7 @@ import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.domain.model.WalletMetadata
 import io.ton.walletkit.demo.presentation.model.ConnectPermissionUi
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
+import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
@@ -53,6 +54,7 @@ import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.util.TransactionDetailMapper
+import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.request.TONWalletConnectionRequest
@@ -155,6 +157,7 @@ class WalletKitViewModel @Inject constructor(
         data class Connect(val request: ConnectRequestUi, val wallet: WalletSummary?) : TonConnectAction
         data class Transaction(val request: TransactionRequestUi) : TonConnectAction
         data class SignData(val request: SignDataRequestUi, val viaSigner: Boolean) : TonConnectAction
+        data class Intent(val request: IntentRequestUi) : TonConnectAction
     }
 
     private var pendingTonConnectAction: TonConnectAction? = null
@@ -268,6 +271,10 @@ class WalletKitViewModel @Inject constructor(
             is TONWalletKitEvent.SignDataRequest -> {
                 Log.d(LOG_TAG, "Handling SignDataRequest")
                 onSignDataRequest(event.request)
+            }
+            is TONWalletKitEvent.IntentRequest -> {
+                Log.d(LOG_TAG, "Handling IntentRequest: ${event.event.intentType}")
+                onIntentRequest(event.event)
             }
             is TONWalletKitEvent.Disconnect -> {
                 Log.d(LOG_TAG, "Session disconnected: ${event.event.sessionId}")
@@ -422,6 +429,14 @@ class WalletKitViewModel @Inject constructor(
                     }
                 }
             }
+            is TonConnectAction.Intent -> {
+                eventLogger.log(R.string.wallet_event_intent_approved, action.request.id)
+                viewModelScope.launch {
+                    refreshWallets()
+                    sessionsViewModel.refresh()
+                }
+                dismissSheet()
+            }
             null -> Unit
         }
         pendingTonConnectAction = null
@@ -447,6 +462,10 @@ class WalletKitViewModel @Inject constructor(
                     dismissSheet()
                     eventLogger.showTemporaryStatus(uiString(R.string.wallet_status_sign_rejected))
                 }
+            }
+            is TonConnectAction.Intent -> {
+                eventLogger.log(R.string.wallet_event_intent_rejected, action.request.id)
+                dismissSheet()
             }
             null -> Unit
         }
@@ -800,7 +819,15 @@ class WalletKitViewModel @Inject constructor(
             _state.update { it.copy(error = uiString(R.string.wallet_error_no_wallet_selected)) }
             return
         }
-        tonConnectViewModel.handleTonConnectUrl(url.trim(), activeAddress)
+        viewModelScope.launch {
+            val kit = getKit()
+            if (kit.isIntentUrl(url.trim())) {
+                Log.d(LOG_TAG, "URL is an intent deep link, handling as intent")
+                kit.handleIntentUrl(url.trim(), activeAddress)
+            } else {
+                tonConnectViewModel.handleTonConnectUrl(url.trim(), activeAddress)
+            }
+        }
     }
 
     fun approveConnect(request: ConnectRequestUi, wallet: WalletSummary) {
@@ -1376,6 +1403,63 @@ class WalletKitViewModel @Inject constructor(
         uiCoordinator.setSheet(SheetState.SignData(uiRequest))
         val eventDAppName = dAppInfo?.name ?: fallbackDAppName
         eventLogger.log(R.string.wallet_event_sign_data_request, eventDAppName)
+    }
+
+    private fun onIntentRequest(event: TONIntentEvent) {
+        val walletId = state.value.wallets.firstOrNull()?.address ?: ""
+        val summary = when (event) {
+            is TONIntentEvent.TransactionIntent -> "${event.items.size} item(s)"
+            is TONIntentEvent.SignDataIntent -> "Sign data (${event.payload.type})"
+            is TONIntentEvent.ActionIntent -> event.actionUrl
+        }
+        val uiRequest = IntentRequestUi(
+            id = event.id,
+            intentType = event.intentType,
+            walletId = walletId,
+            hasConnectRequest = event.hasConnectRequest,
+            summary = summary,
+            event = event,
+        )
+        uiCoordinator.setSheet(SheetState.Intent(uiRequest))
+        eventLogger.log(R.string.wallet_event_intent_request, event.intentType)
+    }
+
+    fun approveIntent(request: IntentRequestUi) {
+        pendingTonConnectAction = TonConnectAction.Intent(request)
+        viewModelScope.launch {
+            runCatching {
+                val kit = getKit()
+                when (val event = request.event) {
+                    is TONIntentEvent.TransactionIntent -> kit.approveTransactionIntent(event, request.walletId)
+                    is TONIntentEvent.SignDataIntent -> kit.approveSignDataIntent(event, request.walletId)
+                    is TONIntentEvent.ActionIntent -> kit.approveActionIntent(event, request.walletId)
+                }
+                if (request.hasConnectRequest) {
+                    kit.processConnectAfterIntent(request.event, request.walletId)
+                }
+            }.onSuccess {
+                onTonConnectRequestApproved()
+            }.onFailure { error ->
+                Log.e(LOG_TAG, "Failed to approve intent", error)
+                _state.update { it.copy(error = uiString(R.string.wallet_error_approve_intent)) }
+                dismissSheet()
+            }
+        }
+    }
+
+    fun rejectIntent(request: IntentRequestUi) {
+        pendingTonConnectAction = TonConnectAction.Intent(request)
+        viewModelScope.launch {
+            runCatching {
+                getKit().rejectIntent(request.event, "User declined")
+            }.onSuccess {
+                onTonConnectRequestRejected()
+            }.onFailure { error ->
+                Log.e(LOG_TAG, "Failed to reject intent", error)
+                _state.update { it.copy(error = uiString(R.string.wallet_error_reject_intent)) }
+                dismissSheet()
+            }
+        }
     }
 
     override fun onCleared() {

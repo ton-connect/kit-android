@@ -29,7 +29,9 @@ import io.ton.walletkit.WebViewTonConnectInjector
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WalletKitEngine
+import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.model.IntentSignDataResult
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONWalletAdapter
 
@@ -384,6 +386,56 @@ internal class TONWalletKit private constructor(
     override suspend fun connect(url: String) {
         checkNotDestroyed()
         engine.handleTonConnectUrl(url)
+    }
+
+    // ── Intents ──
+
+    override suspend fun isIntentUrl(url: String): Boolean {
+        checkNotDestroyed()
+        return engine.isIntentUrl(url)
+    }
+
+    override suspend fun handleIntentUrl(url: String, walletId: String) {
+        checkNotDestroyed()
+        engine.handleIntentUrl(url, walletId)
+    }
+
+    override suspend fun approveTransactionIntent(
+        event: TONIntentEvent.TransactionIntent,
+        walletId: String,
+    ): String {
+        checkNotDestroyed()
+        return engine.approveTransactionIntent(event, walletId)
+    }
+
+    override suspend fun approveSignDataIntent(
+        event: TONIntentEvent.SignDataIntent,
+        walletId: String,
+    ): IntentSignDataResult {
+        checkNotDestroyed()
+        return engine.approveSignDataIntent(event, walletId)
+    }
+
+    override suspend fun approveActionIntent(
+        event: TONIntentEvent.ActionIntent,
+        walletId: String,
+    ) {
+        checkNotDestroyed()
+        engine.approveActionIntent(event, walletId)
+    }
+
+    override suspend fun rejectIntent(
+        event: TONIntentEvent,
+        reason: String?,
+        errorCode: Int?,
+    ) {
+        checkNotDestroyed()
+        engine.rejectIntent(event, reason, errorCode)
+    }
+
+    override suspend fun processConnectAfterIntent(event: TONIntentEvent, walletId: String) {
+        checkNotDestroyed()
+        engine.processConnectAfterIntent(event, walletId)
     }
 
     /**

@@ -93,4 +93,18 @@ sealed class TONWalletKitEvent {
     data class RequestError(
         val event: TONRequestErrorEvent,
     ) : TONWalletKitEvent()
+
+    /**
+     * An intent deep link was parsed and requires approval.
+     *
+     * Handle by calling the appropriate approve/reject method on [ITONWalletKit]:
+     * - [TONIntentEvent.TransactionIntent] → approveTransactionIntent / rejectIntent
+     * - [TONIntentEvent.SignDataIntent] → approveSignDataIntent / rejectIntent
+     * - [TONIntentEvent.ActionIntent] → approveActionIntent / rejectIntent
+     *
+     * @property event Intent event with type-specific data
+     */
+    data class IntentRequest(
+        val event: TONIntentEvent,
+    ) : TONWalletKitEvent()
 }

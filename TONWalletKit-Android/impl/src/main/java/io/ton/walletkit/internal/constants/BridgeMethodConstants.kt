@@ -226,4 +226,14 @@ internal object BridgeMethodConstants {
      * Method name for getting jetton wallet address.
      */
     const val METHOD_GET_JETTON_WALLET_ADDRESS = "getJettonWalletAddress"
+
+    // ── Intents ──
+    const val METHOD_IS_INTENT_URL = "isIntentUrl"
+    const val METHOD_HANDLE_INTENT_URL = "handleIntentUrl"
+    const val METHOD_APPROVE_TRANSACTION_INTENT = "approveTransactionIntent"
+    const val METHOD_APPROVE_SIGN_DATA_INTENT = "approveSignDataIntent"
+    const val METHOD_APPROVE_ACTION_INTENT = "approveActionIntent"
+    const val METHOD_REJECT_INTENT = "rejectIntent"
+    const val METHOD_INTENT_ITEMS_TO_TRANSACTION_REQUEST = "intentItemsToTransactionRequest"
+    const val METHOD_PROCESS_CONNECT_AFTER_INTENT = "processConnectAfterIntent"
 }

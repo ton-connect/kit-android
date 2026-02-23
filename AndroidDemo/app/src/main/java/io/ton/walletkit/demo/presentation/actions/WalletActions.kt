@@ -24,6 +24,7 @@ package io.ton.walletkit.demo.presentation.actions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
+import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
@@ -62,6 +63,8 @@ interface WalletActions {
     fun onRejectTransaction(request: TransactionRequestUi)
     fun onApproveSignData(request: SignDataRequestUi)
     fun onRejectSignData(request: SignDataRequestUi)
+    fun onApproveIntent(request: IntentRequestUi)
+    fun onRejectIntent(request: IntentRequestUi)
     fun onConfirmSignerApproval()
     fun onCancelSignerApproval()
     fun onSendTransaction(walletAddress: String, recipient: String, amount: String, comment: String)

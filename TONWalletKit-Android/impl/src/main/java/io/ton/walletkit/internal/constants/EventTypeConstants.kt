@@ -93,5 +93,7 @@ internal object EventTypeConstants {
     /**
      * Default value for unknown event types.
      */
+    const val EVENT_INTENT_REQUEST = "intentRequest"
+
     const val EVENT_TYPE_UNKNOWN = "unknown"
 }
