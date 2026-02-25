@@ -28,14 +28,15 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONBase64
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
  * Successful response for sign data intent.
  *
- * @param resultType Result type discriminator
- * @param signature Signature (base64)
+ * @param signature
  * @param address Signer address (raw format: 0:hex)
  * @param timestamp UNIX timestamp (seconds, UTC)
  * @param domain App domain
@@ -44,13 +45,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class TONIntentSignDataResponse(
 
-    /* Result type discriminator */
-    @SerialName(value = "resultType")
-    val resultType: TONIntentSignDataResponse.ResultType,
-
-    /* Signature (base64) */
-    @SerialName(value = "signature")
-    val signature: kotlin.String,
+    @Contextual @SerialName(value = "signature")
+    val signature: io.ton.walletkit.model.TONBase64,
 
     /* Signer address (raw format: 0:hex) */
     @SerialName(value = "address")
@@ -70,15 +66,4 @@ data class TONIntentSignDataResponse(
 ) {
 
     companion object
-
-    /**
-     * Result type discriminator
-     *
-     * Values: signData
-     */
-    @Serializable
-    enum class ResultType(val value: kotlin.String) {
-        @SerialName(value = "signData")
-        signData("signData"),
-    }
 }

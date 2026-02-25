@@ -36795,19 +36795,22 @@ class IntentParser {
       stateInit: msg.stateInit ?? msg.state_init,
       extraCurrency: msg.extraCurrency ?? msg.extra_currency
     }));
+    const network = action.network ? { chainId: action.network } : void 0;
     const resolvedTransaction = {
       messages,
-      network: action.network,
+      network,
       validUntil: action.valid_until ?? action.validUntil
     };
     return {
-      ...base,
-      intentType: "transaction",
-      deliveryMode: "send",
-      network: action.network,
-      validUntil: resolvedTransaction.validUntil,
-      items: [],
-      resolvedTransaction
+      type: "transaction",
+      value: {
+        ...base,
+        deliveryMode: "send",
+        network,
+        validUntil: resolvedTransaction.validUntil,
+        items: [],
+        resolvedTransaction
+      }
     };
   }
   parseActionSignData(base, action, actionUrl) {
@@ -36822,11 +36825,13 @@ class IntentParser {
       throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Action signData missing type");
     }
     return {
-      ...base,
-      intentType: "signData",
-      network: action.network,
-      manifestUrl: actionUrl,
-      payload: this.wirePayloadToSignDataPayload(wirePayload)
+      type: "signData",
+      value: {
+        ...base,
+        network: action.network ? { chainId: action.network } : void 0,
+        manifestUrl: actionUrl,
+        payload: this.wirePayloadToSignDataPayload(wirePayload)
+      }
     };
   }
   // -- Wire → Model mapping -------------------------------------------------
@@ -36847,31 +36852,37 @@ class IntentParser {
       case "signMsg": {
         const deliveryMode = request.m === "txIntent" ? "send" : "signOnly";
         event = {
-          ...base,
-          intentType: "transaction",
-          deliveryMode,
-          network: request.n,
-          validUntil: request.vu,
-          items: this.mapItems(request.i)
+          type: "transaction",
+          value: {
+            ...base,
+            deliveryMode,
+            network: request.n ? { chainId: request.n } : void 0,
+            validUntil: request.vu,
+            items: this.mapItems(request.i)
+          }
         };
         break;
       }
       case "signIntent": {
         const manifestUrl = request.mu || request.c?.manifestUrl || "";
         event = {
-          ...base,
-          intentType: "signData",
-          network: request.n,
-          manifestUrl,
-          payload: this.wirePayloadToSignDataPayload(request.p)
+          type: "signData",
+          value: {
+            ...base,
+            network: request.n ? { chainId: request.n } : void 0,
+            manifestUrl,
+            payload: this.wirePayloadToSignDataPayload(request.p)
+          }
         };
         break;
       }
       case "actionIntent": {
         event = {
-          ...base,
-          intentType: "action",
-          actionUrl: request.a
+          type: "action",
+          value: {
+            ...base,
+            actionUrl: request.a
+          }
         };
         break;
       }
@@ -36886,34 +36897,40 @@ class IntentParser {
       case "ton":
         return {
           type: "sendTon",
-          address: item.a,
-          amount: item.am,
-          payload: item.p,
-          stateInit: item.si,
-          extraCurrency: item.ec
+          value: {
+            address: item.a,
+            amount: item.am,
+            payload: item.p,
+            stateInit: item.si,
+            extraCurrency: item.ec
+          }
         };
       case "jetton":
         return {
           type: "sendJetton",
-          jettonMasterAddress: item.ma,
-          jettonAmount: item.ja,
-          destination: item.d,
-          responseDestination: item.rd,
-          customPayload: item.cp,
-          forwardTonAmount: item.fta,
-          forwardPayload: item.fp,
-          queryId: item.qi
+          value: {
+            jettonMasterAddress: item.ma,
+            jettonAmount: item.ja,
+            destination: item.d,
+            responseDestination: item.rd,
+            customPayload: item.cp,
+            forwardTonAmount: item.fta,
+            forwardPayload: item.fp,
+            queryId: item.qi
+          }
         };
       case "nft":
         return {
           type: "sendNft",
-          nftAddress: item.na,
-          newOwnerAddress: item.no,
-          responseDestination: item.rd,
-          customPayload: item.cp,
-          forwardTonAmount: item.fta,
-          forwardPayload: item.fp,
-          queryId: item.qi
+          value: {
+            nftAddress: item.na,
+            newOwnerAddress: item.no,
+            responseDestination: item.rd,
+            customPayload: item.cp,
+            forwardTonAmount: item.fta,
+            forwardPayload: item.fp,
+            queryId: item.qi
+          }
         };
     }
   }
@@ -36977,11 +36994,11 @@ class IntentResolver {
   async resolveItem(item, wallet2) {
     switch (item.type) {
       case "sendTon":
-        return this.resolveTonItem(item);
+        return this.resolveTonItem(item.value);
       case "sendJetton":
-        return this.resolveJettonItem(item, wallet2);
+        return this.resolveJettonItem(item.value, wallet2);
       case "sendNft":
-        return this.resolveNftItem(item, wallet2);
+        return this.resolveNftItem(item.value, wallet2);
     }
   }
   resolveTonItem(item) {
@@ -37054,9 +37071,9 @@ class IntentHandler {
   async handleIntentUrl(url, walletId) {
     const { event, connectRequest } = await this.parser.parse(url);
     if (connectRequest) {
-      this.pendingConnectRequests.set(event.id, connectRequest);
+      this.pendingConnectRequests.set(event.value.id, connectRequest);
     }
-    if (event.intentType === "transaction") {
+    if (event.type === "transaction") {
       await this.resolveAndEmitTransaction(event, walletId);
     } else {
       this.emit(event);
@@ -37078,10 +37095,9 @@ class IntentHandler {
       await CallForSuccess(() => wallet2.getClient().sendBoc(signedBoc));
     }
     const result = {
-      resultType: "transaction",
       boc: signedBoc
     };
-    await this.sendResponse(event, result);
+    await this.sendResponse(event, { type: "transaction", value: result });
     return result;
   }
   async approveSignDataIntent(event, walletId) {
@@ -37099,41 +37115,39 @@ class IntentHandler {
     const signature = await wallet2.getSignedSignData(signData);
     const signatureBase64 = HexToBase64(signature);
     const result = {
-      resultType: "signData",
       signature: signatureBase64,
       address: distExports$1.Address.parse(wallet2.getAddress()).toRawString(),
       timestamp: signData.timestamp,
       domain: signData.domain,
       payload: event.payload
     };
-    await this.sendResponse(event, result);
+    await this.sendResponse(event, { type: "signData", value: result });
     return result;
   }
   async approveActionIntent(event, walletId) {
     const wallet2 = this.getWallet(walletId);
     const actionResponse = await this.resolver.fetchActionUrl(event.actionUrl, wallet2.getAddress());
     const resolvedEvent = this.parser.parseActionResponse(actionResponse, event);
-    if (resolvedEvent.intentType === "transaction") {
-      if (resolvedEvent.resolvedTransaction) {
-        resolvedEvent.resolvedTransaction.fromAddress = wallet2.getAddress();
+    if (resolvedEvent.type === "transaction") {
+      if (resolvedEvent.value.resolvedTransaction) {
+        resolvedEvent.value.resolvedTransaction.fromAddress = wallet2.getAddress();
       }
-      return this.approveTransactionIntent(resolvedEvent, walletId);
-    } else if (resolvedEvent.intentType === "signData") {
-      return this.approveSignDataIntent(resolvedEvent, walletId);
+      return this.approveTransactionIntent(resolvedEvent.value, walletId);
+    } else if (resolvedEvent.type === "signData") {
+      return this.approveSignDataIntent(resolvedEvent.value, walletId);
     }
-    throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, `Action URL resolved to unsupported intent type: ${resolvedEvent.intentType}`);
+    throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, `Action URL resolved to unsupported intent type: ${resolvedEvent.type}`);
   }
   // -- Public: Rejection ----------------------------------------------------
   async rejectIntent(event, reason, errorCode) {
     const result = {
-      resultType: "error",
       error: {
         code: errorCode ?? INTENT_ERROR_CODES.USER_DECLINED,
         message: reason || "User declined the request"
       }
     };
-    await this.sendResponse(event, result);
-    this.pendingConnectRequests.delete(event.id);
+    await this.sendResponse(event.value, { type: "error", value: result });
+    this.pendingConnectRequests.delete(event.value.id);
     return result;
   }
   // -- Public: Utilities ----------------------------------------------------
@@ -37149,15 +37163,16 @@ class IntentHandler {
   }
   // -- Private: Resolution & Emulation --------------------------------------
   async resolveAndEmitTransaction(event, walletId) {
+    const txEvent = event.value;
     const wallet2 = this.getWallet(walletId);
-    const transactionRequest = await this.resolveTransaction(event, wallet2);
-    event.resolvedTransaction = transactionRequest;
+    const transactionRequest = await this.resolveTransaction(txEvent, wallet2);
+    txEvent.resolvedTransaction = transactionRequest;
     try {
       const preview = await wallet2.getTransactionPreview(transactionRequest);
-      event.preview = { data: preview };
+      txEvent.preview = preview;
     } catch (error2) {
       log$3.warn("Failed to emulate transaction preview", { error: error2 });
-      event.preview = { data: void 0 };
+      txEvent.preview = void 0;
     }
     this.emit(event);
   }
@@ -37170,7 +37185,7 @@ class IntentHandler {
       log$3.debug("No clientId on intent event, skipping response send");
       return;
     }
-    const wireResponse = this.toWireResponse(event, result);
+    const wireResponse = this.toWireResponse(event.id, result);
     try {
       await this.bridgeManager.sendIntentResponse(event.clientId, wireResponse, event.traceId);
     } catch (error2) {
@@ -37183,25 +37198,25 @@ class IntentHandler {
    * - SignData: `{ result: { signature, address, timestamp, domain, payload }, id }`
    * - Error: `{ error: { code, message }, id }`
    */
-  toWireResponse(event, result) {
-    if (result.resultType === "error") {
+  toWireResponse(eventId, result) {
+    if (result.type === "error") {
       return {
-        error: { code: result.error.code, message: result.error.message },
-        id: event.id
+        error: { code: result.value.error.code, message: result.value.error.message },
+        id: eventId
       };
     }
-    if (result.resultType === "transaction") {
-      return { result: result.boc, id: event.id };
+    if (result.type === "transaction") {
+      return { result: result.value.boc, id: eventId };
     }
     return {
       result: {
-        signature: result.signature,
-        address: result.address,
-        timestamp: result.timestamp,
-        domain: result.domain,
-        payload: this.signDataPayloadToWire(result.payload)
+        signature: result.value.signature,
+        address: result.value.address,
+        timestamp: result.value.timestamp,
+        domain: result.value.domain,
+        payload: this.signDataPayloadToWire(result.value.payload)
       },
-      id: event.id
+      id: eventId
     };
   }
   /**
@@ -37611,7 +37626,9 @@ class TonWalletKit {
   }
   async processConnectAfterIntent(event, walletId, proof) {
     await this.ensureInitialized();
-    const eventId = event.id;
+    const isBatched = "intents" in event;
+    const eventId = isBatched ? event.id : event.value.id;
+    const clientId = isBatched ? event.clientId : event.value.clientId;
     const connectRequest = this.intentHandler.getPendingConnectRequest(eventId);
     if (!connectRequest) {
       log$2.warn("No pending connect request for intent", { eventId });
@@ -37619,7 +37636,7 @@ class TonWalletKit {
     }
     this.intentHandler.removePendingConnectRequest(eventId);
     const bridgeEvent = {
-      from: event.clientId || "",
+      from: clientId || "",
       id: eventId,
       method: "connect",
       params: {
@@ -39295,6 +39312,51 @@ function bigIntReplacer(_key, value) {
   }
   return value;
 }
+const pendingRequests = /* @__PURE__ */ new Map();
+function bridgeRequestSync(method, params) {
+  const native = window.WalletKitNative;
+  if (!native || typeof native.adapterCallSync !== "function") {
+    throw new Error("WalletKitNative.adapterCallSync not available");
+  }
+  return native.adapterCallSync(method, JSON.stringify(params));
+}
+function bridgeRequest(method, params) {
+  const id = v7();
+  return new Promise((resolve, reject) => {
+    pendingRequests.set(id, { resolve, reject });
+    postToNative({ kind: "request", id, method, params });
+  });
+}
+function registerNativeResponseHandler() {
+  window.__walletkitResponse = (id, resultJson, errorJson) => {
+    var _a;
+    const entry = pendingRequests.get(id);
+    if (!entry) {
+      warn("[walletkitBridge] __walletkitResponse: no pending request for id", id);
+      return;
+    }
+    pendingRequests.delete(id);
+    if (errorJson) {
+      try {
+        const err = JSON.parse(errorJson);
+        entry.reject(new Error((_a = err.message) != null ? _a : "Native request failed"));
+      } catch (e) {
+        entry.reject(new Error(errorJson));
+      }
+      return;
+    }
+    if (resultJson) {
+      try {
+        entry.resolve(JSON.parse(resultJson));
+      } catch (e) {
+        entry.resolve(resultJson);
+      }
+    } else {
+      entry.resolve(void 0);
+    }
+  };
+  info("[walletkitBridge] __walletkitResponse handler registered");
+}
 function resolveNativeBridge(scope) {
   const candidate = scope.WalletKitNative;
   if (candidate && typeof candidate.postMessage === "function") {
@@ -39705,6 +39767,72 @@ var __async$4 = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
+class ProxyWalletAdapter {
+  constructor(adapterId, apiClientProvider) {
+    this.adapterId = adapterId;
+    this.apiClientProvider = apiClientProvider;
+  }
+  getPublicKey() {
+    return bridgeRequestSync("getPublicKey", { adapterId: this.adapterId });
+  }
+  getNetwork() {
+    const raw = bridgeRequestSync("getNetwork", { adapterId: this.adapterId });
+    const parsed = JSON.parse(raw);
+    return parsed;
+  }
+  getClient() {
+    return this.apiClientProvider(this.getNetwork());
+  }
+  getAddress() {
+    return bridgeRequestSync("getAddress", { adapterId: this.adapterId });
+  }
+  getWalletId() {
+    return bridgeRequestSync("getWalletId", { adapterId: this.adapterId });
+  }
+  getStateInit() {
+    return __async$4(this, null, function* () {
+      const result = yield bridgeRequest("adapterGetStateInit", { adapterId: this.adapterId });
+      if (!result) throw new Error("adapterGetStateInit: no result from native");
+      return result;
+    });
+  }
+  getSignedSendTransaction(input, options) {
+    return __async$4(this, null, function* () {
+      var _a;
+      const result = yield bridgeRequest("adapterSignTransaction", {
+        adapterId: this.adapterId,
+        input: JSON.stringify(input),
+        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
+      });
+      if (!result) throw new Error("adapterSignTransaction: no result from native");
+      return result;
+    });
+  }
+  getSignedSignData(input, options) {
+    return __async$4(this, null, function* () {
+      var _a;
+      const result = yield bridgeRequest("adapterSignData", {
+        adapterId: this.adapterId,
+        input: JSON.stringify(input),
+        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
+      });
+      if (!result) throw new Error("adapterSignData: no result from native");
+      return result;
+    });
+  }
+  getSignedTonProof(input, options) {
+    return __async$4(this, null, function* () {
+      var _a;
+      const result = yield bridgeRequest("adapterSignTonProof", {
+        adapterId: this.adapterId,
+        input: JSON.stringify(input),
+        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
+      });
+      if (!result) throw new Error("adapterSignTonProof: no result from native");
+      return result;
+    });
+  }
+}
 function getWallets() {
   return __async$4(this, null, function* () {
     const wallets = yield kit("getWallets");
@@ -39760,9 +39888,11 @@ function createSignerFromCustom(args) {
     const proxySigner = {
       publicKey,
       sign: (bytes) => __async$4(null, null, function* () {
-        var _a, _b;
-        const result = yield (_b = (_a = window.WalletKitNative) == null ? void 0 : _a.signWithCustomSigner) == null ? void 0 : _b.call(_a, signerId, Array.from(bytes));
-        if (!result) throw new Error("signWithCustomSigner not available");
+        const result = yield bridgeRequest("signWithCustomSigner", {
+          signerId,
+          data: Array.from(bytes)
+        });
+        if (!result) throw new Error("signWithCustomSigner: no result from native");
         return result;
       })
     };
@@ -39808,85 +39938,18 @@ function createV4R2WalletAdapter(args) {
 }
 function addWallet(args) {
   return __async$4(this, null, function* () {
-    var _b, _c;
+    var _a, _b;
     const instance = yield getKit();
-    if (args.publicKey) {
-      const { adapterId, walletId, publicKey, address } = args;
-      const network = args.network;
-      const proxyAdapter = {
-        getPublicKey() {
-          return publicKey;
-        },
-        getNetwork() {
-          return network;
-        },
-        getClient() {
-          return instance.getApiClient(network);
-        },
-        getAddress() {
-          return address;
-        },
-        getWalletId() {
-          return walletId;
-        },
-        getStateInit() {
-          return __async$4(this, null, function* () {
-            var _a2, _b2;
-            const result = yield (_b2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterGetStateInit) == null ? void 0 : _b2.call(_a2, adapterId);
-            if (!result) throw new Error("adapterGetStateInit not available");
-            return result;
-          });
-        },
-        getSignedSendTransaction(input, options) {
-          return __async$4(this, null, function* () {
-            var _a2, _b2, _c2;
-            const result = yield (_c2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignTransaction) == null ? void 0 : _c2.call(
-              _a2,
-              adapterId,
-              JSON.stringify(input),
-              (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
-            );
-            if (!result) throw new Error("adapterSignTransaction not available");
-            return result;
-          });
-        },
-        getSignedSignData(input, options) {
-          return __async$4(this, null, function* () {
-            var _a2, _b2, _c2;
-            const result = yield (_c2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignData) == null ? void 0 : _c2.call(
-              _a2,
-              adapterId,
-              JSON.stringify(input),
-              (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
-            );
-            if (!result) throw new Error("adapterSignData not available");
-            return result;
-          });
-        },
-        getSignedTonProof(input, options) {
-          return __async$4(this, null, function* () {
-            var _a2, _b2, _c2;
-            const result = yield (_c2 = (_a2 = window.WalletKitNative) == null ? void 0 : _a2.adapterSignTonProof) == null ? void 0 : _c2.call(
-              _a2,
-              adapterId,
-              JSON.stringify(input),
-              (_b2 = options == null ? void 0 : options.fakeSignature) != null ? _b2 : false
-            );
-            if (!result) throw new Error("adapterSignTonProof not available");
-            return result;
-          });
-        }
-      };
-      const w2 = yield instance.addWallet(proxyAdapter);
+    const existingAdapter = get(args.adapterId);
+    if (existingAdapter) {
+      const w2 = yield instance.addWallet(existingAdapter);
       if (!w2) return null;
-      return { walletId: (_b = w2.getWalletId) == null ? void 0 : _b.call(w2), wallet: w2 };
+      return { walletId: (_a = w2.getWalletId) == null ? void 0 : _a.call(w2), wallet: w2 };
     }
-    const adapter = get(args.adapterId);
-    if (!adapter) throw new Error(`Adapter not found in registry: ${args.adapterId}`);
-    release(args.adapterId);
-    const w = yield instance.addWallet(adapter);
+    const proxyAdapter = new ProxyWalletAdapter(args.adapterId, (network) => instance.getApiClient(network));
+    const w = yield instance.addWallet(proxyAdapter);
     if (!w) return null;
-    return { walletId: (_c = w.getWalletId) == null ? void 0 : _c.call(w), wallet: w };
+    return { walletId: (_b = w.getWalletId) == null ? void 0 : _b.call(w), wallet: w };
   });
 }
 function releaseRef(args) {
@@ -40208,5 +40271,6 @@ const api = {
 };
 setBridgeApi(api);
 registerNativeCallHandler();
+registerNativeResponseHandler();
 window.walletkitBridge = api;
 //# sourceMappingURL=walletkit-android-bridge.mjs.map

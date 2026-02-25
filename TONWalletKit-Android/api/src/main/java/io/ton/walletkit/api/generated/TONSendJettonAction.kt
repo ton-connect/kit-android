@@ -29,6 +29,7 @@
 package io.ton.walletkit.api.generated
 
 import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -36,43 +37,33 @@ import kotlinx.serialization.Serializable
 /**
  * Jetton transfer action (TEP-74).
  *
- * @param type Action type discriminator
- * @param jettonMasterAddress Jetton master contract address
- * @param jettonAmount Transfer amount in jetton elementary units
- * @param destination Recipient address
- * @param responseDestination Response destination (defaults to sender)
+ * @param jettonMasterAddress
+ * @param jettonAmount
+ * @param destination
+ * @param responseDestination
  * @param customPayload
- * @param forwardTonAmount Forward TON amount (nanotons)
+ * @param forwardTonAmount
  * @param forwardPayload
  * @param queryId Query ID
  */
 @Serializable
 data class TONSendJettonAction(
 
-    /* Action type discriminator */
-    @SerialName(value = "type")
-    val type: TONSendJettonAction.Type,
+    @Contextual @SerialName(value = "jettonMasterAddress")
+    val jettonMasterAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    /* Jetton master contract address */
-    @SerialName(value = "jettonMasterAddress")
-    val jettonMasterAddress: kotlin.String,
-
-    /* Transfer amount in jetton elementary units */
     @SerialName(value = "jettonAmount")
     val jettonAmount: kotlin.String,
 
-    /* Recipient address */
-    @SerialName(value = "destination")
-    val destination: kotlin.String,
+    @Contextual @SerialName(value = "destination")
+    val destination: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    /* Response destination (defaults to sender) */
-    @SerialName(value = "responseDestination")
-    val responseDestination: kotlin.String? = null,
+    @Contextual @SerialName(value = "responseDestination")
+    val responseDestination: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
 
     @Contextual @SerialName(value = "customPayload")
     val customPayload: io.ton.walletkit.model.TONBase64? = null,
 
-    /* Forward TON amount (nanotons) */
     @SerialName(value = "forwardTonAmount")
     val forwardTonAmount: kotlin.String? = null,
 
@@ -86,15 +77,4 @@ data class TONSendJettonAction(
 ) {
 
     companion object
-
-    /**
-     * Action type discriminator
-     *
-     * Values: sendJetton
-     */
-    @Serializable
-    enum class Type(val value: kotlin.String) {
-        @SerialName(value = "sendJetton")
-        sendJetton("sendJetton"),
-    }
 }

@@ -28,66 +28,137 @@
 
 package io.ton.walletkit.api.generated
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.serializer
 
 /**
- * Union of all intent responses.
  *
- * @param resultType Result type discriminator
- * @param boc Signed BoC (base64)
- * @param signature Signature (base64)
- * @param address Signer address (raw format: 0:hex)
- * @param timestamp UNIX timestamp (seconds, UTC)
- * @param domain App domain
- * @param payload
- * @param error
+ *
+ * This is a discriminated union type. Use the appropriate subclass based on the `type` field.
  */
-@Serializable
-data class TONIntentResponseResult(
-
-    /* Result type discriminator */
-    @SerialName(value = "resultType")
-    val resultType: TONIntentResponseResult.ResultType,
-
-    /* Signed BoC (base64) */
-    @SerialName(value = "boc")
-    val boc: kotlin.String,
-
-    /* Signature (base64) */
-    @SerialName(value = "signature")
-    val signature: kotlin.String,
-
-    /* Signer address (raw format: 0:hex) */
-    @SerialName(value = "address")
-    val address: kotlin.String,
-
-    /* UNIX timestamp (seconds, UTC) */
-    @SerialName(value = "timestamp")
-    val timestamp: kotlin.Int,
-
-    /* App domain */
-    @SerialName(value = "domain")
-    val domain: kotlin.String,
-
-    @SerialName(value = "payload")
-    val payload: TONSignDataPayload,
-
-    @SerialName(value = "error")
-    val error: TONIntentError,
-
-) {
-
-    companion object
+@Serializable(with = TONIntentResponseResult.Serializer::class)
+sealed class TONIntentResponseResult {
 
     /**
-     * Result type discriminator
+     * The discriminator value for this union type
+     */
+    abstract val type: String
+
+    /**
      *
-     * Values: error
      */
     @Serializable
-    enum class ResultType(val value: kotlin.String) {
-        @SerialName(value = "error")
-        error("error"),
+    data class Transaction(
+        @SerialName("value")
+        val value: TONIntentTransactionResponse,
+    ) : TONIntentResponseResult() {
+        override val type: String = "transaction"
+    }
+
+    /**
+     *
+     */
+    @Serializable
+    data class SignData(
+        @SerialName("value")
+        val value: TONIntentSignDataResponse,
+    ) : TONIntentResponseResult() {
+        override val type: String = "signData"
+    }
+
+    /**
+     *
+     */
+    @Serializable
+    data class Error(
+        @SerialName("value")
+        val value: TONIntentErrorResponse,
+    ) : TONIntentResponseResult() {
+        override val type: String = "error"
+    }
+
+    internal object Serializer : KSerializer<TONIntentResponseResult> {
+        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("TONIntentResponseResult")
+
+        @Suppress("UNCHECKED_CAST")
+        override fun serialize(encoder: Encoder, value: TONIntentResponseResult) {
+            val jsonEncoder = encoder as? JsonEncoder
+                ?: throw SerializationException("TONIntentResponseResult can only be serialized with JSON")
+
+            val jsonObject = when (value) {
+                is Transaction -> {
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONIntentTransactionResponse>(), value.value)
+                    buildJsonObject {
+                        put("type", JsonPrimitive("transaction"))
+                        put("value", valueJson)
+                    }
+                }
+                is SignData -> {
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONIntentSignDataResponse>(), value.value)
+                    buildJsonObject {
+                        put("type", JsonPrimitive("signData"))
+                        put("value", valueJson)
+                    }
+                }
+                is Error -> {
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONIntentErrorResponse>(), value.value)
+                    buildJsonObject {
+                        put("type", JsonPrimitive("error"))
+                        put("value", valueJson)
+                    }
+                }
+            }
+            jsonEncoder.encodeJsonElement(jsonObject)
+        }
+
+        override fun deserialize(decoder: Decoder): TONIntentResponseResult {
+            val jsonDecoder = decoder as? JsonDecoder
+                ?: throw SerializationException("TONIntentResponseResult can only be deserialized from JSON")
+
+            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
+            val typeValue = jsonObject["type"]?.jsonPrimitive?.content
+                ?: throw SerializationException("Missing 'type' discriminator for TONIntentResponseResult")
+
+            return when (typeValue) {
+                "transaction" -> {
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for TONIntentResponseResult.Transaction")
+                    Transaction(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONIntentTransactionResponse>(), valueJson),
+                    )
+                }
+                "signData" -> {
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for TONIntentResponseResult.SignData")
+                    SignData(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONIntentSignDataResponse>(), valueJson),
+                    )
+                }
+                "error" -> {
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for TONIntentResponseResult.Error")
+                    Error(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONIntentErrorResponse>(), valueJson),
+                    )
+                }
+                else -> throw SerializationException("Unknown type '$typeValue' for TONIntentResponseResult")
+            }
+        }
     }
 }
