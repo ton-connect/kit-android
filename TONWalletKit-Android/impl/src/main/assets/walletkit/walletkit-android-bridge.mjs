@@ -40168,26 +40168,34 @@ function handleIntentUrl(args) {
 }
 function approveTransactionIntent(args) {
   return __async(this, null, function* () {
+    var _a;
     const kit2 = yield getKit();
-    return kit2.approveTransactionIntent(args.event, args.walletId);
+    const event = (_a = args.event.value) != null ? _a : args.event;
+    return kit2.approveTransactionIntent(event, args.walletId);
   });
 }
 function approveSignDataIntent(args) {
   return __async(this, null, function* () {
+    var _a;
     const kit2 = yield getKit();
-    return kit2.approveSignDataIntent(args.event, args.walletId);
+    const event = (_a = args.event.value) != null ? _a : args.event;
+    return kit2.approveSignDataIntent(event, args.walletId);
   });
 }
 function approveActionIntent(args) {
   return __async(this, null, function* () {
+    var _a;
     const kit2 = yield getKit();
-    return kit2.approveActionIntent(args.event, args.walletId);
+    const event = (_a = args.event.value) != null ? _a : args.event;
+    return kit2.approveActionIntent(event, args.walletId);
   });
 }
 function rejectIntent(args) {
   return __async(this, null, function* () {
+    var _a;
     const kit2 = yield getKit();
-    return kit2.rejectIntent(args.event, args.reason, args.errorCode);
+    const event = (_a = args.event.value) != null ? _a : args.event;
+    return kit2.rejectIntent(event, args.reason, args.errorCode);
   });
 }
 function intentItemsToTransactionRequest(args) {

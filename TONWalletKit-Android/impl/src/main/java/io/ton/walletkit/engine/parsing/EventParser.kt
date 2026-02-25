@@ -191,11 +191,15 @@ internal class EventParser(
         }
 
     private fun parseIntentEvent(data: JSONObject): TONIntentEvent {
-        val intentType = data.optString("intentType", "")
-        val id = data.optString("id", "")
-        val origin = data.optString("origin", "deepLink")
-        val clientId = data.optNullableString("clientId")
-        val hasConnectRequest = data.optBoolean("hasConnectRequest", false)
+        // New format: { type: 'transaction', value: { id, origin, ... } }
+        val intentType = data.optString("type", "")
+        val value = data.optJSONObject("value")
+            ?: throw IllegalArgumentException("Missing 'value' in intent event")
+
+        val id = value.optString("id", "")
+        val origin = value.optString("origin", "deepLink")
+        val clientId = value.optNullableString("clientId")
+        val hasConnectRequest = value.optBoolean("hasConnectRequest", false)
 
         return when (intentType) {
             "transaction" -> TONIntentEvent.TransactionIntent(
@@ -203,10 +207,10 @@ internal class EventParser(
                 origin = origin,
                 clientId = clientId,
                 hasConnectRequest = hasConnectRequest,
-                deliveryMode = data.optString("deliveryMode", "send"),
-                network = data.optNullableString("network"),
-                validUntil = if (data.has("validUntil")) data.optLong("validUntil") else null,
-                items = parseIntentItems(data.optJSONArray("items")),
+                deliveryMode = value.optString("deliveryMode", "send"),
+                network = parseNetworkChainId(value),
+                validUntil = if (value.has("validUntil")) value.optLong("validUntil") else null,
+                items = parseIntentItems(value.optJSONArray("items")),
                 rawJson = data,
             )
 
@@ -215,9 +219,9 @@ internal class EventParser(
                 origin = origin,
                 clientId = clientId,
                 hasConnectRequest = hasConnectRequest,
-                network = data.optNullableString("network"),
-                manifestUrl = data.optString("manifestUrl", ""),
-                payload = parseSignDataPayload(data.optJSONObject("payload")),
+                network = parseNetworkChainId(value),
+                manifestUrl = value.optString("manifestUrl", ""),
+                payload = parseSignDataPayload(value.optJSONObject("payload")),
                 rawJson = data,
             )
 
@@ -226,7 +230,7 @@ internal class EventParser(
                 origin = origin,
                 clientId = clientId,
                 hasConnectRequest = hasConnectRequest,
-                actionUrl = data.optString("actionUrl", ""),
+                actionUrl = value.optString("actionUrl", ""),
                 rawJson = data,
             )
 
@@ -234,12 +238,23 @@ internal class EventParser(
         }
     }
 
+    /**
+     * Parse network field: now an object `{ chainId: string }` instead of a plain string.
+     */
+    private fun parseNetworkChainId(obj: JSONObject): String? {
+        val networkObj = obj.optJSONObject("network") ?: return null
+        val chainId = networkObj.optNullableString("chainId") ?: return null
+        return chainId
+    }
+
     private fun parseIntentItems(items: JSONArray?): List<TONIntentItem> {
         if (items == null) return emptyList()
         return buildList(items.length()) {
             for (i in 0 until items.length()) {
-                val item = items.optJSONObject(i) ?: continue
-                val type = item.optString("type", "")
+                val wrapper = items.optJSONObject(i) ?: continue
+                // New format: { type: 'sendTon', value: { address, amount, ... } }
+                val type = wrapper.optString("type", "")
+                val item = wrapper.optJSONObject("value") ?: wrapper
                 when (type) {
                     "sendTon" -> add(
                         TONIntentItem.SendTon(
