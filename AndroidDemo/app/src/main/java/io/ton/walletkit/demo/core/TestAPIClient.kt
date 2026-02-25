@@ -163,6 +163,7 @@ class TestAPIClient(
  */
 class ToncenterAPIClient(
     override val network: TONNetwork,
+    private val apiKey: String = API_KEY,
 ) : TONAPIClient {
 
     private val tag = "ToncenterAPIClient"
@@ -173,11 +174,84 @@ class ToncenterAPIClient(
         else -> "https://toncenter.com"
     }
 
+    companion object {
+        private const val API_KEY = "d49325c44c4deaa44c9c2e422d7d33ac6c7ff659cdecc2ae1c9b8389eaf478db"
+        private const val MAX_RETRIES = 3
+        private const val INITIAL_DELAY_MS = 1000L
+
+        fun mainnet() = ToncenterAPIClient(TONNetwork.MAINNET)
+        fun testnet() = ToncenterAPIClient(TONNetwork.TESTNET)
+    }
+
+    /**
+     * Execute an HTTP request with retry logic for rate limiting (429) errors.
+     * Uses exponential backoff: 1s, 2s, 4s delays.
+     */
+    private suspend fun <T> withRetry(
+        operation: String,
+        block: suspend () -> T,
+    ): T {
+        var lastException: Exception? = null
+        var delayMs = INITIAL_DELAY_MS
+
+        repeat(MAX_RETRIES) { attempt ->
+            try {
+                return block()
+            } catch (e: Exception) {
+                lastException = e
+                val isRateLimited = e.message?.contains("429") == true
+                if (isRateLimited && attempt < MAX_RETRIES - 1) {
+                    Log.w(tag, "⏳ [Toncenter] $operation rate limited, retrying in ${delayMs}ms (attempt ${attempt + 1}/$MAX_RETRIES)")
+                    delay(delayMs)
+                    delayMs *= 2 // Exponential backoff
+                } else {
+                    throw e
+                }
+            }
+        }
+        throw lastException ?: Exception("Unknown error after $MAX_RETRIES retries")
+    }
+
     override suspend fun sendBoc(boc: TONBase64): String {
         Log.d(tag, "🚀 [Toncenter] sendBoc on ${network.chainId}")
-        // Real implementation would call: POST $baseUrl/api/v3/sendBocReturnHash
-        delay(100)
-        return "toncenter_tx_${System.currentTimeMillis()}"
+        return withRetry("sendBoc") {
+            withContext(Dispatchers.IO) {
+                val url = URL("$baseUrl/api/v3/message")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("X-API-Key", apiKey)
+                connection.setRequestProperty("Accept", "application/json")
+                connection.doOutput = true
+                connection.connectTimeout = 30000
+                connection.readTimeout = 30000
+
+                val requestBody = JSONObject().apply {
+                    put("boc", boc.value)
+                }.toString()
+
+                Log.d(tag, "📤 [Toncenter] sendBoc request body length: ${requestBody.length}")
+                connection.outputStream.bufferedWriter().use { it.write(requestBody) }
+
+                val responseCode = connection.responseCode
+                Log.d(tag, "📥 [Toncenter] sendBoc response code: $responseCode")
+
+                val response = if (responseCode in 200..299) {
+                    connection.inputStream.bufferedReader().readText()
+                } else {
+                    val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "No error body"
+                    Log.e(tag, "❌ [Toncenter] sendBoc HTTP error $responseCode: $errorBody")
+                    throw Exception("HTTP error $responseCode: $errorBody")
+                }
+
+                Log.d(tag, "📥 [Toncenter] sendBoc response: $response")
+                val json = JSONObject(response)
+                val hash = json.optString("message_hash_norm", json.optString("message_hash", ""))
+
+                Log.d(tag, "✅ [Toncenter] sendBoc completed, hash: $hash")
+                hash
+            }
+        }
     }
 
     override suspend fun runGetMethod(
@@ -187,25 +261,134 @@ class ToncenterAPIClient(
         seqno: Int?,
     ): TONGetMethodResult {
         Log.d(tag, "📞 [Toncenter] runGetMethod: $method on ${address.value}")
-        // Real implementation would call: POST $baseUrl/api/v3/runGetMethod
-        delay(100)
-        return TONGetMethodResult(gasUsed = 1000, stack = emptyList(), exitCode = 0)
+        return withContext(Dispatchers.IO) {
+            try {
+                val url = URL("$baseUrl/api/v3/runGetMethod")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Accept", "application/json")
+                connection.setRequestProperty("X-API-Key", apiKey)
+                connection.doOutput = true
+                connection.connectTimeout = 30000
+                connection.readTimeout = 30000
+
+                val requestBody = JSONObject().apply {
+                    put("address", address.value)
+                    put("method", method)
+                    if (stack != null && stack.isNotEmpty()) {
+                        val stackArray = org.json.JSONArray()
+                        for (item in stack) {
+                            val stackItem = JSONObject()
+                            when (item) {
+                                is TONRawStackItem.Num -> {
+                                    stackItem.put("type", "num")
+                                    stackItem.put("value", item.value)
+                                }
+                                is TONRawStackItem.Cell -> {
+                                    stackItem.put("type", "cell")
+                                    stackItem.put("value", item.value)
+                                }
+                                is TONRawStackItem.Slice -> {
+                                    stackItem.put("type", "slice")
+                                    stackItem.put("value", item.value)
+                                }
+                                is TONRawStackItem.Builder -> {
+                                    stackItem.put("type", "builder")
+                                    stackItem.put("value", item.value)
+                                }
+                                is TONRawStackItem.Null -> {
+                                    stackItem.put("type", "null")
+                                }
+                                else -> {
+                                    // Tuple and List are complex, skip for now
+                                }
+                            }
+                            stackArray.put(stackItem)
+                        }
+                        put("stack", stackArray)
+                    }
+                    if (seqno != null) {
+                        put("seqno", seqno)
+                    }
+                }.toString()
+
+                Log.d(tag, "📤 [Toncenter] Request body: $requestBody")
+                connection.outputStream.bufferedWriter().use { it.write(requestBody) }
+
+                val responseCode = connection.responseCode
+                val response = if (responseCode in 200..299) {
+                    connection.inputStream.bufferedReader().readText()
+                } else {
+                    val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "No error body"
+                    Log.e(tag, "❌ [Toncenter] HTTP error $responseCode: $errorBody")
+                    throw Exception("HTTP error $responseCode: $errorBody")
+                }
+
+                Log.d(tag, "📥 [Toncenter] Response: $response")
+                val json = JSONObject(response)
+
+                val gasUsed = json.optInt("gas_used", 0)
+                val exitCode = json.optInt("exit_code", 0)
+                val stackArray = json.optJSONArray("stack") ?: org.json.JSONArray()
+
+                val resultStack = mutableListOf<TONRawStackItem>()
+                for (i in 0 until stackArray.length()) {
+                    val item = stackArray.getJSONObject(i)
+                    val type = item.getString("type")
+                    val stackItem: TONRawStackItem? = when (type) {
+                        "num" -> TONRawStackItem.Num(item.getString("value"))
+                        "cell" -> TONRawStackItem.Cell(item.getString("value"))
+                        "slice" -> TONRawStackItem.Slice(item.getString("value"))
+                        "builder" -> TONRawStackItem.Builder(item.getString("value"))
+                        "null" -> TONRawStackItem.Null
+                        else -> {
+                            Log.w(tag, "⚠️ [Toncenter] Unknown stack item type: $type")
+                            null
+                        }
+                    }
+                    if (stackItem != null) {
+                        resultStack.add(stackItem)
+                    }
+                }
+
+                Log.d(tag, "✅ [Toncenter] runGetMethod completed, exitCode: $exitCode, stack size: ${resultStack.size}")
+                TONGetMethodResult(gasUsed = gasUsed, stack = resultStack, exitCode = exitCode)
+            } catch (e: Exception) {
+                Log.e(tag, "❌ [Toncenter] runGetMethod failed", e)
+                throw e
+            }
+        }
     }
 
     override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {
         Log.d(tag, "💰 [Toncenter] getBalance on ${network.chainId}")
         return withContext(Dispatchers.IO) {
-            val url = URL("$baseUrl/api/v3/addressInformation?address=${address.value}")
-            val connection = url.openConnection()
-            connection.setRequestProperty("Accept", "application/json")
-            val response = connection.getInputStream().bufferedReader().readText()
-            JSONObject(response).optString("balance", "0")
-        }
-    }
+            try {
+                val url = URL("$baseUrl/api/v3/addressInformation?address=${address.value}")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.setRequestProperty("Accept", "application/json")
+                connection.setRequestProperty("X-API-Key", apiKey)
+                connection.connectTimeout = 30000
+                connection.readTimeout = 30000
 
-    companion object {
-        fun mainnet() = ToncenterAPIClient(TONNetwork.MAINNET)
-        fun testnet() = ToncenterAPIClient(TONNetwork.TESTNET)
+                val responseCode = connection.responseCode
+                if (responseCode !in 200..299) {
+                    val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "No error body"
+                    Log.w(tag, "⚠️ [Toncenter] getBalance HTTP $responseCode: $errorBody")
+                    // Return 0 on error rather than throwing - balance is not critical
+                    return@withContext "0"
+                }
+
+                val response = connection.inputStream.bufferedReader().readText()
+                val balance = JSONObject(response).optString("balance", "0")
+                Log.d(tag, "✅ [Toncenter] getBalance: $balance")
+                balance
+            } catch (e: Exception) {
+                Log.w(tag, "⚠️ [Toncenter] getBalance failed, returning 0", e)
+                "0" // Return 0 on error rather than throwing
+            }
+        }
     }
 }
 

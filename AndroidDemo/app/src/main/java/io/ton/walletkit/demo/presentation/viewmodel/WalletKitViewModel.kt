@@ -819,11 +819,17 @@ class WalletKitViewModel @Inject constructor(
             _state.update { it.copy(error = uiString(R.string.wallet_error_no_wallet_selected)) }
             return
         }
+        val activeWalletId = state.value.wallets.firstOrNull { it.address == activeAddress }?.walletId ?: activeAddress
         viewModelScope.launch {
             val kit = getKit()
             if (kit.isIntentUrl(url.trim())) {
                 Log.d(LOG_TAG, "URL is an intent deep link, handling as intent")
-                kit.handleIntentUrl(url.trim(), activeAddress)
+                runCatching {
+                    kit.handleIntentUrl(url.trim(), activeWalletId)
+                }.onFailure { error ->
+                    Log.e(LOG_TAG, "Failed to handle intent URL", error)
+                    _state.update { it.copy(error = error.message ?: "Failed to handle intent") }
+                }
             } else {
                 tonConnectViewModel.handleTonConnectUrl(url.trim(), activeAddress)
             }
@@ -1406,7 +1412,8 @@ class WalletKitViewModel @Inject constructor(
     }
 
     private fun onIntentRequest(event: TONIntentEvent) {
-        val walletId = state.value.wallets.firstOrNull()?.address ?: ""
+        val walletId = state.value.wallets.firstOrNull { it.address == state.value.activeWalletAddress }?.walletId
+            ?: state.value.wallets.firstOrNull()?.walletId ?: ""
         val summary = when (event) {
             is TONIntentEvent.TransactionIntent -> "${event.items.size} item(s)"
             is TONIntentEvent.SignDataIntent -> "Sign data (${event.payload.type})"
@@ -1415,6 +1422,7 @@ class WalletKitViewModel @Inject constructor(
         val uiRequest = IntentRequestUi(
             id = event.id,
             intentType = event.intentType,
+            origin = event.origin,
             walletId = walletId,
             hasConnectRequest = event.hasConnectRequest,
             summary = summary,

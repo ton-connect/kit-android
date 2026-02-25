@@ -34,13 +34,16 @@ import kotlinx.serialization.Serializable
 /**
  * Origin of the intent request.
  *
- * Values: deepLink,bridge,jsBridge
+ * Values: deepLink,objectStorage,bridge,jsBridge
  */
 @Serializable
 enum class TONIntentOrigin(val value: kotlin.String) {
 
     @SerialName(value = "deepLink")
     deepLink("deepLink"),
+
+    @SerialName(value = "objectStorage")
+    objectStorage("objectStorage"),
 
     @SerialName(value = "bridge")
     bridge("bridge"),
