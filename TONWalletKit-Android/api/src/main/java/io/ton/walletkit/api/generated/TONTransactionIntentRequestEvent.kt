@@ -39,7 +39,6 @@ import kotlinx.serialization.Serializable
  * @param id Unique identifier for the bridge event
  * @param origin
  * @param hasConnectRequest Whether a connect flow should follow after intent approval
- * @param intentType Event type discriminator
  * @param deliveryMode
  * @param items Original intent action items (for display / re-conversion)
  * @param from
@@ -55,7 +54,7 @@ import kotlinx.serialization.Serializable
  * @param dAppInfo
  * @param returnStrategy Raw TonConnect return strategy string.
  * @param clientId Client public key (for response encryption)
- * @param network Network chain ID (\"-239\" = mainnet, \"-3\" = testnet)
+ * @param network
  * @param validUntil Transaction validity deadline (unix timestamp)
  * @param resolvedTransaction
  * @param preview
@@ -73,10 +72,6 @@ data class TONTransactionIntentRequestEvent(
     /* Whether a connect flow should follow after intent approval */
     @SerialName(value = "hasConnectRequest")
     val hasConnectRequest: kotlin.Boolean,
-
-    /* Event type discriminator */
-    @SerialName(value = "intentType")
-    val intentType: TONTransactionIntentRequestEvent.IntentType,
 
     @Contextual @SerialName(value = "deliveryMode")
     val deliveryMode: TONIntentDeliveryMode,
@@ -131,9 +126,8 @@ data class TONTransactionIntentRequestEvent(
     @SerialName(value = "clientId")
     val clientId: kotlin.String? = null,
 
-    /* Network chain ID (\"-239\" = mainnet, \"-3\" = testnet) */
     @SerialName(value = "network")
-    val network: kotlin.String? = null,
+    val network: TONNetwork? = null,
 
     /* Transaction validity deadline (unix timestamp) */
     @SerialName(value = "validUntil")
@@ -143,20 +137,9 @@ data class TONTransactionIntentRequestEvent(
     val resolvedTransaction: TONTransactionRequest? = null,
 
     @SerialName(value = "preview")
-    val preview: TONTransactionIntentPreview? = null,
+    val preview: TONTransactionEmulatedPreview? = null,
 
 ) {
 
     companion object
-
-    /**
-     * Event type discriminator
-     *
-     * Values: transaction
-     */
-    @Serializable
-    enum class IntentType(val value: kotlin.String) {
-        @SerialName(value = "transaction")
-        transaction("transaction"),
-    }
 }

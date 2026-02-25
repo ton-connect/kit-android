@@ -29,6 +29,7 @@
 package io.ton.walletkit.api.generated
 
 import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -36,25 +37,18 @@ import kotlinx.serialization.Serializable
 /**
  * TON native coin transfer action.
  *
- * @param type Action type discriminator
- * @param address Destination address (user-friendly)
- * @param amount Amount in nanotons
+ * @param address
+ * @param amount
  * @param payload
  * @param stateInit
- * @param extraCurrency
+ * @param extraCurrency Map of extra currency IDs to their amounts. Extra currencies are additional tokens that can be attached to TON messages.
  */
 @Serializable
 data class TONSendTonAction(
 
-    /* Action type discriminator */
-    @SerialName(value = "type")
-    val type: TONSendTonAction.Type,
+    @Contextual @SerialName(value = "address")
+    val address: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    /* Destination address (user-friendly) */
-    @SerialName(value = "address")
-    val address: kotlin.String,
-
-    /* Amount in nanotons */
     @SerialName(value = "amount")
     val amount: kotlin.String,
 
@@ -64,21 +58,11 @@ data class TONSendTonAction(
     @Contextual @SerialName(value = "stateInit")
     val stateInit: io.ton.walletkit.model.TONBase64? = null,
 
+    /* Map of extra currency IDs to their amounts. Extra currencies are additional tokens that can be attached to TON messages. */
     @SerialName(value = "extraCurrency")
     val extraCurrency: kotlin.collections.Map<kotlin.String, kotlin.String>? = null,
 
 ) {
 
     companion object
-
-    /**
-     * Action type discriminator
-     *
-     * Values: sendTon
-     */
-    @Serializable
-    enum class Type(val value: kotlin.String) {
-        @SerialName(value = "sendTon")
-        sendTon("sendTon"),
-    }
 }

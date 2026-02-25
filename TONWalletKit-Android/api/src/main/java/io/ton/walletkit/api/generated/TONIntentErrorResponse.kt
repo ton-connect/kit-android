@@ -34,15 +34,10 @@ import kotlinx.serialization.Serializable
 /**
  * Error response for any intent.
  *
- * @param resultType Result type discriminator
  * @param error
  */
 @Serializable
 data class TONIntentErrorResponse(
-
-    /* Result type discriminator */
-    @SerialName(value = "resultType")
-    val resultType: TONIntentErrorResponse.ResultType,
 
     @SerialName(value = "error")
     val error: TONIntentError,
@@ -50,15 +45,4 @@ data class TONIntentErrorResponse(
 ) {
 
     companion object
-
-    /**
-     * Result type discriminator
-     *
-     * Values: error
-     */
-    @Serializable
-    enum class ResultType(val value: kotlin.String) {
-        @SerialName(value = "error")
-        error("error"),
-    }
 }

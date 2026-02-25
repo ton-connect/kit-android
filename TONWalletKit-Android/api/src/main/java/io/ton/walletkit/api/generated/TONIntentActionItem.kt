@@ -29,6 +29,7 @@
 package io.ton.walletkit.api.generated
 
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -37,13 +38,14 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.serializer
 
 /**
- * Union of all intent action items, discriminated by `type`.
+ *
  *
  * This is a discriminated union type. Use the appropriate subclass based on the `type` field.
  */
@@ -56,26 +58,35 @@ sealed class TONIntentActionItem {
     abstract val type: String
 
     /**
-     * Case without associated value: sendTon
+     *
      */
     @Serializable
-    object SendTon : TONIntentActionItem() {
+    data class SendTon(
+        @SerialName("value")
+        val value: TONSendTonAction,
+    ) : TONIntentActionItem() {
         override val type: String = "sendTon"
     }
 
     /**
-     * Case without associated value: sendJetton
+     *
      */
     @Serializable
-    object SendJetton : TONIntentActionItem() {
+    data class SendJetton(
+        @SerialName("value")
+        val value: TONSendJettonAction,
+    ) : TONIntentActionItem() {
         override val type: String = "sendJetton"
     }
 
     /**
-     * Case without associated value: sendNft
+     *
      */
     @Serializable
-    object SendNft : TONIntentActionItem() {
+    data class SendNft(
+        @SerialName("value")
+        val value: TONSendNftAction,
+    ) : TONIntentActionItem() {
         override val type: String = "sendNft"
     }
 
@@ -88,9 +99,30 @@ sealed class TONIntentActionItem {
                 ?: throw SerializationException("TONIntentActionItem can only be serialized with JSON")
 
             val jsonObject = when (value) {
-                is SendTon -> JsonObject(mapOf("type" to JsonPrimitive("sendTon")))
-                is SendJetton -> JsonObject(mapOf("type" to JsonPrimitive("sendJetton")))
-                is SendNft -> JsonObject(mapOf("type" to JsonPrimitive("sendNft")))
+                is SendTon -> {
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONSendTonAction>(), value.value)
+                    buildJsonObject {
+                        put("type", JsonPrimitive("sendTon"))
+                        put("value", valueJson)
+                    }
+                }
+                is SendJetton -> {
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONSendJettonAction>(), value.value)
+                    buildJsonObject {
+                        put("type", JsonPrimitive("sendJetton"))
+                        put("value", valueJson)
+                    }
+                }
+                is SendNft -> {
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONSendNftAction>(), value.value)
+                    buildJsonObject {
+                        put("type", JsonPrimitive("sendNft"))
+                        put("value", valueJson)
+                    }
+                }
             }
             jsonEncoder.encodeJsonElement(jsonObject)
         }
@@ -104,9 +136,27 @@ sealed class TONIntentActionItem {
                 ?: throw SerializationException("Missing 'type' discriminator for TONIntentActionItem")
 
             return when (typeValue) {
-                "sendTon" -> SendTon
-                "sendJetton" -> SendJetton
-                "sendNft" -> SendNft
+                "sendTon" -> {
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for TONIntentActionItem.SendTon")
+                    SendTon(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONSendTonAction>(), valueJson),
+                    )
+                }
+                "sendJetton" -> {
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for TONIntentActionItem.SendJetton")
+                    SendJetton(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONSendJettonAction>(), valueJson),
+                    )
+                }
+                "sendNft" -> {
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for TONIntentActionItem.SendNft")
+                    SendNft(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONSendNftAction>(), valueJson),
+                    )
+                }
                 else -> throw SerializationException("Unknown type '$typeValue' for TONIntentActionItem")
             }
         }

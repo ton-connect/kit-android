@@ -39,7 +39,6 @@ import kotlinx.serialization.Serializable
  * @param id Unique identifier for the bridge event
  * @param origin
  * @param hasConnectRequest Whether a connect flow should follow after intent approval
- * @param intentType Event type discriminator
  * @param manifestUrl Manifest URL (for domain binding)
  * @param payload
  * @param from
@@ -55,7 +54,7 @@ import kotlinx.serialization.Serializable
  * @param dAppInfo
  * @param returnStrategy Raw TonConnect return strategy string.
  * @param clientId Client public key (for response encryption)
- * @param network Network chain ID
+ * @param network
  */
 @Serializable
 data class TONSignDataIntentRequestEvent(
@@ -70,10 +69,6 @@ data class TONSignDataIntentRequestEvent(
     /* Whether a connect flow should follow after intent approval */
     @SerialName(value = "hasConnectRequest")
     val hasConnectRequest: kotlin.Boolean,
-
-    /* Event type discriminator */
-    @SerialName(value = "intentType")
-    val intentType: TONSignDataIntentRequestEvent.IntentType,
 
     /* Manifest URL (for domain binding) */
     @SerialName(value = "manifestUrl")
@@ -128,22 +123,10 @@ data class TONSignDataIntentRequestEvent(
     @SerialName(value = "clientId")
     val clientId: kotlin.String? = null,
 
-    /* Network chain ID */
     @SerialName(value = "network")
-    val network: kotlin.String? = null,
+    val network: TONNetwork? = null,
 
 ) {
 
     companion object
-
-    /**
-     * Event type discriminator
-     *
-     * Values: signData
-     */
-    @Serializable
-    enum class IntentType(val value: kotlin.String) {
-        @SerialName(value = "signData")
-        signData("signData"),
-    }
 }

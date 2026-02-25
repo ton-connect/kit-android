@@ -37,7 +37,6 @@ import kotlinx.serialization.Serializable
  * A batched intent event containing multiple intent items that should be processed as a group.  Use cases: - send TON + connect (intent with connect request) - action intent that resolves to multiple steps
  *
  * @param id Unique identifier for the bridge event
- * @param eventType Fixed identifier for batched events
  * @param origin
  * @param intents The intent requests in this batch
  * @param hasConnectRequest Whether a connect flow should follow after all intents are approved
@@ -61,10 +60,6 @@ data class TONBatchedIntentEvent(
     /* Unique identifier for the bridge event */
     @SerialName(value = "id")
     val id: kotlin.String,
-
-    /* Fixed identifier for batched events */
-    @SerialName(value = "eventType")
-    val eventType: TONBatchedIntentEvent.EventType,
 
     @Contextual @SerialName(value = "origin")
     val origin: TONIntentOrigin,
@@ -126,15 +121,4 @@ data class TONBatchedIntentEvent(
 ) {
 
     companion object
-
-    /**
-     * Fixed identifier for batched events
-     *
-     * Values: batchedIntent
-     */
-    @Serializable
-    enum class EventType(val value: kotlin.String) {
-        @SerialName(value = "batchedIntent")
-        batchedIntent("batchedIntent"),
-    }
 }

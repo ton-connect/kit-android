@@ -28,149 +28,137 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONUserFriendlyAddress
-import kotlinx.serialization.Contextual
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.serializer
 
 /**
- * Union of all intent request events, discriminated by `intentType`.
  *
- * @param id Unique identifier for the bridge event
- * @param origin
- * @param hasConnectRequest Whether a connect flow should follow after intent approval
- * @param intentType Event type discriminator
- * @param deliveryMode
- * @param items Original intent action items (for display / re-conversion)
- * @param manifestUrl Manifest URL (for domain binding)
- * @param payload
- * @param actionUrl Action URL to fetch
- * @param from
- * @param walletAddress
- * @param walletId Wallet identifier associated with the event
- * @param domain Domain of the dApp that initiated the event
- * @param isJsBridge Whether the event originated from JS Bridge (injected provider)
- * @param tabId Browser tab ID for JS Bridge events
- * @param sessionId Session identifier for the connection
- * @param isLocal
- * @param messageId
- * @param traceId
- * @param dAppInfo
- * @param returnStrategy Raw TonConnect return strategy string.
- * @param clientId Client public key (for response encryption)
- * @param network Network chain ID
- * @param validUntil Transaction validity deadline (unix timestamp)
- * @param resolvedTransaction
- * @param preview
+ *
+ * This is a discriminated union type. Use the appropriate subclass based on the `type` field.
  */
-@Serializable
-data class TONIntentRequestEvent(
-
-    /* Unique identifier for the bridge event */
-    @SerialName(value = "id")
-    val id: kotlin.String,
-
-    @Contextual @SerialName(value = "origin")
-    val origin: TONIntentOrigin,
-
-    /* Whether a connect flow should follow after intent approval */
-    @SerialName(value = "hasConnectRequest")
-    val hasConnectRequest: kotlin.Boolean,
-
-    /* Event type discriminator */
-    @SerialName(value = "intentType")
-    val intentType: TONIntentRequestEvent.IntentType,
-
-    @Contextual @SerialName(value = "deliveryMode")
-    val deliveryMode: TONIntentDeliveryMode,
-
-    /* Original intent action items (for display / re-conversion) */
-    @SerialName(value = "items")
-    val items: kotlin.collections.List<TONIntentActionItem>,
-
-    /* Manifest URL (for domain binding) */
-    @SerialName(value = "manifestUrl")
-    val manifestUrl: kotlin.String,
-
-    @SerialName(value = "payload")
-    val payload: TONSignDataPayload,
-
-    /* Action URL to fetch */
-    @SerialName(value = "actionUrl")
-    val actionUrl: kotlin.String,
-
-    @SerialName(value = "from")
-    val from: kotlin.String? = null,
-
-    @Contextual @SerialName(value = "walletAddress")
-    val walletAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-
-    /* Wallet identifier associated with the event */
-    @SerialName(value = "walletId")
-    val walletId: kotlin.String? = null,
-
-    /* Domain of the dApp that initiated the event */
-    @SerialName(value = "domain")
-    val domain: kotlin.String? = null,
-
-    /* Whether the event originated from JS Bridge (injected provider) */
-    @SerialName(value = "isJsBridge")
-    val isJsBridge: kotlin.Boolean? = null,
-
-    /* Browser tab ID for JS Bridge events */
-    @SerialName(value = "tabId")
-    val tabId: kotlin.String? = null,
-
-    /* Session identifier for the connection */
-    @SerialName(value = "sessionId")
-    val sessionId: kotlin.String? = null,
-
-    @SerialName(value = "isLocal")
-    val isLocal: kotlin.Boolean? = null,
-
-    @SerialName(value = "messageId")
-    val messageId: kotlin.String? = null,
-
-    @SerialName(value = "traceId")
-    val traceId: kotlin.String? = null,
-
-    @SerialName(value = "dAppInfo")
-    val dAppInfo: TONDAppInfo? = null,
-
-    /* Raw TonConnect return strategy string. */
-    @SerialName(value = "returnStrategy")
-    val returnStrategy: kotlin.String? = null,
-
-    /* Client public key (for response encryption) */
-    @SerialName(value = "clientId")
-    val clientId: kotlin.String? = null,
-
-    /* Network chain ID */
-    @SerialName(value = "network")
-    val network: kotlin.String? = null,
-
-    /* Transaction validity deadline (unix timestamp) */
-    @SerialName(value = "validUntil")
-    val validUntil: kotlin.Int? = null,
-
-    @SerialName(value = "resolvedTransaction")
-    val resolvedTransaction: TONTransactionRequest? = null,
-
-    @SerialName(value = "preview")
-    val preview: TONTransactionIntentPreview? = null,
-
-) {
-
-    companion object
+@Serializable(with = TONIntentRequestEvent.Serializer::class)
+sealed class TONIntentRequestEvent {
 
     /**
-     * Event type discriminator
+     * The discriminator value for this union type
+     */
+    abstract val type: String
+
+    /**
      *
-     * Values: action
      */
     @Serializable
-    enum class IntentType(val value: kotlin.String) {
-        @SerialName(value = "action")
-        action("action"),
+    data class Transaction(
+        @SerialName("value")
+        val value: TONTransactionIntentRequestEvent,
+    ) : TONIntentRequestEvent() {
+        override val type: String = "transaction"
+    }
+
+    /**
+     *
+     */
+    @Serializable
+    data class SignData(
+        @SerialName("value")
+        val value: TONSignDataIntentRequestEvent,
+    ) : TONIntentRequestEvent() {
+        override val type: String = "signData"
+    }
+
+    /**
+     *
+     */
+    @Serializable
+    data class Action(
+        @SerialName("value")
+        val value: TONActionIntentRequestEvent,
+    ) : TONIntentRequestEvent() {
+        override val type: String = "action"
+    }
+
+    internal object Serializer : KSerializer<TONIntentRequestEvent> {
+        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("TONIntentRequestEvent")
+
+        @Suppress("UNCHECKED_CAST")
+        override fun serialize(encoder: Encoder, value: TONIntentRequestEvent) {
+            val jsonEncoder = encoder as? JsonEncoder
+                ?: throw SerializationException("TONIntentRequestEvent can only be serialized with JSON")
+
+            val jsonObject = when (value) {
+                is Transaction -> {
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONTransactionIntentRequestEvent>(), value.value)
+                    buildJsonObject {
+                        put("type", JsonPrimitive("transaction"))
+                        put("value", valueJson)
+                    }
+                }
+                is SignData -> {
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONSignDataIntentRequestEvent>(), value.value)
+                    buildJsonObject {
+                        put("type", JsonPrimitive("signData"))
+                        put("value", valueJson)
+                    }
+                }
+                is Action -> {
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONActionIntentRequestEvent>(), value.value)
+                    buildJsonObject {
+                        put("type", JsonPrimitive("action"))
+                        put("value", valueJson)
+                    }
+                }
+            }
+            jsonEncoder.encodeJsonElement(jsonObject)
+        }
+
+        override fun deserialize(decoder: Decoder): TONIntentRequestEvent {
+            val jsonDecoder = decoder as? JsonDecoder
+                ?: throw SerializationException("TONIntentRequestEvent can only be deserialized from JSON")
+
+            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
+            val typeValue = jsonObject["type"]?.jsonPrimitive?.content
+                ?: throw SerializationException("Missing 'type' discriminator for TONIntentRequestEvent")
+
+            return when (typeValue) {
+                "transaction" -> {
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for TONIntentRequestEvent.Transaction")
+                    Transaction(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionIntentRequestEvent>(), valueJson),
+                    )
+                }
+                "signData" -> {
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for TONIntentRequestEvent.SignData")
+                    SignData(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONSignDataIntentRequestEvent>(), valueJson),
+                    )
+                }
+                "action" -> {
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for TONIntentRequestEvent.Action")
+                    Action(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONActionIntentRequestEvent>(), valueJson),
+                    )
+                }
+                else -> throw SerializationException("Unknown type '$typeValue' for TONIntentRequestEvent")
+            }
+        }
     }
 }

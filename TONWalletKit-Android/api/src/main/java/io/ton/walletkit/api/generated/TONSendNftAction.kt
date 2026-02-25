@@ -29,6 +29,7 @@
 package io.ton.walletkit.api.generated
 
 import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -36,38 +37,29 @@ import kotlinx.serialization.Serializable
 /**
  * NFT transfer action (TEP-62).
  *
- * @param type Action type discriminator
- * @param nftAddress NFT item address
- * @param newOwnerAddress New owner address
- * @param responseDestination Response destination (defaults to sender)
+ * @param nftAddress
+ * @param newOwnerAddress
+ * @param responseDestination
  * @param customPayload
- * @param forwardTonAmount Forward TON amount (nanotons)
+ * @param forwardTonAmount
  * @param forwardPayload
  * @param queryId Query ID
  */
 @Serializable
 data class TONSendNftAction(
 
-    /* Action type discriminator */
-    @SerialName(value = "type")
-    val type: TONSendNftAction.Type,
+    @Contextual @SerialName(value = "nftAddress")
+    val nftAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    /* NFT item address */
-    @SerialName(value = "nftAddress")
-    val nftAddress: kotlin.String,
+    @Contextual @SerialName(value = "newOwnerAddress")
+    val newOwnerAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    /* New owner address */
-    @SerialName(value = "newOwnerAddress")
-    val newOwnerAddress: kotlin.String,
-
-    /* Response destination (defaults to sender) */
-    @SerialName(value = "responseDestination")
-    val responseDestination: kotlin.String? = null,
+    @Contextual @SerialName(value = "responseDestination")
+    val responseDestination: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
 
     @Contextual @SerialName(value = "customPayload")
     val customPayload: io.ton.walletkit.model.TONBase64? = null,
 
-    /* Forward TON amount (nanotons) */
     @SerialName(value = "forwardTonAmount")
     val forwardTonAmount: kotlin.String? = null,
 
@@ -81,15 +73,4 @@ data class TONSendNftAction(
 ) {
 
     companion object
-
-    /**
-     * Action type discriminator
-     *
-     * Values: sendNft
-     */
-    @Serializable
-    enum class Type(val value: kotlin.String) {
-        @SerialName(value = "sendNft")
-        sendNft("sendNft"),
-    }
 }

@@ -28,38 +28,23 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONBase64
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
  * Successful response for transaction intent.
  *
- * @param resultType Result type discriminator
- * @param boc Signed BoC (base64)
+ * @param boc
  */
 @Serializable
 data class TONIntentTransactionResponse(
 
-    /* Result type discriminator */
-    @SerialName(value = "resultType")
-    val resultType: TONIntentTransactionResponse.ResultType,
-
-    /* Signed BoC (base64) */
-    @SerialName(value = "boc")
-    val boc: kotlin.String,
+    @Contextual @SerialName(value = "boc")
+    val boc: io.ton.walletkit.model.TONBase64,
 
 ) {
 
     companion object
-
-    /**
-     * Result type discriminator
-     *
-     * Values: transaction
-     */
-    @Serializable
-    enum class ResultType(val value: kotlin.String) {
-        @SerialName(value = "transaction")
-        transaction("transaction"),
-    }
 }
