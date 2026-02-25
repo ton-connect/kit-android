@@ -26,6 +26,7 @@ import io.ton.walletkit.api.generated.TONTransaction
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 
 data class WalletSummary(
+    val walletId: String,
     val address: String,
     val name: String,
     val network: TONNetwork,

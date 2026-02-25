@@ -29,6 +29,7 @@ import io.ton.walletkit.event.TONIntentEvent
 data class IntentRequestUi(
     val id: String,
     val intentType: String,
+    val origin: String,
     val walletId: String,
     val hasConnectRequest: Boolean,
     val summary: String,

@@ -24,12 +24,13 @@ package io.ton.walletkit.event
 import org.json.JSONObject
 
 /**
- * Intent event from a dApp deep link (tc://intent_inline).
+ * Intent event from a dApp deep link (tc://intent_inline or tc://intent).
  *
  * Discriminated by [intentType]: transaction, signData, or action.
  */
 sealed class TONIntentEvent {
     abstract val id: String
+    abstract val origin: String
     abstract val clientId: String?
     abstract val hasConnectRequest: Boolean
     abstract val intentType: String
@@ -39,6 +40,7 @@ sealed class TONIntentEvent {
 
     data class TransactionIntent(
         override val id: String,
+        override val origin: String,
         override val clientId: String?,
         override val hasConnectRequest: Boolean,
         val deliveryMode: String,
@@ -52,6 +54,7 @@ sealed class TONIntentEvent {
 
     data class SignDataIntent(
         override val id: String,
+        override val origin: String,
         override val clientId: String?,
         override val hasConnectRequest: Boolean,
         val network: String?,
@@ -64,6 +67,7 @@ sealed class TONIntentEvent {
 
     data class ActionIntent(
         override val id: String,
+        override val origin: String,
         override val clientId: String?,
         override val hasConnectRequest: Boolean,
         val actionUrl: String,

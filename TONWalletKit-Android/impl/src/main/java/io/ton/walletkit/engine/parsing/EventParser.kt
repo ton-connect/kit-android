@@ -193,12 +193,14 @@ internal class EventParser(
     private fun parseIntentEvent(data: JSONObject): TONIntentEvent {
         val intentType = data.optString("intentType", "")
         val id = data.optString("id", "")
+        val origin = data.optString("origin", "deepLink")
         val clientId = data.optNullableString("clientId")
         val hasConnectRequest = data.optBoolean("hasConnectRequest", false)
 
         return when (intentType) {
             "transaction" -> TONIntentEvent.TransactionIntent(
                 id = id,
+                origin = origin,
                 clientId = clientId,
                 hasConnectRequest = hasConnectRequest,
                 deliveryMode = data.optString("deliveryMode", "send"),
@@ -210,6 +212,7 @@ internal class EventParser(
 
             "signData" -> TONIntentEvent.SignDataIntent(
                 id = id,
+                origin = origin,
                 clientId = clientId,
                 hasConnectRequest = hasConnectRequest,
                 network = data.optNullableString("network"),
@@ -220,6 +223,7 @@ internal class EventParser(
 
             "action" -> TONIntentEvent.ActionIntent(
                 id = id,
+                origin = origin,
                 clientId = clientId,
                 hasConnectRequest = hasConnectRequest,
                 actionUrl = data.optString("actionUrl", ""),

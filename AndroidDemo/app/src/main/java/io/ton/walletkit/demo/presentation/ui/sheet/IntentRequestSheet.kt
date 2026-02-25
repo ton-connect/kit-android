@@ -64,6 +64,7 @@ fun IntentRequestSheet(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 LabelValue("Type", request.intentType)
+                LabelValue("Origin", request.origin)
                 LabelValue("ID", request.id)
                 if (request.hasConnectRequest) {
                     LabelValue("Connect", "Will connect after approval")
