@@ -44,6 +44,7 @@ import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.domain.model.WalletMetadata
 import io.ton.walletkit.demo.presentation.model.ConnectPermissionUi
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
+import io.ton.walletkit.demo.presentation.model.BatchedIntentRequestUi
 import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
@@ -54,6 +55,7 @@ import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.util.TransactionDetailMapper
+import io.ton.walletkit.event.TONBatchedIntentEvent
 import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.model.WalletSigner
@@ -275,6 +277,10 @@ class WalletKitViewModel @Inject constructor(
             is TONWalletKitEvent.IntentRequest -> {
                 Log.d(LOG_TAG, "Handling IntentRequest: ${event.event.intentType}")
                 onIntentRequest(event.event)
+            }
+            is TONWalletKitEvent.BatchedIntentRequest -> {
+                Log.d(LOG_TAG, "Handling BatchedIntentRequest: ${event.event.intents.size} intents")
+                onBatchedIntentRequest(event.event)
             }
             is TONWalletKitEvent.Disconnect -> {
                 Log.d(LOG_TAG, "Session disconnected: ${event.event.sessionId}")
@@ -1458,6 +1464,52 @@ class WalletKitViewModel @Inject constructor(
                 onTonConnectRequestRejected()
             }.onFailure { error ->
                 Log.e(LOG_TAG, "Failed to reject intent", error)
+                _state.update { it.copy(error = uiString(R.string.wallet_error_reject_intent)) }
+                dismissSheet()
+            }
+        }
+    }
+
+    // ── Batched Intents ──
+
+    private fun onBatchedIntentRequest(event: TONBatchedIntentEvent) {
+        val walletId = state.value.wallets.firstOrNull { it.address == state.value.activeWalletAddress }?.walletId
+            ?: state.value.wallets.firstOrNull()?.walletId ?: ""
+        val summary = "${event.intents.size} batched intent(s)"
+        val uiRequest = BatchedIntentRequestUi(
+            id = event.id,
+            origin = event.origin,
+            walletId = walletId,
+            hasConnectRequest = event.hasConnectRequest,
+            summary = summary,
+            event = event,
+        )
+        uiCoordinator.setSheet(SheetState.BatchedIntent(uiRequest))
+        eventLogger.log(R.string.wallet_event_intent_request, "batched")
+    }
+
+    fun approveBatchedIntent(request: BatchedIntentRequestUi) {
+        viewModelScope.launch {
+            runCatching {
+                getKit().approveBatchedIntent(request.event, request.walletId)
+            }.onSuccess {
+                onTonConnectRequestApproved()
+            }.onFailure { error ->
+                Log.e(LOG_TAG, "Failed to approve batched intent", error)
+                _state.update { it.copy(error = uiString(R.string.wallet_error_approve_intent)) }
+                dismissSheet()
+            }
+        }
+    }
+
+    fun rejectBatchedIntent(request: BatchedIntentRequestUi) {
+        viewModelScope.launch {
+            runCatching {
+                getKit().rejectBatchedIntent(request.event, "User declined")
+            }.onSuccess {
+                onTonConnectRequestRejected()
+            }.onFailure { error ->
+                Log.e(LOG_TAG, "Failed to reject batched intent", error)
                 _state.update { it.copy(error = uiString(R.string.wallet_error_reject_intent)) }
                 dismissSheet()
             }

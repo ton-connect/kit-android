@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.demo.presentation.state
 
+import io.ton.walletkit.demo.presentation.model.BatchedIntentRequestUi
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
@@ -42,4 +43,5 @@ sealed interface SheetState {
     data class JettonDetails(val jetton: io.ton.walletkit.demo.presentation.model.JettonDetails) : SheetState
     data class TransferJetton(val jetton: io.ton.walletkit.demo.presentation.model.JettonDetails) : SheetState
     data class Intent(val request: IntentRequestUi) : SheetState
+    data class BatchedIntent(val request: BatchedIntentRequestUi) : SheetState
 }

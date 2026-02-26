@@ -28,6 +28,7 @@ import io.ton.walletkit.api.generated.TONRequestErrorEvent
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.engine.WalletKitEngine
+import io.ton.walletkit.event.TONBatchedIntentEvent
 import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.event.TONIntentItem
 import io.ton.walletkit.event.TONSignDataPayload
@@ -166,8 +167,15 @@ internal class EventParser(
 
             EventTypeConstants.EVENT_INTENT_REQUEST -> {
                 try {
-                    val intentEvent = parseIntentEvent(data)
-                    TONWalletKitEvent.IntentRequest(intentEvent)
+                    // Batched events have an "intents" array at the top level;
+                    // single intent events have "type" + "value".
+                    if (data.has("intents")) {
+                        val batchedEvent = parseBatchedIntentEvent(data)
+                        TONWalletKitEvent.BatchedIntentRequest(batchedEvent)
+                    } else {
+                        val intentEvent = parseIntentEvent(data)
+                        TONWalletKitEvent.IntentRequest(intentEvent)
+                    }
                 } catch (e: Exception) {
                     Logger.e(TAG, ERROR_FAILED_PARSE_INTENT_REQUEST, e)
                     throw JSValueConversionException.Unknown(
@@ -189,6 +197,34 @@ internal class EventParser(
 
             else -> null
         }
+
+    private fun parseBatchedIntentEvent(data: JSONObject): TONBatchedIntentEvent {
+        val id = data.optString("id", "")
+        val origin = data.optString("origin", "deepLink")
+        val clientId = data.optNullableString("clientId")
+        val hasConnectRequest = data.optBoolean("hasConnectRequest", false)
+
+        val intentsArray = data.optJSONArray("intents") ?: org.json.JSONArray()
+        val intents = buildList(intentsArray.length()) {
+            for (i in 0 until intentsArray.length()) {
+                val intentJson = intentsArray.optJSONObject(i) ?: continue
+                try {
+                    add(parseIntentEvent(intentJson))
+                } catch (e: Exception) {
+                    Logger.w(TAG, "Failed to parse batched intent item at index $i: ${e.message}")
+                }
+            }
+        }
+
+        return TONBatchedIntentEvent(
+            id = id,
+            origin = origin,
+            clientId = clientId,
+            hasConnectRequest = hasConnectRequest,
+            intents = intents,
+            rawJson = data,
+        )
+    }
 
     private fun parseIntentEvent(data: JSONObject): TONIntentEvent {
         // New format: { type: 'transaction', value: { id, origin, ... } }

@@ -39,6 +39,7 @@ import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.event.TONBatchedIntentEvent
 import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.model.IntentSignDataResult
 import io.ton.walletkit.model.KeyPair
@@ -348,7 +349,11 @@ internal interface WalletKitEngine : RequestHandler {
 
     suspend fun approveActionIntent(event: TONIntentEvent.ActionIntent, walletId: String)
 
+    suspend fun approveBatchedIntent(event: TONBatchedIntentEvent, walletId: String): String
+
     suspend fun rejectIntent(event: TONIntentEvent, reason: String? = null, errorCode: Int? = null)
+
+    suspend fun rejectBatchedIntent(event: TONBatchedIntentEvent, reason: String? = null, errorCode: Int? = null)
 
     suspend fun processConnectAfterIntent(event: TONIntentEvent, walletId: String)
 

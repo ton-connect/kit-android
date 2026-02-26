@@ -70,6 +70,7 @@ import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.actions.WalletActions
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
+import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.NFTDetails
@@ -240,6 +241,33 @@ fun WalletScreen(
                     request = sheet.request,
                     onApprove = { actions.onApproveIntent(sheet.request) },
                     onReject = { actions.onRejectIntent(sheet.request) },
+                )
+
+                is SheetState.BatchedIntent -> IntentRequestSheet(
+                    request = IntentRequestUi(
+                        id = sheet.request.id,
+                        intentType = "batched",
+                        origin = sheet.request.origin,
+                        walletId = sheet.request.walletId,
+                        hasConnectRequest = sheet.request.hasConnectRequest,
+                        summary = sheet.request.summary,
+                        event = sheet.request.event.intents.firstOrNull()?.let { first ->
+                            when (first) {
+                                is io.ton.walletkit.event.TONIntentEvent.TransactionIntent -> first
+                                is io.ton.walletkit.event.TONIntentEvent.SignDataIntent -> first
+                                is io.ton.walletkit.event.TONIntentEvent.ActionIntent -> first
+                            }
+                        } ?: io.ton.walletkit.event.TONIntentEvent.ActionIntent(
+                            id = sheet.request.id,
+                            origin = sheet.request.origin,
+                            clientId = null,
+                            hasConnectRequest = false,
+                            actionUrl = "",
+                            rawJson = org.json.JSONObject(),
+                        ),
+                    ),
+                    onApprove = { actions.onApproveBatchedIntent(sheet.request) },
+                    onReject = { actions.onRejectBatchedIntent(sheet.request) },
                 )
 
                 SheetState.None -> Unit

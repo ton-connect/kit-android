@@ -56,6 +56,7 @@ import io.ton.walletkit.engine.operations.WalletOperations
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.EventRouter
+import io.ton.walletkit.event.TONBatchedIntentEvent
 import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
@@ -397,11 +398,22 @@ internal class WebViewWalletKitEngine private constructor(
         walletId: String,
     ) = tonConnectOperations.approveActionIntent(event, walletId)
 
+    override suspend fun approveBatchedIntent(
+        event: TONBatchedIntentEvent,
+        walletId: String,
+    ): String = tonConnectOperations.approveBatchedIntent(event, walletId)
+
     override suspend fun rejectIntent(
         event: TONIntentEvent,
         reason: String?,
         errorCode: Int?,
     ) = tonConnectOperations.rejectIntent(event, reason, errorCode)
+
+    override suspend fun rejectBatchedIntent(
+        event: TONBatchedIntentEvent,
+        reason: String?,
+        errorCode: Int?,
+    ) = tonConnectOperations.rejectBatchedIntent(event, reason, errorCode)
 
     override suspend fun processConnectAfterIntent(
         event: TONIntentEvent,
