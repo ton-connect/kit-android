@@ -28,7 +28,6 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONBase64
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -36,21 +35,28 @@ import kotlinx.serialization.Serializable
 /**
  *
  *
- * @param boc
- * @param normalizedBoc
- * @param normalizedHash
+ * @param status
+ * @param totalMessages Total messages in the trace
+ * @param pendingMessages Messages still pending
+ * @param onchainMessages Number of onchain messages (totalMessages - pendingMessages)
  */
 @Serializable
-data class TONSendTransactionResponse(
+data class TONTransactionStatusResponse(
 
-    @Contextual @SerialName(value = "boc")
-    val boc: io.ton.walletkit.model.TONBase64,
+    @Contextual @SerialName(value = "status")
+    val status: TONTransactionStatus,
 
-    @Contextual @SerialName(value = "normalizedBoc")
-    val normalizedBoc: io.ton.walletkit.model.TONBase64,
+    /* Total messages in the trace */
+    @SerialName(value = "totalMessages")
+    val totalMessages: kotlin.Int,
 
-    @Contextual @SerialName(value = "normalizedHash")
-    val normalizedHash: io.ton.walletkit.model.TONBase64,
+    /* Messages still pending */
+    @SerialName(value = "pendingMessages")
+    val pendingMessages: kotlin.Int,
+
+    /* Number of onchain messages (totalMessages - pendingMessages) */
+    @SerialName(value = "onchainMessages")
+    val onchainMessages: kotlin.Int,
 
 ) {
 

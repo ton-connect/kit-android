@@ -41,8 +41,11 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.api.isTestnet
 import io.ton.walletkit.bridge.BuildConfig
+import io.ton.walletkit.config.SignDataType
+import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.engine.state.AdapterManager
+import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
@@ -58,6 +61,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -328,6 +332,11 @@ internal class WebViewManager(
                     "getNetwork" -> JSONObject().apply { put("chainId", adapter.network().chainId) }.toString()
                     "getAddress" -> adapter.address(adapter.network().isTestnet).value
                     "getWalletId" -> adapter.identifier()
+                    "getSupportedFeatures" -> {
+                        val features = adapter.supportedFeatures()
+                            ?: return@withTimeout "null"
+                        featuresToJson(features).toString()
+                    }
                     else -> throw IllegalArgumentException("Unknown sync adapter method: $method")
                 }
             }
@@ -565,6 +574,45 @@ internal class WebViewManager(
             } catch (e: Exception) {
                 Logger.w(TAG, "Failed to parse session filter: $filterJson", e)
                 null
+            }
+        }
+
+        private fun featuresToJson(features: List<TONWalletKitConfiguration.Feature>): JSONArray {
+            return JSONArray().apply {
+                for (feature in features) {
+                    when (feature) {
+                        is TONWalletKitConfiguration.SendTransactionFeature -> {
+                            put(
+                                JSONObject().apply {
+                                    put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SEND_TRANSACTION)
+                                    feature.maxMessages?.let { put(JsonConstants.KEY_MAX_MESSAGES, it) }
+                                    feature.extraCurrencySupported?.let { put("extraCurrencySupported", it) }
+                                },
+                            )
+                        }
+                        is TONWalletKitConfiguration.SignDataFeature -> {
+                            put(
+                                JSONObject().apply {
+                                    put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SIGN_DATA)
+                                    put(
+                                        JsonConstants.KEY_TYPES,
+                                        JSONArray().apply {
+                                            for (type in feature.types) {
+                                                put(
+                                                    when (type) {
+                                                        SignDataType.TEXT -> JsonConstants.VALUE_SIGN_DATA_TEXT
+                                                        SignDataType.BINARY -> JsonConstants.VALUE_SIGN_DATA_BINARY
+                                                        SignDataType.CELL -> JsonConstants.VALUE_SIGN_DATA_CELL
+                                                    },
+                                                )
+                                            }
+                                        },
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
             }
         }
     }

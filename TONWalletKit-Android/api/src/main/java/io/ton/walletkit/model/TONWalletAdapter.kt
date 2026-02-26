@@ -25,6 +25,7 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONPreparedSignData
 import io.ton.walletkit.api.generated.TONProofMessage
 import io.ton.walletkit.api.generated.TONTransactionRequest
+import io.ton.walletkit.config.TONWalletKitConfiguration
 
 /**
  * Wallet adapter interface for wrapping existing wallet implementations.
@@ -63,4 +64,11 @@ interface TONWalletAdapter {
 
     /** Wallet contract version ("v4r2", "v5r1"), or null for default (V5R1). */
     fun walletVersion(): String? = null
+
+    /**
+     * Get supported TON Connect features for this wallet adapter.
+     * If not implemented (returns null), features from deviceInfo configuration will be used.
+     * Mirrors iOS `TONWalletAdapterProtocol.supportedFeatures()`.
+     */
+    fun supportedFeatures(): List<TONWalletKitConfiguration.Feature>? = null
 }
