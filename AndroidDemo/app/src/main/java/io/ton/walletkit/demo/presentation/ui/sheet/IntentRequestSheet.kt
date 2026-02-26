@@ -66,9 +66,6 @@ fun IntentRequestSheet(
                 LabelValue("Type", request.intentType)
                 LabelValue("Origin", request.origin)
                 LabelValue("ID", request.id)
-                if (request.hasConnectRequest) {
-                    LabelValue("Connect", "Will connect after approval")
-                }
             }
         }
 
@@ -83,6 +80,7 @@ fun IntentRequestSheet(
                 is TONIntentEvent.TransactionIntent -> TransactionIntentDetails(event)
                 is TONIntentEvent.SignDataIntent -> SignDataIntentDetails(event)
                 is TONIntentEvent.ActionIntent -> ActionIntentDetails(event)
+                is TONIntentEvent.ConnectIntent -> ConnectIntentDetails(event)
             }
         }
 
@@ -159,6 +157,13 @@ private fun SignDataIntentDetails(event: TONIntentEvent.SignDataIntent) {
 @Composable
 private fun ActionIntentDetails(event: TONIntentEvent.ActionIntent) {
     LabelValue("Action URL", event.actionUrl)
+}
+
+@Composable
+private fun ConnectIntentDetails(event: TONIntentEvent.ConnectIntent) {
+    event.dAppName?.let { LabelValue("dApp", it) }
+    event.dAppUrl?.let { LabelValue("URL", it) }
+    event.manifestUrl?.let { LabelValue("Manifest", it) }
 }
 
 @Composable

@@ -358,15 +358,6 @@ internal class TonConnectOperations(
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_INTENT, argsArray)
     }
 
-    suspend fun processConnectAfterIntent(event: TONIntentEvent, walletId: String) {
-        ensureInitialized()
-        val argsArray = JSONArray().apply {
-            put(event.rawJson)
-            put(walletId)
-        }
-        rpcClient.call(BridgeMethodConstants.METHOD_PROCESS_CONNECT_AFTER_INTENT, argsArray)
-    }
-
     private fun JSONObject.optNullableString(key: String): String? {
         val value = opt(key)
         return when (value) {

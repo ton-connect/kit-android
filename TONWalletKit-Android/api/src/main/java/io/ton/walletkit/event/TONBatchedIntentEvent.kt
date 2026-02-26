@@ -42,8 +42,6 @@ data class TONBatchedIntentEvent(
     val origin: String,
     /** Client public key for response routing (optional for fire-and-forget). */
     val clientId: String?,
-    /** Whether a connect flow should follow after all intents are approved. */
-    val hasConnectRequest: Boolean,
     /** The individual intent events in this batch. */
     val intents: List<TONIntentEvent>,
     /** Raw JSON for bridge passthrough. */

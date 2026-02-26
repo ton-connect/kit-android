@@ -355,8 +355,6 @@ internal interface WalletKitEngine : RequestHandler {
 
     suspend fun rejectBatchedIntent(event: TONBatchedIntentEvent, reason: String? = null, errorCode: Int? = null)
 
-    suspend fun processConnectAfterIntent(event: TONIntentEvent, walletId: String)
-
     /**
      * Get NFTs owned by a wallet with pagination.
      *

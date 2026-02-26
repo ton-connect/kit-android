@@ -38,7 +38,6 @@ import kotlinx.serialization.Serializable
  *
  * @param id Unique identifier for the bridge event
  * @param origin
- * @param hasConnectRequest Whether a connect flow should follow after intent approval
  * @param manifestUrl Manifest URL (for domain binding)
  * @param payload
  * @param from
@@ -65,10 +64,6 @@ data class TONSignDataIntentRequestEvent(
 
     @Contextual @SerialName(value = "origin")
     val origin: TONIntentOrigin,
-
-    /* Whether a connect flow should follow after intent approval */
-    @SerialName(value = "hasConnectRequest")
-    val hasConnectRequest: kotlin.Boolean,
 
     /* Manifest URL (for domain binding) */
     @SerialName(value = "manifestUrl")

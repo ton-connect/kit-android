@@ -39,7 +39,6 @@ import kotlinx.serialization.Serializable
  * @param id Unique identifier for the bridge event
  * @param origin
  * @param intents The intent requests in this batch
- * @param hasConnectRequest Whether a connect flow should follow after all intents are approved
  * @param from
  * @param walletAddress
  * @param walletId Wallet identifier associated with the event
@@ -67,10 +66,6 @@ data class TONBatchedIntentEvent(
     /* The intent requests in this batch */
     @SerialName(value = "intents")
     val intents: kotlin.collections.List<TONIntentRequestEvent>,
-
-    /* Whether a connect flow should follow after all intents are approved */
-    @SerialName(value = "hasConnectRequest")
-    val hasConnectRequest: kotlin.Boolean,
 
     @SerialName(value = "from")
     val from: kotlin.String? = null,

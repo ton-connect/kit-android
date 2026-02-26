@@ -36524,15 +36524,15 @@ class IntentParser {
   async parseUrl(url) {
     try {
       const parsedUrl = new URL(url);
-      const clientId = parsedUrl.searchParams.get("id");
-      if (!clientId) {
-        throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Missing client ID (id) in intent URL");
-      }
+      const clientId = parsedUrl.searchParams.get("id") || void 0;
       const normalized = url.trim().toLowerCase();
       if (normalized.startsWith(INTENT_INLINE_SCHEME)) {
         return this.parseInlinePayload(parsedUrl, clientId);
       }
       if (normalized.startsWith(INTENT_SCHEME)) {
+        if (!clientId) {
+          throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Missing client ID (id) in object storage intent URL (required for decryption)");
+        }
         return this.parseObjectStoragePayload(parsedUrl, clientId);
       }
       throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Unknown intent URL scheme");
@@ -36771,8 +36771,7 @@ class IntentParser {
     const base = {
       id: sourceEvent.id,
       origin: sourceEvent.origin,
-      clientId: sourceEvent.clientId,
-      hasConnectRequest: sourceEvent.hasConnectRequest
+      clientId: sourceEvent.clientId
     };
     switch (action_type) {
       case "sendTransaction":
@@ -36837,12 +36836,10 @@ class IntentParser {
   // -- Wire → Model mapping -------------------------------------------------
   toIntentEvent(parsed) {
     const { clientId, request, origin, traceId } = parsed;
-    const hasConnectRequest = !!request.c;
     const base = {
       id: request.id,
       origin,
       clientId,
-      hasConnectRequest,
       traceId,
       returnStrategy: void 0
     };
@@ -37052,14 +37049,15 @@ class IntentHandler {
   walletKitOptions;
   bridgeManager;
   walletManager;
+  analyticsManager;
   parser = new IntentParser();
   resolver = new IntentResolver();
   callbacks = [];
-  pendingConnectRequests = /* @__PURE__ */ new Map();
-  constructor(walletKitOptions, bridgeManager, walletManager) {
+  constructor(walletKitOptions, bridgeManager, walletManager, analyticsManager) {
     this.walletKitOptions = walletKitOptions;
     this.bridgeManager = bridgeManager;
     this.walletManager = walletManager;
+    this.analyticsManager = analyticsManager;
   }
   // -- Public: Parsing ------------------------------------------------------
   isIntentUrl(url) {
@@ -37067,16 +37065,40 @@ class IntentHandler {
   }
   /**
    * Parse an intent URL, resolve items, emulate preview, and emit the event.
+   *
+   * When a connect request is present, the result is always a
+   * {@link BatchedIntentEvent} with the connect as the first item.
+   * Multi-item transaction intents are also batched (one item per action).
    */
   async handleIntentUrl(url, walletId) {
     const { event, connectRequest } = await this.parser.parse(url);
+    if (event.type === "connect")
+      return;
+    let connectItem;
     if (connectRequest) {
-      this.pendingConnectRequests.set(event.value.id, connectRequest);
+      const connectionEvent = await this.resolveConnectRequest(connectRequest, event);
+      connectItem = { type: "connect", value: connectionEvent };
     }
     if (event.type === "transaction") {
-      await this.resolveAndEmitTransaction(event, walletId);
+      if (connectItem || event.value.items.length > 1) {
+        await this.resolveAndEmitBatchedTransaction(event, walletId, connectItem);
+      } else {
+        await this.resolveAndEmitTransaction(event, walletId);
+      }
     } else {
-      this.emit(event);
+      if (connectItem) {
+        const batch = {
+          id: event.value.id,
+          origin: event.value.origin,
+          clientId: event.value.clientId,
+          traceId: event.value.traceId,
+          returnStrategy: event.value.returnStrategy,
+          intents: [connectItem, event]
+        };
+        this.emit(batch);
+      } else {
+        this.emit(event);
+      }
     }
   }
   // -- Public: Callbacks ----------------------------------------------------
@@ -37098,6 +37120,42 @@ class IntentHandler {
       boc: signedBoc
     };
     await this.sendResponse(event, { type: "transaction", value: result });
+    return result;
+  }
+  /**
+   * Approve a batched intent event.
+   *
+   * Collects all items from the inner transaction events, builds a single
+   * combined {@link TransactionRequest}, signs it as one transaction, and
+   * sends a single response back to the dApp.
+   */
+  async approveBatchedIntent(batch, walletId) {
+    const wallet2 = this.getWallet(walletId);
+    const allItems = [];
+    let deliveryMode = "send";
+    for (const intent of batch.intents) {
+      if (intent.type === "transaction") {
+        allItems.push(...intent.value.items);
+        if (intent.value.deliveryMode === "signOnly") {
+          deliveryMode = "signOnly";
+        }
+      }
+    }
+    if (allItems.length === 0) {
+      throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Batched intent contains no transaction items");
+    }
+    const firstTx = batch.intents.find((i) => i.type === "transaction");
+    const network = firstTx?.type === "transaction" ? firstTx.value.network : void 0;
+    const validUntil = firstTx?.type === "transaction" ? firstTx.value.validUntil : void 0;
+    const transactionRequest = await this.resolver.intentItemsToTransactionRequest(allItems, wallet2, network, validUntil);
+    const signedBoc = await wallet2.getSignedSendTransaction(transactionRequest);
+    if (deliveryMode === "send" && !this.walletKitOptions.dev?.disableNetworkSend) {
+      await CallForSuccess(() => wallet2.getClient().sendBoc(signedBoc));
+    }
+    const result = {
+      boc: signedBoc
+    };
+    await this.sendBatchResponse(batch, { type: "transaction", value: result });
     return result;
   }
   async approveSignDataIntent(event, walletId) {
@@ -37146,20 +37204,18 @@ class IntentHandler {
         message: reason || "User declined the request"
       }
     };
-    await this.sendResponse(event.value, { type: "error", value: result });
-    this.pendingConnectRequests.delete(event.value.id);
+    const isBatched = "intents" in event;
+    if (isBatched) {
+      await this.sendBatchResponse(event, { type: "error", value: result });
+    } else if (event.type !== "connect") {
+      await this.sendResponse(event.value, { type: "error", value: result });
+    }
     return result;
   }
   // -- Public: Utilities ----------------------------------------------------
   async intentItemsToTransactionRequest(items, walletId) {
     const wallet2 = this.getWallet(walletId);
     return this.resolver.intentItemsToTransactionRequest(items, wallet2);
-  }
-  getPendingConnectRequest(eventId) {
-    return this.pendingConnectRequests.get(eventId);
-  }
-  removePendingConnectRequest(eventId) {
-    this.pendingConnectRequests.delete(eventId);
   }
   // -- Private: Resolution & Emulation --------------------------------------
   async resolveAndEmitTransaction(event, walletId) {
@@ -37176,6 +37232,74 @@ class IntentHandler {
     }
     this.emit(event);
   }
+  /**
+   * Resolve a `ConnectRequest` (manifestUrl + items) into a full
+   * `ConnectionRequestEvent` by fetching the manifest.
+   */
+  async resolveConnectRequest(connectRequest, event) {
+    const bridgeEvent = {
+      from: event.value.clientId || "",
+      id: event.value.id,
+      method: "connect",
+      params: {
+        manifest: { url: connectRequest.manifestUrl },
+        items: connectRequest.items
+      },
+      timestamp: Date.now(),
+      domain: ""
+    };
+    const connectHandler = new ConnectHandler(() => {
+    }, this.walletKitOptions, this.analyticsManager);
+    return connectHandler.handle(bridgeEvent);
+  }
+  /**
+   * Split a multi-item transaction intent into per-item events,
+   * resolve and emulate each, then emit as a {@link BatchedIntentEvent}.
+   *
+   * If `connectItem` is provided it is prepended to the batch so the
+   * wallet can display the connect alongside the transaction items.
+   */
+  async resolveAndEmitBatchedTransaction(event, walletId, connectItem) {
+    const txEvent = event.value;
+    const wallet2 = this.getWallet(walletId);
+    const perItemEvents = [];
+    for (let i = 0; i < txEvent.items.length; i++) {
+      const item = txEvent.items[i];
+      const itemEvent = {
+        id: `${txEvent.id}_${i}`,
+        origin: txEvent.origin,
+        clientId: txEvent.clientId,
+        traceId: txEvent.traceId,
+        returnStrategy: txEvent.returnStrategy,
+        deliveryMode: txEvent.deliveryMode,
+        network: txEvent.network,
+        validUntil: txEvent.validUntil,
+        items: [item]
+      };
+      try {
+        const resolved = await this.resolveTransaction(itemEvent, wallet2);
+        itemEvent.resolvedTransaction = resolved;
+        const preview = await wallet2.getTransactionPreview(resolved);
+        itemEvent.preview = preview;
+      } catch (error2) {
+        log$3.warn("Failed to resolve/emulate batched item", { error: error2, index: i });
+      }
+      perItemEvents.push({ type: "transaction", value: itemEvent });
+    }
+    const intents = [];
+    if (connectItem)
+      intents.push(connectItem);
+    intents.push(...perItemEvents);
+    const batch = {
+      id: txEvent.id,
+      origin: txEvent.origin,
+      clientId: txEvent.clientId,
+      traceId: txEvent.traceId,
+      returnStrategy: txEvent.returnStrategy,
+      intents
+    };
+    this.emit(batch);
+  }
   async resolveTransaction(event, wallet2) {
     return this.resolver.intentItemsToTransactionRequest(event.items, wallet2, event.network, event.validUntil);
   }
@@ -37190,6 +37314,18 @@ class IntentHandler {
       await this.bridgeManager.sendIntentResponse(event.clientId, wireResponse, event.traceId);
     } catch (error2) {
       log$3.error("Failed to send intent response", { error: error2, eventId: event.id });
+    }
+  }
+  async sendBatchResponse(batch, result) {
+    if (!batch.clientId) {
+      log$3.debug("No clientId on batched intent, skipping response send");
+      return;
+    }
+    const wireResponse = this.toWireResponse(batch.id, result);
+    try {
+      await this.bridgeManager.sendIntentResponse(batch.clientId, wireResponse, batch.traceId);
+    } catch (error2) {
+      log$3.error("Failed to send batched intent response", { error: error2, batchId: batch.id });
     }
   }
   /**
@@ -37375,7 +37511,7 @@ class TonWalletKit {
     this.requestProcessor = components.requestProcessor;
     this.eventProcessor = components.eventProcessor;
     this.bridgeManager = components.bridgeManager;
-    this.intentHandler = new IntentHandler(this.config, this.bridgeManager, this.walletManager);
+    this.intentHandler = new IntentHandler(this.config, this.bridgeManager, this.walletManager, this.analyticsManager);
   }
   /**
    * Setup event routing from bridge to handlers
@@ -37616,6 +37752,17 @@ class TonWalletKit {
     await this.ensureInitialized();
     return this.intentHandler.approveActionIntent(event, walletId);
   }
+  async approveBatchedIntent(batch, walletId, proof) {
+    await this.ensureInitialized();
+    const connectItems = batch.intents.filter((i) => i.type === "connect");
+    for (const item of connectItems) {
+      if (item.type === "connect") {
+        item.value.walletId = walletId;
+        await this.requestProcessor.approveConnectRequest(item.value, proof ? { proof } : void 0);
+      }
+    }
+    return this.intentHandler.approveBatchedIntent(batch, walletId);
+  }
   async rejectIntent(event, reason, errorCode) {
     await this.ensureInitialized();
     return this.intentHandler.rejectIntent(event, reason, errorCode);
@@ -37623,34 +37770,6 @@ class TonWalletKit {
   async intentItemsToTransactionRequest(items, walletId) {
     await this.ensureInitialized();
     return this.intentHandler.intentItemsToTransactionRequest(items, walletId);
-  }
-  async processConnectAfterIntent(event, walletId, proof) {
-    await this.ensureInitialized();
-    const isBatched = "intents" in event;
-    const eventId = isBatched ? event.id : event.value.id;
-    const clientId = isBatched ? event.clientId : event.value.clientId;
-    const connectRequest = this.intentHandler.getPendingConnectRequest(eventId);
-    if (!connectRequest) {
-      log$2.warn("No pending connect request for intent", { eventId });
-      return;
-    }
-    this.intentHandler.removePendingConnectRequest(eventId);
-    const bridgeEvent = {
-      from: clientId || "",
-      id: eventId,
-      method: "connect",
-      params: {
-        manifest: { url: connectRequest.manifestUrl },
-        items: connectRequest.items
-      },
-      timestamp: Date.now(),
-      domain: ""
-    };
-    const connectHandler = new ConnectHandler(() => {
-    }, this.config, this.analyticsManager);
-    const connectionEvent = await connectHandler.handle(bridgeEvent);
-    connectionEvent.walletId = walletId;
-    await this.requestProcessor.approveConnectRequest(connectionEvent, proof ? { proof } : void 0);
   }
   // === URL Processing API ===
   /**
@@ -39312,51 +39431,6 @@ function bigIntReplacer(_key, value) {
   }
   return value;
 }
-const pendingRequests = /* @__PURE__ */ new Map();
-function bridgeRequestSync(method, params) {
-  const native = window.WalletKitNative;
-  if (!native || typeof native.adapterCallSync !== "function") {
-    throw new Error("WalletKitNative.adapterCallSync not available");
-  }
-  return native.adapterCallSync(method, JSON.stringify(params));
-}
-function bridgeRequest(method, params) {
-  const id = v7();
-  return new Promise((resolve, reject) => {
-    pendingRequests.set(id, { resolve, reject });
-    postToNative({ kind: "request", id, method, params });
-  });
-}
-function registerNativeResponseHandler() {
-  window.__walletkitResponse = (id, resultJson, errorJson) => {
-    var _a;
-    const entry = pendingRequests.get(id);
-    if (!entry) {
-      warn("[walletkitBridge] __walletkitResponse: no pending request for id", id);
-      return;
-    }
-    pendingRequests.delete(id);
-    if (errorJson) {
-      try {
-        const err = JSON.parse(errorJson);
-        entry.reject(new Error((_a = err.message) != null ? _a : "Native request failed"));
-      } catch (e) {
-        entry.reject(new Error(errorJson));
-      }
-      return;
-    }
-    if (resultJson) {
-      try {
-        entry.resolve(JSON.parse(resultJson));
-      } catch (e) {
-        entry.resolve(resultJson);
-      }
-    } else {
-      entry.resolve(void 0);
-    }
-  };
-  info("[walletkitBridge] __walletkitResponse handler registered");
-}
 function resolveNativeBridge(scope) {
   const candidate = scope.WalletKitNative;
   if (candidate && typeof candidate.postMessage === "function") {
@@ -39706,6 +39780,13 @@ var __async$5 = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
+function signWithCustomSigner(signerId, bytes) {
+  return __async$5(this, null, function* () {
+    var _a, _b;
+    const result = yield (_b = (_a = window.WalletKitNative) == null ? void 0 : _a.signWithCustomSigner) == null ? void 0 : _b.call(_a, signerId, Array.from(bytes));
+    return result;
+  });
+}
 function mnemonicToKeyPair(args) {
   return __async$5(this, null, function* () {
     var _a;
@@ -39731,22 +39812,6 @@ function createTonMnemonic() {
     return CreateTonMnemonic$1();
   });
 }
-const store = /* @__PURE__ */ new Map();
-let nextId = 1;
-function retain(prefix, obj) {
-  const id = `${prefix}_${nextId++}`;
-  store.set(id, obj);
-  return id;
-}
-function retainWithId(id, obj) {
-  store.set(id, obj);
-}
-function get(id) {
-  return store.get(id);
-}
-function release(id) {
-  return store.delete(id);
-}
 var __async$4 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -39767,72 +39832,6 @@ var __async$4 = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
-class ProxyWalletAdapter {
-  constructor(adapterId, apiClientProvider) {
-    this.adapterId = adapterId;
-    this.apiClientProvider = apiClientProvider;
-  }
-  getPublicKey() {
-    return bridgeRequestSync("getPublicKey", { adapterId: this.adapterId });
-  }
-  getNetwork() {
-    const raw = bridgeRequestSync("getNetwork", { adapterId: this.adapterId });
-    const parsed = JSON.parse(raw);
-    return parsed;
-  }
-  getClient() {
-    return this.apiClientProvider(this.getNetwork());
-  }
-  getAddress() {
-    return bridgeRequestSync("getAddress", { adapterId: this.adapterId });
-  }
-  getWalletId() {
-    return bridgeRequestSync("getWalletId", { adapterId: this.adapterId });
-  }
-  getStateInit() {
-    return __async$4(this, null, function* () {
-      const result = yield bridgeRequest("adapterGetStateInit", { adapterId: this.adapterId });
-      if (!result) throw new Error("adapterGetStateInit: no result from native");
-      return result;
-    });
-  }
-  getSignedSendTransaction(input, options) {
-    return __async$4(this, null, function* () {
-      var _a;
-      const result = yield bridgeRequest("adapterSignTransaction", {
-        adapterId: this.adapterId,
-        input: JSON.stringify(input),
-        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
-      });
-      if (!result) throw new Error("adapterSignTransaction: no result from native");
-      return result;
-    });
-  }
-  getSignedSignData(input, options) {
-    return __async$4(this, null, function* () {
-      var _a;
-      const result = yield bridgeRequest("adapterSignData", {
-        adapterId: this.adapterId,
-        input: JSON.stringify(input),
-        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
-      });
-      if (!result) throw new Error("adapterSignData: no result from native");
-      return result;
-    });
-  }
-  getSignedTonProof(input, options) {
-    return __async$4(this, null, function* () {
-      var _a;
-      const result = yield bridgeRequest("adapterSignTonProof", {
-        adapterId: this.adapterId,
-        input: JSON.stringify(input),
-        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
-      });
-      if (!result) throw new Error("adapterSignTonProof: no result from native");
-      return result;
-    });
-  }
-}
 function getWallets() {
   return __async$4(this, null, function* () {
     const wallets = yield kit("getWallets");
@@ -39865,96 +39864,82 @@ function getBalance(args) {
     return wallet(args.walletId, "getBalance");
   });
 }
-function createSignerFromMnemonic(args) {
+const signerStore = /* @__PURE__ */ new Map();
+const adapterStore = /* @__PURE__ */ new Map();
+function getSigner(args) {
+  return __async$4(this, null, function* () {
+    if (args.isCustom && args.publicKey) {
+      return {
+        sign: (bytes) => __async$4(null, null, function* () {
+          return yield signWithCustomSigner(args.signerId, Uint8Array.from(bytes));
+        }),
+        publicKey: args.publicKey
+      };
+    }
+    const storedSigner = signerStore.get(args.signerId);
+    if (!storedSigner) {
+      throw new Error(`Signer not found: ${args.signerId}`);
+    }
+    return storedSigner;
+  });
+}
+function createSigner(args) {
   return __async$4(this, null, function* () {
     var _a;
-    if (!Signer$1) throw new Error("Signer module not loaded");
-    const signer = yield Signer$1.fromMnemonic(args.mnemonic, { type: (_a = args.mnemonicType) != null ? _a : "ton" });
-    const signerId = retain("signer", signer);
-    return { signerId, publicKey: signer.publicKey };
+    if (!Signer$1) {
+      throw new Error("Signer module not loaded");
+    }
+    if (!((_a = args.mnemonic) == null ? void 0 : _a.length) && !args.secretKey) {
+      throw new Error("Either mnemonic or secretKey is required");
+    }
+    const signer = args.mnemonic && args.mnemonic.length > 0 ? yield Signer$1.fromMnemonic(args.mnemonic, { type: args.mnemonicType || "ton" }) : yield Signer$1.fromPrivateKey(args.secretKey);
+    const tempId = `signer_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    signerStore.set(tempId, signer);
+    return { _tempId: tempId, signer };
   });
 }
-function createSignerFromPrivateKey(args) {
+function createAdapter(args) {
   return __async$4(this, null, function* () {
-    if (!Signer$1) throw new Error("Signer module not loaded");
-    const signer = yield Signer$1.fromPrivateKey(args.secretKey);
-    const signerId = retain("signer", signer);
-    return { signerId, publicKey: signer.publicKey };
-  });
-}
-function createSignerFromCustom(args) {
-  return __async$4(this, null, function* () {
-    const { signerId, publicKey } = args;
-    const proxySigner = {
-      publicKey,
-      sign: (bytes) => __async$4(null, null, function* () {
-        const result = yield bridgeRequest("signWithCustomSigner", {
-          signerId,
-          data: Array.from(bytes)
-        });
-        if (!result) throw new Error("signWithCustomSigner: no result from native");
-        return result;
-      })
-    };
-    retainWithId(signerId, proxySigner);
-    return { signerId, publicKey };
-  });
-}
-function createV5R1WalletAdapter(args) {
-  return __async$4(this, null, function* () {
-    var _a;
     const instance = yield getKit();
-    const signer = get(args.signerId);
-    if (!signer) throw new Error(`Signer not found in registry: ${args.signerId}`);
+    const signer = yield getSigner(args);
+    const AdapterClass = args.walletVersion === "v5r1" ? WalletV5R1Adapter$1 : WalletV4R2Adapter$1;
+    if (!AdapterClass) {
+      throw new Error(`WalletAdapter module not loaded`);
+    }
     const network = args.network;
-    if (!WalletV5R1Adapter$1) throw new Error("WalletV5R1Adapter module not loaded");
-    const adapter = yield WalletV5R1Adapter$1.create(signer, {
+    const adapter = yield AdapterClass.create(signer, {
       client: instance.getApiClient(network),
       network,
-      workchain: (_a = args.workchain) != null ? _a : 0,
+      workchain: args.workchain,
       walletId: args.walletId
     });
-    const adapterId = retain("adapter", adapter);
-    return { adapterId, address: adapter.getAddress() };
+    const tempId = `adapter_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    adapterStore.set(tempId, adapter);
+    return { _tempId: tempId, adapter };
   });
 }
-function createV4R2WalletAdapter(args) {
+function getAdapterAddress(args) {
   return __async$4(this, null, function* () {
-    var _a;
-    const instance = yield getKit();
-    const signer = get(args.signerId);
-    if (!signer) throw new Error(`Signer not found in registry: ${args.signerId}`);
-    const network = args.network;
-    if (!WalletV4R2Adapter$1) throw new Error("WalletV4R2Adapter module not loaded");
-    const adapter = yield WalletV4R2Adapter$1.create(signer, {
-      client: instance.getApiClient(network),
-      network,
-      workchain: (_a = args.workchain) != null ? _a : 0,
-      walletId: args.walletId
-    });
-    const adapterId = retain("adapter", adapter);
-    return { adapterId, address: adapter.getAddress() };
+    const adapter = adapterStore.get(args.adapterId);
+    if (!adapter) {
+      throw new Error(`Adapter not found: ${args.adapterId}`);
+    }
+    return adapter.getAddress();
   });
 }
 function addWallet(args) {
   return __async$4(this, null, function* () {
-    var _a, _b;
+    var _a;
     const instance = yield getKit();
-    const existingAdapter = get(args.adapterId);
-    if (existingAdapter) {
-      const w2 = yield instance.addWallet(existingAdapter);
-      if (!w2) return null;
-      return { walletId: (_a = w2.getWalletId) == null ? void 0 : _a.call(w2), wallet: w2 };
+    const adapter = adapterStore.get(args.adapterId);
+    if (!adapter) {
+      throw new Error(`Adapter not found: ${args.adapterId}`);
     }
-    const proxyAdapter = new ProxyWalletAdapter(args.adapterId, (network) => instance.getApiClient(network));
-    const w = yield instance.addWallet(proxyAdapter);
+    const w = yield instance.addWallet(adapter);
+    adapterStore.delete(args.adapterId);
     if (!w) return null;
-    return { walletId: (_b = w.getWalletId) == null ? void 0 : _b.call(w), wallet: w };
+    return { walletId: (_a = w.getWalletId) == null ? void 0 : _a.call(w), wallet: w };
   });
-}
-function releaseRef(args) {
-  release(args.id);
-  return { ok: true };
 }
 var __async$3 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
@@ -40179,6 +40164,11 @@ function approveActionIntent(args) {
     return kit("approveActionIntent", ...args);
   });
 }
+function approveBatchedIntent(args) {
+  return __async(this, null, function* () {
+    return kit("approveBatchedIntent", ...args);
+  });
+}
 function rejectIntent(args) {
   return __async(this, null, function* () {
     return kit("rejectIntent", ...args);
@@ -40187,11 +40177,6 @@ function rejectIntent(args) {
 function intentItemsToTransactionRequest(args) {
   return __async(this, null, function* () {
     return kit("intentItemsToTransactionRequest", ...args);
-  });
-}
-function processConnectAfterIntent(args) {
-  return __async(this, null, function* () {
-    return kit("processConnectAfterIntent", ...args);
   });
 }
 const api = {
@@ -40203,15 +40188,11 @@ const api = {
   mnemonicToKeyPair,
   sign,
   createTonMnemonic,
-  // Wallets — 3-step factory
-  createSignerFromMnemonic,
-  createSignerFromPrivateKey,
-  createSignerFromCustom,
-  createV5R1WalletAdapter,
-  createV4R2WalletAdapter,
-  // Wallets — unified addWallet (registry path + proxy adapter path)
+  // Wallets
+  createSigner,
+  createAdapter,
+  getAdapterAddress,
   addWallet,
-  releaseRef,
   getWallets,
   getWallet: getWalletById,
   getWalletAddress,
@@ -40257,12 +40238,11 @@ const api = {
   approveTransactionIntent,
   approveSignDataIntent,
   approveActionIntent,
+  approveBatchedIntent,
   rejectIntent,
-  intentItemsToTransactionRequest,
-  processConnectAfterIntent
+  intentItemsToTransactionRequest
 };
 setBridgeApi(api);
 registerNativeCallHandler();
-registerNativeResponseHandler();
 window.walletkitBridge = api;
 //# sourceMappingURL=walletkit-android-bridge.mjs.map

@@ -415,11 +415,6 @@ internal class WebViewWalletKitEngine private constructor(
         errorCode: Int?,
     ) = tonConnectOperations.rejectBatchedIntent(event, reason, errorCode)
 
-    override suspend fun processConnectAfterIntent(
-        event: TONIntentEvent,
-        walletId: String,
-    ) = tonConnectOperations.processConnectAfterIntent(event, walletId)
-
     override suspend fun getNfts(
         walletId: String,
         limit: Int,

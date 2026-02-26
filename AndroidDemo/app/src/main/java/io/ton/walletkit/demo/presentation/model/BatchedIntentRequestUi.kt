@@ -30,7 +30,6 @@ data class BatchedIntentRequestUi(
     val id: String,
     val origin: String,
     val walletId: String,
-    val hasConnectRequest: Boolean,
     val summary: String,
     val event: TONBatchedIntentEvent,
 )
