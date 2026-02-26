@@ -37116,7 +37116,7 @@ class IntentHandler {
     const signatureBase64 = HexToBase64(signature);
     const result = {
       signature: signatureBase64,
-      address: distExports$1.Address.parse(wallet2.getAddress()).toRawString(),
+      address: wallet2.getAddress(),
       timestamp: signData.timestamp,
       domain: signData.domain,
       payload: event.payload
@@ -40156,58 +40156,42 @@ var __async = (__this, __arguments, generator) => {
 };
 function isIntentUrl(args) {
   return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    return kit2.isIntentUrl(args.url);
+    return kit("isIntentUrl", ...args);
   });
 }
 function handleIntentUrl(args) {
   return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    return kit2.handleIntentUrl(args.url, args.walletId);
+    return kit("handleIntentUrl", ...args);
   });
 }
 function approveTransactionIntent(args) {
   return __async(this, null, function* () {
-    var _a;
-    const kit2 = yield getKit();
-    const event = (_a = args.event.value) != null ? _a : args.event;
-    return kit2.approveTransactionIntent(event, args.walletId);
+    return kit("approveTransactionIntent", ...args);
   });
 }
 function approveSignDataIntent(args) {
   return __async(this, null, function* () {
-    var _a;
-    const kit2 = yield getKit();
-    const event = (_a = args.event.value) != null ? _a : args.event;
-    return kit2.approveSignDataIntent(event, args.walletId);
+    return kit("approveSignDataIntent", ...args);
   });
 }
 function approveActionIntent(args) {
   return __async(this, null, function* () {
-    var _a;
-    const kit2 = yield getKit();
-    const event = (_a = args.event.value) != null ? _a : args.event;
-    return kit2.approveActionIntent(event, args.walletId);
+    return kit("approveActionIntent", ...args);
   });
 }
 function rejectIntent(args) {
   return __async(this, null, function* () {
-    var _a;
-    const kit2 = yield getKit();
-    const event = (_a = args.event.value) != null ? _a : args.event;
-    return kit2.rejectIntent(event, args.reason, args.errorCode);
+    return kit("rejectIntent", ...args);
   });
 }
 function intentItemsToTransactionRequest(args) {
   return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    return kit2.intentItemsToTransactionRequest(args.items, args.walletId);
+    return kit("intentItemsToTransactionRequest", ...args);
   });
 }
 function processConnectAfterIntent(args) {
   return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    return kit2.processConnectAfterIntent(args.event, args.walletId, args.proof);
+    return kit("processConnectAfterIntent", ...args);
   });
 }
 const api = {

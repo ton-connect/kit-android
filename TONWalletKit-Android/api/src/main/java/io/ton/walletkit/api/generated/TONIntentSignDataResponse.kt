@@ -29,6 +29,7 @@
 package io.ton.walletkit.api.generated
 
 import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -37,7 +38,7 @@ import kotlinx.serialization.Serializable
  * Successful response for sign data intent.
  *
  * @param signature
- * @param address Signer address (raw format: 0:hex)
+ * @param address
  * @param timestamp UNIX timestamp (seconds, UTC)
  * @param domain App domain
  * @param payload
@@ -48,9 +49,8 @@ data class TONIntentSignDataResponse(
     @Contextual @SerialName(value = "signature")
     val signature: io.ton.walletkit.model.TONBase64,
 
-    /* Signer address (raw format: 0:hex) */
-    @SerialName(value = "address")
-    val address: kotlin.String,
+    @Contextual @SerialName(value = "address")
+    val address: io.ton.walletkit.model.TONUserFriendlyAddress,
 
     /* UNIX timestamp (seconds, UTC) */
     @SerialName(value = "timestamp")
