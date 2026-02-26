@@ -32,7 +32,6 @@ sealed class TONIntentEvent {
     abstract val id: String
     abstract val origin: String
     abstract val clientId: String?
-    abstract val hasConnectRequest: Boolean
     abstract val intentType: String
 
     /** Raw JSON for bridge passthrough. */
@@ -42,7 +41,6 @@ sealed class TONIntentEvent {
         override val id: String,
         override val origin: String,
         override val clientId: String?,
-        override val hasConnectRequest: Boolean,
         val deliveryMode: String,
         val network: String?,
         val validUntil: Long?,
@@ -56,7 +54,6 @@ sealed class TONIntentEvent {
         override val id: String,
         override val origin: String,
         override val clientId: String?,
-        override val hasConnectRequest: Boolean,
         val network: String?,
         val manifestUrl: String,
         val payload: TONSignDataPayload,
@@ -69,11 +66,27 @@ sealed class TONIntentEvent {
         override val id: String,
         override val origin: String,
         override val clientId: String?,
-        override val hasConnectRequest: Boolean,
         val actionUrl: String,
         override val rawJson: JSONObject,
     ) : TONIntentEvent() {
         override val intentType: String = "action"
+    }
+
+    /**
+     * Connect intent — appears as the first item in a [TONBatchedIntentEvent]
+     * when the intent URL carries a connect request.
+     */
+    data class ConnectIntent(
+        override val id: String,
+        override val origin: String,
+        override val clientId: String?,
+        val manifestUrl: String?,
+        val dAppName: String?,
+        val dAppUrl: String?,
+        val dAppIconUrl: String?,
+        override val rawJson: JSONObject,
+    ) : TONIntentEvent() {
+        override val intentType: String = "connect"
     }
 }
 

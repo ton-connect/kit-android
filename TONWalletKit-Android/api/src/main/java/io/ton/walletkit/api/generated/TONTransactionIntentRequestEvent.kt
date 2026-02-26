@@ -38,7 +38,6 @@ import kotlinx.serialization.Serializable
  *
  * @param id Unique identifier for the bridge event
  * @param origin
- * @param hasConnectRequest Whether a connect flow should follow after intent approval
  * @param deliveryMode
  * @param items Original intent action items (for display / re-conversion)
  * @param from
@@ -68,10 +67,6 @@ data class TONTransactionIntentRequestEvent(
 
     @Contextual @SerialName(value = "origin")
     val origin: TONIntentOrigin,
-
-    /* Whether a connect flow should follow after intent approval */
-    @SerialName(value = "hasConnectRequest")
-    val hasConnectRequest: kotlin.Boolean,
 
     @Contextual @SerialName(value = "deliveryMode")
     val deliveryMode: TONIntentDeliveryMode,

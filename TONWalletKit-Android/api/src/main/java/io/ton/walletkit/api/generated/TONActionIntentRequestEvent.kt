@@ -38,7 +38,6 @@ import kotlinx.serialization.Serializable
  *
  * @param id Unique identifier for the bridge event
  * @param origin
- * @param hasConnectRequest Whether a connect flow should follow after intent approval
  * @param actionUrl Action URL to fetch
  * @param from
  * @param walletAddress
@@ -63,10 +62,6 @@ data class TONActionIntentRequestEvent(
 
     @Contextual @SerialName(value = "origin")
     val origin: TONIntentOrigin,
-
-    /* Whether a connect flow should follow after intent approval */
-    @SerialName(value = "hasConnectRequest")
-    val hasConnectRequest: kotlin.Boolean,
 
     /* Action URL to fetch */
     @SerialName(value = "actionUrl")

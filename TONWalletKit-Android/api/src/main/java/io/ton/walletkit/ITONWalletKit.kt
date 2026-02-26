@@ -173,9 +173,6 @@ interface ITONWalletKit {
     /** Reject a batched intent. */
     suspend fun rejectBatchedIntent(event: TONBatchedIntentEvent, reason: String? = null, errorCode: Int? = null)
 
-    /** Process deferred connect request after intent approval. */
-    suspend fun processConnectAfterIntent(event: TONIntentEvent, walletId: String)
-
     /**
      * Create WebView TON Connect injector.
      */

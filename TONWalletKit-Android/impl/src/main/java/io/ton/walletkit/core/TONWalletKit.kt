@@ -451,11 +451,6 @@ internal class TONWalletKit private constructor(
         engine.rejectBatchedIntent(event, reason, errorCode)
     }
 
-    override suspend fun processConnectAfterIntent(event: TONIntentEvent, walletId: String) {
-        checkNotDestroyed()
-        engine.processConnectAfterIntent(event, walletId)
-    }
-
     /**
      * Create a WebView TonConnect injector for the given WebView.
      *

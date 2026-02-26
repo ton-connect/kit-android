@@ -90,6 +90,17 @@ sealed class TONIntentRequestEvent {
         override val type: String = "action"
     }
 
+    /**
+     *
+     */
+    @Serializable
+    data class Connect(
+        @SerialName("value")
+        val value: TONConnectionRequestEvent,
+    ) : TONIntentRequestEvent() {
+        override val type: String = "connect"
+    }
+
     internal object Serializer : KSerializer<TONIntentRequestEvent> {
         override val descriptor: SerialDescriptor = buildClassSerialDescriptor("TONIntentRequestEvent")
 
@@ -120,6 +131,14 @@ sealed class TONIntentRequestEvent {
                     val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONActionIntentRequestEvent>(), value.value)
                     buildJsonObject {
                         put("type", JsonPrimitive("action"))
+                        put("value", valueJson)
+                    }
+                }
+                is Connect -> {
+                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
+                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONConnectionRequestEvent>(), value.value)
+                    buildJsonObject {
+                        put("type", JsonPrimitive("connect"))
                         put("value", valueJson)
                     }
                 }
@@ -155,6 +174,13 @@ sealed class TONIntentRequestEvent {
                         ?: throw SerializationException("Missing 'value' for TONIntentRequestEvent.Action")
                     Action(
                         jsonDecoder.json.decodeFromJsonElement(serializer<TONActionIntentRequestEvent>(), valueJson),
+                    )
+                }
+                "connect" -> {
+                    val valueJson = jsonObject["value"]
+                        ?: throw SerializationException("Missing 'value' for TONIntentRequestEvent.Connect")
+                    Connect(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONConnectionRequestEvent>(), valueJson),
                     )
                 }
                 else -> throw SerializationException("Unknown type '$typeValue' for TONIntentRequestEvent")

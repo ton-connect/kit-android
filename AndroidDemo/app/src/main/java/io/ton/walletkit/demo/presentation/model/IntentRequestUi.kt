@@ -31,7 +31,6 @@ data class IntentRequestUi(
     val intentType: String,
     val origin: String,
     val walletId: String,
-    val hasConnectRequest: Boolean,
     val summary: String,
     val event: TONIntentEvent,
 )

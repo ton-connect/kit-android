@@ -236,5 +236,4 @@ internal object BridgeMethodConstants {
     const val METHOD_APPROVE_BATCHED_INTENT = "approveBatchedIntent"
     const val METHOD_REJECT_INTENT = "rejectIntent"
     const val METHOD_INTENT_ITEMS_TO_TRANSACTION_REQUEST = "intentItemsToTransactionRequest"
-    const val METHOD_PROCESS_CONNECT_AFTER_INTENT = "processConnectAfterIntent"
 }

@@ -249,19 +249,18 @@ fun WalletScreen(
                         intentType = "batched",
                         origin = sheet.request.origin,
                         walletId = sheet.request.walletId,
-                        hasConnectRequest = sheet.request.hasConnectRequest,
                         summary = sheet.request.summary,
                         event = sheet.request.event.intents.firstOrNull()?.let { first ->
                             when (first) {
                                 is io.ton.walletkit.event.TONIntentEvent.TransactionIntent -> first
                                 is io.ton.walletkit.event.TONIntentEvent.SignDataIntent -> first
                                 is io.ton.walletkit.event.TONIntentEvent.ActionIntent -> first
+                                is io.ton.walletkit.event.TONIntentEvent.ConnectIntent -> first
                             }
                         } ?: io.ton.walletkit.event.TONIntentEvent.ActionIntent(
                             id = sheet.request.id,
                             origin = sheet.request.origin,
                             clientId = null,
-                            hasConnectRequest = false,
                             actionUrl = "",
                             rawJson = org.json.JSONObject(),
                         ),

@@ -1418,13 +1418,13 @@ class WalletKitViewModel @Inject constructor(
             is TONIntentEvent.TransactionIntent -> "${event.items.size} item(s)"
             is TONIntentEvent.SignDataIntent -> "Sign data (${event.payload.type})"
             is TONIntentEvent.ActionIntent -> event.actionUrl
+            is TONIntentEvent.ConnectIntent -> "Connect: ${event.dAppName ?: event.manifestUrl ?: "unknown"}"
         }
         val uiRequest = IntentRequestUi(
             id = event.id,
             intentType = event.intentType,
             origin = event.origin,
             walletId = walletId,
-            hasConnectRequest = event.hasConnectRequest,
             summary = summary,
             event = event,
         )
@@ -1441,9 +1441,7 @@ class WalletKitViewModel @Inject constructor(
                     is TONIntentEvent.TransactionIntent -> kit.approveTransactionIntent(event, request.walletId)
                     is TONIntentEvent.SignDataIntent -> kit.approveSignDataIntent(event, request.walletId)
                     is TONIntentEvent.ActionIntent -> kit.approveActionIntent(event, request.walletId)
-                }
-                if (request.hasConnectRequest) {
-                    kit.processConnectAfterIntent(request.event, request.walletId)
+                    is TONIntentEvent.ConnectIntent -> { /* connect is handled as part of batch approval */ }
                 }
             }.onSuccess {
                 onTonConnectRequestApproved()
@@ -1480,7 +1478,6 @@ class WalletKitViewModel @Inject constructor(
             id = event.id,
             origin = event.origin,
             walletId = walletId,
-            hasConnectRequest = event.hasConnectRequest,
             summary = summary,
             event = event,
         )

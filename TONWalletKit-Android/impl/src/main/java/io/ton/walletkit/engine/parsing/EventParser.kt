@@ -202,7 +202,6 @@ internal class EventParser(
         val id = data.optString("id", "")
         val origin = data.optString("origin", "deepLink")
         val clientId = data.optNullableString("clientId")
-        val hasConnectRequest = data.optBoolean("hasConnectRequest", false)
 
         val intentsArray = data.optJSONArray("intents") ?: org.json.JSONArray()
         val intents = buildList(intentsArray.length()) {
@@ -220,7 +219,6 @@ internal class EventParser(
             id = id,
             origin = origin,
             clientId = clientId,
-            hasConnectRequest = hasConnectRequest,
             intents = intents,
             rawJson = data,
         )
@@ -235,14 +233,12 @@ internal class EventParser(
         val id = value.optString("id", "")
         val origin = value.optString("origin", "deepLink")
         val clientId = value.optNullableString("clientId")
-        val hasConnectRequest = value.optBoolean("hasConnectRequest", false)
 
         return when (intentType) {
             "transaction" -> TONIntentEvent.TransactionIntent(
                 id = id,
                 origin = origin,
                 clientId = clientId,
-                hasConnectRequest = hasConnectRequest,
                 deliveryMode = value.optString("deliveryMode", "send"),
                 network = parseNetworkChainId(value),
                 validUntil = if (value.has("validUntil")) value.optLong("validUntil") else null,
@@ -254,7 +250,6 @@ internal class EventParser(
                 id = id,
                 origin = origin,
                 clientId = clientId,
-                hasConnectRequest = hasConnectRequest,
                 network = parseNetworkChainId(value),
                 manifestUrl = value.optString("manifestUrl", ""),
                 payload = parseSignDataPayload(value.optJSONObject("payload")),
@@ -265,10 +260,23 @@ internal class EventParser(
                 id = id,
                 origin = origin,
                 clientId = clientId,
-                hasConnectRequest = hasConnectRequest,
                 actionUrl = value.optString("actionUrl", ""),
                 rawJson = data,
             )
+
+            "connect" -> {
+                val preview = value.optJSONObject("preview")
+                TONIntentEvent.ConnectIntent(
+                    id = id,
+                    origin = origin,
+                    clientId = clientId,
+                    manifestUrl = value.optNullableString("manifestUrl"),
+                    dAppName = preview?.optNullableString("name"),
+                    dAppUrl = preview?.optNullableString("url"),
+                    dAppIconUrl = preview?.optNullableString("iconUrl"),
+                    rawJson = data,
+                )
+            }
 
             else -> throw IllegalArgumentException("Unknown intentType: $intentType")
         }
