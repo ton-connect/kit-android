@@ -29,6 +29,7 @@ import io.ton.walletkit.WebViewTonConnectInjector
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WalletKitEngine
+import io.ton.walletkit.event.TONBatchedIntentEvent
 import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.IntentSignDataResult
@@ -424,6 +425,14 @@ internal class TONWalletKit private constructor(
         engine.approveActionIntent(event, walletId)
     }
 
+    override suspend fun approveBatchedIntent(
+        event: TONBatchedIntentEvent,
+        walletId: String,
+    ): String {
+        checkNotDestroyed()
+        return engine.approveBatchedIntent(event, walletId)
+    }
+
     override suspend fun rejectIntent(
         event: TONIntentEvent,
         reason: String?,
@@ -431,6 +440,15 @@ internal class TONWalletKit private constructor(
     ) {
         checkNotDestroyed()
         engine.rejectIntent(event, reason, errorCode)
+    }
+
+    override suspend fun rejectBatchedIntent(
+        event: TONBatchedIntentEvent,
+        reason: String?,
+        errorCode: Int?,
+    ) {
+        checkNotDestroyed()
+        engine.rejectBatchedIntent(event, reason, errorCode)
     }
 
     override suspend fun processConnectAfterIntent(event: TONIntentEvent, walletId: String) {

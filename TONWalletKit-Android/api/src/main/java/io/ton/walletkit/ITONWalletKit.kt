@@ -25,6 +25,7 @@ import android.content.Context
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.config.TONWalletKitConfiguration
+import io.ton.walletkit.event.TONBatchedIntentEvent
 import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
@@ -163,8 +164,14 @@ interface ITONWalletKit {
     /** Approve an action intent. Fetches action URL, resolves and approves. */
     suspend fun approveActionIntent(event: TONIntentEvent.ActionIntent, walletId: String)
 
+    /** Approve a batched intent. Combines all items into one transaction. Returns signed BoC. */
+    suspend fun approveBatchedIntent(event: TONBatchedIntentEvent, walletId: String): String
+
     /** Reject any intent. */
     suspend fun rejectIntent(event: TONIntentEvent, reason: String? = null, errorCode: Int? = null)
+
+    /** Reject a batched intent. */
+    suspend fun rejectBatchedIntent(event: TONBatchedIntentEvent, reason: String? = null, errorCode: Int? = null)
 
     /** Process deferred connect request after intent approval. */
     suspend fun processConnectAfterIntent(event: TONIntentEvent, walletId: String)
