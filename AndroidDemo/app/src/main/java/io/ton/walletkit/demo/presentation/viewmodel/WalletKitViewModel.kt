@@ -160,6 +160,7 @@ class WalletKitViewModel @Inject constructor(
         data class Transaction(val request: TransactionRequestUi) : TonConnectAction
         data class SignData(val request: SignDataRequestUi, val viaSigner: Boolean) : TonConnectAction
         data class Intent(val request: IntentRequestUi) : TonConnectAction
+        data class BatchedIntent(val request: BatchedIntentRequestUi) : TonConnectAction
     }
 
     private var pendingTonConnectAction: TonConnectAction? = null
@@ -443,6 +444,22 @@ class WalletKitViewModel @Inject constructor(
                 }
                 dismissSheet()
             }
+            is TonConnectAction.BatchedIntent -> {
+                eventLogger.log(R.string.wallet_event_intent_approved, action.request.id)
+                viewModelScope.launch {
+                    refreshWallets()
+                    sessionsViewModel.refresh()
+                }
+                uiCoordinator.hideUrlPrompt()
+                dismissOrRestoreBrowserSheet()
+                // Show signed success status if the batch contained a signData intent
+                val hasSignData = action.request.event.intents.any {
+                    it is io.ton.walletkit.event.TONIntentEvent.SignDataIntent
+                }
+                if (hasSignData) {
+                    eventLogger.showTemporaryStatus(uiString(R.string.wallet_status_signed_success))
+                }
+            }
             null -> Unit
         }
         pendingTonConnectAction = null
@@ -472,6 +489,11 @@ class WalletKitViewModel @Inject constructor(
             is TonConnectAction.Intent -> {
                 eventLogger.log(R.string.wallet_event_intent_rejected, action.request.id)
                 dismissSheet()
+            }
+            is TonConnectAction.BatchedIntent -> {
+                eventLogger.log(R.string.wallet_event_intent_rejected, action.request.id)
+                uiCoordinator.hideUrlPrompt()
+                dismissOrRestoreBrowserSheet()
             }
             null -> Unit
         }
@@ -1473,7 +1495,8 @@ class WalletKitViewModel @Inject constructor(
     private fun onBatchedIntentRequest(event: TONBatchedIntentEvent) {
         val walletId = state.value.wallets.firstOrNull { it.address == state.value.activeWalletAddress }?.walletId
             ?: state.value.wallets.firstOrNull()?.walletId ?: ""
-        val summary = "${event.intents.size} batched intent(s)"
+        val intentTypes = event.intents.joinToString(" + ") { it.intentType }
+        val summary = "${event.intents.size} intent(s): $intentTypes"
         val uiRequest = BatchedIntentRequestUi(
             id = event.id,
             origin = event.origin,
@@ -1481,6 +1504,7 @@ class WalletKitViewModel @Inject constructor(
             summary = summary,
             event = event,
         )
+        pendingTonConnectAction = TonConnectAction.BatchedIntent(uiRequest)
         uiCoordinator.setSheet(SheetState.BatchedIntent(uiRequest))
         eventLogger.log(R.string.wallet_event_intent_request, "batched")
     }

@@ -92,6 +92,7 @@ import io.ton.walletkit.demo.presentation.ui.sections.NFTsSection
 import io.ton.walletkit.demo.presentation.ui.sections.SessionsSection
 import io.ton.walletkit.demo.presentation.ui.sections.WalletsSection
 import io.ton.walletkit.demo.presentation.ui.sheet.AddWalletSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.BatchedIntentRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.ConnectRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.IntentRequestSheet
@@ -243,28 +244,8 @@ fun WalletScreen(
                     onReject = { actions.onRejectIntent(sheet.request) },
                 )
 
-                is SheetState.BatchedIntent -> IntentRequestSheet(
-                    request = IntentRequestUi(
-                        id = sheet.request.id,
-                        intentType = "batched",
-                        origin = sheet.request.origin,
-                        walletId = sheet.request.walletId,
-                        summary = sheet.request.summary,
-                        event = sheet.request.event.intents.firstOrNull()?.let { first ->
-                            when (first) {
-                                is io.ton.walletkit.event.TONIntentEvent.TransactionIntent -> first
-                                is io.ton.walletkit.event.TONIntentEvent.SignDataIntent -> first
-                                is io.ton.walletkit.event.TONIntentEvent.ActionIntent -> first
-                                is io.ton.walletkit.event.TONIntentEvent.ConnectIntent -> first
-                            }
-                        } ?: io.ton.walletkit.event.TONIntentEvent.ActionIntent(
-                            id = sheet.request.id,
-                            origin = sheet.request.origin,
-                            clientId = null,
-                            actionUrl = "",
-                            rawJson = org.json.JSONObject(),
-                        ),
-                    ),
+                is SheetState.BatchedIntent -> BatchedIntentRequestSheet(
+                    request = sheet.request,
                     onApprove = { actions.onApproveBatchedIntent(sheet.request) },
                     onReject = { actions.onRejectBatchedIntent(sheet.request) },
                 )
