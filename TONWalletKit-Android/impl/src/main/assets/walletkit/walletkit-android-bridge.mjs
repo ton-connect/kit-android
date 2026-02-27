@@ -24704,7 +24704,7 @@ function delay(ms) {
     resolve();
   }, ms));
 }
-async function CallForSuccess(toCall, attempts = 20, delayMs = 100) {
+async function CallForSuccess(toCall, attempts = 20, delayMs = 100, shouldRetry) {
   if (typeof toCall !== "function") {
     throw new Error("unknown input");
   }
@@ -24716,6 +24716,9 @@ async function CallForSuccess(toCall, attempts = 20, delayMs = 100) {
       return res;
     } catch (err) {
       lastError = err;
+      if (shouldRetry && !shouldRetry(err)) {
+        throw err;
+      }
       i++;
       await delay(delayMs);
     }
@@ -26818,11 +26821,11 @@ function getWalletInfoWithDefaults(options) {
 }
 function getDeviceInfoForWallet(walletAdapter, deviceInfoOptions) {
   const baseDeviceInfo = getDeviceInfoWithDefaults(deviceInfoOptions);
-  if (walletAdapter?.getSupportedFeatures) {
-    const adapterFeatures = walletAdapter.getSupportedFeatures();
+  const walletSupportedFeatures = walletAdapter?.getSupportedFeatures();
+  if (walletSupportedFeatures) {
     const deviceInfo = {
       ...baseDeviceInfo,
-      features: adapterFeatures
+      features: walletSupportedFeatures
     };
     return addLegacySendTransactionFeature(deviceInfo);
   }
@@ -27952,6 +27955,10 @@ const Network = {
    */
   testnet: () => ({ chainId: "-3" }),
   /**
+   * TON Tetra L2 chain (chain ID: 662387)
+   */
+  tetra: () => ({ chainId: "662387" }),
+  /**
    * Custom network with specified chain ID
    */
   custom: (chainId) => ({ chainId })
@@ -28288,16 +28295,11 @@ class TransactionHandler extends BasicHandler {
   validateNetwork(network, wallet2) {
     let errors = [];
     if (typeof network === "string") {
-      if (network === "-3" || network === "-239") {
-        const chain = network === "-3" ? CHAIN.TESTNET : CHAIN.MAINNET;
-        const walletNetwork = wallet2.getNetwork();
-        if (chain !== walletNetwork.chainId) {
-          errors.push("Invalid network not equal to wallet network");
-        } else {
-          return { result: chain, isValid: errors.length === 0, errors };
-        }
+      const walletNetwork = wallet2.getNetwork();
+      if (network !== walletNetwork.chainId) {
+        errors.push("Invalid network not equal to wallet network");
       } else {
-        errors.push("Invalid network not a valid network");
+        return { result: network, isValid: errors.length === 0, errors };
       }
     } else {
       errors.push("Invalid network not a string");
@@ -29458,24 +29460,16 @@ function parseDomain(url) {
   }
 }
 function toTonConnectSignDataPayload(payload) {
-  let network;
-  if (payload.network?.chainId === CHAIN.MAINNET) {
-    network = CHAIN.MAINNET;
-  } else if (payload.network?.chainId === CHAIN.TESTNET) {
-    network = CHAIN.TESTNET;
-  } else {
-    network = void 0;
-  }
   if (payload.data.type === "text") {
     return {
-      network,
+      network: payload.network?.chainId,
       from: payload.fromAddress,
       type: "text",
       text: payload.data.value.content
     };
   } else if (payload.data.type === "cell") {
     return {
-      network,
+      network: payload.network?.chainId,
       from: payload.fromAddress,
       type: "cell",
       schema: payload.data.value.schema,
@@ -29483,7 +29477,7 @@ function toTonConnectSignDataPayload(payload) {
     };
   } else {
     return {
-      network,
+      network: payload.network?.chainId,
       from: payload.fromAddress,
       type: "binary",
       bytes: payload.data.value.content
@@ -30701,7 +30695,24 @@ function DefaultSignature(data, privateKey) {
   }
   return Uint8ArrayToHex(distExports.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(fullKey)));
 }
-function createWalletSigner(privateKey) {
+function DefaultDomainSignature(data, privateKey, domain) {
+  let fullKey = privateKey;
+  if (fullKey.length === 32) {
+    const keyPair = distExports.keyPairFromSeed(Buffer.from(fullKey));
+    fullKey = keyPair.secretKey;
+  }
+  return Uint8ArrayToHex(distExports$1.domainSign({
+    data: Buffer.from(Uint8Array.from(data)),
+    secretKey: Buffer.from(fullKey),
+    domain
+  }));
+}
+function createWalletSigner(privateKey, domain) {
+  if (domain) {
+    return async (data) => {
+      return DefaultDomainSignature(Uint8Array.from(data), privateKey, domain);
+    };
+  }
   return async (data) => {
     return DefaultSignature(Uint8Array.from(data), privateKey);
   };
@@ -30717,9 +30728,9 @@ class Signer {
    * @param options - Optional configuration for mnemonic type
    * @returns Signer function with publicKey property
    */
-  static async fromMnemonic(mnemonic2, options) {
+  static async fromMnemonic(mnemonic2, options, domain) {
     const keyPair = await MnemonicToKeyPair(mnemonic2, options?.type ?? "ton");
-    const signer = createWalletSigner(keyPair.secretKey);
+    const signer = createWalletSigner(keyPair.secretKey, domain);
     return {
       sign: signer,
       publicKey: Uint8ArrayToHex(keyPair.publicKey)
@@ -30730,10 +30741,10 @@ class Signer {
    * @param privateKey - Private key as hex string or Uint8Array
    * @returns Signer function with publicKey property
    */
-  static async fromPrivateKey(privateKey) {
+  static async fromPrivateKey(privateKey, domain) {
     const privateKeyBytes = typeof privateKey === "string" ? Uint8Array.from(Buffer.from(privateKey.replace("0x", ""), "hex")) : privateKey;
     const keyPair = distExports.keyPairFromSeed(Buffer.from(privateKeyBytes));
-    const signer = createWalletSigner(keyPair.secretKey);
+    const signer = createWalletSigner(keyPair.secretKey, domain);
     return {
       sign: signer,
       publicKey: Uint8ArrayToHex(keyPair.publicKey)
@@ -30849,6 +30860,147 @@ async function getNftsFromClient(client, ownerAddress, params) {
 async function getNftFromClient(client, address) {
   const result = await client.nftItemsByAddress({ address });
   return result.nfts.length > 0 ? result.nfts[0] : null;
+}
+const getTxOpcode = (tx) => {
+  const msg = tx.in_msg;
+  if (!msg)
+    return null;
+  return msg.opcode ?? null;
+};
+const createTraceTypeDetector = (triggerOpcodes) => {
+  return (transactions) => {
+    for (const tx of Object.values(transactions)) {
+      const opcode = getTxOpcode(tx);
+      if (opcode && triggerOpcodes.has(opcode))
+        return true;
+    }
+    return false;
+  };
+};
+const isTransactionFailed = (tx) => {
+  const desc = tx.description;
+  if (!desc)
+    return false;
+  if (desc.aborted)
+    return true;
+  if (desc.compute_ph?.success === false)
+    return true;
+  if (desc.action?.success === false)
+    return true;
+  if (desc.action && desc.action.skipped_actions > 0)
+    return true;
+  return false;
+};
+const createFailureDetector = (nonCriticalOpcodes) => {
+  return (transactions) => {
+    for (const tx of Object.values(transactions)) {
+      if (isTransactionFailed(tx)) {
+        const opcode = getTxOpcode(tx);
+        if (opcode && nonCriticalOpcodes.has(opcode)) {
+          continue;
+        }
+        return true;
+      }
+    }
+    return false;
+  };
+};
+const KNOWN_TRACE_TYPES = [
+  {
+    triggerOpcodes: /* @__PURE__ */ new Set(["0x0f8a7ea5"]),
+    // jetton_transfer initiates the flow
+    safeToSkipOpcodes: /* @__PURE__ */ new Set([
+      "0x7362d09c",
+      // jetton_notify
+      "0xd53276db"
+      // excess
+    ])
+  }
+];
+const isFailedTrace = (tx) => {
+  const trace = tx.traces?.[0];
+  if (!trace)
+    return false;
+  const transactions = trace.transactions ?? {};
+  if (Object.keys(transactions).length === 0)
+    return false;
+  for (const config of KNOWN_TRACE_TYPES) {
+    const isMatch = createTraceTypeDetector(config.triggerOpcodes)(transactions);
+    if (isMatch) {
+      return createFailureDetector(config.safeToSkipOpcodes)(transactions);
+    }
+  }
+  return createFailureDetector(/* @__PURE__ */ new Set())(transactions);
+};
+const parseTraceResponse = (response) => {
+  if (!response.traces || response.traces.length === 0) {
+    return null;
+  }
+  const trace = response.traces[0];
+  const traceInfo = trace.trace_info;
+  const isEffectivelyCompleted = traceInfo.trace_state === "complete" || traceInfo.trace_state === "pending" && traceInfo.pending_messages === 0;
+  let status = "pending";
+  if (traceInfo.pending_messages === 0) {
+    if (isFailedTrace(response)) {
+      status = "failed";
+    } else if (isEffectivelyCompleted) {
+      status = "completed";
+    }
+  }
+  return {
+    status,
+    totalMessages: traceInfo.messages,
+    pendingMessages: traceInfo.pending_messages,
+    onchainMessages: traceInfo.messages - traceInfo.pending_messages
+  };
+};
+function getNormalizedExtMessageHash(boc) {
+  const cell = distExports$1.Cell.fromBase64(boc);
+  const message = distExports$1.loadMessage(cell.beginParse());
+  if (message.info.type !== "external-in") {
+    throw new Error(`Message must be "external-in", got ${message.info.type}`);
+  }
+  const info2 = {
+    ...message.info,
+    src: void 0,
+    importFee: 0n
+  };
+  const normalizedMessage = {
+    ...message,
+    init: null,
+    info: info2
+  };
+  const normalizedCell = distExports$1.beginCell().store(distExports$1.storeMessage(normalizedMessage, { forceRef: true })).endCell();
+  return {
+    hash: normalizedCell.hash().toString("base64"),
+    boc: normalizedCell.toBoc().toString("base64")
+  };
+}
+async function getTransactionStatus(client, params) {
+  const hashToSearch = params.boc ? getNormalizedExtMessageHash(params.boc).hash : params.normalizedHash;
+  if (!hashToSearch) {
+    throw new Error("Either boc or normalizedHash must be provided");
+  }
+  try {
+    const pendingResponse = await client.getPendingTrace({ externalMessageHash: [hashToSearch] });
+    const pendingStatus = parseTraceResponse(pendingResponse);
+    if (pendingStatus)
+      return pendingStatus;
+  } catch (_e) {
+  }
+  try {
+    const traceResponse = await client.getTrace({ traceId: [hashToSearch] });
+    const completedStatus = parseTraceResponse(traceResponse);
+    if (completedStatus)
+      return completedStatus;
+  } catch (_e) {
+  }
+  return {
+    status: "unknown",
+    totalMessages: 0,
+    pendingMessages: 0,
+    onchainMessages: 0
+  };
 }
 const DEFAULT_JETTON_GAS_FEE = "50000000";
 const DEFAULT_NFT_GAS_FEE = "100000000";
@@ -31008,7 +31160,8 @@ class WalletTonClass {
     try {
       const boc = await this.getSignedSendTransaction(request);
       await CallForSuccess(() => this.getClient().sendBoc(boc));
-      return { boc };
+      const { hash: normalizedHash, boc: normalizedBoc } = getNormalizedExtMessageHash(boc);
+      return { boc, normalizedBoc, normalizedHash };
     } catch (error2) {
       log$c.error("Failed to send transaction", { error: error2 });
       if (error2 instanceof WalletKitError) {
@@ -33795,8 +33948,8 @@ class ApiClientToncenter {
   disableNetworkSend;
   constructor(config = {}) {
     this.network = config.network;
-    const dnsResolver = this.network?.chainId === CHAIN.MAINNET ? ROOT_DNS_RESOLVER_MAINNET : ROOT_DNS_RESOLVER_TESTNET;
-    const defaultEndpoint = this.network?.chainId === CHAIN.MAINNET ? "https://toncenter.com" : "https://testnet.toncenter.com";
+    const dnsResolver = this.network?.chainId === Network.mainnet().chainId ? ROOT_DNS_RESOLVER_MAINNET : ROOT_DNS_RESOLVER_TESTNET;
+    const defaultEndpoint = this.network?.chainId === Network.mainnet().chainId ? "https://toncenter.com" : "https://testnet.toncenter.com";
     this.dnsResolver = config.dnsResolver ?? dnsResolver;
     this.endpoint = config.endpoint ?? defaultEndpoint;
     this.apiKey = config.apiKey;
@@ -33998,44 +34151,49 @@ class ApiClientToncenter {
   async getTrace(request) {
     const inTraceId = request.traceId ? request.traceId[0] : void 0;
     const traceId = padBase64(Base64Normalize(inTraceId || "").replace(/=/g, ""));
-    try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
-        tx_hash: traceId
-      }));
-      if (response.traces.length > 0) {
+    const tryGetTrace = async (field) => {
+      const response = await CallForSuccess(
+        () => this.getJson("/api/v3/traces", { [field]: traceId }),
+        void 0,
+        void 0,
+        // 422: toncenter failed to decode field value
+        (err) => err instanceof TonClientError ? err.status !== 422 : true
+      );
+      if (response?.traces?.length > 0) {
         return response;
       }
-    } catch (error2) {
-      log$6.error("Error fetching trace", { error: error2 });
+      throw new Error(`No traces found for ${field}`);
+    };
+    const results = await Promise.allSettled([
+      tryGetTrace("tx_hash"),
+      tryGetTrace("trace_id"),
+      tryGetTrace("msg_hash")
+    ]);
+    const fulfilledResult = results.find((result) => result.status === "fulfilled");
+    if (fulfilledResult) {
+      return fulfilledResult.value;
     }
-    try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
-        trace_id: traceId
-      }));
-      if (response.traces.length > 0) {
-        return response;
+    results.forEach((result) => {
+      if (result.status === "rejected") {
+        log$6.error("Error fetching trace", { error: result.reason });
       }
-    } catch (error2) {
-      log$6.error("Error fetching trace", { error: error2 });
-    }
-    try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
-        msg_hash: traceId
-      }));
-      if (response.traces.length > 0) {
-        return response;
-      }
-    } catch (error2) {
-      log$6.error("Error fetching pending trace", { error: error2 });
-    }
+    });
     throw new Error("Failed to fetch trace");
   }
   async getPendingTrace(request) {
     try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/pendingTraces", {
-        ext_msg_hash: request.externalMessageHash
-      }));
-      if (response.traces.length > 0) {
+      const response = await CallForSuccess(
+        () => {
+          return this.getJson("/api/v3/pendingTraces", {
+            ext_msg_hash: request.externalMessageHash
+          });
+        },
+        void 0,
+        void 0,
+        // 422: toncenter failed to decode field value
+        (err) => err instanceof TonClientError ? err.status !== 422 : true
+      );
+      if (response?.traces?.length > 0) {
         return response;
       }
     } catch (error2) {
@@ -34214,7 +34372,14 @@ class KitNetworkManager {
     if (this.isApiClient(apiClientConfig)) {
       return apiClientConfig;
     }
-    const defaultEndpoint = network.chainId === CHAIN.MAINNET ? "https://toncenter.com" : "https://testnet.toncenter.com";
+    let defaultEndpoint;
+    if (network.chainId == Network.mainnet().chainId) {
+      defaultEndpoint = "https://toncenter.com";
+    } else if (network.chainId == Network.tetra().chainId) {
+      defaultEndpoint = "https://tetra.tonapi.io";
+    } else {
+      defaultEndpoint = "https://testnet.toncenter.com";
+    }
     const endpoint = apiClientConfig?.url || defaultEndpoint;
     return new ApiClientToncenter({
       endpoint,
@@ -34231,7 +34396,7 @@ class KitNetworkManager {
   }
   /**
    * Get API client for a specific network
-   * @param chainId - The chain ID (CHAIN.MAINNET or CHAIN.TESTNET)
+   * @param chainId - The chain ID
    * @returns The API client for the specified network
    * @throws WalletKitError if no client is configured for the network
    */
@@ -37141,22 +37306,47 @@ class IntentHandler {
         }
       }
     }
-    if (allItems.length === 0) {
-      throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Batched intent contains no transaction items");
+    if (allItems.length > 0) {
+      const firstTx = batch.intents.find((i) => i.type === "transaction");
+      const network = firstTx?.type === "transaction" ? firstTx.value.network : void 0;
+      const validUntil = firstTx?.type === "transaction" ? firstTx.value.validUntil : void 0;
+      const transactionRequest = await this.resolver.intentItemsToTransactionRequest(allItems, wallet2, network, validUntil);
+      const signedBoc = await wallet2.getSignedSendTransaction(transactionRequest);
+      if (deliveryMode === "send" && !this.walletKitOptions.dev?.disableNetworkSend) {
+        await CallForSuccess(() => wallet2.getClient().sendBoc(signedBoc));
+      }
+      const result = {
+        boc: signedBoc
+      };
+      await this.sendBatchResponse(batch, { type: "transaction", value: result });
+      return result;
     }
-    const firstTx = batch.intents.find((i) => i.type === "transaction");
-    const network = firstTx?.type === "transaction" ? firstTx.value.network : void 0;
-    const validUntil = firstTx?.type === "transaction" ? firstTx.value.validUntil : void 0;
-    const transactionRequest = await this.resolver.intentItemsToTransactionRequest(allItems, wallet2, network, validUntil);
-    const signedBoc = await wallet2.getSignedSendTransaction(transactionRequest);
-    if (deliveryMode === "send" && !this.walletKitOptions.dev?.disableNetworkSend) {
-      await CallForSuccess(() => wallet2.getClient().sendBoc(signedBoc));
+    const signDataIntent = batch.intents.find((i) => i.type === "signData");
+    if (signDataIntent && signDataIntent.type === "signData") {
+      const event = signDataIntent.value;
+      let domain = event.manifestUrl;
+      try {
+        domain = new URL(event.manifestUrl).host;
+      } catch {
+      }
+      const signData = PrepareSignData({
+        payload: event.payload,
+        domain,
+        address: wallet2.getAddress()
+      });
+      const signature = await wallet2.getSignedSignData(signData);
+      const signatureBase64 = HexToBase64(signature);
+      const result = {
+        signature: signatureBase64,
+        address: wallet2.getAddress(),
+        timestamp: signData.timestamp,
+        domain: signData.domain,
+        payload: event.payload
+      };
+      await this.sendBatchResponse(batch, { type: "signData", value: result });
+      return result;
     }
-    const result = {
-      boc: signedBoc
-    };
-    await this.sendBatchResponse(batch, { type: "transaction", value: result });
-    return result;
+    throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Batched intent contains no transaction or signData items");
   }
   async approveSignDataIntent(event, walletId) {
     const wallet2 = this.getWallet(walletId);
@@ -37461,7 +37651,7 @@ class TonWalletKit {
               name: "ton_addr",
               address: distExports$1.Address.parse(walletAddress).toRawString(),
               // TODO: Support multiple networks
-              network: wallet2.getNetwork().chainId === CHAIN.MAINNET ? CHAIN.MAINNET : CHAIN.TESTNET,
+              network: wallet2.getNetwork().chainId,
               walletStateInit,
               publicKey
             }
@@ -38802,6 +38992,7 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   DEFAULT_JETTON_GAS_FEE,
   DEFAULT_NFT_GAS_FEE,
   DEFAULT_REQUEST_TIMEOUT,
+  DefaultDomainSignature,
   DefaultSignature,
   DisconnectHandler,
   ERROR_CODES,
@@ -38848,6 +39039,7 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   SerializeStack,
   SessionError,
   SignDataHandler,
+  SignatureDomain: distExports$1.SignatureDomain,
   Signer,
   Storage,
   StorageError,
@@ -38895,6 +39087,8 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   getMaxOutgoingMessages,
   getNftFromClient,
   getNftsFromClient,
+  getNormalizedExtMessageHash,
+  getTransactionStatus,
   isValidAddress,
   parseUnits,
   storeJettonTransferMessage,
@@ -39431,6 +39625,51 @@ function bigIntReplacer(_key, value) {
   }
   return value;
 }
+const pendingRequests = /* @__PURE__ */ new Map();
+function bridgeRequestSync(method, params) {
+  const native = window.WalletKitNative;
+  if (!native || typeof native.adapterCallSync !== "function") {
+    throw new Error("WalletKitNative.adapterCallSync not available");
+  }
+  return native.adapterCallSync(method, JSON.stringify(params));
+}
+function bridgeRequest(method, params) {
+  const id = v7();
+  return new Promise((resolve, reject) => {
+    pendingRequests.set(id, { resolve, reject });
+    postToNative({ kind: "request", id, method, params });
+  });
+}
+function registerNativeResponseHandler() {
+  window.__walletkitResponse = (id, resultJson, errorJson) => {
+    var _a;
+    const entry = pendingRequests.get(id);
+    if (!entry) {
+      warn("[walletkitBridge] __walletkitResponse: no pending request for id", id);
+      return;
+    }
+    pendingRequests.delete(id);
+    if (errorJson) {
+      try {
+        const err = JSON.parse(errorJson);
+        entry.reject(new Error((_a = err.message) != null ? _a : "Native request failed"));
+      } catch (e) {
+        entry.reject(new Error(errorJson));
+      }
+      return;
+    }
+    if (resultJson) {
+      try {
+        entry.resolve(JSON.parse(resultJson));
+      } catch (e) {
+        entry.resolve(resultJson);
+      }
+    } else {
+      entry.resolve(void 0);
+    }
+  };
+  info("[walletkitBridge] __walletkitResponse handler registered");
+}
 function resolveNativeBridge(scope) {
   const candidate = scope.WalletKitNative;
   if (candidate && typeof candidate.postMessage === "function") {
@@ -39780,13 +40019,6 @@ var __async$5 = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
-function signWithCustomSigner(signerId, bytes) {
-  return __async$5(this, null, function* () {
-    var _a, _b;
-    const result = yield (_b = (_a = window.WalletKitNative) == null ? void 0 : _a.signWithCustomSigner) == null ? void 0 : _b.call(_a, signerId, Array.from(bytes));
-    return result;
-  });
-}
 function mnemonicToKeyPair(args) {
   return __async$5(this, null, function* () {
     var _a;
@@ -39812,6 +40044,22 @@ function createTonMnemonic() {
     return CreateTonMnemonic$1();
   });
 }
+const store = /* @__PURE__ */ new Map();
+let nextId = 1;
+function retain(prefix, obj) {
+  const id = `${prefix}_${nextId++}`;
+  store.set(id, obj);
+  return id;
+}
+function retainWithId(id, obj) {
+  store.set(id, obj);
+}
+function get(id) {
+  return store.get(id);
+}
+function release(id) {
+  return store.delete(id);
+}
 var __async$4 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -39832,6 +40080,72 @@ var __async$4 = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
+class ProxyWalletAdapter {
+  constructor(adapterId, apiClientProvider) {
+    this.adapterId = adapterId;
+    this.apiClientProvider = apiClientProvider;
+  }
+  getPublicKey() {
+    return bridgeRequestSync("getPublicKey", { adapterId: this.adapterId });
+  }
+  getNetwork() {
+    const raw = bridgeRequestSync("getNetwork", { adapterId: this.adapterId });
+    const parsed = JSON.parse(raw);
+    return parsed;
+  }
+  getClient() {
+    return this.apiClientProvider(this.getNetwork());
+  }
+  getAddress() {
+    return bridgeRequestSync("getAddress", { adapterId: this.adapterId });
+  }
+  getWalletId() {
+    return bridgeRequestSync("getWalletId", { adapterId: this.adapterId });
+  }
+  getStateInit() {
+    return __async$4(this, null, function* () {
+      const result = yield bridgeRequest("adapterGetStateInit", { adapterId: this.adapterId });
+      if (!result) throw new Error("adapterGetStateInit: no result from native");
+      return result;
+    });
+  }
+  getSignedSendTransaction(input, options) {
+    return __async$4(this, null, function* () {
+      var _a;
+      const result = yield bridgeRequest("adapterSignTransaction", {
+        adapterId: this.adapterId,
+        input: JSON.stringify(input),
+        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
+      });
+      if (!result) throw new Error("adapterSignTransaction: no result from native");
+      return result;
+    });
+  }
+  getSignedSignData(input, options) {
+    return __async$4(this, null, function* () {
+      var _a;
+      const result = yield bridgeRequest("adapterSignData", {
+        adapterId: this.adapterId,
+        input: JSON.stringify(input),
+        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
+      });
+      if (!result) throw new Error("adapterSignData: no result from native");
+      return result;
+    });
+  }
+  getSignedTonProof(input, options) {
+    return __async$4(this, null, function* () {
+      var _a;
+      const result = yield bridgeRequest("adapterSignTonProof", {
+        adapterId: this.adapterId,
+        input: JSON.stringify(input),
+        fakeSignature: (_a = options == null ? void 0 : options.fakeSignature) != null ? _a : false
+      });
+      if (!result) throw new Error("adapterSignTonProof: no result from native");
+      return result;
+    });
+  }
+}
 function getWallets() {
   return __async$4(this, null, function* () {
     const wallets = yield kit("getWallets");
@@ -39864,82 +40178,96 @@ function getBalance(args) {
     return wallet(args.walletId, "getBalance");
   });
 }
-const signerStore = /* @__PURE__ */ new Map();
-const adapterStore = /* @__PURE__ */ new Map();
-function getSigner(args) {
-  return __async$4(this, null, function* () {
-    if (args.isCustom && args.publicKey) {
-      return {
-        sign: (bytes) => __async$4(null, null, function* () {
-          return yield signWithCustomSigner(args.signerId, Uint8Array.from(bytes));
-        }),
-        publicKey: args.publicKey
-      };
-    }
-    const storedSigner = signerStore.get(args.signerId);
-    if (!storedSigner) {
-      throw new Error(`Signer not found: ${args.signerId}`);
-    }
-    return storedSigner;
-  });
-}
-function createSigner(args) {
+function createSignerFromMnemonic(args) {
   return __async$4(this, null, function* () {
     var _a;
-    if (!Signer$1) {
-      throw new Error("Signer module not loaded");
-    }
-    if (!((_a = args.mnemonic) == null ? void 0 : _a.length) && !args.secretKey) {
-      throw new Error("Either mnemonic or secretKey is required");
-    }
-    const signer = args.mnemonic && args.mnemonic.length > 0 ? yield Signer$1.fromMnemonic(args.mnemonic, { type: args.mnemonicType || "ton" }) : yield Signer$1.fromPrivateKey(args.secretKey);
-    const tempId = `signer_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    signerStore.set(tempId, signer);
-    return { _tempId: tempId, signer };
+    if (!Signer$1) throw new Error("Signer module not loaded");
+    const signer = yield Signer$1.fromMnemonic(args.mnemonic, { type: (_a = args.mnemonicType) != null ? _a : "ton" });
+    const signerId = retain("signer", signer);
+    return { signerId, publicKey: signer.publicKey };
   });
 }
-function createAdapter(args) {
+function createSignerFromPrivateKey(args) {
   return __async$4(this, null, function* () {
+    if (!Signer$1) throw new Error("Signer module not loaded");
+    const signer = yield Signer$1.fromPrivateKey(args.secretKey);
+    const signerId = retain("signer", signer);
+    return { signerId, publicKey: signer.publicKey };
+  });
+}
+function createSignerFromCustom(args) {
+  return __async$4(this, null, function* () {
+    const { signerId, publicKey } = args;
+    const proxySigner = {
+      publicKey,
+      sign: (bytes) => __async$4(null, null, function* () {
+        const result = yield bridgeRequest("signWithCustomSigner", {
+          signerId,
+          data: Array.from(bytes)
+        });
+        if (!result) throw new Error("signWithCustomSigner: no result from native");
+        return result;
+      })
+    };
+    retainWithId(signerId, proxySigner);
+    return { signerId, publicKey };
+  });
+}
+function createV5R1WalletAdapter(args) {
+  return __async$4(this, null, function* () {
+    var _a;
     const instance = yield getKit();
-    const signer = yield getSigner(args);
-    const AdapterClass = args.walletVersion === "v5r1" ? WalletV5R1Adapter$1 : WalletV4R2Adapter$1;
-    if (!AdapterClass) {
-      throw new Error(`WalletAdapter module not loaded`);
-    }
+    const signer = get(args.signerId);
+    if (!signer) throw new Error(`Signer not found in registry: ${args.signerId}`);
     const network = args.network;
-    const adapter = yield AdapterClass.create(signer, {
+    if (!WalletV5R1Adapter$1) throw new Error("WalletV5R1Adapter module not loaded");
+    const adapter = yield WalletV5R1Adapter$1.create(signer, {
       client: instance.getApiClient(network),
       network,
-      workchain: args.workchain,
+      workchain: (_a = args.workchain) != null ? _a : 0,
       walletId: args.walletId
     });
-    const tempId = `adapter_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    adapterStore.set(tempId, adapter);
-    return { _tempId: tempId, adapter };
+    const adapterId = retain("adapter", adapter);
+    return { adapterId, address: adapter.getAddress() };
   });
 }
-function getAdapterAddress(args) {
+function createV4R2WalletAdapter(args) {
   return __async$4(this, null, function* () {
-    const adapter = adapterStore.get(args.adapterId);
-    if (!adapter) {
-      throw new Error(`Adapter not found: ${args.adapterId}`);
-    }
-    return adapter.getAddress();
+    var _a;
+    const instance = yield getKit();
+    const signer = get(args.signerId);
+    if (!signer) throw new Error(`Signer not found in registry: ${args.signerId}`);
+    const network = args.network;
+    if (!WalletV4R2Adapter$1) throw new Error("WalletV4R2Adapter module not loaded");
+    const adapter = yield WalletV4R2Adapter$1.create(signer, {
+      client: instance.getApiClient(network),
+      network,
+      workchain: (_a = args.workchain) != null ? _a : 0,
+      walletId: args.walletId
+    });
+    const adapterId = retain("adapter", adapter);
+    return { adapterId, address: adapter.getAddress() };
   });
 }
 function addWallet(args) {
   return __async$4(this, null, function* () {
-    var _a;
+    var _a, _b;
     const instance = yield getKit();
-    const adapter = adapterStore.get(args.adapterId);
-    if (!adapter) {
-      throw new Error(`Adapter not found: ${args.adapterId}`);
+    const existingAdapter = get(args.adapterId);
+    if (existingAdapter) {
+      const w2 = yield instance.addWallet(existingAdapter);
+      if (!w2) return null;
+      return { walletId: (_a = w2.getWalletId) == null ? void 0 : _a.call(w2), wallet: w2 };
     }
-    const w = yield instance.addWallet(adapter);
-    adapterStore.delete(args.adapterId);
+    const proxyAdapter = new ProxyWalletAdapter(args.adapterId, (network) => instance.getApiClient(network));
+    const w = yield instance.addWallet(proxyAdapter);
     if (!w) return null;
-    return { walletId: (_a = w.getWalletId) == null ? void 0 : _a.call(w), wallet: w };
+    return { walletId: (_b = w.getWalletId) == null ? void 0 : _b.call(w), wallet: w };
   });
+}
+function releaseRef(args) {
+  release(args.id);
+  return { ok: true };
 }
 var __async$3 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
@@ -40188,11 +40516,15 @@ const api = {
   mnemonicToKeyPair,
   sign,
   createTonMnemonic,
-  // Wallets
-  createSigner,
-  createAdapter,
-  getAdapterAddress,
+  // Wallets — 3-step factory
+  createSignerFromMnemonic,
+  createSignerFromPrivateKey,
+  createSignerFromCustom,
+  createV5R1WalletAdapter,
+  createV4R2WalletAdapter,
+  // Wallets — unified addWallet (registry path + proxy adapter path)
   addWallet,
+  releaseRef,
   getWallets,
   getWallet: getWalletById,
   getWalletAddress,
@@ -40244,5 +40576,6 @@ const api = {
 };
 setBridgeApi(api);
 registerNativeCallHandler();
+registerNativeResponseHandler();
 window.walletkitBridge = api;
 //# sourceMappingURL=walletkit-android-bridge.mjs.map
