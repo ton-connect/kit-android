@@ -44,6 +44,8 @@ import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.domain.model.WalletMetadata
 import io.ton.walletkit.demo.presentation.model.ConnectPermissionUi
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
+import io.ton.walletkit.demo.presentation.model.BatchedIntentRequestUi
+import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
@@ -53,6 +55,8 @@ import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.util.TransactionDetailMapper
+import io.ton.walletkit.event.TONBatchedIntentEvent
+import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.request.TONWalletConnectionRequest
@@ -155,6 +159,8 @@ class WalletKitViewModel @Inject constructor(
         data class Connect(val request: ConnectRequestUi, val wallet: WalletSummary?) : TonConnectAction
         data class Transaction(val request: TransactionRequestUi) : TonConnectAction
         data class SignData(val request: SignDataRequestUi, val viaSigner: Boolean) : TonConnectAction
+        data class Intent(val request: IntentRequestUi) : TonConnectAction
+        data class BatchedIntent(val request: BatchedIntentRequestUi) : TonConnectAction
     }
 
     private var pendingTonConnectAction: TonConnectAction? = null
@@ -268,6 +274,14 @@ class WalletKitViewModel @Inject constructor(
             is TONWalletKitEvent.SignDataRequest -> {
                 Log.d(LOG_TAG, "Handling SignDataRequest")
                 onSignDataRequest(event.request)
+            }
+            is TONWalletKitEvent.IntentRequest -> {
+                Log.d(LOG_TAG, "Handling IntentRequest: ${event.event.intentType}")
+                onIntentRequest(event.event)
+            }
+            is TONWalletKitEvent.BatchedIntentRequest -> {
+                Log.d(LOG_TAG, "Handling BatchedIntentRequest: ${event.event.intents.size} intents")
+                onBatchedIntentRequest(event.event)
             }
             is TONWalletKitEvent.Disconnect -> {
                 Log.d(LOG_TAG, "Session disconnected: ${event.event.sessionId}")
@@ -422,6 +436,30 @@ class WalletKitViewModel @Inject constructor(
                     }
                 }
             }
+            is TonConnectAction.Intent -> {
+                eventLogger.log(R.string.wallet_event_intent_approved, action.request.id)
+                viewModelScope.launch {
+                    refreshWallets()
+                    sessionsViewModel.refresh()
+                }
+                dismissSheet()
+            }
+            is TonConnectAction.BatchedIntent -> {
+                eventLogger.log(R.string.wallet_event_intent_approved, action.request.id)
+                viewModelScope.launch {
+                    refreshWallets()
+                    sessionsViewModel.refresh()
+                }
+                uiCoordinator.hideUrlPrompt()
+                dismissOrRestoreBrowserSheet()
+                // Show signed success status if the batch contained a signData intent
+                val hasSignData = action.request.event.intents.any {
+                    it is io.ton.walletkit.event.TONIntentEvent.SignDataIntent
+                }
+                if (hasSignData) {
+                    eventLogger.showTemporaryStatus(uiString(R.string.wallet_status_signed_success))
+                }
+            }
             null -> Unit
         }
         pendingTonConnectAction = null
@@ -447,6 +485,15 @@ class WalletKitViewModel @Inject constructor(
                     dismissSheet()
                     eventLogger.showTemporaryStatus(uiString(R.string.wallet_status_sign_rejected))
                 }
+            }
+            is TonConnectAction.Intent -> {
+                eventLogger.log(R.string.wallet_event_intent_rejected, action.request.id)
+                dismissSheet()
+            }
+            is TonConnectAction.BatchedIntent -> {
+                eventLogger.log(R.string.wallet_event_intent_rejected, action.request.id)
+                uiCoordinator.hideUrlPrompt()
+                dismissOrRestoreBrowserSheet()
             }
             null -> Unit
         }
@@ -736,10 +783,12 @@ class WalletKitViewModel @Inject constructor(
             }
             lifecycleManager.pendingWallets.addLast(pending)
 
+            // Generate mnemonic outside runCatching so we can save it
+            val kit = getKit()
+            val mnemonic = kit.createTonMnemonic()
+
             val result = runCatching {
-                val kit = getKit()
                 // Generate a new TON mnemonic explicitly (matches JS docs pattern)
-                val mnemonic = kit.createTonMnemonic()
                 val signer = kit.createSignerFromMnemonic(mnemonic)
                 val adapter = when (version) {
                     WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network)
@@ -759,7 +808,7 @@ class WalletKitViewModel @Inject constructor(
 
                     lifecycleManager.walletMetadata[address.value] = pending.metadata
                     val record = WalletRecord(
-                        mnemonic = emptyList(), // Random mnemonic not saved in demo app
+                        mnemonic = mnemonic, // Save mnemonic for wallet restoration
                         name = pending.metadata.name,
                         network = network.chainId,
                         version = version,
@@ -800,7 +849,21 @@ class WalletKitViewModel @Inject constructor(
             _state.update { it.copy(error = uiString(R.string.wallet_error_no_wallet_selected)) }
             return
         }
-        tonConnectViewModel.handleTonConnectUrl(url.trim(), activeAddress)
+        val activeWalletId = state.value.wallets.firstOrNull { it.address == activeAddress }?.walletId ?: activeAddress
+        viewModelScope.launch {
+            val kit = getKit()
+            if (kit.isIntentUrl(url.trim())) {
+                Log.d(LOG_TAG, "URL is an intent deep link, handling as intent")
+                runCatching {
+                    kit.handleIntentUrl(url.trim(), activeWalletId)
+                }.onFailure { error ->
+                    Log.e(LOG_TAG, "Failed to handle intent URL", error)
+                    _state.update { it.copy(error = error.message ?: "Failed to handle intent") }
+                }
+            } else {
+                tonConnectViewModel.handleTonConnectUrl(url.trim(), activeAddress)
+            }
+        }
     }
 
     fun approveConnect(request: ConnectRequestUi, wallet: WalletSummary) {
@@ -900,15 +963,7 @@ class WalletKitViewModel @Inject constructor(
             return
         }
 
-        val wallet = lifecycleManager.tonWallets[address]
-        if (wallet == null) {
-            Log.w(LOG_TAG, "updateNftsViewModel: wallet not found for address $address")
-            _nftsViewModel.value = null
-            currentNftsWalletAddress = null
-            return
-        }
-
-        _nftsViewModel.value = NFTsListViewModel(wallet)
+        _nftsViewModel.value = NFTsListViewModel(address, lifecycleManager.currentNetwork)
         currentNftsWalletAddress = address
         Log.d(LOG_TAG, "updateNftsViewModel: created NFTsListViewModel for $address")
     }
@@ -1009,7 +1064,7 @@ class WalletKitViewModel @Inject constructor(
             return
         }
 
-        val viewModel = JettonsListViewModel(wallet)
+        val viewModel = JettonsListViewModel(wallet, lifecycleManager.currentNetwork)
         activeJettonsViewModel.value = viewModel
         currentJettonsWalletAddress = address
 
@@ -1378,6 +1433,110 @@ class WalletKitViewModel @Inject constructor(
         eventLogger.log(R.string.wallet_event_sign_data_request, eventDAppName)
     }
 
+    private fun onIntentRequest(event: TONIntentEvent) {
+        val walletId = state.value.wallets.firstOrNull { it.address == state.value.activeWalletAddress }?.walletId
+            ?: state.value.wallets.firstOrNull()?.walletId ?: ""
+        val summary = when (event) {
+            is TONIntentEvent.TransactionIntent -> "${event.items.size} item(s)"
+            is TONIntentEvent.SignDataIntent -> "Sign data (${event.payload.type})"
+            is TONIntentEvent.ActionIntent -> event.actionUrl
+            is TONIntentEvent.ConnectIntent -> "Connect: ${event.dAppName ?: event.manifestUrl ?: "unknown"}"
+        }
+        val uiRequest = IntentRequestUi(
+            id = event.id,
+            intentType = event.intentType,
+            origin = event.origin,
+            walletId = walletId,
+            summary = summary,
+            event = event,
+        )
+        uiCoordinator.setSheet(SheetState.Intent(uiRequest))
+        eventLogger.log(R.string.wallet_event_intent_request, event.intentType)
+    }
+
+    fun approveIntent(request: IntentRequestUi) {
+        pendingTonConnectAction = TonConnectAction.Intent(request)
+        viewModelScope.launch {
+            runCatching {
+                val kit = getKit()
+                when (val event = request.event) {
+                    is TONIntentEvent.TransactionIntent -> kit.approveTransactionIntent(event, request.walletId)
+                    is TONIntentEvent.SignDataIntent -> kit.approveSignDataIntent(event, request.walletId)
+                    is TONIntentEvent.ActionIntent -> kit.approveActionIntent(event, request.walletId)
+                    is TONIntentEvent.ConnectIntent -> { /* connect is handled as part of batch approval */ }
+                }
+            }.onSuccess {
+                onTonConnectRequestApproved()
+            }.onFailure { error ->
+                Log.e(LOG_TAG, "Failed to approve intent", error)
+                _state.update { it.copy(error = uiString(R.string.wallet_error_approve_intent)) }
+                dismissSheet()
+            }
+        }
+    }
+
+    fun rejectIntent(request: IntentRequestUi) {
+        pendingTonConnectAction = TonConnectAction.Intent(request)
+        viewModelScope.launch {
+            runCatching {
+                getKit().rejectIntent(request.event, "User declined")
+            }.onSuccess {
+                onTonConnectRequestRejected()
+            }.onFailure { error ->
+                Log.e(LOG_TAG, "Failed to reject intent", error)
+                _state.update { it.copy(error = uiString(R.string.wallet_error_reject_intent)) }
+                dismissSheet()
+            }
+        }
+    }
+
+    // ── Batched Intents ──
+
+    private fun onBatchedIntentRequest(event: TONBatchedIntentEvent) {
+        val walletId = state.value.wallets.firstOrNull { it.address == state.value.activeWalletAddress }?.walletId
+            ?: state.value.wallets.firstOrNull()?.walletId ?: ""
+        val intentTypes = event.intents.joinToString(" + ") { it.intentType }
+        val summary = "${event.intents.size} intent(s): $intentTypes"
+        val uiRequest = BatchedIntentRequestUi(
+            id = event.id,
+            origin = event.origin,
+            walletId = walletId,
+            summary = summary,
+            event = event,
+        )
+        pendingTonConnectAction = TonConnectAction.BatchedIntent(uiRequest)
+        uiCoordinator.setSheet(SheetState.BatchedIntent(uiRequest))
+        eventLogger.log(R.string.wallet_event_intent_request, "batched")
+    }
+
+    fun approveBatchedIntent(request: BatchedIntentRequestUi) {
+        viewModelScope.launch {
+            runCatching {
+                getKit().approveBatchedIntent(request.event, request.walletId)
+            }.onSuccess {
+                onTonConnectRequestApproved()
+            }.onFailure { error ->
+                Log.e(LOG_TAG, "Failed to approve batched intent", error)
+                _state.update { it.copy(error = uiString(R.string.wallet_error_approve_intent)) }
+                dismissSheet()
+            }
+        }
+    }
+
+    fun rejectBatchedIntent(request: BatchedIntentRequestUi) {
+        viewModelScope.launch {
+            runCatching {
+                getKit().rejectBatchedIntent(request.event, "User declined")
+            }.onSuccess {
+                onTonConnectRequestRejected()
+            }.onFailure { error ->
+                Log.e(LOG_TAG, "Failed to reject batched intent", error)
+                _state.update { it.copy(error = uiString(R.string.wallet_error_reject_intent)) }
+                dismissSheet()
+            }
+        }
+    }
+
     override fun onCleared() {
         balanceJob?.cancel()
         // SDK cleanup is handled globally, no per-ViewModel cleanup needed
@@ -1555,7 +1714,7 @@ class WalletKitViewModel @Inject constructor(
      * Show jetton details sheet.
      */
     fun showJettonDetails(jettonSummary: JettonSummary) {
-        val jettonDetails = JettonDetails.from(jettonSummary.jetton)
+        val jettonDetails = JettonDetails.from(jettonSummary)
         uiCoordinator.showJettonDetails(jettonDetails)
     }
 

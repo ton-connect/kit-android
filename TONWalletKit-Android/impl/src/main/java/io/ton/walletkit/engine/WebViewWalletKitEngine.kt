@@ -56,11 +56,14 @@ import io.ton.walletkit.engine.operations.WalletOperations
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.EventRouter
+import io.ton.walletkit.event.TONBatchedIntentEvent
+import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.model.IntentSignDataResult
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.session.TONConnectSession
 import io.ton.walletkit.session.TONConnectSessionManager
@@ -373,6 +376,44 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun disconnectSession(sessionId: String?) =
         tonConnectOperations.disconnectSession(sessionId)
+
+    // ── Intents ──
+
+    override suspend fun isIntentUrl(url: String): Boolean = tonConnectOperations.isIntentUrl(url)
+
+    override suspend fun handleIntentUrl(url: String, walletId: String) = tonConnectOperations.handleIntentUrl(url, walletId)
+
+    override suspend fun approveTransactionIntent(
+        event: TONIntentEvent.TransactionIntent,
+        walletId: String,
+    ): String = tonConnectOperations.approveTransactionIntent(event, walletId)
+
+    override suspend fun approveSignDataIntent(
+        event: TONIntentEvent.SignDataIntent,
+        walletId: String,
+    ): IntentSignDataResult = tonConnectOperations.approveSignDataIntent(event, walletId)
+
+    override suspend fun approveActionIntent(
+        event: TONIntentEvent.ActionIntent,
+        walletId: String,
+    ) = tonConnectOperations.approveActionIntent(event, walletId)
+
+    override suspend fun approveBatchedIntent(
+        event: TONBatchedIntentEvent,
+        walletId: String,
+    ): String = tonConnectOperations.approveBatchedIntent(event, walletId)
+
+    override suspend fun rejectIntent(
+        event: TONIntentEvent,
+        reason: String?,
+        errorCode: Int?,
+    ) = tonConnectOperations.rejectIntent(event, reason, errorCode)
+
+    override suspend fun rejectBatchedIntent(
+        event: TONBatchedIntentEvent,
+        reason: String?,
+        errorCode: Int?,
+    ) = tonConnectOperations.rejectBatchedIntent(event, reason, errorCode)
 
     override suspend fun getNfts(
         walletId: String,

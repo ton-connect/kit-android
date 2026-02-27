@@ -19,50 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
-
-package io.ton.walletkit.api.generated
-
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+package io.ton.walletkit.model
 
 /**
- * Token type for swap
- *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * Result of approving a sign data intent.
  */
-@Serializable
-data class TONSwapToken(
-
-    @SerialName(value = "address")
-    val address: kotlin.String,
-
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
-
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
-
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
-
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
-
-) {
-
-    companion object
-}
+data class IntentSignDataResult(
+    val signature: String,
+    val address: String,
+    val timestamp: Long,
+    val domain: String,
+)

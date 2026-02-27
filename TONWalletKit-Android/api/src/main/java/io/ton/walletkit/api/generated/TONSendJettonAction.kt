@@ -28,39 +28,51 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
+ * Jetton transfer action (TEP-74).
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * @param jettonMasterAddress
+ * @param jettonAmount
+ * @param destination
+ * @param responseDestination
+ * @param customPayload
+ * @param forwardTonAmount
+ * @param forwardPayload
+ * @param queryId Query ID
  */
 @Serializable
-data class TONSwapToken(
+data class TONSendJettonAction(
 
-    @SerialName(value = "address")
-    val address: kotlin.String,
+    @Contextual @SerialName(value = "jettonMasterAddress")
+    val jettonMasterAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
+    @SerialName(value = "jettonAmount")
+    val jettonAmount: kotlin.String,
 
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
+    @Contextual @SerialName(value = "destination")
+    val destination: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
+    @Contextual @SerialName(value = "responseDestination")
+    val responseDestination: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
 
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
+    @Contextual @SerialName(value = "customPayload")
+    val customPayload: io.ton.walletkit.model.TONBase64? = null,
 
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
+    @SerialName(value = "forwardTonAmount")
+    val forwardTonAmount: kotlin.String? = null,
+
+    @Contextual @SerialName(value = "forwardPayload")
+    val forwardPayload: io.ton.walletkit.model.TONBase64? = null,
+
+    /* Query ID */
+    @SerialName(value = "queryId")
+    val queryId: kotlin.Int? = null,
 
 ) {
 

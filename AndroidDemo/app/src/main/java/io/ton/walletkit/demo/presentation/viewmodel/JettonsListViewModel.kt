@@ -26,9 +26,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.api.generated.TONJetton
-import io.ton.walletkit.api.generated.TONJettonsRequest
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
-import io.ton.walletkit.api.generated.TONPagination
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.demo.data.api.JettonBalance
+import io.ton.walletkit.demo.data.api.TonApiClient
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -39,16 +40,19 @@ import kotlinx.coroutines.launch
 
 /**
  * ViewModel for displaying jettons owned by a wallet.
- * Handles jetton loading, pagination, and transfer operations.
+ * Uses native TON API client for fetching jettons.
  */
 class JettonsListViewModel(
     private val wallet: ITONWallet,
+    network: TONNetwork = TONNetwork("-239"), // Mainnet by default
 ) : ViewModel() {
+    private val apiClient = TonApiClient(network)
+
     private val _state = MutableStateFlow<JettonState>(JettonState.Initial)
     val state: StateFlow<JettonState> = _state.asStateFlow()
 
-    private val _jettons = MutableStateFlow<List<TONJetton>>(emptyList())
-    val jettons: StateFlow<List<TONJetton>> = _jettons.asStateFlow()
+    private val _jettons = MutableStateFlow<List<JettonBalance>>(emptyList())
+    val jettons: StateFlow<List<JettonBalance>> = _jettons.asStateFlow()
 
     private val _isLoadingMore = MutableStateFlow(false)
     val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
@@ -59,7 +63,6 @@ class JettonsListViewModel(
     private val _canLoadMore = MutableStateFlow(false)
     val canLoadMore: StateFlow<Boolean> = _canLoadMore.asStateFlow()
 
-    private val limit = 100
     private var loadJob: Job? = null
 
     init {
@@ -81,7 +84,7 @@ class JettonsListViewModel(
     }
 
     /**
-     * Load jettons for the wallet.
+     * Load jettons for the wallet using native API.
      */
     fun loadJettons() {
         if (_state.value != JettonState.Initial) {
@@ -95,23 +98,21 @@ class JettonsListViewModel(
             try {
                 _state.value = JettonState.Loading
 
-                val request = TONJettonsRequest(pagination = TONPagination(limit = limit, offset = 0))
-                val jettonsResponse = wallet.jettons(request)
-                val jettons = jettonsResponse.jettons
+                val response = apiClient.getJettons(wallet.address.value)
+                val jettons = response.balances
 
-                Log.d(TAG, "Loaded ${jettons.size} jettons")
+                Log.d(TAG, "Loaded ${jettons.size} jettons via native API")
                 jettons.forEachIndexed { index, jetton ->
-                    Log.d(TAG, "Jetton[$index]: address=${jetton.walletAddress.value}, balance=${jetton.balance}, name=${jetton.info.name}")
+                    Log.d(TAG, "Jetton[$index]: address=${jetton.walletAddress.address}, balance=${jetton.balance}, name=${jetton.jetton.name}")
                 }
 
                 if (jettons.isEmpty()) {
                     _state.value = JettonState.Empty
                     _canLoadMore.value = false
                 } else {
-                    _canLoadMore.value = jettons.size == limit
+                    _canLoadMore.value = false // TON API returns all jettons at once
                     _jettons.value = jettons
                     _state.value = JettonState.Success
-                    Log.d(TAG, "canLoadMore: ${_canLoadMore.value} (got ${jettons.size} items, limit=$limit)")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load jettons", e)
@@ -125,38 +126,8 @@ class JettonsListViewModel(
      * Load more jettons with pagination.
      */
     fun loadMoreJettons() {
-        if (_state.value != JettonState.Success || _isLoadingMore.value || !_canLoadMore.value) {
-            Log.d(TAG, "Skipping loadMoreJettons - state=${_state.value}, isLoadingMore=${_isLoadingMore.value}, canLoadMore=${_canLoadMore.value}")
-            return
-        }
-
-        val currentOffset = _jettons.value.size
-        Log.d(TAG, "Loading more jettons with offset=$currentOffset, limit=$limit")
-
-        viewModelScope.launch {
-            try {
-                _isLoadingMore.value = true
-
-                val request = TONJettonsRequest(pagination = TONPagination(limit = limit, offset = currentOffset))
-                val jettonsResponse = wallet.jettons(request)
-                val jettons = jettonsResponse.jettons
-
-                Log.d(TAG, "Loaded ${jettons.size} more jettons")
-
-                _canLoadMore.value = jettons.size == limit
-                // Filter duplicates by jetton address
-                val existingAddresses = _jettons.value.map { it.walletAddress.value }.toSet()
-                val newJettons = jettons.filterNot { it.walletAddress.value in existingAddresses }
-                _jettons.value = _jettons.value + newJettons
-
-                Log.d(TAG, "Added ${newJettons.size} new jettons (filtered ${jettons.size - newJettons.size} duplicates), canLoadMore=${_canLoadMore.value}")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to load more jettons", e)
-                _canLoadMore.value = false
-            } finally {
-                _isLoadingMore.value = false
-            }
-        }
+        // TON API returns all jettons at once, no pagination needed
+        Log.d(TAG, "loadMoreJettons called but API returns all at once")
     }
 
     /**
@@ -171,11 +142,6 @@ class JettonsListViewModel(
 
     /**
      * Transfer jetton to another address.
-     *
-     * @param jettonAddress The jetton master contract address
-     * @param recipient The recipient wallet address
-     * @param amount The amount to transfer (in jetton's smallest units)
-     * @param comment Optional comment for the transfer
      */
     fun transferJetton(
         jettonAddress: String,
@@ -196,17 +162,12 @@ class JettonsListViewModel(
 
                 Log.i(TAG, "Creating jetton transfer transaction: jetton=$jettonAddress, to=$recipient, amount=$amount")
 
-                // Create the jetton transfer transaction (step 1)
                 val transactionRequest = wallet.transferJettonTransaction(transferRequest)
-
                 Log.i(TAG, "Jetton transfer transaction created, sending...")
 
-                // Send the transaction (step 2)
                 wallet.send(transactionRequest)
-
                 Log.i(TAG, "Jetton transfer transaction sent successfully")
 
-                // Refresh jettons after delay to allow blockchain indexing
                 delay(5000)
                 refresh()
             } catch (e: Exception) {
@@ -216,9 +177,6 @@ class JettonsListViewModel(
         }
     }
 
-    /**
-     * Clear transfer error.
-     */
     fun clearTransferError() {
         _transferError.value = null
     }

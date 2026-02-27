@@ -147,6 +147,7 @@ class WalletLifecycleManager(
 
             result.add(
                 WalletSummary(
+                    walletId = wallet.id,
                     address = address,
                     name = metadata.name,
                     network = metadata.network,

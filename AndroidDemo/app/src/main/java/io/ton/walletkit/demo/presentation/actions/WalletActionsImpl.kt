@@ -23,7 +23,9 @@ package io.ton.walletkit.demo.presentation.actions
 
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
+import io.ton.walletkit.demo.presentation.model.BatchedIntentRequestUi
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
+import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
@@ -92,6 +94,14 @@ class WalletActionsImpl @Inject constructor(
     override fun onApproveSignData(request: SignDataRequestUi) = viewModel.approveSignData(request)
 
     override fun onRejectSignData(request: SignDataRequestUi) = viewModel.rejectSignData(request)
+
+    override fun onApproveIntent(request: IntentRequestUi) = viewModel.approveIntent(request)
+
+    override fun onRejectIntent(request: IntentRequestUi) = viewModel.rejectIntent(request)
+
+    override fun onApproveBatchedIntent(request: BatchedIntentRequestUi) = viewModel.approveBatchedIntent(request)
+
+    override fun onRejectBatchedIntent(request: BatchedIntentRequestUi) = viewModel.rejectBatchedIntent(request)
 
     override fun onConfirmSignerApproval() = viewModel.confirmSignerApproval()
 

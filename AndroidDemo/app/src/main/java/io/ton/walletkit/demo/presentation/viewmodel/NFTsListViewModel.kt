@@ -24,10 +24,9 @@ package io.ton.walletkit.demo.presentation.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.ton.walletkit.ITONWallet
-import io.ton.walletkit.api.generated.TONNFT
-import io.ton.walletkit.api.generated.TONNFTsRequest
-import io.ton.walletkit.api.generated.TONPagination
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.demo.data.api.TonApiClient
+import io.ton.walletkit.demo.presentation.model.NFTSummary
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,15 +35,19 @@ import kotlinx.coroutines.launch
 
 /**
  * ViewModel for displaying NFTs owned by a wallet.
+ * Uses native TON API client for fetching NFTs.
  */
 class NFTsListViewModel(
-    private val wallet: ITONWallet,
+    private val walletAddress: String,
+    network: TONNetwork = TONNetwork("-239"), // Mainnet by default
 ) : ViewModel() {
+    private val apiClient = TonApiClient(network)
+
     private val _state = MutableStateFlow<NFTState>(NFTState.Initial)
     val state: StateFlow<NFTState> = _state.asStateFlow()
 
-    private val _nfts = MutableStateFlow<List<TONNFT>>(emptyList())
-    val nfts: StateFlow<List<TONNFT>> = _nfts.asStateFlow()
+    private val _nfts = MutableStateFlow<List<NFTSummary>>(emptyList())
+    val nfts: StateFlow<List<NFTSummary>> = _nfts.asStateFlow()
 
     private val _isLoadingMore = MutableStateFlow(false)
     val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
@@ -52,16 +55,17 @@ class NFTsListViewModel(
     private val _canLoadMore = MutableStateFlow(false)
     val canLoadMore: StateFlow<Boolean> = _canLoadMore.asStateFlow()
 
-    private val limit = 10
+    private val limit = 50
+    private var currentOffset = 0
     private var loadJob: Job? = null
 
     init {
-        Log.d("NFTsListViewModel", "Created for wallet: ${wallet.address.value}")
+        Log.d(TAG, "Created for wallet: $walletAddress")
     }
 
     override fun onCleared() {
         super.onCleared()
-        Log.d("NFTsListViewModel", "Cleared for wallet: ${wallet.address.value}")
+        Log.d(TAG, "Cleared for wallet: $walletAddress")
         loadJob?.cancel()
     }
 
@@ -75,23 +79,23 @@ class NFTsListViewModel(
 
     fun loadNFTs() {
         if (_state.value != NFTState.Initial) {
-            Log.d("NFTsListViewModel", "Skipping loadNFTs - state is ${_state.value}, not Initial")
+            Log.d(TAG, "Skipping loadNFTs - state is ${_state.value}, not Initial")
             return
         }
 
-        Log.d("NFTsListViewModel", "Starting loadNFTs for wallet: ${wallet.address.value}")
+        Log.d(TAG, "Starting loadNFTs for wallet: $walletAddress")
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             try {
                 _state.value = NFTState.Loading
 
-                val request = TONNFTsRequest(pagination = TONPagination(limit = limit, offset = 0))
-                val nftsResponse = wallet.nfts(request)
-                val nfts = nftsResponse.nfts
+                val response = apiClient.getNfts(walletAddress, limit = limit, offset = 0)
+                val nfts = response.nftItems
 
-                Log.d("NFTsListViewModel", "Loaded ${nfts.size} NFTs")
+                Log.d(TAG, "Loaded ${nfts.size} NFTs via native API")
                 nfts.forEachIndexed { index, nft ->
-                    Log.d("NFTsListViewModel", "NFT[$index]: address=${nft.address.value}, name=${nft.info?.name}, image=${nft.info?.image?.url}")
+                    val imageUrl = nft.previews?.firstOrNull()?.url ?: nft.metadata?.image
+                    Log.d(TAG, "NFT[$index]: address=${nft.address}, name=${nft.metadata?.name}, image=$imageUrl")
                 }
 
                 if (nfts.isEmpty()) {
@@ -99,12 +103,13 @@ class NFTsListViewModel(
                     _canLoadMore.value = false
                 } else {
                     _canLoadMore.value = nfts.size == limit
-                    _nfts.value = nfts
+                    currentOffset = nfts.size
+                    _nfts.value = nfts.map { NFTSummary.from(it) }
                     _state.value = NFTState.Success
-                    Log.d("NFTsListViewModel", "canLoadMore: ${_canLoadMore.value} (got ${nfts.size} items, limit=$limit)")
+                    Log.d(TAG, "canLoadMore: ${_canLoadMore.value} (got ${nfts.size} items, limit=$limit)")
                 }
             } catch (e: Exception) {
-                Log.e("NFTsListViewModel", "Failed to load NFTs", e)
+                Log.e(TAG, "Failed to load NFTs", e)
                 _state.value = NFTState.Error(e.message ?: "Unknown error")
                 _canLoadMore.value = false
             }
@@ -113,31 +118,31 @@ class NFTsListViewModel(
 
     fun loadMoreNFTs() {
         if (_state.value != NFTState.Success || _isLoadingMore.value || !_canLoadMore.value) {
-            Log.d("NFTsListViewModel", "Skipping loadMoreNFTs - state=${_state.value}, isLoadingMore=${_isLoadingMore.value}, canLoadMore=${_canLoadMore.value}")
+            Log.d(TAG, "Skipping loadMoreNFTs - state=${_state.value}, isLoadingMore=${_isLoadingMore.value}, canLoadMore=${_canLoadMore.value}")
             return
         }
 
-        val currentOffset = _nfts.value.size
-        Log.d("NFTsListViewModel", "Loading more NFTs with offset=$currentOffset, limit=$limit")
+        val offset = _nfts.value.size
+        Log.d(TAG, "Loading more NFTs with offset=$offset, limit=$limit")
         viewModelScope.launch {
             try {
                 _isLoadingMore.value = true
 
-                val request = TONNFTsRequest(pagination = TONPagination(limit = limit, offset = currentOffset))
-                val nftsResponse = wallet.nfts(request)
-                val nfts = nftsResponse.nfts
+                val response = apiClient.getNfts(walletAddress, limit = limit, offset = offset)
+                val nfts = response.nftItems
 
-                Log.d("NFTsListViewModel", "Loaded ${nfts.size} more NFTs")
+                Log.d(TAG, "Loaded ${nfts.size} more NFTs")
 
                 _canLoadMore.value = nfts.size == limit
-                // Only add NFTs that don't already exist (filter duplicates by address)
-                val existingAddresses = _nfts.value.map { it.address.value }.toSet()
-                val newNfts = nfts.filterNot { it.address.value in existingAddresses }
-                _nfts.value = _nfts.value + newNfts
+                val existingAddresses = _nfts.value.map { it.address }.toSet()
+                val newNftSummaries = nfts.map { NFTSummary.from(it) }
+                    .filterNot { it.address in existingAddresses }
+                _nfts.value = _nfts.value + newNftSummaries
+                currentOffset = offset + nfts.size
 
-                Log.d("NFTsListViewModel", "Added ${newNfts.size} new NFTs (filtered ${nfts.size - newNfts.size} duplicates), canLoadMore=${_canLoadMore.value}")
+                Log.d(TAG, "Added ${newNftSummaries.size} new NFTs, canLoadMore=${_canLoadMore.value}")
             } catch (e: Exception) {
-                Log.e("NFTsListViewModel", "Failed to load more NFTs", e)
+                Log.e(TAG, "Failed to load more NFTs", e)
                 _canLoadMore.value = false
             } finally {
                 _isLoadingMore.value = false
@@ -150,5 +155,9 @@ class NFTsListViewModel(
         _nfts.value = emptyList()
         _canLoadMore.value = false
         loadNFTs()
+    }
+
+    companion object {
+        private const val TAG = "NFTsListViewModel"
     }
 }

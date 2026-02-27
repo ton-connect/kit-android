@@ -93,4 +93,34 @@ sealed class TONWalletKitEvent {
     data class RequestError(
         val event: TONRequestErrorEvent,
     ) : TONWalletKitEvent()
+
+    /**
+     * An intent deep link was parsed and requires approval.
+     *
+     * Handle by calling the appropriate approve/reject method on [ITONWalletKit]:
+     * - [TONIntentEvent.TransactionIntent] → approveTransactionIntent / rejectIntent
+     * - [TONIntentEvent.SignDataIntent] → approveSignDataIntent / rejectIntent
+     * - [TONIntentEvent.ActionIntent] → approveActionIntent / rejectIntent
+     *
+     * @property event Intent event with type-specific data
+     */
+    data class IntentRequest(
+        val event: TONIntentEvent,
+    ) : TONWalletKitEvent()
+
+    /**
+     * A batched intent deep link was parsed and requires approval.
+     *
+     * The SDK split a multi-item transaction intent into per-item events
+     * so the wallet can display each action separately while approving
+     * or rejecting the whole batch atomically.
+     *
+     * Handle by calling [ITONWalletKit.approveBatchedIntent] or
+     * [ITONWalletKit.rejectBatchedIntent].
+     *
+     * @property event Batched intent event with inner intent list
+     */
+    data class BatchedIntentRequest(
+        val event: TONBatchedIntentEvent,
+    ) : TONWalletKitEvent()
 }

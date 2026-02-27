@@ -28,39 +28,47 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
+ * NFT transfer action (TEP-62).
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * @param nftAddress
+ * @param newOwnerAddress
+ * @param responseDestination
+ * @param customPayload
+ * @param forwardTonAmount
+ * @param forwardPayload
+ * @param queryId Query ID
  */
 @Serializable
-data class TONSwapToken(
+data class TONSendNftAction(
 
-    @SerialName(value = "address")
-    val address: kotlin.String,
+    @Contextual @SerialName(value = "nftAddress")
+    val nftAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
+    @Contextual @SerialName(value = "newOwnerAddress")
+    val newOwnerAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
+    @Contextual @SerialName(value = "responseDestination")
+    val responseDestination: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
 
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
+    @Contextual @SerialName(value = "customPayload")
+    val customPayload: io.ton.walletkit.model.TONBase64? = null,
 
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
+    @SerialName(value = "forwardTonAmount")
+    val forwardTonAmount: kotlin.String? = null,
 
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
+    @Contextual @SerialName(value = "forwardPayload")
+    val forwardPayload: io.ton.walletkit.model.TONBase64? = null,
+
+    /* Query ID */
+    @SerialName(value = "queryId")
+    val queryId: kotlin.Int? = null,
 
 ) {
 

@@ -28,39 +28,35 @@
 
 package io.ton.walletkit.api.generated
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ *
+ * @param status
+ * @param totalMessages Total messages in the trace
+ * @param pendingMessages Messages still pending
+ * @param onchainMessages Number of onchain messages (totalMessages - pendingMessages)
  */
 @Serializable
-data class TONSwapToken(
+data class TONTransactionStatusResponse(
 
-    @SerialName(value = "address")
-    val address: kotlin.String,
+    @Contextual @SerialName(value = "status")
+    val status: TONTransactionStatus,
 
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
+    /* Total messages in the trace */
+    @SerialName(value = "totalMessages")
+    val totalMessages: kotlin.Int,
 
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
+    /* Messages still pending */
+    @SerialName(value = "pendingMessages")
+    val pendingMessages: kotlin.Int,
 
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
-
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
+    /* Number of onchain messages (totalMessages - pendingMessages) */
+    @SerialName(value = "onchainMessages")
+    val onchainMessages: kotlin.Int,
 
 ) {
 

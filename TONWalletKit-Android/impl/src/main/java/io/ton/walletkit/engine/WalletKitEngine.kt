@@ -39,6 +39,9 @@ import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.event.TONBatchedIntentEvent
+import io.ton.walletkit.event.TONIntentEvent
+import io.ton.walletkit.model.IntentSignDataResult
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONWalletAdapter
@@ -333,6 +336,24 @@ internal interface WalletKitEngine : RequestHandler {
      * @throws WalletKitBridgeException if disconnection fails
      */
     suspend fun disconnectSession(sessionId: String? = null)
+
+    // ── Intents ──
+
+    suspend fun isIntentUrl(url: String): Boolean
+
+    suspend fun handleIntentUrl(url: String, walletId: String)
+
+    suspend fun approveTransactionIntent(event: TONIntentEvent.TransactionIntent, walletId: String): String
+
+    suspend fun approveSignDataIntent(event: TONIntentEvent.SignDataIntent, walletId: String): IntentSignDataResult
+
+    suspend fun approveActionIntent(event: TONIntentEvent.ActionIntent, walletId: String)
+
+    suspend fun approveBatchedIntent(event: TONBatchedIntentEvent, walletId: String): String
+
+    suspend fun rejectIntent(event: TONIntentEvent, reason: String? = null, errorCode: Int? = null)
+
+    suspend fun rejectBatchedIntent(event: TONBatchedIntentEvent, reason: String? = null, errorCode: Int? = null)
 
     /**
      * Get NFTs owned by a wallet with pagination.

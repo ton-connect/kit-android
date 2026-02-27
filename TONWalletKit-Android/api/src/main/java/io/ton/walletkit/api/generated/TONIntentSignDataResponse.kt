@@ -28,39 +28,40 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
+ * Successful response for sign data intent.
  *
+ * @param signature
  * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * @param timestamp UNIX timestamp (seconds, UTC)
+ * @param domain App domain
+ * @param payload
  */
 @Serializable
-data class TONSwapToken(
+data class TONIntentSignDataResponse(
 
-    @SerialName(value = "address")
-    val address: kotlin.String,
+    @Contextual @SerialName(value = "signature")
+    val signature: io.ton.walletkit.model.TONBase64,
 
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
+    @Contextual @SerialName(value = "address")
+    val address: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
+    /* UNIX timestamp (seconds, UTC) */
+    @SerialName(value = "timestamp")
+    val timestamp: kotlin.Int,
 
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
+    /* App domain */
+    @SerialName(value = "domain")
+    val domain: kotlin.String,
 
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
+    @SerialName(value = "payload")
+    val payload: TONSignDataPayload,
 
 ) {
 

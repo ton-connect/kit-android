@@ -65,15 +65,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.ITONWalletKit
-import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.actions.WalletActions
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
+import io.ton.walletkit.demo.presentation.model.IntentRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.NFTDetails
+import io.ton.walletkit.demo.presentation.model.NFTSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
@@ -91,8 +92,10 @@ import io.ton.walletkit.demo.presentation.ui.sections.NFTsSection
 import io.ton.walletkit.demo.presentation.ui.sections.SessionsSection
 import io.ton.walletkit.demo.presentation.ui.sections.WalletsSection
 import io.ton.walletkit.demo.presentation.ui.sheet.AddWalletSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.BatchedIntentRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.ConnectRequestSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.IntentRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.JettonDetailsSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.SignDataSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
@@ -119,7 +122,7 @@ fun WalletScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // State for NFT details bottom sheet
-    var selectedNFT by remember { mutableStateOf<TONNFT?>(null) }
+    var selectedNFT by remember { mutableStateOf<NFTSummary?>(null) }
     val nftDetailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Keep browser WebView alive across sheet changes to prevent destruction during TonConnect requests
@@ -234,6 +237,18 @@ fun WalletScreen(
                         isLoading = false,
                     )
                 }
+
+                is SheetState.Intent -> IntentRequestSheet(
+                    request = sheet.request,
+                    onApprove = { actions.onApproveIntent(sheet.request) },
+                    onReject = { actions.onRejectIntent(sheet.request) },
+                )
+
+                is SheetState.BatchedIntent -> BatchedIntentRequestSheet(
+                    request = sheet.request,
+                    onApprove = { actions.onApproveBatchedIntent(sheet.request) },
+                    onReject = { actions.onRejectBatchedIntent(sheet.request) },
+                )
 
                 SheetState.None -> Unit
             }

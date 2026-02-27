@@ -19,50 +19,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
+package io.ton.walletkit.event
 
-package io.ton.walletkit.api.generated
-
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import org.json.JSONObject
 
 /**
- * Token type for swap
+ * A batched intent event containing multiple intent items that should be
+ * processed as a group.
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * The SDK splits multi-item transaction intents into per-item
+ * [TONIntentEvent]s so the wallet can display each action separately while
+ * approving or rejecting the whole batch atomically.
+ *
+ * Use cases:
+ * - send TON + connect (intent with connect request)
+ * - action intent that resolves to multiple steps
  */
-@Serializable
-data class TONSwapToken(
-
-    @SerialName(value = "address")
-    val address: kotlin.String,
-
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
-
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
-
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
-
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
-
-) {
-
-    companion object
-}
+data class TONBatchedIntentEvent(
+    /** Unique batch identifier (matches the original txIntent id). */
+    val id: String,
+    /** How the batch reached the wallet (deepLink, objectStorage, etc.). */
+    val origin: String,
+    /** Client public key for response routing (optional for fire-and-forget). */
+    val clientId: String?,
+    /** The individual intent events in this batch. */
+    val intents: List<TONIntentEvent>,
+    /** Raw JSON for bridge passthrough. */
+    val rawJson: JSONObject,
+)
