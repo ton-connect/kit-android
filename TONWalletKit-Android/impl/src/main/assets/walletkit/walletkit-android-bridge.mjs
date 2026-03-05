@@ -218,15 +218,15 @@ var hasRequiredBuffer;
 function requireBuffer() {
   if (hasRequiredBuffer) return buffer;
   hasRequiredBuffer = 1;
-  (function(exports) {
+  (function(exports$1) {
     const base64 = requireBase64Js();
     const ieee7542 = requireIeee754();
     const customInspectSymbol = typeof Symbol === "function" && typeof Symbol["for"] === "function" ? Symbol["for"]("nodejs.util.inspect.custom") : null;
-    exports.Buffer = Buffer2;
-    exports.SlowBuffer = SlowBuffer;
-    exports.INSPECT_MAX_BYTES = 50;
+    exports$1.Buffer = Buffer2;
+    exports$1.SlowBuffer = SlowBuffer;
+    exports$1.INSPECT_MAX_BYTES = 50;
     const K_MAX_LENGTH = 2147483647;
-    exports.kMaxLength = K_MAX_LENGTH;
+    exports$1.kMaxLength = K_MAX_LENGTH;
     Buffer2.TYPED_ARRAY_SUPPORT = typedArraySupport();
     if (!Buffer2.TYPED_ARRAY_SUPPORT && typeof console !== "undefined" && typeof console.error === "function") {
       console.error(
@@ -654,9 +654,9 @@ function requireBuffer() {
       if (this === b2) return true;
       return Buffer2.compare(this, b2) === 0;
     };
-    Buffer2.prototype.inspect = function inspect() {
+    Buffer2.prototype.inspect = function inspect2() {
       let str = "";
-      const max = exports.INSPECT_MAX_BYTES;
+      const max = exports$1.INSPECT_MAX_BYTES;
       str = this.toString("hex", 0, max).replace(/(.{2})/g, "$1 ").trim();
       if (this.length > max) str += " ... ";
       return "<Buffer " + str + ">";
@@ -4429,14 +4429,15 @@ class SessionCrypto {
 }
 var dist$1 = {};
 var Address = {};
-var symbol_inspect;
-var hasRequiredSymbol_inspect;
-function requireSymbol_inspect() {
-  if (hasRequiredSymbol_inspect) return symbol_inspect;
-  hasRequiredSymbol_inspect = 1;
-  const SymbolInspect = Symbol.for("nodejs.util.inspect.custom");
-  symbol_inspect = SymbolInspect;
-  return symbol_inspect;
+var inspect = {};
+var hasRequiredInspect;
+function requireInspect() {
+  if (hasRequiredInspect) return inspect;
+  hasRequiredInspect = 1;
+  Object.defineProperty(inspect, "__esModule", { value: true });
+  inspect.inspectSymbol = void 0;
+  inspect.inspectSymbol = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
+  return inspect;
 }
 var crc16 = {};
 var hasRequiredCrc16;
@@ -4473,13 +4474,10 @@ var hasRequiredAddress;
 function requireAddress() {
   if (hasRequiredAddress) return Address;
   hasRequiredAddress = 1;
-  var __importDefault = Address && Address.__importDefault || function(mod) {
-    return mod && mod.__esModule ? mod : { "default": mod };
-  };
   var _a;
   Object.defineProperty(Address, "__esModule", { value: true });
   Address.address = Address.Address = void 0;
-  const symbol_inspect_1 = __importDefault(requireSymbol_inspect());
+  const inspect_1 = requireInspect();
   const crc16_1 = requireCrc16();
   const bounceable_tag = 17;
   const non_bounceable_tag = 81;
@@ -4636,7 +4634,7 @@ function requireAddress() {
     }
   };
   Address.Address = Address$1;
-  _a = symbol_inspect_1.default;
+  _a = inspect_1.inspectSymbol;
   function address(src) {
     return Address$1.parse(src);
   }
@@ -4648,13 +4646,10 @@ var hasRequiredExternalAddress;
 function requireExternalAddress() {
   if (hasRequiredExternalAddress) return ExternalAddress;
   hasRequiredExternalAddress = 1;
-  var __importDefault = ExternalAddress && ExternalAddress.__importDefault || function(mod) {
-    return mod && mod.__esModule ? mod : { "default": mod };
-  };
   var _a;
   Object.defineProperty(ExternalAddress, "__esModule", { value: true });
   ExternalAddress.ExternalAddress = void 0;
-  const symbol_inspect_1 = __importDefault(requireSymbol_inspect());
+  const inspect_1 = requireInspect();
   let ExternalAddress$1 = class ExternalAddress2 {
     static isAddress(src) {
       return src instanceof ExternalAddress2;
@@ -4669,7 +4664,7 @@ function requireExternalAddress() {
     }
   };
   ExternalAddress.ExternalAddress = ExternalAddress$1;
-  _a = symbol_inspect_1.default;
+  _a = inspect_1.inspectSymbol;
   return ExternalAddress;
 }
 var ADNLAddress = {};
@@ -4732,13 +4727,10 @@ var hasRequiredADNLAddress;
 function requireADNLAddress() {
   if (hasRequiredADNLAddress) return ADNLAddress;
   hasRequiredADNLAddress = 1;
-  var __importDefault = ADNLAddress && ADNLAddress.__importDefault || function(mod) {
-    return mod && mod.__esModule ? mod : { "default": mod };
-  };
   var _a;
   Object.defineProperty(ADNLAddress, "__esModule", { value: true });
   ADNLAddress.ADNLAddress = void 0;
-  const symbol_inspect_1 = __importDefault(requireSymbol_inspect());
+  const inspect_1 = requireInspect();
   const base32_1 = requireBase32();
   const crc16_1 = requireCrc16();
   let ADNLAddress$1 = class ADNLAddress2 {
@@ -4783,7 +4775,7 @@ function requireADNLAddress() {
     }
   };
   ADNLAddress.ADNLAddress = ADNLAddress$1;
-  _a = symbol_inspect_1.default;
+  _a = inspect_1.inspectSymbol;
   return ADNLAddress;
 }
 var contractAddress = {};
@@ -4838,14 +4830,11 @@ var hasRequiredBitString;
 function requireBitString() {
   if (hasRequiredBitString) return BitString;
   hasRequiredBitString = 1;
-  var __importDefault = BitString && BitString.__importDefault || function(mod) {
-    return mod && mod.__esModule ? mod : { "default": mod };
-  };
   var _a;
   Object.defineProperty(BitString, "__esModule", { value: true });
   BitString.BitString = void 0;
   const paddedBits_1 = requirePaddedBits();
-  const symbol_inspect_1 = __importDefault(requireSymbol_inspect());
+  const inspect_1 = requireInspect();
   let BitString$1 = class BitString2 {
     /**
      * Checks if supplied object is BitString
@@ -4894,7 +4883,7 @@ function requireBitString() {
       return (this._data[byteIndex] & 1 << bitIndex) !== 0;
     }
     /**
-     * Get a subscring of the bitstring
+     * Get a substring of the bitstring
      * @param offset
      * @param length
      * @returns
@@ -4928,7 +4917,7 @@ function requireBitString() {
         throw new Error(`Offset ${offset} is out of bounds`);
       }
       if (offset + length > this._length) {
-        throw new Error(`Offset + Lenght = ${offset + length} is out of bounds`);
+        throw new Error(`Offset + Length = ${offset + length} is out of bounds`);
       }
       if (length % 8 !== 0) {
         return null;
@@ -4980,7 +4969,7 @@ function requireBitString() {
     }
   };
   BitString.BitString = BitString$1;
-  _a = symbol_inspect_1.default;
+  _a = inspect_1.inspectSymbol;
   BitString$1.EMPTY = new BitString$1(Buffer.alloc(0), 0, 0);
   return BitString;
 }
@@ -5132,7 +5121,7 @@ function requireBitBuilder() {
       this.writeUint(v2, bits - 1);
     }
     /**
-     * Wrtie var uint value, used for serializing coins
+     * Write var uint value, used for serializing coins
      * @param value value to write as bigint or number
      * @param bits header bits to write size
      */
@@ -5154,7 +5143,7 @@ function requireBitBuilder() {
       this.writeUint(v2, sizeBits);
     }
     /**
-     * Wrtie var int value, used for serializing coins
+     * Write var int value, used for serializing coins
      * @param value value to write as bigint or number
      * @param bits header bits to write size
      */
@@ -5600,7 +5589,7 @@ function requireBitReader() {
     }
     /**
      * Load bit string that was padded to make it byte alligned. Used in BOC serialization
-     * @param bytes number of bytes to read
+     * @param bits number of bytes to read
      */
     loadPaddedBits(bits) {
       if (bits % 8 !== 0) {
@@ -6221,7 +6210,7 @@ function requireDictionary() {
      * Load dictionary from slice
      * @param key key description
      * @param value value description
-     * @param src slice
+     * @param sc slice
      * @returns Dictionary<K, V>
      */
     static load(key, value, sc) {
@@ -6455,7 +6444,7 @@ function requireDictionary() {
     },
     /**
      * Create big var int
-     * @param bits nubmer of header bits
+     * @param bits number of header bits
      * @returns DictionaryValue<bigint>
      */
     BigVarInt: (bits) => {
@@ -6479,7 +6468,7 @@ function requireDictionary() {
     },
     /**
      * Create big var int
-     * @param bits nubmer of header bits
+     * @param bits number of header bits
      * @returns DictionaryValue<bigint>
      */
     BigVarUint: (bits) => {
@@ -6516,7 +6505,7 @@ function requireDictionary() {
     },
     /**
      * Create BitString value
-     * @param requested bit length
+     * @param bits bit length
      * @returns DictionaryValue<BitString>
      * Point is that Buffer is not applicable
      * when length is not 8 bit alligned.
@@ -6855,13 +6844,10 @@ var hasRequiredSlice;
 function requireSlice() {
   if (hasRequiredSlice) return Slice;
   hasRequiredSlice = 1;
-  var __importDefault = Slice && Slice.__importDefault || function(mod) {
-    return mod && mod.__esModule ? mod : { "default": mod };
-  };
   var _a;
   Object.defineProperty(Slice, "__esModule", { value: true });
   Slice.Slice = void 0;
-  const symbol_inspect_1 = __importDefault(requireSymbol_inspect());
+  const inspect_1 = requireInspect();
   const Dictionary_1 = requireDictionary();
   const Builder_1 = requireBuilder$1();
   const strings_1 = requireStrings();
@@ -7345,7 +7331,7 @@ function requireSlice() {
     }
   };
   Slice.Slice = Slice$1;
-  _a = symbol_inspect_1.default;
+  _a = inspect_1.inspectSymbol;
   return Slice;
 }
 var resolveExotic = {};
@@ -7660,7 +7646,7 @@ var hasRequiredSha;
 function requireSha() {
   if (hasRequiredSha) return sha$1.exports;
   hasRequiredSha = 1;
-  (function(module, exports) {
+  (function(module, exports$1) {
     !(function(n, r) {
       module.exports = r();
     })(sha, (function() {
@@ -8292,30 +8278,30 @@ var hasRequiredBrowser;
 function requireBrowser() {
   if (hasRequiredBrowser) return browser;
   hasRequiredBrowser = 1;
-  (function(exports) {
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.sha512 = exports.sha256 = exports.pbkdf2_sha512 = exports.hmac_sha512 = exports.getSecureRandomWords = exports.getSecureRandomBytes = void 0;
+  (function(exports$1) {
+    Object.defineProperty(exports$1, "__esModule", { value: true });
+    exports$1.sha512 = exports$1.sha256 = exports$1.pbkdf2_sha512 = exports$1.hmac_sha512 = exports$1.getSecureRandomWords = exports$1.getSecureRandomBytes = void 0;
     var getSecureRandom_1 = requireGetSecureRandom$1();
-    Object.defineProperty(exports, "getSecureRandomBytes", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "getSecureRandomBytes", { enumerable: true, get: function() {
       return getSecureRandom_1.getSecureRandomBytes;
     } });
-    Object.defineProperty(exports, "getSecureRandomWords", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "getSecureRandomWords", { enumerable: true, get: function() {
       return getSecureRandom_1.getSecureRandomWords;
     } });
     var hmac_sha512_1 = requireHmac_sha512$1();
-    Object.defineProperty(exports, "hmac_sha512", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "hmac_sha512", { enumerable: true, get: function() {
       return hmac_sha512_1.hmac_sha512;
     } });
     var pbkdf2_sha512_1 = requirePbkdf2_sha512$1();
-    Object.defineProperty(exports, "pbkdf2_sha512", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "pbkdf2_sha512", { enumerable: true, get: function() {
       return pbkdf2_sha512_1.pbkdf2_sha512;
     } });
     var sha256_1 = requireSha256$1();
-    Object.defineProperty(exports, "sha256", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "sha256", { enumerable: true, get: function() {
       return sha256_1.sha256;
     } });
     var sha512_1 = requireSha512$1();
-    Object.defineProperty(exports, "sha512", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "sha512", { enumerable: true, get: function() {
       return sha512_1.sha512;
     } });
   })(browser);
@@ -18740,120 +18726,120 @@ var hasRequiredDist$1;
 function requireDist$1() {
   if (hasRequiredDist$1) return dist;
   hasRequiredDist$1 = 1;
-  (function(exports) {
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.getMnemonicsMasterKeyFromSeed = exports.deriveMnemonicHardenedKey = exports.deriveMnemonicsPath = exports.deriveSymmetricPath = exports.deriveSymmetricHardenedKey = exports.getSymmetricMasterKeyFromSeed = exports.deriveEd25519Path = exports.deriveED25519HardenedKey = exports.getED25519MasterKeyFromSeed = exports.signVerify = exports.sign = exports.keyPairFromSecretKey = exports.keyPairFromSeed = exports.openBox = exports.sealBox = exports.mnemonicWordList = exports.mnemonicToHDSeed = exports.mnemonicToSeed = exports.mnemonicToWalletKey = exports.mnemonicToPrivateKey = exports.mnemonicValidate = exports.mnemonicNew = exports.newSecurePassphrase = exports.newSecureWords = exports.getSecureRandomNumber = exports.getSecureRandomWords = exports.getSecureRandomBytes = exports.hmac_sha512 = exports.pbkdf2_sha512 = exports.sha512_sync = exports.sha512 = exports.sha256_sync = exports.sha256 = void 0;
+  (function(exports$1) {
+    Object.defineProperty(exports$1, "__esModule", { value: true });
+    exports$1.getMnemonicsMasterKeyFromSeed = exports$1.deriveMnemonicHardenedKey = exports$1.deriveMnemonicsPath = exports$1.deriveSymmetricPath = exports$1.deriveSymmetricHardenedKey = exports$1.getSymmetricMasterKeyFromSeed = exports$1.deriveEd25519Path = exports$1.deriveED25519HardenedKey = exports$1.getED25519MasterKeyFromSeed = exports$1.signVerify = exports$1.sign = exports$1.keyPairFromSecretKey = exports$1.keyPairFromSeed = exports$1.openBox = exports$1.sealBox = exports$1.mnemonicWordList = exports$1.mnemonicToHDSeed = exports$1.mnemonicToSeed = exports$1.mnemonicToWalletKey = exports$1.mnemonicToPrivateKey = exports$1.mnemonicValidate = exports$1.mnemonicNew = exports$1.newSecurePassphrase = exports$1.newSecureWords = exports$1.getSecureRandomNumber = exports$1.getSecureRandomWords = exports$1.getSecureRandomBytes = exports$1.hmac_sha512 = exports$1.pbkdf2_sha512 = exports$1.sha512_sync = exports$1.sha512 = exports$1.sha256_sync = exports$1.sha256 = void 0;
     var sha256_1 = requireSha256();
-    Object.defineProperty(exports, "sha256", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "sha256", { enumerable: true, get: function() {
       return sha256_1.sha256;
     } });
-    Object.defineProperty(exports, "sha256_sync", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "sha256_sync", { enumerable: true, get: function() {
       return sha256_1.sha256_sync;
     } });
     var sha512_1 = requireSha512();
-    Object.defineProperty(exports, "sha512", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "sha512", { enumerable: true, get: function() {
       return sha512_1.sha512;
     } });
-    Object.defineProperty(exports, "sha512_sync", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "sha512_sync", { enumerable: true, get: function() {
       return sha512_1.sha512_sync;
     } });
     var pbkdf2_sha512_1 = requirePbkdf2_sha512();
-    Object.defineProperty(exports, "pbkdf2_sha512", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "pbkdf2_sha512", { enumerable: true, get: function() {
       return pbkdf2_sha512_1.pbkdf2_sha512;
     } });
     var hmac_sha512_1 = requireHmac_sha512();
-    Object.defineProperty(exports, "hmac_sha512", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "hmac_sha512", { enumerable: true, get: function() {
       return hmac_sha512_1.hmac_sha512;
     } });
     var getSecureRandom_1 = requireGetSecureRandom();
-    Object.defineProperty(exports, "getSecureRandomBytes", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "getSecureRandomBytes", { enumerable: true, get: function() {
       return getSecureRandom_1.getSecureRandomBytes;
     } });
-    Object.defineProperty(exports, "getSecureRandomWords", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "getSecureRandomWords", { enumerable: true, get: function() {
       return getSecureRandom_1.getSecureRandomWords;
     } });
-    Object.defineProperty(exports, "getSecureRandomNumber", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "getSecureRandomNumber", { enumerable: true, get: function() {
       return getSecureRandom_1.getSecureRandomNumber;
     } });
     var newSecureWords_1 = requireNewSecureWords();
-    Object.defineProperty(exports, "newSecureWords", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "newSecureWords", { enumerable: true, get: function() {
       return newSecureWords_1.newSecureWords;
     } });
     var newSecurePassphrase_1 = requireNewSecurePassphrase();
-    Object.defineProperty(exports, "newSecurePassphrase", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "newSecurePassphrase", { enumerable: true, get: function() {
       return newSecurePassphrase_1.newSecurePassphrase;
     } });
     var mnemonic_1 = requireMnemonic();
-    Object.defineProperty(exports, "mnemonicNew", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "mnemonicNew", { enumerable: true, get: function() {
       return mnemonic_1.mnemonicNew;
     } });
-    Object.defineProperty(exports, "mnemonicValidate", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "mnemonicValidate", { enumerable: true, get: function() {
       return mnemonic_1.mnemonicValidate;
     } });
-    Object.defineProperty(exports, "mnemonicToPrivateKey", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "mnemonicToPrivateKey", { enumerable: true, get: function() {
       return mnemonic_1.mnemonicToPrivateKey;
     } });
-    Object.defineProperty(exports, "mnemonicToWalletKey", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "mnemonicToWalletKey", { enumerable: true, get: function() {
       return mnemonic_1.mnemonicToWalletKey;
     } });
-    Object.defineProperty(exports, "mnemonicToSeed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "mnemonicToSeed", { enumerable: true, get: function() {
       return mnemonic_1.mnemonicToSeed;
     } });
-    Object.defineProperty(exports, "mnemonicToHDSeed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "mnemonicToHDSeed", { enumerable: true, get: function() {
       return mnemonic_1.mnemonicToHDSeed;
     } });
     var wordlist_1 = requireWordlist();
-    Object.defineProperty(exports, "mnemonicWordList", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "mnemonicWordList", { enumerable: true, get: function() {
       return wordlist_1.wordlist;
     } });
     var nacl_1 = requireNacl();
-    Object.defineProperty(exports, "sealBox", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "sealBox", { enumerable: true, get: function() {
       return nacl_1.sealBox;
     } });
-    Object.defineProperty(exports, "openBox", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "openBox", { enumerable: true, get: function() {
       return nacl_1.openBox;
     } });
     var nacl_2 = requireNacl();
-    Object.defineProperty(exports, "keyPairFromSeed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "keyPairFromSeed", { enumerable: true, get: function() {
       return nacl_2.keyPairFromSeed;
     } });
-    Object.defineProperty(exports, "keyPairFromSecretKey", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "keyPairFromSecretKey", { enumerable: true, get: function() {
       return nacl_2.keyPairFromSecretKey;
     } });
-    Object.defineProperty(exports, "sign", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "sign", { enumerable: true, get: function() {
       return nacl_2.sign;
     } });
-    Object.defineProperty(exports, "signVerify", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "signVerify", { enumerable: true, get: function() {
       return nacl_2.signVerify;
     } });
     var ed25519_1 = requireEd25519();
-    Object.defineProperty(exports, "getED25519MasterKeyFromSeed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "getED25519MasterKeyFromSeed", { enumerable: true, get: function() {
       return ed25519_1.getED25519MasterKeyFromSeed;
     } });
-    Object.defineProperty(exports, "deriveED25519HardenedKey", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "deriveED25519HardenedKey", { enumerable: true, get: function() {
       return ed25519_1.deriveED25519HardenedKey;
     } });
-    Object.defineProperty(exports, "deriveEd25519Path", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "deriveEd25519Path", { enumerable: true, get: function() {
       return ed25519_1.deriveEd25519Path;
     } });
     var symmetric_1 = requireSymmetric();
-    Object.defineProperty(exports, "getSymmetricMasterKeyFromSeed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "getSymmetricMasterKeyFromSeed", { enumerable: true, get: function() {
       return symmetric_1.getSymmetricMasterKeyFromSeed;
     } });
-    Object.defineProperty(exports, "deriveSymmetricHardenedKey", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "deriveSymmetricHardenedKey", { enumerable: true, get: function() {
       return symmetric_1.deriveSymmetricHardenedKey;
     } });
-    Object.defineProperty(exports, "deriveSymmetricPath", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "deriveSymmetricPath", { enumerable: true, get: function() {
       return symmetric_1.deriveSymmetricPath;
     } });
     var mnemonics_1 = requireMnemonics();
-    Object.defineProperty(exports, "deriveMnemonicsPath", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "deriveMnemonicsPath", { enumerable: true, get: function() {
       return mnemonics_1.deriveMnemonicsPath;
     } });
-    Object.defineProperty(exports, "deriveMnemonicHardenedKey", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "deriveMnemonicHardenedKey", { enumerable: true, get: function() {
       return mnemonics_1.deriveMnemonicHardenedKey;
     } });
-    Object.defineProperty(exports, "getMnemonicsMasterKeyFromSeed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "getMnemonicsMasterKeyFromSeed", { enumerable: true, get: function() {
       return mnemonics_1.getMnemonicsMasterKeyFromSeed;
     } });
   })(dist);
@@ -18994,7 +18980,10 @@ function requireTopologicalSort() {
           continue;
         }
         notPermCells.add(hash);
-        allCells.set(hash, { cell, refs: cell.refs.map((v2) => v2.hash().toString("hex")) });
+        allCells.set(hash, {
+          cell,
+          refs: cell.refs.map((v2) => v2.hash().toString("hex"))
+        });
         for (let r of cell.refs) {
           pending.push(r);
         }
@@ -19029,7 +19018,10 @@ function requireTopologicalSort() {
     for (let i = sorted.length - 1; i >= 0; i--) {
       let ent = sorted[i];
       const rrr = allCells.get(ent);
-      result.push({ cell: rrr.cell, refs: rrr.refs.map((v2) => indexes.get(v2)) });
+      result.push({
+        cell: rrr.cell,
+        refs: rrr.refs.map((v2) => indexes.get(v2))
+      });
     }
     return result;
   }
@@ -19261,7 +19253,11 @@ function requireSerialization() {
         }
         refs.push(cells[r].result);
       }
-      cells[i].result = new Cell_1.Cell({ bits: cells[i].bits, refs, exotic: cells[i].exotic });
+      cells[i].result = new Cell_1.Cell({
+        bits: cells[i].bits,
+        refs,
+        exotic: cells[i].exotic
+      });
     }
     let roots = [];
     for (let i = 0; i < boc.root.length; i++) {
@@ -19341,13 +19337,10 @@ var hasRequiredCell;
 function requireCell() {
   if (hasRequiredCell) return Cell;
   hasRequiredCell = 1;
-  var __importDefault = Cell && Cell.__importDefault || function(mod) {
-    return mod && mod.__esModule ? mod : { "default": mod };
-  };
   var _a;
   Object.defineProperty(Cell, "__esModule", { value: true });
   Cell.Cell = void 0;
-  const symbol_inspect_1 = __importDefault(requireSymbol_inspect());
+  const inspect_1 = requireInspect();
   const BitString_1 = requireBitString();
   const CellType_1 = requireCellType();
   const Slice_1 = requireSlice();
@@ -19509,7 +19502,7 @@ function requireCell() {
     }
   };
   Cell.Cell = Cell$1;
-  _a = symbol_inspect_1.default;
+  _a = inspect_1.inspectSymbol;
   Cell$1.EMPTY = new Cell$1();
   return Cell;
 }
@@ -19728,7 +19721,7 @@ function requireBuilder$1() {
     }
     /**
      * Store address
-     * @param addres address to store
+     * @param address address to store
      * @returns this builder
      */
     storeAddress(address) {
@@ -19900,6 +19893,8 @@ function requireBuilder$1() {
     /**
      * Store dictionary in this builder
      * @param dict dictionary to store
+     * @param key key description
+     * @param value value description
      * @returns this builder
      */
     storeDict(dict, key, value) {
@@ -19913,6 +19908,8 @@ function requireBuilder$1() {
     /**
      * Store dictionary in this builder directly
      * @param dict dictionary to store
+     * @param key key description
+     * @param value value description
      * @returns this builder
      */
     storeDictDirect(dict, key, value) {
@@ -20443,14 +20440,20 @@ function requireBuilder() {
       if (v2 === null || v2 === void 0) {
         this._tuple.push({ type: "null" });
       } else {
-        this._tuple.push({ type: "slice", cell: (0, Builder_1.beginCell)().storeBuffer(v2).endCell() });
+        this._tuple.push({
+          type: "slice",
+          cell: (0, Builder_1.beginCell)().storeBuffer(v2).endCell()
+        });
       }
     }
     writeString(v2) {
       if (v2 === null || v2 === void 0) {
         this._tuple.push({ type: "null" });
       } else {
-        this._tuple.push({ type: "slice", cell: (0, Builder_1.beginCell)().storeStringTail(v2).endCell() });
+        this._tuple.push({
+          type: "slice",
+          cell: (0, Builder_1.beginCell)().storeStringTail(v2).endCell()
+        });
       }
     }
     writeCell(v2) {
@@ -20497,7 +20500,10 @@ function requireBuilder() {
       if (v2 === null || v2 === void 0) {
         this._tuple.push({ type: "null" });
       } else {
-        this._tuple.push({ type: "slice", cell: (0, Builder_1.beginCell)().storeAddress(v2).endCell() });
+        this._tuple.push({
+          type: "slice",
+          cell: (0, Builder_1.beginCell)().storeAddress(v2).endCell()
+        });
       }
     }
     build() {
@@ -20525,9 +20531,15 @@ function requireConvert() {
           throw Error("Invalid number");
         }
         if (Math.log10(src) <= 6) {
-          src = src.toLocaleString("en", { minimumFractionDigits: 9, useGrouping: false });
+          src = src.toLocaleString("en", {
+            minimumFractionDigits: 9,
+            useGrouping: false
+          });
         } else if (src - Math.trunc(src) === 0) {
-          src = src.toLocaleString("en", { maximumFractionDigits: 0, useGrouping: false });
+          src = src.toLocaleString("en", {
+            maximumFractionDigits: 0,
+            useGrouping: false
+          });
         } else {
           throw Error("Not enough precision for a number value. Use string value instead");
         }
@@ -21667,13 +21679,13 @@ var hasRequiredShardAccounts;
 function requireShardAccounts() {
   if (hasRequiredShardAccounts) return ShardAccounts;
   hasRequiredShardAccounts = 1;
-  (function(exports) {
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.storeShardAccounts = exports.loadShardAccounts = exports.ShardAccountRefValue = void 0;
+  (function(exports$1) {
+    Object.defineProperty(exports$1, "__esModule", { value: true });
+    exports$1.storeShardAccounts = exports$1.loadShardAccounts = exports$1.ShardAccountRefValue = void 0;
     const Dictionary_1 = requireDictionary();
     const DepthBalanceInfo_1 = requireDepthBalanceInfo();
     const ShardAccount_1 = requireShardAccount();
-    exports.ShardAccountRefValue = {
+    exports$1.ShardAccountRefValue = {
       parse: (cs) => {
         let depthBalanceInfo = (0, DepthBalanceInfo_1.loadDepthBalanceInfo)(cs);
         let shardAccount = (0, ShardAccount_1.loadShardAccount)(cs);
@@ -21688,15 +21700,15 @@ function requireShardAccounts() {
       }
     };
     function loadShardAccounts(cs) {
-      return Dictionary_1.Dictionary.load(Dictionary_1.Dictionary.Keys.BigUint(256), exports.ShardAccountRefValue, cs);
+      return Dictionary_1.Dictionary.load(Dictionary_1.Dictionary.Keys.BigUint(256), exports$1.ShardAccountRefValue, cs);
     }
-    exports.loadShardAccounts = loadShardAccounts;
+    exports$1.loadShardAccounts = loadShardAccounts;
     function storeShardAccounts(src) {
       return (Builder2) => {
         Builder2.storeDict(src);
       };
     }
-    exports.storeShardAccounts = storeShardAccounts;
+    exports$1.storeShardAccounts = storeShardAccounts;
   })(ShardAccounts);
   return ShardAccounts;
 }
@@ -21781,6 +21793,17 @@ function requireShardStateUnsplit() {
   }
   ShardStateUnsplit.loadShardStateUnsplit = loadShardStateUnsplit;
   return ShardStateUnsplit;
+}
+var SignatureDomain = {};
+var hasRequiredSignatureDomain;
+function requireSignatureDomain() {
+  if (hasRequiredSignatureDomain) return SignatureDomain;
+  hasRequiredSignatureDomain = 1;
+  Object.defineProperty(SignatureDomain, "__esModule", { value: true });
+  SignatureDomain.signatureDomainEmptyTag = SignatureDomain.signatureDomainL2Tag = void 0;
+  SignatureDomain.signatureDomainL2Tag = 1907576545;
+  SignatureDomain.signatureDomainEmptyTag = 236803867;
+  return SignatureDomain;
 }
 var SplitMergeInfo = {};
 var hasRequiredSplitMergeInfo;
@@ -22345,276 +22368,283 @@ var hasRequired_export;
 function require_export() {
   if (hasRequired_export) return _export;
   hasRequired_export = 1;
-  (function(exports) {
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.loadSimpleLibrary = exports.loadShardStateUnsplit = exports.storeShardIdent = exports.loadShardIdent = exports.storeShardAccounts = exports.loadShardAccounts = exports.ShardAccountRefValue = exports.storeShardAccount = exports.loadShardAccount = exports.ReserveMode = exports.SendMode = exports.storeMessageRelaxed = exports.loadMessageRelaxed = exports.storeMessage = exports.loadMessage = exports.loadMasterchainStateExtra = exports.storeHashUpdate = exports.loadHashUpdate = exports.storeExtraCurrency = exports.loadMaybeExtraCurrency = exports.loadExtraCurrency = exports.packExtraCurrencyDict = exports.packExtraCurrencyCell = exports.storeDepthBalanceInfo = exports.loadDepthBalanceInfo = exports.storeCurrencyCollection = exports.loadCurrencyCollection = exports.storeComputeSkipReason = exports.loadComputeSkipReason = exports.storeCommonMessageInfoRelaxed = exports.loadCommonMessageInfoRelaxed = exports.storeCommonMessageInfo = exports.loadCommonMessageInfo = exports.storeOutList = exports.loadOutList = exports.storeOutAction = exports.loadOutAction = exports.storeAccountStorage = exports.loadAccountStorage = exports.storeAccountStatusChange = exports.loadAccountStatusChange = exports.storeAccountStatus = exports.loadAccountStatus = exports.storeAccountState = exports.loadAccountState = exports.storeAccount = exports.loadAccount = exports.comment = exports.external = exports.internal = void 0;
-    exports.storeTransactionsStoragePhase = exports.loadTransactionStoragePhase = exports.storeTransactionDescription = exports.loadTransactionDescription = exports.storeTransactionCreditPhase = exports.loadTransactionCreditPhase = exports.storeTransactionComputePhase = exports.loadTransactionComputePhase = exports.storeTransactionBouncePhase = exports.loadTransactionBouncePhase = exports.storeTransactionActionPhase = exports.loadTransactionActionPhase = exports.storeTransaction = exports.loadTransaction = exports.storeTickTock = exports.loadTickTock = exports.storeStorageUsed = exports.loadStorageUsed = exports.storeStorageInfo = exports.loadStorageInfo = exports.storeStateInit = exports.loadStateInit = exports.storeSplitMergeInfo = exports.loadSplitMergeInfo = exports.storeLibRef = exports.loadLibRef = exports.storeSimpleLibrary = void 0;
+  (function(exports$1) {
+    Object.defineProperty(exports$1, "__esModule", { value: true });
+    exports$1.signatureDomainEmptyTag = exports$1.loadShardStateUnsplit = exports$1.storeShardIdent = exports$1.loadShardIdent = exports$1.storeShardAccounts = exports$1.loadShardAccounts = exports$1.ShardAccountRefValue = exports$1.storeShardAccount = exports$1.loadShardAccount = exports$1.ReserveMode = exports$1.SendMode = exports$1.storeMessageRelaxed = exports$1.loadMessageRelaxed = exports$1.storeMessage = exports$1.loadMessage = exports$1.loadMasterchainStateExtra = exports$1.storeHashUpdate = exports$1.loadHashUpdate = exports$1.storeExtraCurrency = exports$1.loadMaybeExtraCurrency = exports$1.loadExtraCurrency = exports$1.packExtraCurrencyDict = exports$1.packExtraCurrencyCell = exports$1.storeDepthBalanceInfo = exports$1.loadDepthBalanceInfo = exports$1.storeCurrencyCollection = exports$1.loadCurrencyCollection = exports$1.storeComputeSkipReason = exports$1.loadComputeSkipReason = exports$1.storeCommonMessageInfoRelaxed = exports$1.loadCommonMessageInfoRelaxed = exports$1.storeCommonMessageInfo = exports$1.loadCommonMessageInfo = exports$1.storeOutList = exports$1.loadOutList = exports$1.storeOutAction = exports$1.loadOutAction = exports$1.storeAccountStorage = exports$1.loadAccountStorage = exports$1.storeAccountStatusChange = exports$1.loadAccountStatusChange = exports$1.storeAccountStatus = exports$1.loadAccountStatus = exports$1.storeAccountState = exports$1.loadAccountState = exports$1.storeAccount = exports$1.loadAccount = exports$1.comment = exports$1.external = exports$1.internal = void 0;
+    exports$1.storeTransactionsStoragePhase = exports$1.loadTransactionStoragePhase = exports$1.storeTransactionDescription = exports$1.loadTransactionDescription = exports$1.storeTransactionCreditPhase = exports$1.loadTransactionCreditPhase = exports$1.storeTransactionComputePhase = exports$1.loadTransactionComputePhase = exports$1.storeTransactionBouncePhase = exports$1.loadTransactionBouncePhase = exports$1.storeTransactionActionPhase = exports$1.loadTransactionActionPhase = exports$1.storeTransaction = exports$1.loadTransaction = exports$1.storeTickTock = exports$1.loadTickTock = exports$1.storeStorageUsed = exports$1.loadStorageUsed = exports$1.storeStorageInfo = exports$1.loadStorageInfo = exports$1.storeStateInit = exports$1.loadStateInit = exports$1.storeSplitMergeInfo = exports$1.loadSplitMergeInfo = exports$1.storeLibRef = exports$1.loadLibRef = exports$1.storeSimpleLibrary = exports$1.loadSimpleLibrary = exports$1.signatureDomainL2Tag = void 0;
     var _helpers_1 = require_helpers();
-    Object.defineProperty(exports, "internal", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "internal", { enumerable: true, get: function() {
       return _helpers_1.internal;
     } });
-    Object.defineProperty(exports, "external", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "external", { enumerable: true, get: function() {
       return _helpers_1.external;
     } });
-    Object.defineProperty(exports, "comment", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "comment", { enumerable: true, get: function() {
       return _helpers_1.comment;
     } });
     var Account_1 = requireAccount();
-    Object.defineProperty(exports, "loadAccount", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadAccount", { enumerable: true, get: function() {
       return Account_1.loadAccount;
     } });
-    Object.defineProperty(exports, "storeAccount", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeAccount", { enumerable: true, get: function() {
       return Account_1.storeAccount;
     } });
     var AccountState_1 = requireAccountState();
-    Object.defineProperty(exports, "loadAccountState", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadAccountState", { enumerable: true, get: function() {
       return AccountState_1.loadAccountState;
     } });
-    Object.defineProperty(exports, "storeAccountState", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeAccountState", { enumerable: true, get: function() {
       return AccountState_1.storeAccountState;
     } });
     var AccountStatus_1 = requireAccountStatus();
-    Object.defineProperty(exports, "loadAccountStatus", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadAccountStatus", { enumerable: true, get: function() {
       return AccountStatus_1.loadAccountStatus;
     } });
-    Object.defineProperty(exports, "storeAccountStatus", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeAccountStatus", { enumerable: true, get: function() {
       return AccountStatus_1.storeAccountStatus;
     } });
     var AccountStatusChange_1 = requireAccountStatusChange();
-    Object.defineProperty(exports, "loadAccountStatusChange", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadAccountStatusChange", { enumerable: true, get: function() {
       return AccountStatusChange_1.loadAccountStatusChange;
     } });
-    Object.defineProperty(exports, "storeAccountStatusChange", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeAccountStatusChange", { enumerable: true, get: function() {
       return AccountStatusChange_1.storeAccountStatusChange;
     } });
     var AccountStorage_1 = requireAccountStorage();
-    Object.defineProperty(exports, "loadAccountStorage", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadAccountStorage", { enumerable: true, get: function() {
       return AccountStorage_1.loadAccountStorage;
     } });
-    Object.defineProperty(exports, "storeAccountStorage", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeAccountStorage", { enumerable: true, get: function() {
       return AccountStorage_1.storeAccountStorage;
     } });
     var OutList_1 = requireOutList();
-    Object.defineProperty(exports, "loadOutAction", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadOutAction", { enumerable: true, get: function() {
       return OutList_1.loadOutAction;
     } });
-    Object.defineProperty(exports, "storeOutAction", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeOutAction", { enumerable: true, get: function() {
       return OutList_1.storeOutAction;
     } });
-    Object.defineProperty(exports, "loadOutList", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadOutList", { enumerable: true, get: function() {
       return OutList_1.loadOutList;
     } });
-    Object.defineProperty(exports, "storeOutList", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeOutList", { enumerable: true, get: function() {
       return OutList_1.storeOutList;
     } });
     var CommonMessageInfo_1 = requireCommonMessageInfo();
-    Object.defineProperty(exports, "loadCommonMessageInfo", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadCommonMessageInfo", { enumerable: true, get: function() {
       return CommonMessageInfo_1.loadCommonMessageInfo;
     } });
-    Object.defineProperty(exports, "storeCommonMessageInfo", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeCommonMessageInfo", { enumerable: true, get: function() {
       return CommonMessageInfo_1.storeCommonMessageInfo;
     } });
     var CommonMessageInfoRelaxed_1 = requireCommonMessageInfoRelaxed();
-    Object.defineProperty(exports, "loadCommonMessageInfoRelaxed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadCommonMessageInfoRelaxed", { enumerable: true, get: function() {
       return CommonMessageInfoRelaxed_1.loadCommonMessageInfoRelaxed;
     } });
-    Object.defineProperty(exports, "storeCommonMessageInfoRelaxed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeCommonMessageInfoRelaxed", { enumerable: true, get: function() {
       return CommonMessageInfoRelaxed_1.storeCommonMessageInfoRelaxed;
     } });
     var ComputeSkipReason_1 = requireComputeSkipReason();
-    Object.defineProperty(exports, "loadComputeSkipReason", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadComputeSkipReason", { enumerable: true, get: function() {
       return ComputeSkipReason_1.loadComputeSkipReason;
     } });
-    Object.defineProperty(exports, "storeComputeSkipReason", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeComputeSkipReason", { enumerable: true, get: function() {
       return ComputeSkipReason_1.storeComputeSkipReason;
     } });
     var CurrencyCollection_1 = requireCurrencyCollection();
-    Object.defineProperty(exports, "loadCurrencyCollection", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadCurrencyCollection", { enumerable: true, get: function() {
       return CurrencyCollection_1.loadCurrencyCollection;
     } });
-    Object.defineProperty(exports, "storeCurrencyCollection", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeCurrencyCollection", { enumerable: true, get: function() {
       return CurrencyCollection_1.storeCurrencyCollection;
     } });
     var DepthBalanceInfo_1 = requireDepthBalanceInfo();
-    Object.defineProperty(exports, "loadDepthBalanceInfo", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadDepthBalanceInfo", { enumerable: true, get: function() {
       return DepthBalanceInfo_1.loadDepthBalanceInfo;
     } });
-    Object.defineProperty(exports, "storeDepthBalanceInfo", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeDepthBalanceInfo", { enumerable: true, get: function() {
       return DepthBalanceInfo_1.storeDepthBalanceInfo;
     } });
     var ExtraCurrency_1 = requireExtraCurrency();
-    Object.defineProperty(exports, "packExtraCurrencyCell", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "packExtraCurrencyCell", { enumerable: true, get: function() {
       return ExtraCurrency_1.packExtraCurrencyCell;
     } });
-    Object.defineProperty(exports, "packExtraCurrencyDict", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "packExtraCurrencyDict", { enumerable: true, get: function() {
       return ExtraCurrency_1.packExtraCurrencyDict;
     } });
-    Object.defineProperty(exports, "loadExtraCurrency", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadExtraCurrency", { enumerable: true, get: function() {
       return ExtraCurrency_1.loadExtraCurrency;
     } });
-    Object.defineProperty(exports, "loadMaybeExtraCurrency", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadMaybeExtraCurrency", { enumerable: true, get: function() {
       return ExtraCurrency_1.loadMaybeExtraCurrency;
     } });
-    Object.defineProperty(exports, "storeExtraCurrency", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeExtraCurrency", { enumerable: true, get: function() {
       return ExtraCurrency_1.storeExtraCurrency;
     } });
     var HashUpdate_1 = requireHashUpdate();
-    Object.defineProperty(exports, "loadHashUpdate", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadHashUpdate", { enumerable: true, get: function() {
       return HashUpdate_1.loadHashUpdate;
     } });
-    Object.defineProperty(exports, "storeHashUpdate", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeHashUpdate", { enumerable: true, get: function() {
       return HashUpdate_1.storeHashUpdate;
     } });
     var MasterchainStateExtra_1 = requireMasterchainStateExtra();
-    Object.defineProperty(exports, "loadMasterchainStateExtra", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadMasterchainStateExtra", { enumerable: true, get: function() {
       return MasterchainStateExtra_1.loadMasterchainStateExtra;
     } });
     var Message_1 = requireMessage();
-    Object.defineProperty(exports, "loadMessage", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadMessage", { enumerable: true, get: function() {
       return Message_1.loadMessage;
     } });
-    Object.defineProperty(exports, "storeMessage", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeMessage", { enumerable: true, get: function() {
       return Message_1.storeMessage;
     } });
     var MessageRelaxed_1 = requireMessageRelaxed();
-    Object.defineProperty(exports, "loadMessageRelaxed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadMessageRelaxed", { enumerable: true, get: function() {
       return MessageRelaxed_1.loadMessageRelaxed;
     } });
-    Object.defineProperty(exports, "storeMessageRelaxed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeMessageRelaxed", { enumerable: true, get: function() {
       return MessageRelaxed_1.storeMessageRelaxed;
     } });
     var SendMode_1 = requireSendMode();
-    Object.defineProperty(exports, "SendMode", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "SendMode", { enumerable: true, get: function() {
       return SendMode_1.SendMode;
     } });
     var ReserveMode_1 = requireReserveMode();
-    Object.defineProperty(exports, "ReserveMode", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "ReserveMode", { enumerable: true, get: function() {
       return ReserveMode_1.ReserveMode;
     } });
     var ShardAccount_1 = requireShardAccount();
-    Object.defineProperty(exports, "loadShardAccount", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadShardAccount", { enumerable: true, get: function() {
       return ShardAccount_1.loadShardAccount;
     } });
-    Object.defineProperty(exports, "storeShardAccount", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeShardAccount", { enumerable: true, get: function() {
       return ShardAccount_1.storeShardAccount;
     } });
     var ShardAccounts_1 = requireShardAccounts();
-    Object.defineProperty(exports, "ShardAccountRefValue", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "ShardAccountRefValue", { enumerable: true, get: function() {
       return ShardAccounts_1.ShardAccountRefValue;
     } });
-    Object.defineProperty(exports, "loadShardAccounts", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadShardAccounts", { enumerable: true, get: function() {
       return ShardAccounts_1.loadShardAccounts;
     } });
-    Object.defineProperty(exports, "storeShardAccounts", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeShardAccounts", { enumerable: true, get: function() {
       return ShardAccounts_1.storeShardAccounts;
     } });
     var ShardIdent_1 = requireShardIdent();
-    Object.defineProperty(exports, "loadShardIdent", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadShardIdent", { enumerable: true, get: function() {
       return ShardIdent_1.loadShardIdent;
     } });
-    Object.defineProperty(exports, "storeShardIdent", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeShardIdent", { enumerable: true, get: function() {
       return ShardIdent_1.storeShardIdent;
     } });
     var ShardStateUnsplit_1 = requireShardStateUnsplit();
-    Object.defineProperty(exports, "loadShardStateUnsplit", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadShardStateUnsplit", { enumerable: true, get: function() {
       return ShardStateUnsplit_1.loadShardStateUnsplit;
     } });
+    var SignatureDomain_1 = requireSignatureDomain();
+    Object.defineProperty(exports$1, "signatureDomainEmptyTag", { enumerable: true, get: function() {
+      return SignatureDomain_1.signatureDomainEmptyTag;
+    } });
+    Object.defineProperty(exports$1, "signatureDomainL2Tag", { enumerable: true, get: function() {
+      return SignatureDomain_1.signatureDomainL2Tag;
+    } });
     var SimpleLibrary_1 = requireSimpleLibrary();
-    Object.defineProperty(exports, "loadSimpleLibrary", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadSimpleLibrary", { enumerable: true, get: function() {
       return SimpleLibrary_1.loadSimpleLibrary;
     } });
-    Object.defineProperty(exports, "storeSimpleLibrary", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeSimpleLibrary", { enumerable: true, get: function() {
       return SimpleLibrary_1.storeSimpleLibrary;
     } });
     var LibRef_1 = requireLibRef();
-    Object.defineProperty(exports, "loadLibRef", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadLibRef", { enumerable: true, get: function() {
       return LibRef_1.loadLibRef;
     } });
-    Object.defineProperty(exports, "storeLibRef", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeLibRef", { enumerable: true, get: function() {
       return LibRef_1.storeLibRef;
     } });
     var SplitMergeInfo_1 = requireSplitMergeInfo();
-    Object.defineProperty(exports, "loadSplitMergeInfo", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadSplitMergeInfo", { enumerable: true, get: function() {
       return SplitMergeInfo_1.loadSplitMergeInfo;
     } });
-    Object.defineProperty(exports, "storeSplitMergeInfo", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeSplitMergeInfo", { enumerable: true, get: function() {
       return SplitMergeInfo_1.storeSplitMergeInfo;
     } });
     var StateInit_1 = requireStateInit();
-    Object.defineProperty(exports, "loadStateInit", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadStateInit", { enumerable: true, get: function() {
       return StateInit_1.loadStateInit;
     } });
-    Object.defineProperty(exports, "storeStateInit", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeStateInit", { enumerable: true, get: function() {
       return StateInit_1.storeStateInit;
     } });
     var StorageInfo_1 = requireStorageInfo();
-    Object.defineProperty(exports, "loadStorageInfo", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadStorageInfo", { enumerable: true, get: function() {
       return StorageInfo_1.loadStorageInfo;
     } });
-    Object.defineProperty(exports, "storeStorageInfo", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeStorageInfo", { enumerable: true, get: function() {
       return StorageInfo_1.storeStorageInfo;
     } });
     var StorageUsed_1 = requireStorageUsed();
-    Object.defineProperty(exports, "loadStorageUsed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadStorageUsed", { enumerable: true, get: function() {
       return StorageUsed_1.loadStorageUsed;
     } });
-    Object.defineProperty(exports, "storeStorageUsed", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeStorageUsed", { enumerable: true, get: function() {
       return StorageUsed_1.storeStorageUsed;
     } });
     var TickTock_1 = requireTickTock();
-    Object.defineProperty(exports, "loadTickTock", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadTickTock", { enumerable: true, get: function() {
       return TickTock_1.loadTickTock;
     } });
-    Object.defineProperty(exports, "storeTickTock", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeTickTock", { enumerable: true, get: function() {
       return TickTock_1.storeTickTock;
     } });
     var Transaction_1 = requireTransaction();
-    Object.defineProperty(exports, "loadTransaction", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadTransaction", { enumerable: true, get: function() {
       return Transaction_1.loadTransaction;
     } });
-    Object.defineProperty(exports, "storeTransaction", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeTransaction", { enumerable: true, get: function() {
       return Transaction_1.storeTransaction;
     } });
     var TransactionActionPhase_1 = requireTransactionActionPhase();
-    Object.defineProperty(exports, "loadTransactionActionPhase", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadTransactionActionPhase", { enumerable: true, get: function() {
       return TransactionActionPhase_1.loadTransactionActionPhase;
     } });
-    Object.defineProperty(exports, "storeTransactionActionPhase", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeTransactionActionPhase", { enumerable: true, get: function() {
       return TransactionActionPhase_1.storeTransactionActionPhase;
     } });
     var TransactionBouncePhase_1 = requireTransactionBouncePhase();
-    Object.defineProperty(exports, "loadTransactionBouncePhase", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadTransactionBouncePhase", { enumerable: true, get: function() {
       return TransactionBouncePhase_1.loadTransactionBouncePhase;
     } });
-    Object.defineProperty(exports, "storeTransactionBouncePhase", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeTransactionBouncePhase", { enumerable: true, get: function() {
       return TransactionBouncePhase_1.storeTransactionBouncePhase;
     } });
     var TransactionComputePhase_1 = requireTransactionComputePhase();
-    Object.defineProperty(exports, "loadTransactionComputePhase", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadTransactionComputePhase", { enumerable: true, get: function() {
       return TransactionComputePhase_1.loadTransactionComputePhase;
     } });
-    Object.defineProperty(exports, "storeTransactionComputePhase", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeTransactionComputePhase", { enumerable: true, get: function() {
       return TransactionComputePhase_1.storeTransactionComputePhase;
     } });
     var TransactionCreditPhase_1 = requireTransactionCreditPhase();
-    Object.defineProperty(exports, "loadTransactionCreditPhase", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadTransactionCreditPhase", { enumerable: true, get: function() {
       return TransactionCreditPhase_1.loadTransactionCreditPhase;
     } });
-    Object.defineProperty(exports, "storeTransactionCreditPhase", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeTransactionCreditPhase", { enumerable: true, get: function() {
       return TransactionCreditPhase_1.storeTransactionCreditPhase;
     } });
     var TransactionDescription_1 = requireTransactionDescription();
-    Object.defineProperty(exports, "loadTransactionDescription", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadTransactionDescription", { enumerable: true, get: function() {
       return TransactionDescription_1.loadTransactionDescription;
     } });
-    Object.defineProperty(exports, "storeTransactionDescription", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeTransactionDescription", { enumerable: true, get: function() {
       return TransactionDescription_1.storeTransactionDescription;
     } });
     var TransactionStoragePhase_1 = requireTransactionStoragePhase();
-    Object.defineProperty(exports, "loadTransactionStoragePhase", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "loadTransactionStoragePhase", { enumerable: true, get: function() {
       return TransactionStoragePhase_1.loadTransactionStoragePhase;
     } });
-    Object.defineProperty(exports, "storeTransactionsStoragePhase", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "storeTransactionsStoragePhase", { enumerable: true, get: function() {
       return TransactionStoragePhase_1.storeTransactionsStoragePhase;
     } });
   })(_export);
@@ -22992,11 +23022,65 @@ function requireSafeSign() {
   safeSign.safeSignVerify = safeSignVerify;
   return safeSign;
 }
+var domainSignature = {};
+var hasRequiredDomainSignature;
+function requireDomainSignature() {
+  if (hasRequiredDomainSignature) return domainSignature;
+  hasRequiredDomainSignature = 1;
+  Object.defineProperty(domainSignature, "__esModule", { value: true });
+  domainSignature.domainSignVerify = domainSignature.domainSign = domainSignature.signatureDomainPrefix = domainSignature.signatureDomainHash = void 0;
+  const crypto_1 = requireDist$1();
+  const SignatureDomain_1 = requireSignatureDomain();
+  function signatureDomainHash(domain) {
+    switch (domain.type) {
+      case "empty":
+        const tl = Buffer.alloc(4);
+        tl.writeInt32LE(SignatureDomain_1.signatureDomainEmptyTag);
+        return (0, crypto_1.sha256_sync)(tl);
+      case "l2": {
+        const tl2 = Buffer.alloc(8);
+        tl2.writeInt32LE(SignatureDomain_1.signatureDomainL2Tag);
+        tl2.writeInt32LE(domain.globalId, 4);
+        return (0, crypto_1.sha256_sync)(tl2);
+      }
+      default:
+        throw new Error(`Unknown SignatureDomain type ${domain.type}`);
+    }
+  }
+  domainSignature.signatureDomainHash = signatureDomainHash;
+  const signatureDomainEmptyHash = signatureDomainHash({ type: "empty" });
+  function signatureDomainPrefix(domainOrHash) {
+    const domainHash = Buffer.isBuffer(domainOrHash) ? domainOrHash : signatureDomainHash(domainOrHash);
+    if (domainHash.length !== 32) {
+      throw new Error("Invalid signature domain hash length");
+    }
+    if (domainHash.equals(signatureDomainEmptyHash)) {
+      return null;
+    }
+    return domainHash;
+  }
+  domainSignature.signatureDomainPrefix = signatureDomainPrefix;
+  function domainDataToSign(data, domain) {
+    const prefix = signatureDomainPrefix(domain);
+    return prefix ? Buffer.concat([prefix, data]) : data;
+  }
+  function domainSign({ data, secretKey, domain = { type: "empty" } }) {
+    const dataToSign = domainDataToSign(data, domain);
+    return (0, crypto_1.sign)(dataToSign, secretKey);
+  }
+  domainSignature.domainSign = domainSign;
+  function domainSignVerify({ data, signature, publicKey, domain = { type: "empty" } }) {
+    const dataToSign = domainDataToSign(data, domain);
+    return (0, crypto_1.signVerify)(dataToSign, signature, publicKey);
+  }
+  domainSignature.domainSignVerify = domainSignVerify;
+  return domainSignature;
+}
 var hasRequiredDist;
 function requireDist() {
   if (hasRequiredDist) return dist$1;
   hasRequiredDist = 1;
-  (function(exports) {
+  (function(exports$1) {
     var __createBinding = dist$1 && dist$1.__createBinding || (Object.create ? (function(o4, m, k2, k22) {
       if (k22 === void 0) k22 = k2;
       var desc = Object.getOwnPropertyDescriptor(m, k2);
@@ -23010,153 +23094,166 @@ function requireDist() {
       if (k22 === void 0) k22 = k2;
       o4[k22] = m[k2];
     }));
-    var __exportStar = dist$1 && dist$1.__exportStar || function(m, exports2) {
-      for (var p2 in m) if (p2 !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p2)) __createBinding(exports2, m, p2);
+    var __exportStar = dist$1 && dist$1.__exportStar || function(m, exports$12) {
+      for (var p2 in m) if (p2 !== "default" && !Object.prototype.hasOwnProperty.call(exports$12, p2)) __createBinding(exports$12, m, p2);
     };
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.safeSignVerify = exports.safeSign = exports.getMethodId = exports.base32Encode = exports.base32Decode = exports.crc32c = exports.crc16 = exports.fromNano = exports.toNano = exports.ComputeError = exports.openContract = exports.TupleBuilder = exports.TupleReader = exports.serializeTupleItem = exports.parseTupleItem = exports.serializeTuple = exports.parseTuple = exports.generateMerkleUpdate = exports.generateMerkleProofDirect = exports.generateMerkleProof = exports.exoticPruned = exports.exoticMerkleUpdate = exports.convertToMerkleProof = exports.exoticMerkleProof = exports.Dictionary = exports.Cell = exports.CellType = exports.Slice = exports.beginCell = exports.Builder = exports.BitBuilder = exports.BitReader = exports.BitString = exports.contractAddress = exports.ADNLAddress = exports.ExternalAddress = exports.address = exports.Address = void 0;
+    Object.defineProperty(exports$1, "__esModule", { value: true });
+    exports$1.domainSignVerify = exports$1.domainSign = exports$1.signatureDomainPrefix = exports$1.signatureDomainHash = exports$1.safeSignVerify = exports$1.safeSign = exports$1.getMethodId = exports$1.base32Encode = exports$1.base32Decode = exports$1.crc32c = exports$1.crc16 = exports$1.fromNano = exports$1.toNano = exports$1.ComputeError = exports$1.openContract = exports$1.TupleBuilder = exports$1.TupleReader = exports$1.serializeTupleItem = exports$1.parseTupleItem = exports$1.serializeTuple = exports$1.parseTuple = exports$1.generateMerkleUpdate = exports$1.generateMerkleProofDirect = exports$1.generateMerkleProof = exports$1.exoticPruned = exports$1.exoticMerkleUpdate = exports$1.convertToMerkleProof = exports$1.exoticMerkleProof = exports$1.Dictionary = exports$1.Cell = exports$1.CellType = exports$1.Slice = exports$1.beginCell = exports$1.Builder = exports$1.BitBuilder = exports$1.BitReader = exports$1.BitString = exports$1.contractAddress = exports$1.ADNLAddress = exports$1.ExternalAddress = exports$1.address = exports$1.Address = void 0;
     var Address_1 = requireAddress();
-    Object.defineProperty(exports, "Address", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "Address", { enumerable: true, get: function() {
       return Address_1.Address;
     } });
-    Object.defineProperty(exports, "address", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "address", { enumerable: true, get: function() {
       return Address_1.address;
     } });
     var ExternalAddress_1 = requireExternalAddress();
-    Object.defineProperty(exports, "ExternalAddress", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "ExternalAddress", { enumerable: true, get: function() {
       return ExternalAddress_1.ExternalAddress;
     } });
     var ADNLAddress_1 = requireADNLAddress();
-    Object.defineProperty(exports, "ADNLAddress", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "ADNLAddress", { enumerable: true, get: function() {
       return ADNLAddress_1.ADNLAddress;
     } });
     var contractAddress_1 = requireContractAddress();
-    Object.defineProperty(exports, "contractAddress", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "contractAddress", { enumerable: true, get: function() {
       return contractAddress_1.contractAddress;
     } });
     var BitString_1 = requireBitString();
-    Object.defineProperty(exports, "BitString", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "BitString", { enumerable: true, get: function() {
       return BitString_1.BitString;
     } });
     var BitReader_1 = requireBitReader();
-    Object.defineProperty(exports, "BitReader", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "BitReader", { enumerable: true, get: function() {
       return BitReader_1.BitReader;
     } });
     var BitBuilder_1 = requireBitBuilder();
-    Object.defineProperty(exports, "BitBuilder", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "BitBuilder", { enumerable: true, get: function() {
       return BitBuilder_1.BitBuilder;
     } });
     var Builder_1 = requireBuilder$1();
-    Object.defineProperty(exports, "Builder", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "Builder", { enumerable: true, get: function() {
       return Builder_1.Builder;
     } });
-    Object.defineProperty(exports, "beginCell", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "beginCell", { enumerable: true, get: function() {
       return Builder_1.beginCell;
     } });
     var Slice_1 = requireSlice();
-    Object.defineProperty(exports, "Slice", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "Slice", { enumerable: true, get: function() {
       return Slice_1.Slice;
     } });
     var CellType_1 = requireCellType();
-    Object.defineProperty(exports, "CellType", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "CellType", { enumerable: true, get: function() {
       return CellType_1.CellType;
     } });
     var Cell_1 = requireCell();
-    Object.defineProperty(exports, "Cell", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "Cell", { enumerable: true, get: function() {
       return Cell_1.Cell;
     } });
     var Dictionary_1 = requireDictionary();
-    Object.defineProperty(exports, "Dictionary", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "Dictionary", { enumerable: true, get: function() {
       return Dictionary_1.Dictionary;
     } });
     var exoticMerkleProof_1 = requireExoticMerkleProof();
-    Object.defineProperty(exports, "exoticMerkleProof", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "exoticMerkleProof", { enumerable: true, get: function() {
       return exoticMerkleProof_1.exoticMerkleProof;
     } });
-    Object.defineProperty(exports, "convertToMerkleProof", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "convertToMerkleProof", { enumerable: true, get: function() {
       return exoticMerkleProof_1.convertToMerkleProof;
     } });
     var exoticMerkleUpdate_1 = requireExoticMerkleUpdate();
-    Object.defineProperty(exports, "exoticMerkleUpdate", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "exoticMerkleUpdate", { enumerable: true, get: function() {
       return exoticMerkleUpdate_1.exoticMerkleUpdate;
     } });
     var exoticPruned_1 = requireExoticPruned();
-    Object.defineProperty(exports, "exoticPruned", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "exoticPruned", { enumerable: true, get: function() {
       return exoticPruned_1.exoticPruned;
     } });
     var generateMerkleProof_1 = requireGenerateMerkleProof();
-    Object.defineProperty(exports, "generateMerkleProof", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "generateMerkleProof", { enumerable: true, get: function() {
       return generateMerkleProof_1.generateMerkleProof;
     } });
-    Object.defineProperty(exports, "generateMerkleProofDirect", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "generateMerkleProofDirect", { enumerable: true, get: function() {
       return generateMerkleProof_1.generateMerkleProofDirect;
     } });
     var generateMerkleUpdate_1 = requireGenerateMerkleUpdate();
-    Object.defineProperty(exports, "generateMerkleUpdate", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "generateMerkleUpdate", { enumerable: true, get: function() {
       return generateMerkleUpdate_1.generateMerkleUpdate;
     } });
     var tuple_1 = requireTuple();
-    Object.defineProperty(exports, "parseTuple", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "parseTuple", { enumerable: true, get: function() {
       return tuple_1.parseTuple;
     } });
-    Object.defineProperty(exports, "serializeTuple", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "serializeTuple", { enumerable: true, get: function() {
       return tuple_1.serializeTuple;
     } });
-    Object.defineProperty(exports, "parseTupleItem", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "parseTupleItem", { enumerable: true, get: function() {
       return tuple_1.parseTupleItem;
     } });
-    Object.defineProperty(exports, "serializeTupleItem", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "serializeTupleItem", { enumerable: true, get: function() {
       return tuple_1.serializeTupleItem;
     } });
     var reader_1 = requireReader();
-    Object.defineProperty(exports, "TupleReader", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "TupleReader", { enumerable: true, get: function() {
       return reader_1.TupleReader;
     } });
     var builder_1 = requireBuilder();
-    Object.defineProperty(exports, "TupleBuilder", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "TupleBuilder", { enumerable: true, get: function() {
       return builder_1.TupleBuilder;
     } });
-    __exportStar(require_export(), exports);
+    __exportStar(require_export(), exports$1);
     var openContract_1 = requireOpenContract();
-    Object.defineProperty(exports, "openContract", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "openContract", { enumerable: true, get: function() {
       return openContract_1.openContract;
     } });
     var ComputeError_1 = requireComputeError();
-    Object.defineProperty(exports, "ComputeError", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "ComputeError", { enumerable: true, get: function() {
       return ComputeError_1.ComputeError;
     } });
     var convert_1 = requireConvert();
-    Object.defineProperty(exports, "toNano", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "toNano", { enumerable: true, get: function() {
       return convert_1.toNano;
     } });
-    Object.defineProperty(exports, "fromNano", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "fromNano", { enumerable: true, get: function() {
       return convert_1.fromNano;
     } });
     var crc16_1 = requireCrc16();
-    Object.defineProperty(exports, "crc16", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "crc16", { enumerable: true, get: function() {
       return crc16_1.crc16;
     } });
     var crc32c_1 = requireCrc32c();
-    Object.defineProperty(exports, "crc32c", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "crc32c", { enumerable: true, get: function() {
       return crc32c_1.crc32c;
     } });
     var base32_1 = requireBase32();
-    Object.defineProperty(exports, "base32Decode", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "base32Decode", { enumerable: true, get: function() {
       return base32_1.base32Decode;
     } });
-    Object.defineProperty(exports, "base32Encode", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "base32Encode", { enumerable: true, get: function() {
       return base32_1.base32Encode;
     } });
     var getMethodId_1 = requireGetMethodId();
-    Object.defineProperty(exports, "getMethodId", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "getMethodId", { enumerable: true, get: function() {
       return getMethodId_1.getMethodId;
     } });
     var safeSign_1 = requireSafeSign();
-    Object.defineProperty(exports, "safeSign", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "safeSign", { enumerable: true, get: function() {
       return safeSign_1.safeSign;
     } });
-    Object.defineProperty(exports, "safeSignVerify", { enumerable: true, get: function() {
+    Object.defineProperty(exports$1, "safeSignVerify", { enumerable: true, get: function() {
       return safeSign_1.safeSignVerify;
+    } });
+    var domainSignature_1 = requireDomainSignature();
+    Object.defineProperty(exports$1, "signatureDomainHash", { enumerable: true, get: function() {
+      return domainSignature_1.signatureDomainHash;
+    } });
+    Object.defineProperty(exports$1, "signatureDomainPrefix", { enumerable: true, get: function() {
+      return domainSignature_1.signatureDomainPrefix;
+    } });
+    Object.defineProperty(exports$1, "domainSign", { enumerable: true, get: function() {
+      return domainSignature_1.domainSign;
+    } });
+    Object.defineProperty(exports$1, "domainSignVerify", { enumerable: true, get: function() {
+      return domainSignature_1.domainSignVerify;
     } });
   })(dist$1);
   return dist$1;
@@ -23239,10 +23336,13 @@ function isFriendlyTonAddress(address) {
   return true;
 }
 function asHex(data) {
-  if (!/^0x[0-9a-fA-F]+$/.test(data) || data.length % 2 !== 0) {
+  if (!isHex(data)) {
     throw new Error("Not a valid hex");
   }
   return data;
+}
+function isHex(data) {
+  return /^0x[0-9a-fA-F]+$/.test(data) && data.length % 2 === 0;
 }
 const ERROR_CODES = {
   // Bridge Manager Errors (7000-7099)
@@ -24704,7 +24804,7 @@ function delay(ms) {
     resolve();
   }, ms));
 }
-async function CallForSuccess(toCall, attempts = 20, delayMs = 100) {
+async function CallForSuccess(toCall, attempts = 20, delayMs = 100, shouldRetry) {
   if (typeof toCall !== "function") {
     throw new Error("unknown input");
   }
@@ -24716,6 +24816,9 @@ async function CallForSuccess(toCall, attempts = 20, delayMs = 100) {
       return res;
     } catch (err) {
       lastError = err;
+      if (shouldRetry && !shouldRetry(err)) {
+        throw err;
+      }
       i++;
       await delay(delayMs);
     }
@@ -26818,11 +26921,11 @@ function getWalletInfoWithDefaults(options) {
 }
 function getDeviceInfoForWallet(walletAdapter, deviceInfoOptions) {
   const baseDeviceInfo = getDeviceInfoWithDefaults(deviceInfoOptions);
-  if (walletAdapter?.getSupportedFeatures) {
-    const adapterFeatures = walletAdapter.getSupportedFeatures();
+  const walletSupportedFeatures = walletAdapter?.getSupportedFeatures();
+  if (walletSupportedFeatures) {
     const deviceInfo = {
       ...baseDeviceInfo,
-      features: adapterFeatures
+      features: walletSupportedFeatures
     };
     return addLegacySendTransactionFeature(deviceInfo);
   }
@@ -27381,9 +27484,11 @@ function isValidHost(host) {
 }
 const log$h = globalLogger.createChild("ConnectHandler");
 class ConnectHandler extends BasicHandler {
+  config;
   analytics;
-  constructor(notify, analyticsManager) {
+  constructor(notify, config, analyticsManager) {
     super(notify);
+    this.config = config;
     this.analytics = analyticsManager?.scoped();
   }
   canHandle(event) {
@@ -27463,19 +27568,21 @@ class ConnectHandler extends BasicHandler {
     const manifest = fetchedManifest || eventManifest;
     const dAppUrl = (event?.domain || manifest?.url?.toString() || "").trim();
     let finalManifestFetchErrorCode = manifestFetchErrorCode;
-    if (!finalManifestFetchErrorCode && dAppUrl) {
-      try {
-        const parsedDAppUrl = new URL(dAppUrl);
-        if (!isValidHost(parsedDAppUrl.host)) {
-          log$h.warn("Invalid dApp URL in manifest - invalid host format", {
-            dAppUrl,
-            host: parsedDAppUrl.host
-          });
+    if (!this.config.dev?.disableManifestDomainCheck) {
+      if (!finalManifestFetchErrorCode && dAppUrl) {
+        try {
+          const parsedDAppUrl = new URL(dAppUrl);
+          if (!isValidHost(parsedDAppUrl.host)) {
+            log$h.warn("Invalid dApp URL in manifest - invalid host format", {
+              dAppUrl,
+              host: parsedDAppUrl.host
+            });
+            finalManifestFetchErrorCode = CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR;
+          }
+        } catch (_) {
+          log$h.warn("Invalid dApp URL in manifest - failed to parse", { dAppUrl });
           finalManifestFetchErrorCode = CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR;
         }
-      } catch (_) {
-        log$h.warn("Invalid dApp URL in manifest - failed to parse", { dAppUrl });
-        finalManifestFetchErrorCode = CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR;
       }
     }
     const sanitizedManifest = manifest && {
@@ -27544,6 +27651,7 @@ class ConnectHandler extends BasicHandler {
     try {
       const response = await fetch(url);
       if (!response.ok) {
+        log$h.error("Failed to fetch manifest not ok", { url, status: response.status });
         return {
           manifest: null,
           manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR
@@ -27554,7 +27662,8 @@ class ConnectHandler extends BasicHandler {
         manifest: result,
         manifestFetchErrorCode: void 0
       };
-    } catch (_) {
+    } catch (e) {
+      log$h.error("Failed to fetch manifest catched", { url, error: e });
       return {
         manifest: null,
         manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR
@@ -27612,6 +27721,14 @@ function toExtraCurrencies(extraCurrency) {
   }
   return extraCurrency;
 }
+function parseConnectTransactionParamContent(raw) {
+  return {
+    messages: raw.messages,
+    network: raw.network,
+    validUntil: raw.valid_until,
+    from: raw.from
+  };
+}
 function toTransactionRequestMessage(msg) {
   asAddressFriendly(msg.address);
   return {
@@ -27637,7 +27754,7 @@ function toTransactionRequest(params) {
   return {
     messages: params.messages.map(toTransactionRequestMessage),
     network: params.network ? { chainId: params.network } : void 0,
-    validUntil: params.valid_until,
+    validUntil: params.validUntil,
     fromAddress: params.from
   };
 }
@@ -27919,6 +28036,10 @@ const Network = {
    * TON Testnet (chain ID: -3)
    */
   testnet: () => ({ chainId: "-3" }),
+  /**
+   * TON Tetra L2 chain (chain ID: 662387)
+   */
+  tetra: () => ({ chainId: "662387" }),
   /**
    * Custom network with specified chain ID
    */
@@ -28211,12 +28332,13 @@ class TransactionHandler extends BasicHandler {
       if (event.params.length !== 1) {
         throw new WalletKitError(ERROR_CODES.INVALID_REQUEST_EVENT, "Invalid transaction request - expected exactly 1 parameter", void 0, { paramCount: event.params.length, eventId: event.id });
       }
-      const params = JSON.parse(event.params[0]);
-      const validUntilValidation = this.validateValidUntil(params.valid_until);
+      const rawParams = JSON.parse(event.params[0]);
+      const params = parseConnectTransactionParamContent(rawParams);
+      const validUntilValidation = this.validateValidUntil(params.validUntil);
       if (!validUntilValidation.isValid) {
         errors = errors.concat(validUntilValidation.errors);
       } else {
-        params.valid_until = validUntilValidation.result;
+        params.validUntil = validUntilValidation.result;
       }
       const networkValidation = this.validateNetwork(params.network, wallet2);
       if (!networkValidation.isValid) {
@@ -28255,16 +28377,11 @@ class TransactionHandler extends BasicHandler {
   validateNetwork(network, wallet2) {
     let errors = [];
     if (typeof network === "string") {
-      if (network === "-3" || network === "-239") {
-        const chain = network === "-3" ? CHAIN.TESTNET : CHAIN.MAINNET;
-        const walletNetwork = wallet2.getNetwork();
-        if (chain !== walletNetwork.chainId) {
-          errors.push("Invalid network not equal to wallet network");
-        } else {
-          return { result: chain, isValid: errors.length === 0, errors };
-        }
+      const walletNetwork = wallet2.getNetwork();
+      if (network !== walletNetwork.chainId) {
+        errors.push("Invalid network not equal to wallet network");
       } else {
-        errors.push("Invalid network not a valid network");
+        return { result: network, isValid: errors.length === 0, errors };
       }
     } else {
       errors.push("Invalid network not a string");
@@ -28707,7 +28824,7 @@ class EventRouter {
    */
   setupHandlers() {
     this.handlers = [
-      new ConnectHandler(this.notifyConnectRequestCallbacks.bind(this), this.analyticsManager),
+      new ConnectHandler(this.notifyConnectRequestCallbacks.bind(this), this.config, this.analyticsManager),
       new TransactionHandler(this.notifyTransactionRequestCallbacks.bind(this), this.config, this.eventEmitter, this.walletManager, this.sessionManager, this.analyticsManager),
       new SignDataHandler(this.notifySignDataRequestCallbacks.bind(this), this.walletManager, this.sessionManager, this.analyticsManager),
       new DisconnectHandler(this.notifyDisconnectCallbacks.bind(this), this.sessionManager)
@@ -29425,24 +29542,16 @@ function parseDomain(url) {
   }
 }
 function toTonConnectSignDataPayload(payload) {
-  let network;
-  if (payload.network?.chainId === CHAIN.MAINNET) {
-    network = CHAIN.MAINNET;
-  } else if (payload.network?.chainId === CHAIN.TESTNET) {
-    network = CHAIN.TESTNET;
-  } else {
-    network = void 0;
-  }
   if (payload.data.type === "text") {
     return {
-      network,
+      network: payload.network?.chainId,
       from: payload.fromAddress,
       type: "text",
       text: payload.data.value.content
     };
   } else if (payload.data.type === "cell") {
     return {
-      network,
+      network: payload.network?.chainId,
       from: payload.fromAddress,
       type: "cell",
       schema: payload.data.value.schema,
@@ -29450,7 +29559,7 @@ function toTonConnectSignDataPayload(payload) {
     };
   } else {
     return {
-      network,
+      network: payload.network?.chainId,
       from: payload.fromAddress,
       type: "binary",
       bytes: payload.data.value.content
@@ -30061,143 +30170,6 @@ class StorageEventProcessor {
     return enabledTypes.filter((type) => type === "connect" || type === "restoreConnection");
   }
 }
-const log$a = globalLogger.createChild("WalletTonClass");
-class WalletTonClass {
-  async createTransferTonTransaction(param) {
-    if (!isValidAddress(param.recipientAddress)) {
-      throw new Error(`Invalid to address: ${param.recipientAddress}`);
-    }
-    if (!isValidNanotonAmount(param.transferAmount)) {
-      throw new Error(`Invalid amount: ${param.transferAmount}`);
-    }
-    let body;
-    if (param.payload) {
-      body = param.payload;
-    } else if (param.comment) {
-      body = distExports$1.beginCell().storeUint(0, 32).storeStringTail(param.comment).endCell().toBoc().toString("base64");
-    }
-    const message = {
-      address: param.recipientAddress,
-      amount: param.transferAmount,
-      payload: body,
-      stateInit: param.stateInit,
-      extraCurrency: param.extraCurrency,
-      mode: param.mode
-    };
-    if (!validateTransactionMessage(message, false).isValid) {
-      throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
-    }
-    return {
-      messages: [message],
-      fromAddress: this.getAddress()
-    };
-  }
-  async createTransferMultiTonTransaction(params) {
-    let messages = [];
-    for (const param of params) {
-      if (!isValidAddress(param.recipientAddress)) {
-        throw new Error(`Invalid to address: ${param.recipientAddress}`);
-      }
-      if (!isValidNanotonAmount(param.transferAmount)) {
-        throw new Error(`Invalid amount: ${param.transferAmount}`);
-      }
-      let body;
-      if (param.payload) {
-        body = param.payload;
-      } else if (param.comment) {
-        body = distExports$1.beginCell().storeUint(0, 32).storeStringTail(param.comment).endCell().toBoc().toString("base64");
-      }
-      const message = {
-        address: param.recipientAddress,
-        amount: param.transferAmount,
-        payload: body,
-        stateInit: param.stateInit,
-        extraCurrency: param.extraCurrency,
-        mode: param.mode
-      };
-      if (!validateTransactionMessage(message, false).isValid) {
-        throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
-      }
-      messages.push(message);
-    }
-    return {
-      messages,
-      fromAddress: this.getAddress()
-    };
-  }
-  async getTransactionPreview(param) {
-    const transaction = await param;
-    const preview = await CallForSuccess(() => createTransactionPreview(this.client, transaction, this));
-    return preview;
-  }
-  async sendTransaction(request) {
-    try {
-      const boc = await this.getSignedSendTransaction(request);
-      await CallForSuccess(() => this.getClient().sendBoc(boc));
-      return { boc };
-    } catch (error2) {
-      log$a.error("Failed to send transaction", { error: error2 });
-      if (error2 instanceof WalletKitError) {
-        throw error2;
-      }
-      if (error2?.message?.includes("Ledger device")) {
-        throw new WalletKitError(ERROR_CODES.LEDGER_DEVICE_ERROR, "Ledger device error", error2);
-      }
-      throw error2;
-    }
-  }
-  async getBalance() {
-    return await CallForSuccess(async () => this.getClient().getBalance(this.getAddress()));
-  }
-}
-function ParseStackItem(item) {
-  switch (item.type) {
-    case "num":
-      if (item.value.startsWith("-")) {
-        return { type: "int", value: -BigInt(item.value.slice(1)) };
-      } else {
-        return { type: "int", value: BigInt(item.value) };
-      }
-    case "null":
-      return { type: "null" };
-    case "cell":
-      return { type: "cell", cell: distExports$1.Cell.fromBoc(Buffer.from(item.value, "base64"))[0] };
-    case "tuple":
-    case "list":
-      if (item.value.length === 0) {
-        return { type: "null" };
-      }
-      return { type: "tuple", items: item.value.map((value) => ParseStackItem(value)) };
-    default:
-      throw Error(`Unsupported parse stack item type: ${JSON.stringify(item)}`);
-  }
-}
-function ParseStack(list) {
-  let stack = [];
-  for (let item of list) {
-    stack.push(ParseStackItem(item));
-  }
-  return stack;
-}
-function SerializeStackItem(item) {
-  switch (item.type) {
-    case "int":
-      return { type: "num", value: `${item.value < 0 ? "-" : ""}0x${item.value.toString(16)}` };
-    case "slice":
-      return { type: "slice", value: item.cell.toBoc().toString("base64") };
-    case "cell":
-      return { type: "cell", value: item.cell.toBoc().toString("base64") };
-    default:
-      throw Error(`Unsupported serialize stack item type: ${item.type}`);
-  }
-}
-function SerializeStack(list) {
-  let stack = [];
-  for (let item of list) {
-    stack.push(SerializeStackItem(item));
-  }
-  return stack;
-}
 function isBytes(a2) {
   return a2 instanceof Uint8Array || ArrayBuffer.isView(a2) && a2.constructor.name === "Uint8Array";
 }
@@ -30805,7 +30777,24 @@ function DefaultSignature(data, privateKey) {
   }
   return Uint8ArrayToHex(distExports.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(fullKey)));
 }
-function createWalletSigner(privateKey) {
+function DefaultDomainSignature(data, privateKey, domain) {
+  let fullKey = privateKey;
+  if (fullKey.length === 32) {
+    const keyPair = distExports.keyPairFromSeed(Buffer.from(fullKey));
+    fullKey = keyPair.secretKey;
+  }
+  return Uint8ArrayToHex(distExports$1.domainSign({
+    data: Buffer.from(Uint8Array.from(data)),
+    secretKey: Buffer.from(fullKey),
+    domain
+  }));
+}
+function createWalletSigner(privateKey, domain) {
+  if (domain) {
+    return async (data) => {
+      return DefaultDomainSignature(Uint8Array.from(data), privateKey, domain);
+    };
+  }
   return async (data) => {
     return DefaultSignature(Uint8Array.from(data), privateKey);
   };
@@ -30821,9 +30810,9 @@ class Signer {
    * @param options - Optional configuration for mnemonic type
    * @returns Signer function with publicKey property
    */
-  static async fromMnemonic(mnemonic2, options) {
+  static async fromMnemonic(mnemonic2, options, domain) {
     const keyPair = await MnemonicToKeyPair(mnemonic2, options?.type ?? "ton");
-    const signer = createWalletSigner(keyPair.secretKey);
+    const signer = createWalletSigner(keyPair.secretKey, domain);
     return {
       sign: signer,
       publicKey: Uint8ArrayToHex(keyPair.publicKey)
@@ -30834,24 +30823,69 @@ class Signer {
    * @param privateKey - Private key as hex string or Uint8Array
    * @returns Signer function with publicKey property
    */
-  static async fromPrivateKey(privateKey) {
+  static async fromPrivateKey(privateKey, domain) {
     const privateKeyBytes = typeof privateKey === "string" ? Uint8Array.from(Buffer.from(privateKey.replace("0x", ""), "hex")) : privateKey;
     const keyPair = distExports.keyPairFromSeed(Buffer.from(privateKeyBytes));
-    const signer = createWalletSigner(keyPair.secretKey);
+    const signer = createWalletSigner(keyPair.secretKey, domain);
     return {
       sign: signer,
       publicKey: Uint8ArrayToHex(keyPair.publicKey)
     };
   }
 }
-function limitString(data, limit) {
-  return data.length > limit ? data.substring(0, limit) : data;
-}
-function toStringTail(data) {
-  return distExports$1.beginCell().storeStringTail(limitString(data, 127)).endCell();
-}
 function getUnixtime() {
   return Math.floor(Date.now() / 1e3);
+}
+function ParseStackItem(item) {
+  switch (item.type) {
+    case "num":
+      if (item.value.startsWith("-")) {
+        return { type: "int", value: -BigInt(item.value.slice(1)) };
+      } else {
+        return { type: "int", value: BigInt(item.value) };
+      }
+    case "null":
+      return { type: "null" };
+    case "cell":
+      return { type: "cell", cell: distExports$1.Cell.fromBoc(Buffer.from(item.value, "base64"))[0] };
+    case "tuple":
+    case "list":
+      if (item.value.length === 0) {
+        return { type: "null" };
+      }
+      return { type: "tuple", items: item.value.map((value) => ParseStackItem(value)) };
+    default:
+      throw Error(`Unsupported parse stack item type: ${JSON.stringify(item)}`);
+  }
+}
+function ParseStack(list) {
+  let stack = [];
+  for (let item of list) {
+    stack.push(ParseStackItem(item));
+  }
+  return stack;
+}
+function SerializeStackItem(item) {
+  switch (item.type) {
+    case "int":
+      return {
+        type: "num",
+        value: `${item.value < 0 ? "-" : ""}0x${(item.value < 0 ? -item.value : item.value).toString(16)}`
+      };
+    case "slice":
+      return { type: "slice", value: item.cell.toBoc().toString("base64") };
+    case "cell":
+      return { type: "cell", value: item.cell.toBoc().toString("base64") };
+    default:
+      throw Error(`Unsupported serialize stack item type: ${item.type}`);
+  }
+}
+function SerializeStack(list) {
+  let stack = [];
+  for (let item of list) {
+    stack.push(SerializeStackItem(item));
+  }
+  return stack;
 }
 const VERSION = "0.0.3";
 function getVersion() {
@@ -30863,6 +30897,193 @@ function getEventsSubsystem() {
 function createWalletId(network, address) {
   return distExports.sha256_sync(`${network.chainId}:${address}`).toString("base64");
 }
+async function getJettonWalletAddressFromClient(client, jettonAddress, ownerAddress) {
+  if (!isValidAddress(jettonAddress)) {
+    throw new Error(`Invalid jetton address: ${jettonAddress}`);
+  }
+  try {
+    const result = await client.runGetMethod(jettonAddress, "get_wallet_address", SerializeStack([{ type: "slice", cell: distExports$1.beginCell().storeAddress(distExports$1.Address.parse(ownerAddress)).endCell() }]));
+    const parsedStack = ParseStack(result.stack);
+    const jettonWalletAddress = parsedStack[0].type === "slice" || parsedStack[0].type === "cell" ? parsedStack[0].cell.asSlice().loadAddress() : null;
+    if (!jettonWalletAddress) {
+      throw new Error("Failed to get jetton wallet address");
+    }
+    return asAddressFriendly(jettonWalletAddress.toString());
+  } catch (error2) {
+    throw new Error(`Failed to get jetton wallet address for ${jettonAddress}: ${error2 instanceof Error ? error2.message : "Unknown error"}`);
+  }
+}
+async function getJettonBalanceFromClient(client, jettonWalletAddress) {
+  try {
+    const result = await client.runGetMethod(jettonWalletAddress, "get_wallet_data");
+    const parsedStack = ParseStack(result.stack);
+    const balance = parsedStack[0].type === "int" ? parsedStack[0].value : 0n;
+    return balance.toString();
+  } catch (_error) {
+    return "0";
+  }
+}
+async function getJettonsFromClient(client, ownerAddress, params) {
+  return client.jettonsByOwnerAddress({
+    ownerAddress,
+    offset: params?.pagination.offset,
+    limit: params?.pagination.limit
+  });
+}
+async function getNftsFromClient(client, ownerAddress, params) {
+  return client.nftItemsByOwner({
+    ownerAddress,
+    pagination: params.pagination
+  });
+}
+async function getNftFromClient(client, address) {
+  const result = await client.nftItemsByAddress({ address });
+  return result.nfts.length > 0 ? result.nfts[0] : null;
+}
+const getTxOpcode = (tx) => {
+  const msg = tx.in_msg;
+  if (!msg)
+    return null;
+  return msg.opcode ?? null;
+};
+const createTraceTypeDetector = (triggerOpcodes) => {
+  return (transactions) => {
+    for (const tx of Object.values(transactions)) {
+      const opcode = getTxOpcode(tx);
+      if (opcode && triggerOpcodes.has(opcode))
+        return true;
+    }
+    return false;
+  };
+};
+const isTransactionFailed = (tx) => {
+  const desc = tx.description;
+  if (!desc)
+    return false;
+  if (desc.aborted)
+    return true;
+  if (desc.compute_ph?.success === false)
+    return true;
+  if (desc.action?.success === false)
+    return true;
+  if (desc.action && desc.action.skipped_actions > 0)
+    return true;
+  return false;
+};
+const createFailureDetector = (nonCriticalOpcodes) => {
+  return (transactions) => {
+    for (const tx of Object.values(transactions)) {
+      if (isTransactionFailed(tx)) {
+        const opcode = getTxOpcode(tx);
+        if (opcode && nonCriticalOpcodes.has(opcode)) {
+          continue;
+        }
+        return true;
+      }
+    }
+    return false;
+  };
+};
+const KNOWN_TRACE_TYPES = [
+  {
+    triggerOpcodes: /* @__PURE__ */ new Set(["0x0f8a7ea5"]),
+    // jetton_transfer initiates the flow
+    safeToSkipOpcodes: /* @__PURE__ */ new Set([
+      "0x7362d09c",
+      // jetton_notify
+      "0xd53276db"
+      // excess
+    ])
+  }
+];
+const isFailedTrace = (tx) => {
+  const trace = tx.traces?.[0];
+  if (!trace)
+    return false;
+  const transactions = trace.transactions ?? {};
+  if (Object.keys(transactions).length === 0)
+    return false;
+  for (const config of KNOWN_TRACE_TYPES) {
+    const isMatch = createTraceTypeDetector(config.triggerOpcodes)(transactions);
+    if (isMatch) {
+      return createFailureDetector(config.safeToSkipOpcodes)(transactions);
+    }
+  }
+  return createFailureDetector(/* @__PURE__ */ new Set())(transactions);
+};
+const parseTraceResponse = (response) => {
+  if (!response.traces || response.traces.length === 0) {
+    return null;
+  }
+  const trace = response.traces[0];
+  const traceInfo = trace.trace_info;
+  const isEffectivelyCompleted = traceInfo.trace_state === "complete" || traceInfo.trace_state === "pending" && traceInfo.pending_messages === 0;
+  let status = "pending";
+  if (traceInfo.pending_messages === 0) {
+    if (isFailedTrace(response)) {
+      status = "failed";
+    } else if (isEffectivelyCompleted) {
+      status = "completed";
+    }
+  }
+  return {
+    status,
+    totalMessages: traceInfo.messages,
+    pendingMessages: traceInfo.pending_messages,
+    onchainMessages: traceInfo.messages - traceInfo.pending_messages
+  };
+};
+function getNormalizedExtMessageHash(boc) {
+  const cell = distExports$1.Cell.fromBase64(boc);
+  const message = distExports$1.loadMessage(cell.beginParse());
+  if (message.info.type !== "external-in") {
+    throw new Error(`Message must be "external-in", got ${message.info.type}`);
+  }
+  const info2 = {
+    ...message.info,
+    src: void 0,
+    importFee: 0n
+  };
+  const normalizedMessage = {
+    ...message,
+    init: null,
+    info: info2
+  };
+  const normalizedCell = distExports$1.beginCell().store(distExports$1.storeMessage(normalizedMessage, { forceRef: true })).endCell();
+  return {
+    hash: `0x${normalizedCell.hash().toString("hex")}`,
+    boc: normalizedCell.toBoc().toString("base64")
+  };
+}
+async function getTransactionStatus(client, params) {
+  const hashToSearch = params.boc ? getNormalizedExtMessageHash(params.boc).hash : params.normalizedHash;
+  if (!hashToSearch) {
+    throw new Error("Either boc or normalizedHash must be provided");
+  }
+  try {
+    const pendingResponse = await client.getPendingTrace({ externalMessageHash: [hashToSearch] });
+    const pendingStatus = parseTraceResponse(pendingResponse);
+    if (pendingStatus)
+      return pendingStatus;
+  } catch (_e) {
+  }
+  try {
+    const traceResponse = await client.getTrace({ traceId: [hashToSearch] });
+    const completedStatus = parseTraceResponse(traceResponse);
+    if (completedStatus)
+      return completedStatus;
+  } catch (_e) {
+  }
+  return {
+    status: "unknown",
+    totalMessages: 0,
+    pendingMessages: 0,
+    onchainMessages: 0
+  };
+}
+const DEFAULT_JETTON_GAS_FEE = "50000000";
+const DEFAULT_NFT_GAS_FEE = "100000000";
+const DEFAULT_FORWARD_AMOUNT = 1n;
 function storeJettonTransferMessage(src) {
   return (builder2) => {
     builder2.storeUint(Number(OpCode.JettonTransfer), 32);
@@ -30875,84 +31096,17 @@ function storeJettonTransferMessage(src) {
     builder2.storeMaybeRef(src.forwardPayload);
   };
 }
-class WalletJettonClass {
-  async createTransferJettonTransaction(jettonTransferParams) {
-    if (!isValidAddress(jettonTransferParams.recipientAddress)) {
-      throw new Error(`Invalid to address: ${jettonTransferParams.recipientAddress}`);
-    }
-    if (!isValidAddress(jettonTransferParams.jettonAddress)) {
-      throw new Error(`Invalid jetton address: ${jettonTransferParams.jettonAddress}`);
-    }
-    if (!jettonTransferParams.transferAmount || BigInt(jettonTransferParams.transferAmount) <= 0n) {
-      throw new Error(`Invalid amount: ${jettonTransferParams.transferAmount}`);
-    }
-    const jettonWalletAddress = await CallForSuccess(() => this.getJettonWalletAddress(jettonTransferParams.jettonAddress));
-    const forwardPayload = jettonTransferParams.comment ? distExports$1.beginCell().storeUint(0, 32).storeStringTail(jettonTransferParams.comment).endCell() : null;
-    const jettonPayload = distExports$1.beginCell().store(storeJettonTransferMessage({
-      queryId: 0n,
-      amount: BigInt(jettonTransferParams.transferAmount),
-      destination: distExports$1.Address.parse(jettonTransferParams.recipientAddress),
-      responseDestination: distExports$1.Address.parse(this.getAddress()),
-      customPayload: null,
-      forwardAmount: 1n,
-      //1 nanoton default
-      forwardPayload
-    })).endCell();
-    const message = {
-      address: jettonWalletAddress,
-      amount: "50000000",
-      // 0.05 TON for gas fees
-      payload: jettonPayload.toBoc().toString("base64"),
-      stateInit: void 0,
-      extraCurrency: void 0,
-      mode: {
-        flags: [SendModeFlag.IGNORE_ERRORS, SendModeFlag.PAY_GAS_SEPARATELY]
-      }
-    };
-    if (!validateTransactionMessage(message, false).isValid) {
-      throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
-    }
-    return {
-      messages: [message],
-      fromAddress: this.getAddress()
-    };
-  }
-  async getJettonBalance(jettonAddress) {
-    const jettonWalletAddress = await this.getJettonWalletAddress(jettonAddress);
-    try {
-      const result = await this.getClient().runGetMethod(jettonWalletAddress, "get_wallet_data");
-      const parsedStack = ParseStack(result.stack);
-      const balance = parsedStack[0].type === "int" ? parsedStack[0].value : 0n;
-      return balance.toString();
-    } catch (_error) {
-      return "0";
-    }
-  }
-  async getJettonWalletAddress(jettonAddress) {
-    if (!isValidAddress(jettonAddress)) {
-      throw new Error(`Invalid jetton address: ${jettonAddress}`);
-    }
-    try {
-      const result = await this.getClient().runGetMethod(jettonAddress, "get_wallet_address", SerializeStack([
-        { type: "slice", cell: distExports$1.beginCell().storeAddress(distExports$1.Address.parse(this.getAddress())).endCell() }
-      ]));
-      const parsedStack = ParseStack(result.stack);
-      const jettonWalletAddress = parsedStack[0].type === "slice" || parsedStack[0].type === "cell" ? parsedStack[0].cell.asSlice().loadAddress() : null;
-      if (!jettonWalletAddress) {
-        throw new Error("Failed to get jetton wallet address");
-      }
-      return asAddressFriendly(jettonWalletAddress.toString());
-    } catch (error2) {
-      throw new Error(`Failed to get jetton wallet address for ${jettonAddress}: ${error2 instanceof Error ? error2.message : "Unknown error"}`);
-    }
-  }
-  async getJettons(params) {
-    return this.getClient().jettonsByOwnerAddress({
-      ownerAddress: this.getAddress(),
-      offset: params?.pagination.offset,
-      limit: params?.pagination.limit
-    });
-  }
+function createJettonTransferPayload(params) {
+  const forwardPayload = params.comment ? createCommentPayload(params.comment) : null;
+  return distExports$1.beginCell().store(storeJettonTransferMessage({
+    queryId: params.queryId ?? 0n,
+    amount: params.amount,
+    destination: distExports$1.Address.parse(params.destination),
+    responseDestination: distExports$1.Address.parse(params.responseDestination),
+    customPayload: params.customPayload ?? null,
+    forwardAmount: params.forwardAmount ?? DEFAULT_FORWARD_AMOUNT,
+    forwardPayload
+  })).endCell();
 }
 function storeNftTransferMessage(message) {
   return (builder2) => {
@@ -30965,79 +31119,214 @@ function storeNftTransferMessage(message) {
     builder2.storeMaybeRef(message.forwardPayload);
   };
 }
+function createNftTransferPayload(params) {
+  const forwardPayload = params.comment ? createCommentPayload(params.comment) : null;
+  return distExports$1.beginCell().store(storeNftTransferMessage({
+    queryId: params.queryId ?? 0n,
+    newOwner: distExports$1.Address.parse(params.newOwner),
+    responseDestination: distExports$1.Address.parse(params.responseDestination),
+    customPayload: params.customPayload ?? null,
+    forwardAmount: params.forwardAmount ?? DEFAULT_FORWARD_AMOUNT,
+    forwardPayload
+  })).endCell();
+}
+function createNftTransferRawPayload(params) {
+  const transferMessage = {
+    queryId: BigInt(params.queryId),
+    newOwner: typeof params.newOwner === "string" ? distExports$1.Address.parse(params.newOwner) : params.newOwner,
+    responseDestination: params.responseDestination ? typeof params.responseDestination === "string" ? distExports$1.Address.parse(params.responseDestination) : params.responseDestination : null,
+    customPayload: params.customPayload ? typeof params.customPayload === "string" ? distExports$1.Cell.fromBase64(params.customPayload) : params.customPayload : null,
+    forwardAmount: BigInt(params.forwardAmount),
+    forwardPayload: params.forwardPayload ? typeof params.forwardPayload === "string" ? distExports$1.Cell.fromBase64(params.forwardPayload) : params.forwardPayload : null
+  };
+  return distExports$1.beginCell().store(storeNftTransferMessage(transferMessage)).endCell();
+}
+function createCommentPayload(comment) {
+  return distExports$1.beginCell().storeUint(0, 32).storeStringTail(comment).endCell();
+}
+function createCommentPayloadBase64(comment) {
+  return createCommentPayload(comment).toBoc().toString("base64");
+}
+function createTransferTransaction(params) {
+  const message = {
+    address: params.targetAddress,
+    amount: params.amount,
+    payload: params.payload.toBoc().toString("base64"),
+    stateInit: void 0,
+    extraCurrency: void 0,
+    mode: {
+      flags: [SendModeFlag.IGNORE_ERRORS, SendModeFlag.PAY_GAS_SEPARATELY]
+    }
+  };
+  if (!validateTransactionMessage(message, false).isValid) {
+    throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
+  }
+  return {
+    messages: [message],
+    fromAddress: params.fromAddress
+  };
+}
+const log$a = globalLogger.createChild("WalletTonClass");
+class WalletTonClass {
+  async createTransferTonTransaction(param) {
+    if (!isValidAddress(param.recipientAddress)) {
+      throw new Error(`Invalid to address: ${param.recipientAddress}`);
+    }
+    if (!isValidNanotonAmount(param.transferAmount)) {
+      throw new Error(`Invalid amount: ${param.transferAmount}`);
+    }
+    let body;
+    if (param.payload) {
+      body = param.payload;
+    } else if (param.comment) {
+      body = createCommentPayloadBase64(param.comment);
+    }
+    const message = {
+      address: param.recipientAddress,
+      amount: param.transferAmount,
+      payload: body,
+      stateInit: param.stateInit,
+      extraCurrency: param.extraCurrency,
+      mode: param.mode
+    };
+    if (!validateTransactionMessage(message, false).isValid) {
+      throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
+    }
+    return {
+      messages: [message],
+      fromAddress: this.getAddress()
+    };
+  }
+  async createTransferMultiTonTransaction(params) {
+    const messages = [];
+    for (const param of params) {
+      if (!isValidAddress(param.recipientAddress)) {
+        throw new Error(`Invalid to address: ${param.recipientAddress}`);
+      }
+      if (!isValidNanotonAmount(param.transferAmount)) {
+        throw new Error(`Invalid amount: ${param.transferAmount}`);
+      }
+      let body;
+      if (param.payload) {
+        body = param.payload;
+      } else if (param.comment) {
+        body = createCommentPayloadBase64(param.comment);
+      }
+      const message = {
+        address: param.recipientAddress,
+        amount: param.transferAmount,
+        payload: body,
+        stateInit: param.stateInit,
+        extraCurrency: param.extraCurrency,
+        mode: param.mode
+      };
+      if (!validateTransactionMessage(message, false).isValid) {
+        throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
+      }
+      messages.push(message);
+    }
+    return {
+      messages,
+      fromAddress: this.getAddress()
+    };
+  }
+  async getTransactionPreview(param) {
+    const transaction = await param;
+    const preview = await CallForSuccess(() => createTransactionPreview(this.client, transaction, this));
+    return preview;
+  }
+  async sendTransaction(request) {
+    try {
+      const boc = await this.getSignedSendTransaction(request);
+      await CallForSuccess(() => this.getClient().sendBoc(boc));
+      const { hash: normalizedHash, boc: normalizedBoc } = getNormalizedExtMessageHash(boc);
+      return { boc, normalizedBoc, normalizedHash };
+    } catch (error2) {
+      log$a.error("Failed to send transaction", { error: error2 });
+      if (error2 instanceof WalletKitError) {
+        throw error2;
+      }
+      if (error2?.message?.includes("Ledger device")) {
+        throw new WalletKitError(ERROR_CODES.LEDGER_DEVICE_ERROR, "Ledger device error", error2);
+      }
+      throw error2;
+    }
+  }
+  async getBalance() {
+    return await CallForSuccess(async () => this.getClient().getBalance(this.getAddress()));
+  }
+}
+class WalletJettonClass {
+  async createTransferJettonTransaction(params) {
+    if (!isValidAddress(params.recipientAddress)) {
+      throw new Error(`Invalid to address: ${params.recipientAddress}`);
+    }
+    if (!isValidAddress(params.jettonAddress)) {
+      throw new Error(`Invalid jetton address: ${params.jettonAddress}`);
+    }
+    if (!params.transferAmount || BigInt(params.transferAmount) <= 0n) {
+      throw new Error(`Invalid amount: ${params.transferAmount}`);
+    }
+    const jettonWalletAddress = await CallForSuccess(() => this.getJettonWalletAddress(params.jettonAddress));
+    const jettonPayload = createJettonTransferPayload({
+      amount: BigInt(params.transferAmount),
+      destination: params.recipientAddress,
+      responseDestination: this.getAddress(),
+      comment: params.comment
+    });
+    return createTransferTransaction({
+      targetAddress: jettonWalletAddress,
+      amount: DEFAULT_JETTON_GAS_FEE,
+      payload: jettonPayload,
+      fromAddress: this.getAddress()
+    });
+  }
+  async getJettonBalance(jettonAddress) {
+    const jettonWalletAddress = await this.getJettonWalletAddress(jettonAddress);
+    return getJettonBalanceFromClient(this.getClient(), jettonWalletAddress);
+  }
+  async getJettonWalletAddress(jettonAddress) {
+    return getJettonWalletAddressFromClient(this.getClient(), jettonAddress, this.getAddress());
+  }
+  async getJettons(params) {
+    return getJettonsFromClient(this.getClient(), this.getAddress(), params);
+  }
+}
 class WalletNftClass {
   async getNfts(params) {
-    const out = await this.getClient().nftItemsByOwner({
-      ownerAddress: this.getAddress(),
-      pagination: params.pagination
-    });
-    return out;
+    return getNftsFromClient(this.getClient(), this.getAddress(), params);
   }
   async getNft(address) {
-    const result = await this.getClient().nftItemsByAddress({
-      address
-    });
-    if (result.nfts.length > 0) {
-      return result.nfts[0];
-    }
-    return null;
+    return getNftFromClient(this.getClient(), address);
   }
-  async createTransferNftTransaction(nftTransferMessage) {
-    const forwardPayload = nftTransferMessage.comment ? distExports$1.beginCell().storeUint(0, 32).storeStringTail(nftTransferMessage.comment).endCell() : null;
-    const nftPayload = distExports$1.beginCell().store(storeNftTransferMessage({
-      customPayload: null,
-      forwardAmount: 1n,
-      forwardPayload,
-      newOwner: distExports$1.Address.parse(nftTransferMessage.recipientAddress),
-      queryId: 0n,
-      responseDestination: distExports$1.Address.parse(this.getAddress())
-    })).endCell();
-    const message = {
-      address: nftTransferMessage.nftAddress,
-      amount: nftTransferMessage.transferAmount?.toString() ?? "100000000",
-      // Default 0.1 TON
-      payload: nftPayload.toBoc().toString("base64"),
-      stateInit: void 0,
-      extraCurrency: void 0,
-      mode: {
-        flags: [SendModeFlag.IGNORE_ERRORS, SendModeFlag.PAY_GAS_SEPARATELY]
-      }
-    };
-    if (!validateTransactionMessage(message, false).isValid) {
-      throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
-    }
-    return {
-      messages: [message],
+  async createTransferNftTransaction(params) {
+    const nftPayload = createNftTransferPayload({
+      newOwner: params.recipientAddress,
+      responseDestination: this.getAddress(),
+      comment: params.comment
+    });
+    return createTransferTransaction({
+      targetAddress: params.nftAddress,
+      amount: params.transferAmount?.toString() ?? DEFAULT_NFT_GAS_FEE,
+      payload: nftPayload,
       fromAddress: this.getAddress()
-    };
+    });
   }
   async createTransferNftRawTransaction(params) {
-    const transferMessage = {
-      queryId: BigInt(params.message.queryId),
-      newOwner: typeof params.message.newOwner === "string" ? distExports$1.Address.parse(params.message.newOwner) : params.message.newOwner,
-      responseDestination: params.message.responseDestination ? typeof params.message.responseDestination === "string" ? distExports$1.Address.parse(params.message.responseDestination) : params.message.responseDestination : null,
-      customPayload: params.message.customPayload ? typeof params.message.customPayload === "string" ? distExports$1.Cell.fromBase64(params.message.customPayload) : params.message.customPayload : null,
-      forwardAmount: BigInt(params.message.forwardAmount),
-      forwardPayload: params.message.forwardPayload ? typeof params.message.forwardPayload === "string" ? distExports$1.Cell.fromBase64(params.message.forwardPayload) : params.message.forwardPayload : null
-    };
-    const nftPayload = distExports$1.beginCell().store(storeNftTransferMessage(transferMessage)).endCell();
-    const message = {
-      address: params.nftAddress,
+    const nftPayload = createNftTransferRawPayload({
+      queryId: params.message.queryId,
+      newOwner: params.message.newOwner,
+      responseDestination: params.message.responseDestination,
+      customPayload: params.message.customPayload,
+      forwardAmount: params.message.forwardAmount,
+      forwardPayload: params.message.forwardPayload
+    });
+    return createTransferTransaction({
+      targetAddress: params.nftAddress,
       amount: params.transferAmount.toString(),
-      payload: nftPayload.toBoc().toString("base64"),
-      stateInit: void 0,
-      extraCurrency: void 0,
-      mode: {
-        flags: [SendModeFlag.IGNORE_ERRORS, SendModeFlag.PAY_GAS_SEPARATELY]
-      }
-    };
-    if (!validateTransactionMessage(message, false).isValid) {
-      throw new Error(`Invalid transaction message: ${JSON.stringify(message)}`);
-    }
-    return {
-      messages: [message],
+      payload: nftPayload,
       fromAddress: this.getAddress()
-    };
+    });
   }
 }
 const log$9 = globalLogger.createChild("Initializer");
@@ -32840,6 +33129,7 @@ class JettonsManager {
   }
 }
 class SwapProvider {
+  type = "swap";
 }
 class DefiManagerError extends Error {
   static PROVIDER_NOT_FOUND = "PROVIDER_NOT_FOUND";
@@ -32943,19 +33233,19 @@ class SwapManager extends DefiManager {
   /**
    * Get a quote for swapping tokens
    * @param params - Quote parameters
-   * @param provider - Optional provider name to use
+   * @param providerId - Optional provider name to use
    * @returns Promise resolving to swap quote
    */
-  async getQuote(params, provider) {
+  async getQuote(params, providerId) {
     log$7.debug("Getting swap quote", {
-      fromToken: params.fromToken,
-      toToken: params.toToken,
+      fromToken: params.from,
+      toToken: params.to,
       amount: params.amount,
       isReverseSwap: params.isReverseSwap,
-      provider: provider || this.defaultProviderId
+      providerId: providerId || this.defaultProviderId
     });
     try {
-      const quote = await this.getProvider(provider).getQuote(params);
+      const quote = await this.getProvider(providerId || this.defaultProviderId).getQuote(params);
       log$7.debug("Received swap quote", {
         fromAmount: quote.fromAmount,
         toAmount: quote.toAmount,
@@ -32970,16 +33260,16 @@ class SwapManager extends DefiManager {
   /**
    * Build a transaction for executing a swap
    * @param params - Swap parameters including quote
-   * @param provider - Optional provider name to use
    * @returns Promise resolving to transaction request
    */
-  async buildSwapTransaction(params, provider) {
+  async buildSwapTransaction(params) {
+    const providerId = params.quote.providerId || this.defaultProviderId;
     log$7.debug("Building swap transaction", {
-      userAddress: params.userAddress,
-      provider: provider || this.defaultProviderId
+      providerId,
+      userAddress: params.userAddress
     });
     try {
-      const transaction = await this.getProvider(provider).buildSwapTransaction(params);
+      const transaction = await this.getProvider(providerId).buildSwapTransaction(params);
       log$7.debug("Built swap transaction", params.quote);
       return transaction;
     } catch (error2) {
@@ -33604,119 +33894,6 @@ function toDnsRecords(data) {
   }
   return out;
 }
-const ROOT_DNS_RESOLVER_MAINNET = "Ef_lZ1T4NCb2mwkme9h2rJfESCE0W34ma9lWp7-_uY3zXDvq";
-const ROOT_DNS_RESOLVER_TESTNET = "kf_v5x0Thgr6pq6ur2NvkWhIf4DxAxsL-Nk5rknT6n99oEkd";
-var DnsCategory;
-(function(DnsCategory2) {
-  DnsCategory2["DnsNextResolver"] = "dns_next_resolver";
-  DnsCategory2["Wallet"] = "wallet";
-  DnsCategory2["Site"] = "site";
-  DnsCategory2["BagId"] = "storage";
-  DnsCategory2[DnsCategory2["All"] = 0] = "All";
-})(DnsCategory || (DnsCategory = {}));
-var DnsRecord;
-(function(DnsRecord2) {
-  DnsRecord2[DnsRecord2["SmcAddress"] = 40915] = "SmcAddress";
-  DnsRecord2[DnsRecord2["NextResolver"] = 47763] = "NextResolver";
-  DnsRecord2[DnsRecord2["AdnlAddress"] = 44289] = "AdnlAddress";
-  DnsRecord2[DnsRecord2["StorageAddress"] = 29811] = "StorageAddress";
-})(DnsRecord || (DnsRecord = {}));
-function toDnsInternal(domain) {
-  domain = domain.toLowerCase().normalize("NFC");
-  return domain.split(".").filter(Boolean).reverse().join("\0") + "\0";
-}
-function toTonDnsCategory(category) {
-  category = category ?? DnsCategory.All;
-  if (typeof category === "number") {
-    return BigInt(category);
-  }
-  return BigInt("0x" + distExports.sha256_sync(category).toString("hex"));
-}
-async function dnsResolve(client, domain, category, resolver) {
-  let currentResolver = resolver ?? ROOT_DNS_RESOLVER_MAINNET;
-  let unresolved = domain;
-  let maxResolveDepth = 100;
-  while (maxResolveDepth > 0) {
-    maxResolveDepth--;
-    const step = await dnsLookup(client, unresolved, DnsCategory.DnsNextResolver, currentResolver);
-    if (step == null) {
-      return null;
-    }
-    if (step.unresolved) {
-      if (!step.value) {
-        return null;
-      }
-      currentResolver = step.value;
-      unresolved = step.unresolved;
-      continue;
-    }
-    if (step.record === "NextResolver" && step.value) {
-      if (category !== void 0) {
-        return dnsLookup(client, ".", category, step.value);
-      }
-      currentResolver = step.value;
-      unresolved = ".";
-      continue;
-    }
-    if (category !== void 0) {
-      return dnsLookup(client, ".", category, currentResolver);
-    }
-    return step;
-  }
-  return null;
-}
-async function dnsLookup(client, domain, category, resolver) {
-  category = category ?? DnsCategory.DnsNextResolver;
-  resolver = resolver ?? ROOT_DNS_RESOLVER_MAINNET;
-  const result = {
-    resolved: "",
-    unresolved: ""
-  };
-  const isSelf = domain === "." || domain === "";
-  const internal = toDnsInternal(domain);
-  const param = [
-    { type: "slice", cell: toStringTail(internal) },
-    { type: "int", value: toTonDnsCategory(category) }
-  ];
-  const { stack, exitCode } = await client.runGetMethod(asAddressFriendly(resolver), "dnsresolve", SerializeStack(param));
-  if (stack?.length !== 2) {
-    return null;
-  }
-  const parsedStack = ParseStack(stack);
-  if (exitCode !== 0) {
-    return null;
-  }
-  const resolvedBit = parsedStack[0].type === "int" ? Number(parsedStack[0].value) : 0;
-  if (resolvedBit === 0 || resolvedBit % 8 !== 0) {
-    return null;
-  }
-  const resolvedByte = resolvedBit / 8;
-  const part = isSelf ? [] : domain.split(".").filter(Boolean);
-  const level = internal.slice(0, Number(resolvedByte)).split(".").filter(Boolean).length;
-  result.unresolved = part.slice(0, part.length - level).join(".");
-  result.resolved = part.slice(part.length - level).join(".");
-  if (category === DnsCategory.All) {
-    throw new Error("not implemented all categories are requested");
-  }
-  const cell = parsedStack[1].type === "cell" ? parsedStack[1].cell : null;
-  if (!cell) {
-    return result;
-  }
-  const slice = cell.asSlice();
-  const tag = slice.loadUint(16);
-  if (tag == DnsRecord.NextResolver || tag == DnsRecord.SmcAddress) {
-    result.value = slice.loadAddress().toString();
-  } else if (tag == DnsRecord.AdnlAddress || tag == DnsRecord.StorageAddress) {
-    result.value = toHexString(slice.loadBuffer(32));
-  } else {
-    result.value = cell.toBoc().toString("base64");
-  }
-  if (result.value) {
-    result.record = DnsRecord[tag];
-  }
-  return result;
-}
-const log$4 = globalLogger.createChild("ApiClientToncenter");
 class TonClientError extends Error {
   status;
   details;
@@ -33727,108 +33904,20 @@ class TonClientError extends Error {
     this.details = details;
   }
 }
-class ApiClientToncenter {
-  dnsResolver;
+class BaseApiClient {
   endpoint;
   apiKey;
   timeout;
   fetchApi;
   network;
   disableNetworkSend;
-  constructor(config = {}) {
+  constructor(config, defaultEndpoint) {
     this.network = config.network;
-    const dnsResolver = this.network?.chainId === CHAIN.MAINNET ? ROOT_DNS_RESOLVER_MAINNET : ROOT_DNS_RESOLVER_TESTNET;
-    const defaultEndpoint = this.network?.chainId === CHAIN.MAINNET ? "https://toncenter.com" : "https://testnet.toncenter.com";
-    this.dnsResolver = config.dnsResolver ?? dnsResolver;
     this.endpoint = config.endpoint ?? defaultEndpoint;
     this.apiKey = config.apiKey;
     this.timeout = config.timeout ?? 3e4;
     this.fetchApi = config.fetchApi ?? fetch;
     this.disableNetworkSend = config.disableNetworkSend ?? false;
-  }
-  async nftItemsByAddress(request) {
-    const props = {
-      address: request.address
-    };
-    const response = await this.getJson("/api/v3/nft/items", props);
-    return toNftItemsResponse(response);
-  }
-  async nftItemsByOwner(request) {
-    const props = {
-      owner_address: request.ownerAddress,
-      limit: request.pagination?.limit ?? 10,
-      offset: request.pagination?.offset ?? 0
-    };
-    const response = await this.getJson("/api/v3/nft/items", props);
-    const formattedResponse = toNftItemsResponse(response);
-    return formattedResponse;
-  }
-  async fetchEmulation(messageBoc, ignoreSignature) {
-    const props = {
-      boc: messageBoc,
-      ignore_chksig: ignoreSignature === true,
-      include_code_data: true,
-      include_address_book: true,
-      include_metadata: true,
-      with_actions: true
-    };
-    const response = await this.postJson("/api/emulate/v1/emulateTrace", props);
-    return {
-      result: "success",
-      emulationResult: response
-    };
-  }
-  async sendBoc(boc) {
-    if (this.disableNetworkSend) {
-      return "";
-    }
-    const response = await this.postJson("/api/v3/message", { boc });
-    return Base64ToBigInt(response.message_hash_norm).toString(16);
-  }
-  async runGetMethod(address, method, stack = [], seqno) {
-    const props = {
-      address,
-      method,
-      stack
-      //serializeStack(stack),
-    };
-    if (typeof seqno === "number")
-      props.seqno = seqno;
-    const raw = await this.postJson("/api/v3/runGetMethod", props);
-    return {
-      gasUsed: raw.gas_used,
-      stack: raw.stack,
-      exitCode: raw.exit_code
-    };
-  }
-  async getAccountState(address, seqno) {
-    const query = { include_boc: true, address: [address] };
-    if (typeof seqno === "number")
-      query.seqno = seqno.toString();
-    const raw = await this.getJson("/api/v3/addressInformation", query);
-    const balance = BigInt(raw.balance);
-    const extraCurrencies = {};
-    for (const currency of raw.extra_currencies || []) {
-      extraCurrencies[currency.id] = BigInt(currency.amount);
-    }
-    const out = {
-      status: raw.status,
-      balance: balance.toString(),
-      extraCurrencies,
-      code: raw.code,
-      data: raw.data,
-      lastTransaction: parseInternalTransactionId({
-        hash: raw.last_transaction_hash,
-        lt: raw.last_transaction_lt
-      })
-    };
-    if (raw.frozen_hash) {
-      out.frozenHash = Base64ToHex(raw.frozen_hash) ?? void 0;
-    }
-    return out;
-  }
-  async getBalance(address, seqno) {
-    return (await this.getAccountState(address, seqno)).balance;
   }
   async doRequest(url, init2 = {}) {
     const fetchFn = this.fetchApi;
@@ -33846,8 +33935,7 @@ class ApiClientToncenter {
   async fetch(url, props = {}) {
     const headers = new Headers(props.headers);
     headers.set("accept", "application/json");
-    if (this.apiKey)
-      headers.set("x-api-key", this.apiKey);
+    this.appendAuthHeaders(headers);
     props = { ...props, headers };
     const response = await this.doRequest(url, props);
     if (!response.ok) {
@@ -33900,6 +33988,119 @@ class ApiClientToncenter {
     }
     return new TonClientError(`HTTP ${response.status}: ${message}`, code, detail);
   }
+}
+const padBase64 = (data) => {
+  return data.padEnd(data.length + (4 - data.length % 4), "=");
+};
+const prepareAddress = (address) => {
+  if (address instanceof distExports$1.Address) {
+    address = address.toString();
+  }
+  return address;
+};
+const parseInternalTransactionId = (data) => {
+  if (data.hash !== "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=") {
+    return {
+      lt: data.lt,
+      hash: Base64ToHex(data.hash)
+    };
+  }
+  return null;
+};
+const log$4 = globalLogger.createChild("ApiClientToncenter");
+class ApiClientToncenter extends BaseApiClient {
+  constructor(config = {}) {
+    const defaultEndpoint = config.network?.chainId === Network.mainnet().chainId ? "https://toncenter.com" : "https://testnet.toncenter.com";
+    super(config, defaultEndpoint);
+  }
+  appendAuthHeaders(headers) {
+    if (this.apiKey)
+      headers.set("x-api-key", this.apiKey);
+  }
+  async nftItemsByAddress(request) {
+    const props = {
+      address: request.address
+    };
+    const response = await this.getJson("/api/v3/nft/items", props);
+    return toNftItemsResponse(response);
+  }
+  async nftItemsByOwner(request) {
+    const props = {
+      owner_address: request.ownerAddress,
+      limit: request.pagination?.limit ?? 10,
+      offset: request.pagination?.offset ?? 0
+    };
+    const response = await this.getJson("/api/v3/nft/items", props);
+    const formattedResponse = toNftItemsResponse(response);
+    return formattedResponse;
+  }
+  async fetchEmulation(messageBoc, ignoreSignature) {
+    const props = {
+      boc: messageBoc,
+      ignore_chksig: ignoreSignature === true,
+      include_code_data: true,
+      include_address_book: true,
+      include_metadata: true,
+      with_actions: true
+    };
+    const response = await this.postJson("/api/emulate/v1/emulateTrace", props);
+    return {
+      result: "success",
+      emulationResult: response
+    };
+  }
+  async sendBoc(boc) {
+    if (this.disableNetworkSend) {
+      return "";
+    }
+    const response = await this.postJson("/api/v3/message", { boc });
+    return `0x${Base64ToBigInt(response.message_hash_norm).toString(16)}`;
+  }
+  async runGetMethod(address, method, stack = [], seqno) {
+    const props = {
+      address,
+      method,
+      stack
+      //serializeStack(stack),
+    };
+    if (typeof seqno === "number")
+      props.seqno = seqno;
+    const raw = await this.postJson("/api/v3/runGetMethod", props);
+    return {
+      gasUsed: raw.gas_used,
+      stack: raw.stack,
+      exitCode: raw.exit_code
+    };
+  }
+  async getAccountState(address, seqno) {
+    const query = { include_boc: true, address: [address] };
+    if (typeof seqno === "number")
+      query.seqno = seqno.toString();
+    const raw = await this.getJson("/api/v3/addressInformation", query);
+    const balance = BigInt(raw.balance);
+    const extraCurrencies = {};
+    for (const currency of raw.extra_currencies || []) {
+      extraCurrencies[currency.id] = BigInt(currency.amount);
+    }
+    const out = {
+      status: raw.status,
+      balance: balance.toString(),
+      extraCurrencies,
+      code: raw.code,
+      data: raw.data,
+      lastTransaction: parseInternalTransactionId({
+        hash: raw.last_transaction_hash,
+        lt: raw.last_transaction_lt
+      })
+    };
+    if (raw.frozen_hash) {
+      out.frozenHash = Base64ToHex(raw.frozen_hash) ?? void 0;
+    }
+    return out;
+  }
+  async getBalance(address, seqno) {
+    return (await this.getAccountState(address, seqno)).balance;
+  }
   async getAccountTransactions(request) {
     const accounts = request.address?.map(prepareAddress);
     let offset = request.offset ?? 0;
@@ -33939,45 +34140,52 @@ class ApiClientToncenter {
   }
   async getTrace(request) {
     const inTraceId = request.traceId ? request.traceId[0] : void 0;
-    const traceId = padBase64(Base64Normalize(inTraceId || "").replace(/=/g, ""));
-    try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
-        tx_hash: traceId
-      }));
-      if (response.traces.length > 0) {
+    const traceIdStr = inTraceId || "";
+    const isHexId = isHex(traceIdStr);
+    const traceId = isHexId ? traceIdStr : padBase64(Base64Normalize(traceIdStr).replace(/=/g, ""));
+    const tryGetTrace = async (field) => {
+      const response = await CallForSuccess(
+        () => this.getJson("/api/v3/traces", { [field]: traceId }),
+        void 0,
+        void 0,
+        // 422: toncenter failed to decode field value
+        (err) => err instanceof TonClientError ? err.status !== 422 : true
+      );
+      if (response?.traces?.length > 0) {
         return response;
       }
-    } catch (error2) {
-      log$4.error("Error fetching trace", { error: error2 });
+      throw new Error(`No traces found for ${field}`);
+    };
+    const results = await Promise.allSettled([
+      tryGetTrace("tx_hash"),
+      tryGetTrace("trace_id"),
+      tryGetTrace("msg_hash")
+    ]);
+    const fulfilledResult = results.find((result) => result.status === "fulfilled");
+    if (fulfilledResult) {
+      return fulfilledResult.value;
     }
-    try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
-        trace_id: traceId
-      }));
-      if (response.traces.length > 0) {
-        return response;
+    results.forEach((result) => {
+      if (result.status === "rejected") {
+        log$4.error("Error fetching trace", { error: result.reason });
       }
-    } catch (error2) {
-      log$4.error("Error fetching trace", { error: error2 });
-    }
-    try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/traces", {
-        msg_hash: traceId
-      }));
-      if (response.traces.length > 0) {
-        return response;
-      }
-    } catch (error2) {
-      log$4.error("Error fetching pending trace", { error: error2 });
-    }
+    });
     throw new Error("Failed to fetch trace");
   }
   async getPendingTrace(request) {
     try {
-      const response = await CallForSuccess(() => this.getJson("/api/v3/pendingTraces", {
-        ext_msg_hash: request.externalMessageHash
-      }));
-      if (response.traces.length > 0) {
+      const response = await CallForSuccess(
+        () => {
+          return this.getJson("/api/v3/pendingTraces", {
+            ext_msg_hash: request.externalMessageHash
+          });
+        },
+        void 0,
+        void 0,
+        // 422: toncenter failed to decode field value
+        (err) => err instanceof TonClientError ? err.status !== 422 : true
+      );
+      if (response?.traces?.length > 0) {
         return response;
       }
     } catch (error2) {
@@ -33986,9 +34194,13 @@ class ApiClientToncenter {
     throw new Error("Failed to fetch pending trace");
   }
   async resolveDnsWallet(domain) {
-    const result = await dnsResolve(this, domain, DnsCategory.Wallet, this.dnsResolver);
-    if (result && result.value) {
-      return result.value;
+    const response = toDnsRecords(await this.getJson("/api/v3/dns/records", {
+      domain,
+      limit: 1,
+      offset: 0
+    }));
+    if (response.records.length > 0 && response.records[0].dnsWallet) {
+      return response.records[0].dnsWallet;
     }
     return null;
   }
@@ -34103,26 +34315,8 @@ class ApiClientToncenter {
     return out;
   }
 }
-const padBase64 = (data) => {
-  return data.padEnd(data.length + (4 - data.length % 4), "=");
-};
-function prepareAddress(address) {
-  if (address instanceof distExports$1.Address) {
-    address = address.toString();
-  }
-  return address;
-}
-function parseInternalTransactionId(data) {
-  if (data.hash !== "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=") {
-    return {
-      lt: data.lt,
-      hash: Base64ToHex(data.hash)
-    };
-  }
-  return null;
-}
 const log$3 = globalLogger.createChild("NetworkManager");
-class NetworkManager {
+class KitNetworkManager {
   clients = /* @__PURE__ */ new Map();
   constructor(options) {
     this.initializeClients(options);
@@ -34156,7 +34350,14 @@ class NetworkManager {
     if (this.isApiClient(apiClientConfig)) {
       return apiClientConfig;
     }
-    const defaultEndpoint = network.chainId === CHAIN.MAINNET ? "https://toncenter.com" : "https://testnet.toncenter.com";
+    let defaultEndpoint;
+    if (network.chainId == Network.mainnet().chainId) {
+      defaultEndpoint = "https://toncenter.com";
+    } else if (network.chainId == Network.tetra().chainId) {
+      defaultEndpoint = "https://tetra.tonapi.io";
+    } else {
+      defaultEndpoint = "https://testnet.toncenter.com";
+    }
     const endpoint = apiClientConfig?.url || defaultEndpoint;
     return new ApiClientToncenter({
       endpoint,
@@ -34173,7 +34374,7 @@ class NetworkManager {
   }
   /**
    * Get API client for a specific network
-   * @param chainId - The chain ID (CHAIN.MAINNET or CHAIN.TESTNET)
+   * @param chainId - The chain ID
    * @returns The API client for the specified network
    * @throws WalletKitError if no client is configured for the network
    */
@@ -34240,7 +34441,7 @@ class TonWalletKit {
         }
       });
     }
-    this.networkManager = new NetworkManager(options);
+    this.networkManager = new KitNetworkManager(options);
     this.eventEmitter = new EventEmitter();
     this.initializer = new Initializer(options, this.eventEmitter, this.analyticsManager);
     this.initializationPromise = this.initialize();
@@ -34280,7 +34481,7 @@ class TonWalletKit {
               name: "ton_addr",
               address: distExports$1.Address.parse(walletAddress).toRawString(),
               // TODO: Support multiple networks
-              network: wallet2.getNetwork().chainId === CHAIN.MAINNET ? CHAIN.MAINNET : CHAIN.TESTNET,
+              network: wallet2.getNetwork().chainId,
               walletStateInit,
               publicKey
             }
@@ -34750,6 +34951,379 @@ class TonWalletKit {
     return this.bridgeManager.queueJsBridgeEvent(messageInfo, request);
   }
 }
+function mapAccountState(raw) {
+  let status;
+  switch (raw.status) {
+    case "nonexist":
+      status = "non-existing";
+      break;
+    case "uninit":
+      status = "uninitialized";
+      break;
+    case "active":
+      status = "active";
+      break;
+    case "frozen":
+      status = "frozen";
+      break;
+    default:
+      status = "non-existing";
+  }
+  const extraCurrencies = {};
+  if (raw.extra_balance && Array.isArray(raw.extra_balance)) {
+    for (const extra of raw.extra_balance) {
+      extraCurrencies[extra.preview.id] = BigInt(extra.amount);
+    }
+  }
+  let lastTransaction = null;
+  if (raw.last_transaction_lt && raw.last_transaction_hash) {
+    lastTransaction = {
+      lt: raw.last_transaction_lt.toString(),
+      hash: raw.last_transaction_hash.startsWith("0x") ? raw.last_transaction_hash : `0x${raw.last_transaction_hash}`
+    };
+  }
+  const out = {
+    status,
+    balance: raw.balance.toString(),
+    extraCurrencies,
+    code: raw.code ? Buffer.from(raw.code, "hex").toString("base64") : null,
+    data: raw.data ? Buffer.from(raw.data, "hex").toString("base64") : null,
+    lastTransaction
+  };
+  return out;
+}
+function toRaw(address) {
+  return distExports$1.Address.parse(address).toRawString();
+}
+function mapJettonMasters(jettonInfo) {
+  const addressBook = {};
+  const jettonRaw = toRaw(jettonInfo.metadata.address);
+  const jettonFriendly = asAddressFriendly(jettonInfo.metadata.address);
+  if (jettonInfo.admin) {
+    const adminRaw = toRaw(jettonInfo.admin.address);
+    const adminFriendly = asAddressFriendly(jettonInfo.admin.address);
+    addressBook[adminRaw] = {
+      user_friendly: adminFriendly,
+      domain: jettonInfo.admin.name ?? null,
+      interfaces: []
+    };
+  }
+  addressBook[jettonRaw] = {
+    user_friendly: jettonFriendly,
+    domain: null,
+    interfaces: ["jetton_master"]
+  };
+  return {
+    jetton_masters: [
+      {
+        address: jettonRaw,
+        balance: "0",
+        owner: jettonInfo.admin ? toRaw(jettonInfo.admin.address) : "",
+        jetton: jettonRaw,
+        last_transaction_lt: "0",
+        code_hash: "",
+        data_hash: ""
+      }
+    ],
+    address_book: addressBook,
+    metadata: {
+      [jettonRaw]: {
+        is_indexed: true,
+        token_info: [
+          {
+            valid: true,
+            type: "jetton_masters",
+            name: jettonInfo.metadata.name,
+            symbol: jettonInfo.metadata.symbol,
+            description: jettonInfo.metadata.description,
+            image: jettonInfo.metadata.image,
+            extra: {
+              decimals: jettonInfo.metadata.decimals
+            }
+          }
+        ]
+      }
+    }
+  };
+}
+function mapUserJettons(rawResponse) {
+  const addressBook = {};
+  const userJettons = rawResponse.balances.map((wallet2) => {
+    const isVerified = wallet2.jetton.verification === "whitelist";
+    if (wallet2.wallet_address) {
+      const address = asAddressFriendly(wallet2.wallet_address.address);
+      if (!addressBook[address]) {
+        addressBook[address] = {
+          address,
+          domain: wallet2.wallet_address.name ?? void 0,
+          interfaces: []
+        };
+      }
+    }
+    const jetton = {
+      address: asAddressFriendly(wallet2.jetton.address),
+      walletAddress: asAddressFriendly(wallet2.wallet_address.address),
+      balance: wallet2.balance,
+      info: {
+        name: wallet2.jetton.name,
+        description: "",
+        // TonApi does not provide description here
+        image: {
+          url: wallet2.jetton.image
+        },
+        symbol: wallet2.jetton.symbol
+      },
+      decimalsNumber: wallet2.jetton.decimals,
+      prices: wallet2.price ? Object.entries(wallet2.price.prices).map(([currency, value]) => ({
+        value: value.toString(),
+        currency: currency.toUpperCase()
+      })) : [
+        {
+          value: "0",
+          currency: "USD"
+        }
+      ],
+      isVerified
+    };
+    return jetton;
+  });
+  return {
+    jettons: userJettons,
+    addressBook
+  };
+}
+function mapNftItem(item) {
+  const isVerified = item.trust === "whitelist" || item.verified;
+  const nft = {
+    address: asAddressFriendly(item.address),
+    index: item.index.toString(),
+    ownerAddress: item.owner ? asAddressFriendly(item.owner.address) : void 0,
+    collection: item.collection ? {
+      address: asAddressFriendly(item.collection.address),
+      name: item.collection.name,
+      description: item.collection.description
+    } : void 0,
+    info: {
+      name: item.metadata.name ?? "",
+      description: item.metadata.description ?? "",
+      image: {
+        url: item.metadata.image ?? ""
+      }
+    },
+    attributes: item.metadata.attributes?.map((attr) => ({
+      traitType: attr.trait_type,
+      value: attr.value
+    })),
+    extra: {
+      isVerified,
+      contentUrl: item.metadata.content_url,
+      previews: item.previews,
+      approvedBy: item.approved_by
+    }
+  };
+  return nft;
+}
+function mapNftItemsResponse(items) {
+  const addressBook = {};
+  items.forEach((item) => {
+    if (item.owner) {
+      const address = asAddressFriendly(item.owner.address);
+      if (!addressBook[address]) {
+        addressBook[address] = {
+          address,
+          domain: item.owner.name ?? void 0,
+          interfaces: []
+        };
+      }
+    }
+  });
+  return {
+    addressBook,
+    nfts: items.map(mapNftItem)
+  };
+}
+const hexBocToBase64 = (hex) => {
+  return Buffer.from(hex, "hex").toString("base64");
+};
+const mapTonApiGetMethodArgs = (stack) => {
+  return (stack || []).map((item) => {
+    switch (item.type) {
+      case "null":
+        return { type: "null", value: "Null" };
+      case "num":
+        if (item.value === "NaN") {
+          return { type: "nan", value: "NaN" };
+        }
+        if (item.value.startsWith("0x") || item.value.startsWith("-0x")) {
+          return { type: "int257", value: item.value };
+        }
+        return { type: "tinyint", value: item.value };
+      case "cell":
+        return { type: "cell_boc_base64", value: item.value };
+      case "slice":
+        return { type: "slice_boc_hex", value: Buffer.from(item.value, "base64").toString("hex") };
+      case "builder":
+        return { type: "cell_boc_base64", value: item.value };
+      case "tuple":
+      case "list":
+        throw new Error(`TonApi doesn't support ${item.type} in get method arguments`);
+      default:
+        throw new Error(`Unsupported stack item type: ${item.type}`);
+    }
+  });
+};
+const mapTonApiTvmStackRecord = (item) => {
+  switch (item.type) {
+    case "null":
+      return { type: "null" };
+    case "nan":
+      return { type: "num", value: "NaN" };
+    case "num":
+      return { type: "num", value: item.num };
+    case "cell":
+      return { type: "cell", value: hexBocToBase64(item.cell) };
+    case "slice":
+      return { type: "slice", value: hexBocToBase64(item.slice || item.cell) };
+    case "tuple":
+      return { type: "tuple", value: (item.tuple || []).map(mapTonApiTvmStackRecord) };
+    default:
+      throw new Error(`Unsupported TonApi stack item type: ${item.type}`);
+  }
+};
+class ApiClientTonApi extends BaseApiClient {
+  constructor(config = {}) {
+    let defaultEndpoint;
+    switch (config.network?.chainId) {
+      case Network.mainnet().chainId:
+        defaultEndpoint = "https://tonapi.io";
+        break;
+      case Network.tetra().chainId:
+        defaultEndpoint = "https://tetra.tonapi.io";
+        break;
+      default:
+        defaultEndpoint = "https://testnet.tonapi.io";
+        break;
+    }
+    super(config, defaultEndpoint);
+  }
+  async getAccountState(address, _seqno) {
+    try {
+      const raw = await this.getJson(`/v2/blockchain/accounts/${address}`);
+      return mapAccountState(raw);
+    } catch (e) {
+      if (e instanceof TonClientError && e.status === 404) {
+        return {
+          status: "non-existing",
+          balance: "0",
+          extraCurrencies: {},
+          code: null,
+          data: null,
+          lastTransaction: null
+        };
+      }
+      throw e;
+    }
+  }
+  async getBalance(address, seqno) {
+    const state = await this.getAccountState(address, seqno);
+    return state.balance;
+  }
+  async jettonsByAddress(request) {
+    const raw = await this.getJson(`/v2/jettons/${request.address}`);
+    return mapJettonMasters(raw);
+  }
+  async jettonsByOwnerAddress(request) {
+    const raw = await this.getJson(`/v2/accounts/${request.ownerAddress}/jettons`);
+    return mapUserJettons(raw);
+  }
+  async nftItemsByAddress(request) {
+    if (!request.address) {
+      throw new Error("TonApi requires an address to fetch NFT items.");
+    }
+    try {
+      const raw = await this.getJson(`/v2/nfts/${request.address}`);
+      return mapNftItemsResponse([raw]);
+    } catch (e) {
+      if (e instanceof TonClientError && e.status === 404) {
+        return { addressBook: {}, nfts: [] };
+      }
+      throw e;
+    }
+  }
+  async nftItemsByOwner(request) {
+    const query = {};
+    if (request.pagination?.limit)
+      query.limit = request.pagination.limit;
+    if (request.pagination?.offset)
+      query.offset = request.pagination.offset;
+    const raw = await this.getJson(`/v2/accounts/${request.ownerAddress}/nfts`, query);
+    return mapNftItemsResponse(raw.nft_items);
+  }
+  async sendBoc(boc) {
+    if (this.disableNetworkSend) {
+      return "";
+    }
+    await this.postJson("/v2/liteserver/send_message", { body: boc });
+    const { hash } = getNormalizedExtMessageHash(boc);
+    return Base64ToBigInt(hash).toString(16);
+  }
+  async fetchEmulation(_messageBoc, _ignoreSignature) {
+    throw new Error("Method not implemented.");
+  }
+  async runGetMethod(address, method, stack, _seqno) {
+    const args = mapTonApiGetMethodArgs(stack);
+    const raw = await this.postJson(`/v2/blockchain/accounts/${address}/methods/${method}`, { args });
+    if (!raw.success) {
+      throw new Error(`TonApi runGetMethod '${method}' failed with exit code ${raw.exit_code}`);
+    }
+    return {
+      // TonApi does not return gas_used
+      gasUsed: 0,
+      exitCode: raw.exit_code,
+      stack: (raw.stack || []).map(mapTonApiTvmStackRecord)
+    };
+  }
+  async getAccountTransactions(_request) {
+    throw new Error("Method not implemented.");
+  }
+  async getTransactionsByHash(_request) {
+    throw new Error("Method not implemented.");
+  }
+  async getPendingTransactions(_request) {
+    throw new Error("Method not implemented.");
+  }
+  async getTrace(_request) {
+    throw new Error("Method not implemented.");
+  }
+  async getPendingTrace(_request) {
+    throw new Error("Method not implemented.");
+  }
+  async resolveDnsWallet(domain) {
+    try {
+      const raw = await this.getJson(`/v2/dns/${domain}/resolve`);
+      const address = raw?.wallet?.address;
+      return address ? asAddressFriendly(address) : null;
+    } catch (_e) {
+      return null;
+    }
+  }
+  async backResolveDnsWallet(address) {
+    try {
+      const raw = await this.getJson(`/v2/accounts/${address}/dns/backresolve`);
+      return raw.domains && raw.domains.length > 0 ? raw.domains[0] : null;
+    } catch (_e) {
+      return null;
+    }
+  }
+  async getEvents(_request) {
+    throw new Error("Method not implemented.");
+  }
+  appendAuthHeaders(headers) {
+    if (this.apiKey) {
+      headers.set("Authorization", `Bearer ${this.apiKey}`);
+    }
+  }
+}
 const WalletV5R1CodeBoc = "b5ee9c7201021401000281000114ff00f4a413f4bcf2c80b01020120020302014804050102f20e02dcd020d749c120915b8f6320d70b1f2082106578746ebd21821073696e74bdb0925f03e082106578746eba8eb48020d72101d074d721fa4030fa44f828fa443058bd915be0ed44d0810141d721f4058307f40e6fa1319130e18040d721707fdb3ce03120d749810280b99130e070e2100f020120060702012008090019be5f0f6a2684080a0eb90fa02c02016e0a0b0201480c0d0019adce76a2684020eb90eb85ffc00019af1df6a2684010eb90eb858fc00017b325fb51341c75c875c2c7e00011b262fb513435c28020011e20d70b1f82107369676ebaf2e08a7f0f01e68ef0eda2edfb218308d722028308d723208020d721d31fd31fd31fed44d0d200d31f20d31fd3ffd70a000af90140ccf9109a28945f0adb31e1f2c087df02b35007b0f2d0845125baf2e0855036baf2e086f823bbf2d0882292f800de01a47fc8ca00cb1f01cf16c9ed542092f80fde70db3cd81003f6eda2edfb02f404216e926c218e4c0221d73930709421c700b38e2d01d72820761e436c20d749c008f2e09320d74ac002f2e09320d71d06c712c2005230b0f2d089d74cd7393001a4e86c128407bbf2e093d74ac000f2e093ed55e2d20001c000915be0ebd72c08142091709601d72c081c12e25210b1e30f20d74a111213009601fa4001fa44f828fa443058baf2e091ed44d0810141d718f405049d7fc8ca0040048307f453f2e08b8e14038307f45bf2e08c22d70a00216e01b3b0f2d090e2c85003cf1612f400c9ed54007230d72c08248e2d21f2e092d200ed44d0d2005113baf2d08f54503091319c01810140d721d70a00f2e08ee2c8ca0058cf16c9ed5493f2c08de20010935bdb31e1d74cd0";
 const WalletV5R1CodeCell = distExports$1.Cell.fromBoc(Buffer.from(WalletV5R1CodeBoc, "hex"))[0];
 class ActionSendMsg {
@@ -34956,7 +35530,7 @@ class WalletV5R1Adapter {
       const now = Math.floor(Date.now() / 1e3);
       const maxValidUntil = now + 600;
       if (input.validUntil < now) {
-        throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Transaction valid_until timestamp is in the past", void 0, { validUntil: input.validUntil, currentTime: now });
+        throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Transaction validUntil timestamp is in the past", void 0, { validUntil: input.validUntil, currentTime: now });
       } else if (input.validUntil > maxValidUntil) {
         createBodyOptions.validUntil = maxValidUntil;
       } else {
@@ -35501,8 +36075,50 @@ class WalletV4R2Adapter {
     ];
   }
 }
+function parseUnits(value, decimals) {
+  let [integer, fraction = "0"] = value.split(".");
+  const negative = integer.startsWith("-");
+  if (negative)
+    integer = integer.slice(1);
+  fraction = fraction.replace(/(0+)$/, "");
+  if (decimals === 0) {
+    if (Math.round(Number(`.${fraction}`)) === 1)
+      integer = `${BigInt(integer) + 1n}`;
+    fraction = "";
+  } else if (fraction.length > decimals) {
+    const [left, unit, right] = [
+      fraction.slice(0, decimals - 1),
+      fraction.slice(decimals - 1, decimals),
+      fraction.slice(decimals)
+    ];
+    const rounded = Math.round(Number(`${unit}.${right}`));
+    if (rounded > 9)
+      fraction = `${BigInt(left) + BigInt(1)}0`.padStart(left.length + 1, "0");
+    else
+      fraction = `${left}${rounded}`;
+    if (fraction.length > decimals) {
+      fraction = fraction.slice(1);
+      integer = `${BigInt(integer) + 1n}`;
+    }
+    fraction = fraction.slice(0, decimals);
+  } else {
+    fraction = fraction.padEnd(decimals, "0");
+  }
+  return BigInt(`${negative ? "-" : ""}${integer}${fraction}`);
+}
+function formatUnits(value, decimals) {
+  let display = value.toString();
+  const negative = display.startsWith("-");
+  if (negative)
+    display = display.slice(1);
+  display = display.padStart(decimals, "0");
+  let [integer, fraction] = [display.slice(0, display.length - decimals), display.slice(display.length - decimals)];
+  fraction = fraction.replace(/(0+)$/, "");
+  return `${negative ? "-" : ""}${integer || "0"}${fraction ? `.${fraction}` : ""}`;
+}
 const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
+  ApiClientTonApi,
   ApiClientToncenter,
   get AssetType() {
     return AssetType;
@@ -35520,7 +36136,11 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   CreateTonMnemonic,
   CreateTonProofMessageBytes,
   DEFAULT_DURABLE_EVENTS_CONFIG,
+  DEFAULT_FORWARD_AMOUNT,
+  DEFAULT_JETTON_GAS_FEE,
+  DEFAULT_NFT_GAS_FEE,
   DEFAULT_REQUEST_TIMEOUT,
+  DefaultDomainSignature,
   DefaultSignature,
   DisconnectHandler,
   ERROR_CODES,
@@ -35538,11 +36158,11 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
     return JettonErrorCode;
   },
   JettonsManager,
+  KitNetworkManager,
   LocalStorageAdapter,
   MemoryStorageAdapter,
   MnemonicToKeyPair,
   Network,
-  NetworkManager,
   Opcodes,
   ParseBase64,
   ParseStack,
@@ -35588,16 +36208,35 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   WalletV5R1CodeBoc,
   WalletV5R1CodeCell,
   WalletV5R1Id,
+  asHex,
+  createCommentPayload,
+  createCommentPayloadBase64,
   createDeviceInfo,
+  createJettonTransferPayload,
+  createNftTransferPayload,
+  createNftTransferRawPayload,
+  createTransferTransaction,
   createWalletId,
   createWalletManifest,
   defaultWalletIdV4R2,
   defaultWalletIdV5R1,
   emulationEvent,
+  formatUnits,
   formatWalletAddress,
   getErrorCodeName,
+  getJettonBalanceFromClient,
+  getJettonWalletAddressFromClient,
+  getJettonsFromClient,
   getMaxOutgoingMessages,
+  getNftFromClient,
+  getNftsFromClient,
+  getNormalizedExtMessageHash,
+  getTransactionStatus,
   isValidAddress,
+  parseUnits,
+  storeJettonTransferMessage,
+  storeNftTransferMessage,
+  validateTransactionMessage,
   wrapWalletInterface
 }, Symbol.toStringTag, { value: "Module" }));
 let walletKit = null;
@@ -36224,16 +36863,6 @@ function postToNative(payload) {
   }
   warn("[walletkitBridge] postToNative: no native handler", payload);
 }
-function emitCallDiagnostic(id, method, stage, message) {
-  postToNative({
-    kind: "diagnostic-call",
-    id,
-    method,
-    stage,
-    timestamp: Date.now(),
-    message
-  });
-}
 var __async$7 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -36284,16 +36913,13 @@ function handleCall(id, method, params) {
     if (!apiRef) {
       throw new Error("Bridge API not registered");
     }
-    emitCallDiagnostic(id, method, "start");
     try {
       const context = { id, method };
       const value = yield invokeApiMethod(apiRef, method, params, context);
-      emitCallDiagnostic(id, method, "success");
       respond(id, value);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       error(`[walletkitBridge] handleCall error for ${method}:`, message);
-      emitCallDiagnostic(id, method, "error", message);
       respond(id, void 0, { message });
     }
   });
@@ -36636,6 +37262,15 @@ class ProxyWalletAdapter {
       if (!result) throw new Error("adapterSignTonProof: no result from native");
       return result;
     });
+  }
+  getSupportedFeatures() {
+    const raw = bridgeRequestSync("getSupportedFeatures", { adapterId: this.adapterId });
+    if (!raw || raw === "null") return void 0;
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return void 0;
+    }
   }
 }
 function getWallets() {

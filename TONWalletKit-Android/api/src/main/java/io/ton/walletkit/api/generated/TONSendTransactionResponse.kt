@@ -37,12 +37,20 @@ import kotlinx.serialization.Serializable
  *
  *
  * @param boc
+ * @param normalizedBoc
+ * @param normalizedHash
  */
 @Serializable
 data class TONSendTransactionResponse(
 
     @Contextual @SerialName(value = "boc")
     val boc: io.ton.walletkit.model.TONBase64,
+
+    @Contextual @SerialName(value = "normalizedBoc")
+    val normalizedBoc: io.ton.walletkit.model.TONBase64,
+
+    @Contextual @SerialName(value = "normalizedHash")
+    val normalizedHash: io.ton.walletkit.model.TONHex,
 
 ) {
 

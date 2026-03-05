@@ -92,7 +92,6 @@ internal class MessageDispatcher(
             }
             ResponseConstants.VALUE_KIND_REQUEST -> handleRequest(payload)
             ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT -> handleJsBridgeEvent(payload)
-            ResponseConstants.VALUE_KIND_DIAGNOSTIC_CALL -> { /* no-op */ }
             else -> Logger.w(TAG, "Unknown message kind: $kind")
         }
     }

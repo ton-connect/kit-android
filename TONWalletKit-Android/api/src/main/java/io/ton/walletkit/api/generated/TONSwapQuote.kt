@@ -37,8 +37,11 @@ import kotlinx.serialization.Serializable
  *
  * @param fromToken
  * @param toToken
+ * @param rawFromAmount
+ * @param rawToAmount
  * @param fromAmount
  * @param toAmount
+ * @param rawMinReceived
  * @param minReceived
  * @param network
  * @param providerId Identifier of the swap provider
@@ -56,11 +59,20 @@ data class TONSwapQuote(
     @SerialName(value = "toToken")
     val toToken: TONSwapToken,
 
+    @SerialName(value = "rawFromAmount")
+    val rawFromAmount: kotlin.String,
+
+    @SerialName(value = "rawToAmount")
+    val rawToAmount: kotlin.String,
+
     @SerialName(value = "fromAmount")
     val fromAmount: kotlin.String,
 
     @SerialName(value = "toAmount")
     val toAmount: kotlin.String,
+
+    @SerialName(value = "rawMinReceived")
+    val rawMinReceived: kotlin.String,
 
     @SerialName(value = "minReceived")
     val minReceived: kotlin.String,

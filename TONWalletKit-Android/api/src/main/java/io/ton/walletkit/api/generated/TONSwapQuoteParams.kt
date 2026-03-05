@@ -36,8 +36,8 @@ import kotlinx.serialization.Serializable
  *
  *
  * @param amount
- * @param fromToken
- * @param toToken
+ * @param from
+ * @param to
  * @param network
  * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
  * @param maxOutgoingMessages Maximum number of outgoing messages
@@ -50,11 +50,11 @@ data class TONSwapQuoteParams(
     @SerialName(value = "amount")
     val amount: kotlin.String,
 
-    @SerialName(value = "fromToken")
-    val fromToken: TONSwapToken,
+    @SerialName(value = "from")
+    val from: TONSwapToken,
 
-    @SerialName(value = "toToken")
-    val toToken: TONSwapToken,
+    @SerialName(value = "to")
+    val to: TONSwapToken,
 
     @SerialName(value = "network")
     val network: TONNetwork,

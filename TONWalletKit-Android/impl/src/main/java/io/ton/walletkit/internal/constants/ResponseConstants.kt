@@ -453,11 +453,6 @@ internal object ResponseConstants {
     const val VALUE_KIND_JS_BRIDGE_EVENT = "jsBridgeEvent"
 
     /**
-     * Value for diagnostic call messages emitted from JS bridge.
-     */
-    const val VALUE_KIND_DIAGNOSTIC_CALL = "diagnostic-call"
-
-    /**
      * Value for 'request' message kind (JS→Kotlin reverse RPC).
      */
     const val VALUE_KIND_REQUEST = "request"
