@@ -420,7 +420,7 @@ internal class TonConnectInjector(
 
         // Notify the main frame via JavaScript injection - main frame will broadcast to iframes via postMessage
         webView.post {
-            webView.evaluateJavascript(buildJsNotifyScript("__notifyEvent"), null)
+            webView.evaluateJavascript(notifyEventScript(), null)
         }
     }
 
@@ -585,25 +585,35 @@ internal class TonConnectInjector(
         bridgeInterface.storeResponse(pending.messageId, responseJson.toString())
 
         // Notify the main frame via JavaScript injection - main frame will broadcast to iframes via postMessage
-        webView.evaluateJavascript(buildJsNotifyScript("__notifyResponse", "'${pending.messageId}'"), null)
+        webView.evaluateJavascript(notifyResponseScript(pending.messageId), null)
     }
 
-    /**
-     * Builds a self-invoking JS snippet that calls a method on `window.AndroidTonConnect`.
-     *
-     * @param method The method name (e.g. `__notifyEvent`, `__notifyResponse`).
-     * @param args   Optional JS argument expression (e.g. `'msg-123'`).
-     */
-    private fun buildJsNotifyScript(method: String, args: String = ""): String =
+    /** JS snippet that pokes `AndroidTonConnect.__notifyEvent()`. */
+    private fun notifyEventScript(): String =
         """
         (function() {
-            if (window.AndroidTonConnect && window.AndroidTonConnect.$method) {
-                window.AndroidTonConnect.$method($args);
+            if (window.AndroidTonConnect && window.AndroidTonConnect.__notifyEvent) {
+                window.AndroidTonConnect.__notifyEvent();
             } else {
-                console.error('[Kotlin→JS] $method not available!');
+                console.error('[Kotlin→JS] __notifyEvent not available!');
             }
         })();
         """.trimIndent()
+
+    /** JS snippet that pokes `AndroidTonConnect.__notifyResponse(messageId)`. */
+    private fun notifyResponseScript(messageId: String): String {
+        // Escape to prevent JS injection via crafted messageId
+        val safeId = messageId.replace("\\", "\\\\").replace("'", "\\\'")
+        return """
+        (function() {
+            if (window.AndroidTonConnect && window.AndroidTonConnect.__notifyResponse) {
+                window.AndroidTonConnect.__notifyResponse('$safeId');
+            } else {
+                console.error('[Kotlin→JS] __notifyResponse not available!');
+            }
+        })();
+        """.trimIndent()
+    }
 
     @Serializable
     private data class InjectOptions(
