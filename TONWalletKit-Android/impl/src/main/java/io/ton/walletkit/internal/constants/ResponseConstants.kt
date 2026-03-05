@@ -422,14 +422,9 @@ internal object ResponseConstants {
     const val KEY_ID = "id"
 
     /**
-     * JSON key for method name (used by diagnostic-call messages)
+     * JSON key for method name.
      */
     const val KEY_METHOD = "method"
-
-    /**
-     * JSON key for diagnostic stage (start/checkpoint/success/error)
-     */
-    const val KEY_STAGE = "stage"
 
     // Kind/Type values
     /**
