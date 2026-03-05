@@ -1,0 +1,37 @@
+{{!--
+  Template for generic data class generation.
+
+  Vendor extensions used:
+  - x-generic-params: array of {name} for type parameters
+  - x-generic-type-ref: string indicating a property uses a generic type parameter
+
+  Generates Kotlin data classes with generic type parameters and kotlinx.serialization support.
+--}}
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Contextual
+import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
+
+/**
+ * {{{description}}}
+ *
+{{#allVars}}
+ * @param {{{name}}} {{{description}}}
+{{/allVars}}
+ */
+@Serializable
+{{#nonPublicApi}}internal {{/nonPublicApi}}data class {{{classname}}}<{{#vendorExtensions.x-generic-params}}{{{name}}}{{^-last}}, {{/-last}}{{/vendorExtensions.x-generic-params}}>(
+{{#vars}}
+{{#vendorExtensions.x-generic-type-ref}}
+    @SerialName("{{{baseName}}}")
+    val {{{name}}}: {{{vendorExtensions.x-generic-type-ref}}}{{^required}}? = null{{/required}}{{^-last}},{{/-last}}
+{{/vendorExtensions.x-generic-type-ref}}
+{{^vendorExtensions.x-generic-type-ref}}
+    @SerialName("{{{baseName}}}")
+    val {{{name}}}: {{{dataType}}}{{^required}}? = null{{/required}}{{^-last}},{{/-last}}
+{{/vendorExtensions.x-generic-type-ref}}
+{{/vars}}
+) {
+    companion object
+}

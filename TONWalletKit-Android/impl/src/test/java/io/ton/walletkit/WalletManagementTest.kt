@@ -48,13 +48,13 @@ class WalletManagementTest {
         val address = TONUserFriendlyAddress("EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t")
         val expectedWallet = createMockWallet(address.value)
 
-        coEvery { mockKit.getWallet(address) } returns expectedWallet
+        coEvery { mockKit.getWallet(address.value) } returns expectedWallet
 
-        val wallet = mockKit.getWallet(address)
+        val wallet = mockKit.getWallet(address.value)
 
         assertNotNull(wallet)
         assertEquals(address, wallet?.address)
-        coVerify(exactly = 1) { mockKit.getWallet(address) }
+        coVerify(exactly = 1) { mockKit.getWallet(address.value) }
     }
 
     @Test
@@ -63,12 +63,12 @@ class WalletManagementTest {
         // Use a valid TON testnet address for non-existent wallet
         val nonExistentAddress = TONUserFriendlyAddress("kf8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM_BP")
 
-        coEvery { mockKit.getWallet(nonExistentAddress) } returns null
+        coEvery { mockKit.getWallet(nonExistentAddress.value) } returns null
 
-        val wallet = mockKit.getWallet(nonExistentAddress)
+        val wallet = mockKit.getWallet(nonExistentAddress.value)
 
         assertNull(wallet)
-        coVerify(exactly = 1) { mockKit.getWallet(nonExistentAddress) }
+        coVerify(exactly = 1) { mockKit.getWallet(nonExistentAddress.value) }
     }
 
     @Test
@@ -76,12 +76,12 @@ class WalletManagementTest {
         val mockKit = mockk<ITONWalletKit>()
         val address = TONUserFriendlyAddress("EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t")
 
-        coEvery { mockKit.removeWallet(address) } returns true
+        coEvery { mockKit.removeWallet(address.value) } returns true
 
-        val result = mockKit.removeWallet(address)
+        val result = mockKit.removeWallet(address.value)
 
         assertEquals(true, result)
-        coVerify(exactly = 1) { mockKit.removeWallet(address) }
+        coVerify(exactly = 1) { mockKit.removeWallet(address.value) }
     }
 
     @Test
@@ -89,12 +89,12 @@ class WalletManagementTest {
         val mockKit = mockk<ITONWalletKit>()
         val nonExistentAddress = TONUserFriendlyAddress("kf8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM_BP")
 
-        coEvery { mockKit.removeWallet(nonExistentAddress) } returns false
+        coEvery { mockKit.removeWallet(nonExistentAddress.value) } returns false
 
-        val result = mockKit.removeWallet(nonExistentAddress)
+        val result = mockKit.removeWallet(nonExistentAddress.value)
 
         assertEquals(false, result)
-        coVerify(exactly = 1) { mockKit.removeWallet(nonExistentAddress) }
+        coVerify(exactly = 1) { mockKit.removeWallet(nonExistentAddress.value) }
     }
 
     @Test
@@ -178,20 +178,20 @@ class WalletManagementTest {
 
         // Setup: Return both wallets initially
         coEvery { mockKit.getWallets() } returns listOf(wallet1, wallet2)
-        coEvery { mockKit.removeWallet(address1) } returns true
-        coEvery { mockKit.getWallet(address2) } returns wallet2
+        coEvery { mockKit.removeWallet(address1.value) } returns true
+        coEvery { mockKit.getWallet(address2.value) } returns wallet2
 
         // Remove first wallet
-        val removed = mockKit.removeWallet(address1)
+        val removed = mockKit.removeWallet(address1.value)
         assertEquals(true, removed)
 
         // Verify wallet2 still exists
-        val existingWallet = mockKit.getWallet(address2)
+        val existingWallet = mockKit.getWallet(address2.value)
         assertNotNull(existingWallet)
         assertEquals(address2, existingWallet?.address)
 
         // Verify removeWallet was called with correct address
-        coVerify(exactly = 1) { mockKit.removeWallet(address1) }
+        coVerify(exactly = 1) { mockKit.removeWallet(address1.value) }
     }
 
     @Test

@@ -376,10 +376,11 @@ class TonConnectOperationsTest : OperationsTestBase() {
             method = "ton_requestAccounts",
             paramsJson = null,
             url = TEST_DAPP_URL,
-        ) { response ->
-            callbackInvoked = true
-            callbackResponse = response
-        }
+            responseCallback = { response ->
+                callbackInvoked = true
+                callbackResponse = response
+            },
+        )
 
         assertTrue(callbackInvoked)
         assertNotNull(callbackResponse)
@@ -401,9 +402,10 @@ class TonConnectOperationsTest : OperationsTestBase() {
             // Malformed JSON in params
             paramsJson = """{"invalid": json}""",
             url = TEST_DAPP_URL,
-        ) { response ->
-            callbackResponse = response
-        }
+            responseCallback = { response ->
+                callbackResponse = response
+            },
+        )
 
         // Should always invoke callback, even on success
         assertNotNull(callbackResponse)
