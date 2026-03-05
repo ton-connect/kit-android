@@ -420,7 +420,10 @@ internal class TonConnectInjector(
 
         // Notify the main frame via JavaScript injection - main frame will broadcast to iframes via postMessage
         webView.post {
-            webView.evaluateJavascript(notifyEventScript(), null)
+            webView.evaluateJavascript(
+                "window.AndroidTonConnect && window.AndroidTonConnect.__notifyEvent();",
+                null,
+            )
         }
     }
 
@@ -585,34 +588,11 @@ internal class TonConnectInjector(
         bridgeInterface.storeResponse(pending.messageId, responseJson.toString())
 
         // Notify the main frame via JavaScript injection - main frame will broadcast to iframes via postMessage
-        webView.evaluateJavascript(notifyResponseScript(pending.messageId), null)
-    }
-
-    /** JS snippet that pokes `AndroidTonConnect.__notifyEvent()`. */
-    private fun notifyEventScript(): String =
-        """
-        (function() {
-            if (window.AndroidTonConnect && window.AndroidTonConnect.__notifyEvent) {
-                window.AndroidTonConnect.__notifyEvent();
-            } else {
-                console.error('[Kotlin→JS] __notifyEvent not available!');
-            }
-        })();
-        """.trimIndent()
-
-    /** JS snippet that pokes `AndroidTonConnect.__notifyResponse(messageId)`. */
-    private fun notifyResponseScript(messageId: String): String {
-        // Escape to prevent JS injection via crafted messageId
-        val safeId = messageId.replace("\\", "\\\\").replace("'", "\\\'")
-        return """
-        (function() {
-            if (window.AndroidTonConnect && window.AndroidTonConnect.__notifyResponse) {
-                window.AndroidTonConnect.__notifyResponse('$safeId');
-            } else {
-                console.error('[Kotlin→JS] __notifyResponse not available!');
-            }
-        })();
-        """.trimIndent()
+        val safeMessageId = Json.encodeToString(pending.messageId)
+        webView.evaluateJavascript(
+            "window.AndroidTonConnect && window.AndroidTonConnect.__notifyResponse($safeMessageId);",
+            null,
+        )
     }
 
     @Serializable
