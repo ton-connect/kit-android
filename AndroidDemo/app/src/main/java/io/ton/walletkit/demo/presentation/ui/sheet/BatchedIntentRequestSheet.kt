@@ -39,9 +39,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.api.generated.TONIntentActionItem
+import io.ton.walletkit.api.generated.TONIntentRequestEvent
 import io.ton.walletkit.demo.presentation.model.BatchedIntentRequestUi
-import io.ton.walletkit.event.TONIntentEvent
-import io.ton.walletkit.event.TONIntentItem
 
 @Composable
 fun BatchedIntentRequestSheet(
@@ -80,41 +80,42 @@ fun BatchedIntentRequestSheet(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        "Intent ${index + 1}: ${intent.intentType}",
+                        "Intent ${index + 1}: ${intent.type}",
                         style = MaterialTheme.typography.titleSmall,
                     )
                     when (intent) {
-                        is TONIntentEvent.ConnectIntent -> {
-                            intent.dAppName?.let { LabelValue("dApp", it) }
-                            intent.dAppUrl?.let { LabelValue("URL", it) }
-                            intent.manifestUrl?.let { LabelValue("Manifest", it) }
+                        is TONIntentRequestEvent.Connect -> {
+                            intent.value.dAppInfo?.name?.let { LabelValue("dApp", it) }
+                            intent.value.dAppInfo?.url?.let { LabelValue("URL", it) }
+                            intent.value.dAppInfo?.manifestUrl?.let { LabelValue("Manifest", it) }
                         }
-                        is TONIntentEvent.TransactionIntent -> {
-                            intent.network?.let { LabelValue("Network", it) }
-                            intent.validUntil?.let { LabelValue("Valid Until", it.toString()) }
-                            LabelValue("Delivery Mode", intent.deliveryMode)
-                            LabelValue("Items", "${intent.items.size}")
-                            intent.items.forEach { item ->
+                        is TONIntentRequestEvent.Transaction -> {
+                            val tx = intent.value
+                            tx.network?.let { LabelValue("Network", it.chainId) }
+                            tx.validUntil?.let { LabelValue("Valid Until", it.toString()) }
+                            LabelValue("Delivery Mode", tx.deliveryMode.value)
+                            LabelValue("Items", "${tx.items.size}")
+                            tx.items.forEach { item ->
                                 when (item) {
-                                    is TONIntentItem.SendTon -> {
-                                        LabelValue("  Send TON", "${item.amount} → ${item.address}")
+                                    is TONIntentActionItem.SendTon -> {
+                                        LabelValue("  Send TON", "${item.value.amount} → ${item.value.address.value}")
                                     }
-                                    is TONIntentItem.SendJetton -> {
-                                        LabelValue("  Send Jetton", "${item.jettonAmount} → ${item.destination}")
+                                    is TONIntentActionItem.SendJetton -> {
+                                        LabelValue("  Send Jetton", "${item.value.jettonAmount} → ${item.value.destination.value}")
                                     }
-                                    is TONIntentItem.SendNft -> {
-                                        LabelValue("  Send NFT", "${item.nftAddress} → ${item.newOwnerAddress}")
+                                    is TONIntentActionItem.SendNft -> {
+                                        LabelValue("  Send NFT", "${item.value.nftAddress.value} → ${item.value.newOwnerAddress.value}")
                                     }
                                 }
                             }
                         }
-                        is TONIntentEvent.SignDataIntent -> {
-                            intent.network?.let { LabelValue("Network", it) }
-                            LabelValue("Manifest URL", intent.manifestUrl)
-                            LabelValue("Payload Type", intent.payload.type)
+                        is TONIntentRequestEvent.SignData -> {
+                            val sd = intent.value
+                            sd.network?.let { LabelValue("Network", it.chainId) }
+                            LabelValue("Manifest URL", sd.manifestUrl)
                         }
-                        is TONIntentEvent.ActionIntent -> {
-                            LabelValue("Action URL", intent.actionUrl)
+                        is TONIntentRequestEvent.Action -> {
+                            LabelValue("Action URL", intent.value.actionUrl)
                         }
                     }
                 }

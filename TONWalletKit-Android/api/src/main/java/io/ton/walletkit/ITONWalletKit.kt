@@ -25,11 +25,8 @@ import android.content.Context
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.config.TONWalletKitConfiguration
-import io.ton.walletkit.event.TONBatchedIntentEvent
-import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
-import io.ton.walletkit.model.IntentSignDataResult
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
@@ -154,24 +151,6 @@ interface ITONWalletKit {
 
     /** Parse and handle an intent deep link. Emits an IntentRequest event. */
     suspend fun handleIntentUrl(url: String, walletId: String)
-
-    /** Approve a transaction intent. Returns signed BoC. */
-    suspend fun approveTransactionIntent(event: TONIntentEvent.TransactionIntent, walletId: String): String
-
-    /** Approve a sign data intent. Returns signature result. */
-    suspend fun approveSignDataIntent(event: TONIntentEvent.SignDataIntent, walletId: String): IntentSignDataResult
-
-    /** Approve an action intent. Fetches action URL, resolves and approves. */
-    suspend fun approveActionIntent(event: TONIntentEvent.ActionIntent, walletId: String)
-
-    /** Approve a batched intent. Combines all items into one transaction. Returns signed BoC. */
-    suspend fun approveBatchedIntent(event: TONBatchedIntentEvent, walletId: String): String
-
-    /** Reject any intent. */
-    suspend fun rejectIntent(event: TONIntentEvent, reason: String? = null, errorCode: Int? = null)
-
-    /** Reject a batched intent. */
-    suspend fun rejectBatchedIntent(event: TONBatchedIntentEvent, reason: String? = null, errorCode: Int? = null)
 
     /**
      * Create WebView TON Connect injector.

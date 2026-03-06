@@ -21,12 +21,20 @@
  */
 package io.ton.walletkit.request
 
+import io.ton.walletkit.api.generated.TONActionIntentRequestEvent
+import io.ton.walletkit.api.generated.TONBatchedIntentEvent
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONIntentRequestEvent
+import io.ton.walletkit.api.generated.TONIntentResponseResult
+import io.ton.walletkit.api.generated.TONIntentSignDataResponse
+import io.ton.walletkit.api.generated.TONIntentTransactionResponse
 import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
+import io.ton.walletkit.api.generated.TONSignDataIntentRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONTransactionIntentRequestEvent
 
 /**
  * Internal interface for handling request approvals/rejections.
@@ -52,11 +60,12 @@ interface RequestHandler {
      * @param event The transaction request event
      * @param response Optional pre-computed approval response. If provided, the SDK will use this
      *                 response directly instead of signing the transaction internally.
+     * @return The approval response (either the provided one or computed by the SDK)
      */
     suspend fun approveTransaction(
         event: TONSendTransactionRequestEvent,
         response: TONSendTransactionApprovalResponse? = null,
-    )
+    ): TONSendTransactionApprovalResponse
 
     suspend fun rejectTransaction(event: TONSendTransactionRequestEvent, reason: String?, errorCode: Int?)
 
@@ -65,11 +74,41 @@ interface RequestHandler {
      * @param event The sign data request event
      * @param response Optional pre-computed approval response. If provided, the SDK will use this
      *                 response directly instead of signing the data internally.
+     * @return The approval response (either the provided one or computed by the SDK)
      */
     suspend fun approveSignData(
         event: TONSignDataRequestEvent,
         response: TONSignDataApprovalResponse? = null,
-    )
+    ): TONSignDataApprovalResponse
 
     suspend fun rejectSignData(event: TONSignDataRequestEvent, reason: String?, errorCode: Int?)
+
+    // ── Intents ──
+
+    suspend fun approveTransactionIntent(
+        event: TONTransactionIntentRequestEvent,
+        walletId: String,
+        response: TONIntentTransactionResponse? = null,
+    ): TONIntentTransactionResponse
+
+    suspend fun approveSignDataIntent(
+        event: TONSignDataIntentRequestEvent,
+        walletId: String,
+        response: TONIntentSignDataResponse? = null,
+    ): TONIntentSignDataResponse
+
+    suspend fun approveActionIntent(
+        event: TONActionIntentRequestEvent,
+        walletId: String,
+    )
+
+    suspend fun approveBatchedIntent(
+        event: TONBatchedIntentEvent,
+        walletId: String,
+        response: TONIntentResponseResult? = null,
+    ): TONIntentResponseResult
+
+    suspend fun rejectIntent(event: TONIntentRequestEvent, reason: String? = null, errorCode: Int? = null)
+
+    suspend fun rejectBatchedIntent(event: TONBatchedIntentEvent, reason: String? = null, errorCode: Int? = null)
 }

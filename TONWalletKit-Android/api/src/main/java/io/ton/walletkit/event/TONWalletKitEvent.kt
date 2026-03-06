@@ -23,7 +23,9 @@ package io.ton.walletkit.event
 
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONRequestErrorEvent
+import io.ton.walletkit.request.TONWalletBatchedIntentRequest
 import io.ton.walletkit.request.TONWalletConnectionRequest
+import io.ton.walletkit.request.TONWalletIntentRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
 
@@ -97,15 +99,13 @@ sealed class TONWalletKitEvent {
     /**
      * An intent deep link was parsed and requires approval.
      *
-     * Handle by calling the appropriate approve/reject method on [ITONWalletKit]:
-     * - [TONIntentEvent.TransactionIntent] → approveTransactionIntent / rejectIntent
-     * - [TONIntentEvent.SignDataIntent] → approveSignDataIntent / rejectIntent
-     * - [TONIntentEvent.ActionIntent] → approveActionIntent / rejectIntent
+     * Handle by calling [TONWalletIntentRequest.approve] with the wallet ID
+     * or [TONWalletIntentRequest.reject] to deny.
      *
-     * @property event Intent event with type-specific data
+     * @property request Intent request with approve/reject methods
      */
     data class IntentRequest(
-        val event: TONIntentEvent,
+        val request: TONWalletIntentRequest,
     ) : TONWalletKitEvent()
 
     /**
@@ -115,12 +115,12 @@ sealed class TONWalletKitEvent {
      * so the wallet can display each action separately while approving
      * or rejecting the whole batch atomically.
      *
-     * Handle by calling [ITONWalletKit.approveBatchedIntent] or
-     * [ITONWalletKit.rejectBatchedIntent].
+     * Handle by calling [TONWalletBatchedIntentRequest.approve] with the wallet ID
+     * or [TONWalletBatchedIntentRequest.reject] to deny.
      *
-     * @property event Batched intent event with inner intent list
+     * @property request Batched intent request with approve/reject methods
      */
     data class BatchedIntentRequest(
-        val event: TONBatchedIntentEvent,
+        val request: TONWalletBatchedIntentRequest,
     ) : TONWalletKitEvent()
 }

@@ -28,10 +28,16 @@ import androidx.core.content.edit
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONActionIntentRequestEvent
+import io.ton.walletkit.api.generated.TONBatchedIntentEvent
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
+import io.ton.walletkit.api.generated.TONIntentRequestEvent
+import io.ton.walletkit.api.generated.TONIntentResponseResult
+import io.ton.walletkit.api.generated.TONIntentSignDataResponse
+import io.ton.walletkit.api.generated.TONIntentTransactionResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
@@ -39,7 +45,9 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
+import io.ton.walletkit.api.generated.TONSignDataIntentRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONTransactionIntentRequestEvent
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
@@ -500,7 +508,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun approveTransaction(
         event: TONSendTransactionRequestEvent,
         response: TONSendTransactionApprovalResponse?,
-    ) {
+    ): TONSendTransactionApprovalResponse {
         ensureWalletKitInitialized()
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val params =
@@ -510,7 +518,8 @@ internal class QuickJsWalletKitEngine(
                 put("walletId", event.walletId)
                 response?.let { put("response", JSONObject(json.encodeToString(it))) }
             }
-        call("approveTransactionRequest", params)
+        val result = call("approveTransactionRequest", params)
+        return json.decodeFromString<TONSendTransactionApprovalResponse>(result.toString())
     }
 
     override suspend fun rejectTransaction(
@@ -531,7 +540,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun approveSignData(
         event: TONSignDataRequestEvent,
         response: TONSignDataApprovalResponse?,
-    ) {
+    ): TONSignDataApprovalResponse {
         ensureWalletKitInitialized()
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val params =
@@ -541,7 +550,8 @@ internal class QuickJsWalletKitEngine(
                 put("walletId", event.walletId)
                 response?.let { put("response", JSONObject(json.encodeToString(it))) }
             }
-        call("approveSignDataRequest", params)
+        val result = call("approveSignDataRequest", params)
+        return json.decodeFromString<TONSignDataApprovalResponse>(result.toString())
     }
 
     override suspend fun rejectSignData(
@@ -597,6 +607,63 @@ internal class QuickJsWalletKitEngine(
         val params = JSONObject()
         sessionId?.let { params.put("sessionId", it) }
         call("disconnectSession", if (params.length() == 0) null else params)
+    }
+
+    // ── Intents (not supported in QuickJs engine) ──
+
+    override suspend fun isIntentUrl(url: String): Boolean {
+        throw UnsupportedOperationException("Intent methods are not supported in QuickJs engine")
+    }
+
+    override suspend fun handleIntentUrl(url: String, walletId: String) {
+        throw UnsupportedOperationException("Intent methods are not supported in QuickJs engine")
+    }
+
+    override suspend fun approveTransactionIntent(
+        event: TONTransactionIntentRequestEvent,
+        walletId: String,
+        response: TONIntentTransactionResponse?,
+    ): TONIntentTransactionResponse {
+        throw UnsupportedOperationException("Intent methods are not supported in QuickJs engine")
+    }
+
+    override suspend fun approveSignDataIntent(
+        event: TONSignDataIntentRequestEvent,
+        walletId: String,
+        response: TONIntentSignDataResponse?,
+    ): TONIntentSignDataResponse {
+        throw UnsupportedOperationException("Intent methods are not supported in QuickJs engine")
+    }
+
+    override suspend fun approveActionIntent(
+        event: TONActionIntentRequestEvent,
+        walletId: String,
+    ) {
+        throw UnsupportedOperationException("Intent methods are not supported in QuickJs engine")
+    }
+
+    override suspend fun approveBatchedIntent(
+        event: TONBatchedIntentEvent,
+        walletId: String,
+        response: TONIntentResponseResult?,
+    ): TONIntentResponseResult {
+        throw UnsupportedOperationException("Intent methods are not supported in QuickJs engine")
+    }
+
+    override suspend fun rejectIntent(
+        event: TONIntentRequestEvent,
+        reason: String?,
+        errorCode: Int?,
+    ) {
+        throw UnsupportedOperationException("Intent methods are not supported in QuickJs engine")
+    }
+
+    override suspend fun rejectBatchedIntent(
+        event: TONBatchedIntentEvent,
+        reason: String?,
+        errorCode: Int?,
+    ) {
+        throw UnsupportedOperationException("Intent methods are not supported in QuickJs engine")
     }
 
     override suspend fun getNfts(walletAddress: String, limit: Int, offset: Int): io.ton.walletkit.api.generated.TONNFTsResponse {

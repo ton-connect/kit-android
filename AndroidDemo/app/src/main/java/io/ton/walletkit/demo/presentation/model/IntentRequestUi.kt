@@ -21,7 +21,8 @@
  */
 package io.ton.walletkit.demo.presentation.model
 
-import io.ton.walletkit.event.TONIntentEvent
+import io.ton.walletkit.api.generated.TONIntentRequestEvent
+import io.ton.walletkit.request.TONWalletIntentRequest
 
 /**
  * UI model for an intent request from a deep link.
@@ -32,5 +33,6 @@ data class IntentRequestUi(
     val origin: String,
     val walletId: String,
     val summary: String,
-    val event: TONIntentEvent,
+    val event: TONIntentRequestEvent,
+    val request: TONWalletIntentRequest,
 )

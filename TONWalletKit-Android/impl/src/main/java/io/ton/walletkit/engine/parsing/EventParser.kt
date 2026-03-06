@@ -21,17 +21,15 @@
  */
 package io.ton.walletkit.engine.parsing
 
+import io.ton.walletkit.api.generated.TONBatchedIntentEvent
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
+import io.ton.walletkit.api.generated.TONIntentRequestEvent
 import io.ton.walletkit.api.generated.TONRequestErrorEvent
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.engine.WalletKitEngine
-import io.ton.walletkit.event.TONBatchedIntentEvent
-import io.ton.walletkit.event.TONIntentEvent
-import io.ton.walletkit.event.TONIntentItem
-import io.ton.walletkit.event.TONSignDataPayload
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.exceptions.JSValueConversionException
 import io.ton.walletkit.internal.constants.EventTypeConstants
@@ -39,12 +37,13 @@ import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.request.TONWalletBatchedIntentRequest
 import io.ton.walletkit.request.TONWalletConnectionRequest
+import io.ton.walletkit.request.TONWalletIntentRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -170,12 +169,26 @@ internal class EventParser(
                     // Batched events have an "intents" array at the top level;
                     // single intent events have "type" + "value".
                     if (data.has("intents")) {
-                        val batchedEvent = parseBatchedIntentEvent(data)
-                        TONWalletKitEvent.BatchedIntentRequest(batchedEvent)
+                        val batchedEvent = json.decodeFromString<TONBatchedIntentEvent>(data.toString())
+                        val request = TONWalletBatchedIntentRequest(
+                            event = batchedEvent,
+                            handler = engine,
+                        )
+                        TONWalletKitEvent.BatchedIntentRequest(request)
                     } else {
-                        val intentEvent = parseIntentEvent(data)
-                        TONWalletKitEvent.IntentRequest(intentEvent)
+                        val intentEvent = json.decodeFromString<TONIntentRequestEvent>(data.toString())
+                        val request = TONWalletIntentRequest(
+                            event = intentEvent,
+                            handler = engine,
+                        )
+                        TONWalletKitEvent.IntentRequest(request)
                     }
+                } catch (e: SerializationException) {
+                    Logger.e(TAG, ERROR_FAILED_PARSE_INTENT_REQUEST, e)
+                    throw JSValueConversionException.DecodingError(
+                        message = "Failed to decode intent request: ${e.message}",
+                        cause = e,
+                    )
                 } catch (e: Exception) {
                     Logger.e(TAG, ERROR_FAILED_PARSE_INTENT_REQUEST, e)
                     throw JSValueConversionException.Unknown(
@@ -197,174 +210,6 @@ internal class EventParser(
 
             else -> null
         }
-
-    private fun parseBatchedIntentEvent(data: JSONObject): TONBatchedIntentEvent {
-        val id = data.optString("id", "")
-        val origin = data.optString("origin", "deepLink")
-        val clientId = data.optNullableString("clientId")
-
-        val intentsArray = data.optJSONArray("intents") ?: org.json.JSONArray()
-        val intents = buildList(intentsArray.length()) {
-            for (i in 0 until intentsArray.length()) {
-                val intentJson = intentsArray.optJSONObject(i) ?: continue
-                try {
-                    add(parseIntentEvent(intentJson))
-                } catch (e: Exception) {
-                    Logger.w(TAG, "Failed to parse batched intent item at index $i: ${e.message}")
-                }
-            }
-        }
-
-        return TONBatchedIntentEvent(
-            id = id,
-            origin = origin,
-            clientId = clientId,
-            intents = intents,
-            rawJson = data,
-        )
-    }
-
-    private fun parseIntentEvent(data: JSONObject): TONIntentEvent {
-        // New format: { type: 'transaction', value: { id, origin, ... } }
-        val intentType = data.optString("type", "")
-        val value = data.optJSONObject("value")
-            ?: throw IllegalArgumentException("Missing 'value' in intent event")
-
-        val id = value.optString("id", "")
-        val origin = value.optString("origin", "deepLink")
-        val clientId = value.optNullableString("clientId")
-
-        return when (intentType) {
-            "transaction" -> TONIntentEvent.TransactionIntent(
-                id = id,
-                origin = origin,
-                clientId = clientId,
-                deliveryMode = value.optString("deliveryMode", "send"),
-                network = parseNetworkChainId(value),
-                validUntil = if (value.has("validUntil")) value.optLong("validUntil") else null,
-                items = parseIntentItems(value.optJSONArray("items")),
-                rawJson = data,
-            )
-
-            "signData" -> TONIntentEvent.SignDataIntent(
-                id = id,
-                origin = origin,
-                clientId = clientId,
-                network = parseNetworkChainId(value),
-                manifestUrl = value.optString("manifestUrl", ""),
-                payload = parseSignDataPayload(value.optJSONObject("payload")),
-                rawJson = data,
-            )
-
-            "action" -> TONIntentEvent.ActionIntent(
-                id = id,
-                origin = origin,
-                clientId = clientId,
-                actionUrl = value.optString("actionUrl", ""),
-                rawJson = data,
-            )
-
-            "connect" -> {
-                val preview = value.optJSONObject("preview")
-                TONIntentEvent.ConnectIntent(
-                    id = id,
-                    origin = origin,
-                    clientId = clientId,
-                    manifestUrl = value.optNullableString("manifestUrl"),
-                    dAppName = preview?.optNullableString("name"),
-                    dAppUrl = preview?.optNullableString("url"),
-                    dAppIconUrl = preview?.optNullableString("iconUrl"),
-                    rawJson = data,
-                )
-            }
-
-            else -> throw IllegalArgumentException("Unknown intentType: $intentType")
-        }
-    }
-
-    /**
-     * Parse network field: now an object `{ chainId: string }` instead of a plain string.
-     */
-    private fun parseNetworkChainId(obj: JSONObject): String? {
-        val networkObj = obj.optJSONObject("network") ?: return null
-        val chainId = networkObj.optNullableString("chainId") ?: return null
-        return chainId
-    }
-
-    private fun parseIntentItems(items: JSONArray?): List<TONIntentItem> {
-        if (items == null) return emptyList()
-        return buildList(items.length()) {
-            for (i in 0 until items.length()) {
-                val wrapper = items.optJSONObject(i) ?: continue
-                // New format: { type: 'sendTon', value: { address, amount, ... } }
-                val type = wrapper.optString("type", "")
-                val item = wrapper.optJSONObject("value") ?: wrapper
-                when (type) {
-                    "sendTon" -> add(
-                        TONIntentItem.SendTon(
-                            address = item.optString("address", ""),
-                            amount = item.optString("amount", "0"),
-                            payload = item.optNullableString("payload"),
-                            stateInit = item.optNullableString("stateInit"),
-                            extraCurrency = parseExtraCurrency(item.optJSONObject("extraCurrency")),
-                        ),
-                    )
-
-                    "sendJetton" -> add(
-                        TONIntentItem.SendJetton(
-                            jettonMasterAddress = item.optString("jettonMasterAddress", ""),
-                            jettonAmount = item.optString("jettonAmount", "0"),
-                            destination = item.optString("destination", ""),
-                            responseDestination = item.optNullableString("responseDestination"),
-                            customPayload = item.optNullableString("customPayload"),
-                            forwardTonAmount = item.optNullableString("forwardTonAmount"),
-                            forwardPayload = item.optNullableString("forwardPayload"),
-                            queryId = if (item.has("queryId")) item.optLong("queryId") else null,
-                        ),
-                    )
-
-                    "sendNft" -> add(
-                        TONIntentItem.SendNft(
-                            nftAddress = item.optString("nftAddress", ""),
-                            newOwnerAddress = item.optString("newOwnerAddress", ""),
-                            responseDestination = item.optNullableString("responseDestination"),
-                            customPayload = item.optNullableString("customPayload"),
-                            forwardTonAmount = item.optNullableString("forwardTonAmount"),
-                            forwardPayload = item.optNullableString("forwardPayload"),
-                            queryId = if (item.has("queryId")) item.optLong("queryId") else null,
-                        ),
-                    )
-
-                    else -> Logger.w(TAG, "Unknown intent item type: $type")
-                }
-            }
-        }
-    }
-
-    private fun parseExtraCurrency(obj: JSONObject?): Map<String, String>? {
-        if (obj == null) return null
-        val map = mutableMapOf<String, String>()
-        for (key in obj.keys()) {
-            map[key] = obj.optString(key, "")
-        }
-        return map.ifEmpty { null }
-    }
-
-    private fun parseSignDataPayload(payloadObj: JSONObject?): TONSignDataPayload {
-        if (payloadObj == null) return TONSignDataPayload.Text("")
-        val dataObj = payloadObj.optJSONObject("data") ?: return TONSignDataPayload.Text("")
-        val type = dataObj.optString("type", "")
-        val value = dataObj.optJSONObject("value")
-        return when (type) {
-            "text" -> TONSignDataPayload.Text(value?.optString("content", "") ?: "")
-            "binary" -> TONSignDataPayload.Binary(value?.optString("content", "") ?: "")
-            "cell" -> TONSignDataPayload.Cell(
-                cell = value?.optString("content", "") ?: "",
-                schema = value?.optString("schema", "") ?: "",
-            )
-            else -> TONSignDataPayload.Text("")
-        }
-    }
 
     private fun JSONObject.optNullableString(key: String): String? {
         val value = opt(key)

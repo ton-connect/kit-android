@@ -21,7 +21,8 @@
  */
 package io.ton.walletkit.demo.presentation.model
 
-import io.ton.walletkit.event.TONBatchedIntentEvent
+import io.ton.walletkit.api.generated.TONBatchedIntentEvent
+import io.ton.walletkit.request.TONWalletBatchedIntentRequest
 
 /**
  * UI model for a batched intent request from a deep link.
@@ -32,4 +33,5 @@ data class BatchedIntentRequestUi(
     val walletId: String,
     val summary: String,
     val event: TONBatchedIntentEvent,
+    val request: TONWalletBatchedIntentRequest,
 )

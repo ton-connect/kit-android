@@ -39,9 +39,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.api.generated.TONIntentActionItem
+import io.ton.walletkit.api.generated.TONIntentRequestEvent
 import io.ton.walletkit.demo.presentation.model.IntentRequestUi
-import io.ton.walletkit.event.TONIntentEvent
-import io.ton.walletkit.event.TONIntentItem
 
 @Composable
 fun IntentRequestSheet(
@@ -77,10 +77,10 @@ fun IntentRequestSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             when (val event = request.event) {
-                is TONIntentEvent.TransactionIntent -> TransactionIntentDetails(event)
-                is TONIntentEvent.SignDataIntent -> SignDataIntentDetails(event)
-                is TONIntentEvent.ActionIntent -> ActionIntentDetails(event)
-                is TONIntentEvent.ConnectIntent -> ConnectIntentDetails(event)
+                is TONIntentRequestEvent.Transaction -> TransactionIntentDetails(event)
+                is TONIntentRequestEvent.SignData -> SignDataIntentDetails(event)
+                is TONIntentRequestEvent.Action -> ActionIntentDetails(event)
+                is TONIntentRequestEvent.Connect -> ConnectIntentDetails(event)
             }
         }
 
@@ -106,39 +106,40 @@ fun IntentRequestSheet(
 }
 
 @Composable
-private fun TransactionIntentDetails(event: TONIntentEvent.TransactionIntent) {
-    event.network?.let { LabelValue("Network", it) }
-    event.validUntil?.let { LabelValue("Valid Until", it.toString()) }
-    LabelValue("Delivery Mode", event.deliveryMode)
+private fun TransactionIntentDetails(event: TONIntentRequestEvent.Transaction) {
+    val tx = event.value
+    tx.network?.let { LabelValue("Network", it.chainId) }
+    tx.validUntil?.let { LabelValue("Valid Until", it.toString()) }
+    LabelValue("Delivery Mode", tx.deliveryMode.value)
 
-    if (event.items.isNotEmpty()) {
+    if (tx.items.isNotEmpty()) {
         Text(
-            "Items (${event.items.size})",
+            "Items (${tx.items.size})",
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(top = 4.dp),
         )
-        event.items.forEach { item ->
+        tx.items.forEach { item ->
             Surface(shape = RoundedCornerShape(8.dp), tonalElevation = 1.dp) {
                 Column(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     when (item) {
-                        is TONIntentItem.SendTon -> {
+                        is TONIntentActionItem.SendTon -> {
                             LabelValue("Type", "Send TON")
-                            LabelValue("To", item.address)
-                            LabelValue("Amount", "${item.amount} nanoTON")
+                            LabelValue("To", item.value.address.value)
+                            LabelValue("Amount", "${item.value.amount} nanoTON")
                         }
-                        is TONIntentItem.SendJetton -> {
+                        is TONIntentActionItem.SendJetton -> {
                             LabelValue("Type", "Send Jetton")
-                            LabelValue("Jetton", item.jettonMasterAddress)
-                            LabelValue("Amount", item.jettonAmount)
-                            LabelValue("To", item.destination)
+                            LabelValue("Jetton", item.value.jettonMasterAddress.value)
+                            LabelValue("Amount", item.value.jettonAmount)
+                            LabelValue("To", item.value.destination.value)
                         }
-                        is TONIntentItem.SendNft -> {
+                        is TONIntentActionItem.SendNft -> {
                             LabelValue("Type", "Send NFT")
-                            LabelValue("NFT", item.nftAddress)
-                            LabelValue("New Owner", item.newOwnerAddress)
+                            LabelValue("NFT", item.value.nftAddress.value)
+                            LabelValue("New Owner", item.value.newOwnerAddress.value)
                         }
                     }
                 }
@@ -148,22 +149,23 @@ private fun TransactionIntentDetails(event: TONIntentEvent.TransactionIntent) {
 }
 
 @Composable
-private fun SignDataIntentDetails(event: TONIntentEvent.SignDataIntent) {
-    event.network?.let { LabelValue("Network", it) }
-    LabelValue("Manifest URL", event.manifestUrl)
-    LabelValue("Payload Type", event.payload.type)
+private fun SignDataIntentDetails(event: TONIntentRequestEvent.SignData) {
+    val sd = event.value
+    sd.network?.let { LabelValue("Network", it.chainId) }
+    LabelValue("Manifest URL", sd.manifestUrl)
 }
 
 @Composable
-private fun ActionIntentDetails(event: TONIntentEvent.ActionIntent) {
-    LabelValue("Action URL", event.actionUrl)
+private fun ActionIntentDetails(event: TONIntentRequestEvent.Action) {
+    LabelValue("Action URL", event.value.actionUrl)
 }
 
 @Composable
-private fun ConnectIntentDetails(event: TONIntentEvent.ConnectIntent) {
-    event.dAppName?.let { LabelValue("dApp", it) }
-    event.dAppUrl?.let { LabelValue("URL", it) }
-    event.manifestUrl?.let { LabelValue("Manifest", it) }
+private fun ConnectIntentDetails(event: TONIntentRequestEvent.Connect) {
+    val conn = event.value
+    conn.dAppInfo?.name?.let { LabelValue("dApp", it) }
+    conn.dAppInfo?.url?.let { LabelValue("URL", it) }
+    conn.dAppInfo?.manifestUrl?.let { LabelValue("Manifest", it) }
 }
 
 @Composable

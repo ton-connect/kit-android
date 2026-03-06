@@ -39,9 +39,6 @@ import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.model.WalletAccount
-import io.ton.walletkit.event.TONBatchedIntentEvent
-import io.ton.walletkit.event.TONIntentEvent
-import io.ton.walletkit.model.IntentSignDataResult
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONWalletAdapter
@@ -275,12 +272,13 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @param event Typed event from the transaction request
      * @param response Optional pre-computed approval response
+     * @return The approval response (either the provided one or computed by the SDK)
      * @throws WalletKitBridgeException if approval or signing fails
      */
     override suspend fun approveTransaction(
         event: TONSendTransactionRequestEvent,
         response: TONSendTransactionApprovalResponse?,
-    )
+    ): TONSendTransactionApprovalResponse
 
     /**
      * Reject a transaction request.
@@ -301,12 +299,13 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @param event Typed event from the sign data request
      * @param response Optional pre-computed approval response
+     * @return The approval response (either the provided one or computed by the SDK)
      * @throws WalletKitBridgeException if approval or signing fails
      */
     override suspend fun approveSignData(
         event: TONSignDataRequestEvent,
         response: TONSignDataApprovalResponse?,
-    )
+    ): TONSignDataApprovalResponse
 
     /**
      * Reject a data signing request.
@@ -343,17 +342,7 @@ internal interface WalletKitEngine : RequestHandler {
 
     suspend fun handleIntentUrl(url: String, walletId: String)
 
-    suspend fun approveTransactionIntent(event: TONIntentEvent.TransactionIntent, walletId: String): String
-
-    suspend fun approveSignDataIntent(event: TONIntentEvent.SignDataIntent, walletId: String): IntentSignDataResult
-
-    suspend fun approveActionIntent(event: TONIntentEvent.ActionIntent, walletId: String)
-
-    suspend fun approveBatchedIntent(event: TONBatchedIntentEvent, walletId: String): String
-
-    suspend fun rejectIntent(event: TONIntentEvent, reason: String? = null, errorCode: Int? = null)
-
-    suspend fun rejectBatchedIntent(event: TONBatchedIntentEvent, reason: String? = null, errorCode: Int? = null)
+    // approve/reject intent methods are inherited from RequestHandler
 
     /**
      * Get NFTs owned by a wallet with pagination.

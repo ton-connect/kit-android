@@ -332,7 +332,11 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
     @Test
     fun approveTransaction_completesSuccessfully() = runBlocking {
-        givenBridgeReturns(JSONObject())
+        givenBridgeReturns(
+            JSONObject().apply {
+                put("signedBoc", "te6cckEBAQEAAgAAAEysuc0=")
+            },
+        )
 
         val event = createTransactionRequestEvent(
             id = "tx-req-123",
@@ -340,8 +344,8 @@ class TonConnectOperationsTest : OperationsTestBase() {
             walletId = TEST_WALLET_ID,
         )
 
-        // Should not throw
-        tonConnectOperations.approveTransaction(event)
+        val result = tonConnectOperations.approveTransaction(event)
+        assertEquals("te6cckEBAQEAAgAAAEysuc0=", result.signedBoc.value)
     }
 
     // --- rejectTransaction tests ---

@@ -24,8 +24,14 @@ package io.ton.walletkit.engine
 import android.content.Context
 import android.view.ViewGroup
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.generated.TONActionIntentRequestEvent
+import io.ton.walletkit.api.generated.TONBatchedIntentEvent
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONIntentRequestEvent
+import io.ton.walletkit.api.generated.TONIntentResponseResult
+import io.ton.walletkit.api.generated.TONIntentSignDataResponse
+import io.ton.walletkit.api.generated.TONIntentTransactionResponse
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFT
@@ -36,8 +42,10 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
+import io.ton.walletkit.api.generated.TONSignDataIntentRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
+import io.ton.walletkit.api.generated.TONTransactionIntentRequestEvent
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -56,14 +64,11 @@ import io.ton.walletkit.engine.operations.WalletOperations
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.EventRouter
-import io.ton.walletkit.event.TONBatchedIntentEvent
-import io.ton.walletkit.event.TONIntentEvent
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.listener.TONBridgeEventsHandler
-import io.ton.walletkit.model.IntentSignDataResult
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.session.TONConnectSession
 import io.ton.walletkit.session.TONConnectSessionManager
@@ -353,7 +358,7 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun approveTransaction(
         event: TONSendTransactionRequestEvent,
         response: TONSendTransactionApprovalResponse?,
-    ) = tonConnectOperations.approveTransaction(event, response)
+    ): TONSendTransactionApprovalResponse = tonConnectOperations.approveTransaction(event, response)
 
     override suspend fun rejectTransaction(
         event: TONSendTransactionRequestEvent,
@@ -364,7 +369,7 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun approveSignData(
         event: TONSignDataRequestEvent,
         response: TONSignDataApprovalResponse?,
-    ) = tonConnectOperations.approveSignData(event, response)
+    ): TONSignDataApprovalResponse = tonConnectOperations.approveSignData(event, response)
 
     override suspend fun rejectSignData(
         event: TONSignDataRequestEvent,
@@ -384,27 +389,30 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun handleIntentUrl(url: String, walletId: String) = tonConnectOperations.handleIntentUrl(url, walletId)
 
     override suspend fun approveTransactionIntent(
-        event: TONIntentEvent.TransactionIntent,
+        event: TONTransactionIntentRequestEvent,
         walletId: String,
-    ): String = tonConnectOperations.approveTransactionIntent(event, walletId)
+        response: TONIntentTransactionResponse?,
+    ): TONIntentTransactionResponse = tonConnectOperations.approveTransactionIntent(event, walletId, response)
 
     override suspend fun approveSignDataIntent(
-        event: TONIntentEvent.SignDataIntent,
+        event: TONSignDataIntentRequestEvent,
         walletId: String,
-    ): IntentSignDataResult = tonConnectOperations.approveSignDataIntent(event, walletId)
+        response: TONIntentSignDataResponse?,
+    ): TONIntentSignDataResponse = tonConnectOperations.approveSignDataIntent(event, walletId, response)
 
     override suspend fun approveActionIntent(
-        event: TONIntentEvent.ActionIntent,
+        event: TONActionIntentRequestEvent,
         walletId: String,
     ) = tonConnectOperations.approveActionIntent(event, walletId)
 
     override suspend fun approveBatchedIntent(
         event: TONBatchedIntentEvent,
         walletId: String,
-    ): String = tonConnectOperations.approveBatchedIntent(event, walletId)
+        response: TONIntentResponseResult?,
+    ): TONIntentResponseResult = tonConnectOperations.approveBatchedIntent(event, walletId, response)
 
     override suspend fun rejectIntent(
-        event: TONIntentEvent,
+        event: TONIntentRequestEvent,
         reason: String?,
         errorCode: Int?,
     ) = tonConnectOperations.rejectIntent(event, reason, errorCode)

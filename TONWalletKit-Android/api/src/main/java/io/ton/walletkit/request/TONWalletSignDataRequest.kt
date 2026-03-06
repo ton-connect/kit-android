@@ -43,12 +43,13 @@ class TONWalletSignDataRequest(
      *
      * @param response Optional pre-computed approval response. If provided, the SDK will use
      *                 this response directly instead of signing the data internally.
+     * @return The approval response (either the provided one or computed by the SDK)
      * @throws io.ton.walletkit.WalletKitBridgeException if approval fails
      */
     suspend fun approve(
         response: TONSignDataApprovalResponse? = null,
-    ) {
-        handler.approveSignData(event, response)
+    ): TONSignDataApprovalResponse {
+        return handler.approveSignData(event, response)
     }
 
     /**
