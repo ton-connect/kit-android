@@ -35233,7 +35233,7 @@ class ApiClientTonApi extends BaseApiClient {
     return mapJettonMasters(raw);
   }
   async jettonsByOwnerAddress(request) {
-    const raw = await this.getJson(`/v2/accounts/${request.ownerAddress}/jettons`);
+    const raw = await this.getJson(`/v2/accounts/${request.ownerAddress}/jettons?currencies=usd`);
     return mapUserJettons(raw);
   }
   async nftItemsByAddress(request) {
