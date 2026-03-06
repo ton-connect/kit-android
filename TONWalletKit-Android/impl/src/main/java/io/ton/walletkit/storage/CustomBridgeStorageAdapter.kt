@@ -34,7 +34,6 @@ internal class CustomBridgeStorageAdapter(
 
     override suspend fun get(key: String): String? {
         return try {
-            Logger.d(TAG, "Custom storage get: key=$key")
             customStorage.get(key)
         } catch (e: WalletKitStorageException) {
             Logger.e(TAG, "Custom storage get failed for key=$key", e)
@@ -47,20 +46,18 @@ internal class CustomBridgeStorageAdapter(
 
     override suspend fun set(key: String, value: String) {
         try {
-            Logger.d(TAG, "Custom storage save: key=$key, valueLength=${value.length}")
-            customStorage.save(key, value)
+            customStorage.set(key, value)
         } catch (e: WalletKitStorageException) {
-            Logger.e(TAG, "Custom storage save failed for key=$key", e)
+            Logger.e(TAG, "Custom storage set failed for key=$key", e)
             throw e
         } catch (e: Exception) {
-            Logger.e(TAG, "Custom storage save failed for key=$key", e)
-            throw WalletKitStorageException(StorageOperation.SAVE, key, e)
+            Logger.e(TAG, "Custom storage set failed for key=$key", e)
+            throw WalletKitStorageException(StorageOperation.SET, key, e)
         }
     }
 
     override suspend fun remove(key: String) {
         try {
-            Logger.d(TAG, "Custom storage remove: key=$key")
             customStorage.remove(key)
         } catch (e: WalletKitStorageException) {
             Logger.e(TAG, "Custom storage remove failed for key=$key", e)
@@ -73,7 +70,6 @@ internal class CustomBridgeStorageAdapter(
 
     override suspend fun clear() {
         try {
-            Logger.d(TAG, "Custom storage clear")
             customStorage.clear()
         } catch (e: WalletKitStorageException) {
             Logger.e(TAG, "Custom storage clear failed", e)

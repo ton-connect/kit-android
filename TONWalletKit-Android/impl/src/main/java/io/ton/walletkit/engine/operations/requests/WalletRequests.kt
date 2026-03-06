@@ -21,7 +21,6 @@
  */
 package io.ton.walletkit.engine.operations.requests
 
-import io.ton.walletkit.api.generated.TONNetwork
 import kotlinx.serialization.Serializable
 
 /**
@@ -30,30 +29,6 @@ import kotlinx.serialization.Serializable
  *
  * @suppress Internal bridge communication only.
  */
-
-@Serializable
-internal data class CreateSignerRequest(
-    val mnemonic: List<String>? = null,
-    val secretKey: String? = null,
-    val mnemonicType: String = "ton",
-)
-
-@Serializable
-internal data class CreateAdapterRequest(
-    val signerId: String,
-    val walletVersion: String,
-    val network: TONNetwork? = null,
-    val workchain: Int = 0,
-    val walletId: Long,
-    // Public key as hex string (for custom signers)
-    val publicKey: String? = null,
-    val isCustom: Boolean = false,
-)
-
-@Serializable
-internal data class AddWalletRequest(
-    val adapterId: String,
-)
 
 @Serializable
 internal data class AddressRequest(

@@ -1,0 +1,74 @@
+/*
+ * Copyright (c) 2025 TonTech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package io.ton.walletkit.model
+
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONPreparedSignData
+import io.ton.walletkit.api.generated.TONProofMessage
+import io.ton.walletkit.api.generated.TONTransactionRequest
+import io.ton.walletkit.config.TONWalletKitConfiguration
+
+/**
+ * Wallet adapter interface for wrapping existing wallet implementations.
+ *
+ * Implement this to integrate existing wallet entities with WalletKit
+ * without going through the signer/adapter factory pattern.
+ * Mirrors iOS `TONWalletAdapterProtocol`.
+ */
+interface TONWalletAdapter {
+    /** Stable unique wallet identifier. */
+    fun identifier(): String
+
+    fun publicKey(): TONHex
+
+    fun network(): TONNetwork
+
+    fun address(testnet: Boolean): TONUserFriendlyAddress
+
+    /** State init (base64 BOC) for contract deployment. */
+    suspend fun stateInit(): TONBase64
+
+    suspend fun signedSendTransaction(
+        input: TONTransactionRequest,
+        fakeSignature: Boolean? = null,
+    ): TONBase64
+
+    suspend fun signedSignData(
+        input: TONPreparedSignData,
+        fakeSignature: Boolean? = null,
+    ): TONHex
+
+    suspend fun signedTonProof(
+        input: TONProofMessage,
+        fakeSignature: Boolean? = null,
+    ): TONHex
+
+    /** Wallet contract version ("v4r2", "v5r1"), or null for default (V5R1). */
+    fun walletVersion(): String? = null
+
+    /**
+     * Get supported TON Connect features for this wallet adapter.
+     * If not implemented (returns null), features from deviceInfo configuration will be used.
+     * Mirrors iOS `TONWalletAdapterProtocol.supportedFeatures()`.
+     */
+    fun supportedFeatures(): List<TONWalletKitConfiguration.Feature>? = null
+}

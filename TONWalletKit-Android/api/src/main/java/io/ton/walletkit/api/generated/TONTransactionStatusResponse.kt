@@ -19,49 +19,46 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.engine.operations.requests
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
 
-import io.ton.walletkit.api.generated.TONTransferRequest
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Internal bridge request models for transaction operations.
- * These DTOs represent the exact JSON structure sent to the JavaScript bridge.
  *
- * @suppress Internal bridge communication only.
+ *
+ * @param status
+ * @param totalMessages Total messages in the trace
+ * @param pendingMessages Messages still pending
+ * @param onchainMessages Number of onchain messages (totalMessages - pendingMessages)
  */
-
 @Serializable
-internal data class CreateTransferTonRequest(
-    val walletId: String,
-    val recipientAddress: String,
-    val transferAmount: String,
-    val comment: String? = null,
-    val body: String? = null,
-    val stateInit: String? = null,
-)
+data class TONTransactionStatusResponse(
 
-@Serializable
-internal data class CreateTransferMultiTonRequest(
-    val walletId: String,
-    val messages: List<TONTransferRequest>,
-)
+    @Contextual @SerialName(value = "status")
+    val status: TONTransactionStatus,
 
-@Serializable
-internal data class HandleNewTransactionRequest(
-    val walletId: String,
-    val transactionContent: String,
-)
+    /* Total messages in the trace */
+    @SerialName(value = "totalMessages")
+    val totalMessages: kotlin.Int,
 
-@Serializable
-internal data class SendTransactionRequest(
-    val walletId: String,
-    val transactionContent: String,
-)
+    /* Messages still pending */
+    @SerialName(value = "pendingMessages")
+    val pendingMessages: kotlin.Int,
 
-@Serializable
-internal data class GetTransactionPreviewRequest(
-    val walletId: String,
-    // JSON string
-    val transactionContent: String,
-)
+    /* Number of onchain messages (totalMessages - pendingMessages) */
+    @SerialName(value = "onchainMessages")
+    val onchainMessages: kotlin.Int,
+
+) {
+
+    companion object
+}

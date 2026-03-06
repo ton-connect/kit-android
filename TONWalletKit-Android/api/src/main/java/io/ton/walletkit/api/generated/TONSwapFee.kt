@@ -19,49 +19,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.engine.operations.requests
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
 
-import io.ton.walletkit.api.generated.TONTransferRequest
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Internal bridge request models for transaction operations.
- * These DTOs represent the exact JSON structure sent to the JavaScript bridge.
+ * Fee information for swap
  *
- * @suppress Internal bridge communication only.
+ * @param amount
+ * @param token
  */
-
 @Serializable
-internal data class CreateTransferTonRequest(
-    val walletId: String,
-    val recipientAddress: String,
-    val transferAmount: String,
-    val comment: String? = null,
-    val body: String? = null,
-    val stateInit: String? = null,
-)
+data class TONSwapFee(
 
-@Serializable
-internal data class CreateTransferMultiTonRequest(
-    val walletId: String,
-    val messages: List<TONTransferRequest>,
-)
+    @SerialName(value = "amount")
+    val amount: kotlin.String,
 
-@Serializable
-internal data class HandleNewTransactionRequest(
-    val walletId: String,
-    val transactionContent: String,
-)
+    @SerialName(value = "token")
+    val token: TONSwapToken,
 
-@Serializable
-internal data class SendTransactionRequest(
-    val walletId: String,
-    val transactionContent: String,
-)
+) {
 
-@Serializable
-internal data class GetTransactionPreviewRequest(
-    val walletId: String,
-    // JSON string
-    val transactionContent: String,
-)
+    companion object
+}

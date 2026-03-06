@@ -117,7 +117,7 @@ class CustomStorageIntegrationTest {
                 val mnemonic = testMnemonic()
                 val signer = sdk!!.createSignerFromMnemonic(mnemonic)
                 val adapter = sdk!!.createV4R2Adapter(signer, TONNetwork.MAINNET)
-                val wallet = sdk!!.addWallet(adapter.adapterId)
+                val wallet = sdk!!.addWallet(adapter)
 
                 assertNotNull("Wallet creation should work with bridge storage", wallet)
             }
@@ -139,7 +139,7 @@ class CustomStorageIntegrationTest {
                 val mnemonic = testMnemonic()
                 val signer = sdk!!.createSignerFromMnemonic(mnemonic)
                 val adapter = sdk!!.createV4R2Adapter(signer, TONNetwork.MAINNET)
-                sdk!!.addWallet(adapter.adapterId)
+                sdk!!.addWallet(adapter)
 
                 // If we get here without crashes, thread safety is working
                 assertTrue("Thread-safe storage should work correctly", true)
@@ -154,7 +154,7 @@ class CustomStorageIntegrationTest {
      */
     private class TrackingCustomStorage : TONWalletKitStorage {
         private val storage = ConcurrentHashMap<String, String>()
-        val saveOperations = CopyOnWriteArrayList<Pair<String, String>>()
+        val setOperations = CopyOnWriteArrayList<Pair<String, String>>()
         val getOperations = CopyOnWriteArrayList<String>()
         val removeOperations = CopyOnWriteArrayList<String>()
         var clearCalled = false
@@ -164,8 +164,8 @@ class CustomStorageIntegrationTest {
             return storage[key]
         }
 
-        override suspend fun save(key: String, value: String) {
-            saveOperations.add(key to value)
+        override suspend fun set(key: String, value: String) {
+            setOperations.add(key to value)
             storage[key] = value
         }
 
@@ -196,7 +196,7 @@ class CustomStorageIntegrationTest {
             }
         }
 
-        override suspend fun save(key: String, value: String) {
+        override suspend fun set(key: String, value: String) {
             sdkStorage[key] = value
 
             if (key.contains("sessions")) {
@@ -224,7 +224,7 @@ class CustomStorageIntegrationTest {
             return storage[key]
         }
 
-        override suspend fun save(key: String, value: String) {
+        override suspend fun set(key: String, value: String) {
             storage[key] = value
         }
 

@@ -38,10 +38,10 @@ import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
-import io.ton.walletkit.engine.model.TONTransactionWithPreview
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.WalletAdapterInfo
+import io.ton.walletkit.model.TONHex
+import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.RequestHandler
@@ -49,8 +49,7 @@ import io.ton.walletkit.request.RequestHandler
 /**
  * Abstraction over a runtime that can execute the WalletKit JavaScript bundle and expose
  * the wallet APIs to Android callers. Implementations may back the runtime with a WebView or
- * an embedded JavaScript engine such as QuickJS. Every implementation must provide the same
- * JSON-RPC surface as the historical [WalletKitBridge] class.
+ * an embedded JavaScript engine such as QuickJS.
  *
  * **Auto-Initialization:**
  * All methods that require WalletKit initialization will automatically initialize the SDK
@@ -119,12 +118,10 @@ internal interface WalletKitEngine : RequestHandler {
 
     /**
      * Create a signer from mnemonic phrase.
-     * Step 1 of the wallet creation pattern matching JS WalletKit.
      *
      * @param mnemonic Mnemonic phrase as a list of words
      * @param mnemonicType Mnemonic type ("ton" or "bip39"), defaults to "ton"
      * @return Signer info with ID and public key
-     * @throws WalletKitBridgeException if signer creation fails
      */
     suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
@@ -132,105 +129,30 @@ internal interface WalletKitEngine : RequestHandler {
     ): WalletSignerInfo
 
     /**
-     * Create a signer from secret key (private key).
-     * Step 1 of the wallet creation pattern matching JS WalletKit.
+     * Create a signer from a secret key hex string.
      *
-     * @param secretKey Private key as byte array (32 bytes for Ed25519)
+     * @param secretKeyHex Private key as hex string
      * @return Signer info with ID and public key
-     * @throws WalletKitBridgeException if signer creation fails
      */
-    suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo
+    suspend fun createSignerFromSecretKey(secretKeyHex: String): WalletSignerInfo
 
-    /**
-     * Create a signer from a custom WalletSigner implementation.
-     * Step 1 of the wallet creation pattern, enabling hardware wallet integration.
-     *
-     * @param signer Custom wallet signer (e.g., hardware wallet)
-     * @return Signer info with ID and public key
-     * @throws WalletKitBridgeException if signer creation fails
-     */
     suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo
 
-    /**
-     * Check if a signer is a custom signer (registered in SignerManager).
-     */
-    fun isCustomSigner(signerId: String): Boolean
-
-    /**
-     * Create a V5R1 wallet adapter from a signer.
-     * Step 2 of the wallet creation pattern matching JS WalletKit.
-     *
-     * @param signerId Signer ID from createSignerFromMnemonic or createSignerFromSecretKey
-     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
-     * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
-     * @param walletId Wallet ID
-     * @param publicKey Public key hex string (required for custom signers)
-     * @param isCustom Whether this is a custom signer (hardware wallet)
-     * @return Adapter info with ID and wallet address
-     * @throws WalletKitBridgeException if adapter creation fails
-     */
-    suspend fun createV5R1Adapter(
+    suspend fun createAdapter(
         signerId: String,
+        publicKey: TONHex,
+        version: String,
         network: TONNetwork? = null,
         workchain: Int = 0,
         walletId: Long = 2147483409L,
-        publicKey: String? = null,
-        isCustom: Boolean = false,
-    ): WalletAdapterInfo
+    ): TONWalletAdapter
 
-    /**
-     * Create a V4R2 wallet adapter from a signer.
-     * Step 2 of the wallet creation pattern matching JS WalletKit.
-     *
-     * @param signerId Signer ID from createSignerFromMnemonic or createSignerFromSecretKey
-     * @param network Network to use (e.g., "mainnet", "testnet"), defaults to current network
-     * @param workchain Workchain ID: 0 for basechain (default), -1 for masterchain
-     * @param walletId Wallet ID
-     * @param publicKey Public key hex string (required for custom signers)
-     * @param isCustom Whether this is a custom signer (hardware wallet)
-     * @return Adapter info with ID and wallet address
-     * @throws WalletKitBridgeException if adapter creation fails
-     */
-    suspend fun createV4R2Adapter(
-        signerId: String,
-        network: TONNetwork? = null,
-        workchain: Int = 0,
-        walletId: Long = 698983191L,
-        publicKey: String? = null,
-        isCustom: Boolean = false,
-    ): WalletAdapterInfo
+    suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount
 
-    /**
-     * Add a wallet to the kit using an adapter.
-     * Step 3 of the wallet creation pattern matching JS WalletKit.
-     *
-     * @param adapterId Adapter ID from createV5R1Adapter or createV4R2Adapter
-     * @return The newly added wallet account
-     * @throws WalletKitBridgeException if wallet addition fails
-     */
-    suspend fun addWallet(adapterId: String): WalletAccount
-
-    /**
-     * Get all wallets managed by this engine.
-     *
-     * @return List of wallet accounts
-     */
     suspend fun getWallets(): List<WalletAccount>
 
-    /**
-     * Get a single wallet by walletId using RPC call.
-     *
-     * @param walletId Wallet ID
-     * @return Wallet account or null if not found
-     */
     suspend fun getWallet(walletId: String): WalletAccount?
 
-    /**
-     * Remove a wallet by walletId.
-     *
-     * @param walletId Wallet ID
-     * @throws WalletKitBridgeException if removal fails
-     */
     suspend fun removeWallet(walletId: String)
 
     /**
@@ -267,6 +189,7 @@ internal interface WalletKitEngine : RequestHandler {
         paramsJson: String?,
         url: String? = null,
         responseCallback: (org.json.JSONObject) -> Unit,
+        walletId: String? = null,
     )
 
     /**
@@ -274,16 +197,17 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * This method creates transaction content matching the JS WalletKit API wallet.createTransferTonTransaction().
      * The returned transaction content can be passed to handleNewTransaction() to trigger the approval flow.
+     * Use getTransactionPreview() to get fee estimation.
      *
      * @param walletId Wallet ID
      * @param params Transfer parameters (recipient, amount, optional comment/body/stateInit)
-     * @return Transaction with optional preview
+     * @return Transaction content as JSON string
      * @throws WalletKitBridgeException if transaction creation fails
      */
     suspend fun createTransferTonTransaction(
         walletId: String,
         params: TONTransferRequest,
-    ): TONTransactionWithPreview
+    ): String
 
     /**
      * Handle a new transaction initiated from the wallet app.
@@ -347,13 +271,11 @@ internal interface WalletKitEngine : RequestHandler {
      * Approve and sign a transaction request.
      *
      * @param event Typed event from the transaction request
-     * @param network Network to execute transaction on
      * @param response Optional pre-computed approval response
      * @throws WalletKitBridgeException if approval or signing fails
      */
     override suspend fun approveTransaction(
         event: TONSendTransactionRequestEvent,
-        network: TONNetwork,
         response: TONSendTransactionApprovalResponse?,
     )
 
@@ -375,13 +297,11 @@ internal interface WalletKitEngine : RequestHandler {
      * Approve and sign a data signing request.
      *
      * @param event Typed event from the sign data request
-     * @param network Network to sign on
      * @param response Optional pre-computed approval response
      * @throws WalletKitBridgeException if approval or signing fails
      */
     override suspend fun approveSignData(
         event: TONSignDataRequestEvent,
-        network: TONNetwork,
         response: TONSignDataApprovalResponse?,
     )
 
@@ -489,13 +409,13 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @param walletId Wallet ID
      * @param messages List of transfer parameters for each recipient
-     * @return Transaction with optional preview
+     * @return Transaction content as JSON string
      * @throws WalletKitBridgeException if transaction creation fails
      */
     suspend fun createTransferMultiTonTransaction(
         walletId: String,
         messages: List<TONTransferRequest>,
-    ): TONTransactionWithPreview
+    ): String
 
     /**
      * Get a preview of a transaction including estimated fees.

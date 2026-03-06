@@ -25,12 +25,15 @@ import android.os.Handler
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.engine.parsing.EventParser
+import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.EventRouter
+import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.EventTypeConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
+import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +41,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.Json
 import org.json.JSONObject
 
 /**
@@ -57,6 +61,9 @@ internal class MessageDispatcher(
     private val eventRouter: EventRouter,
     private val initManager: InitializationManager,
     private val webViewManager: WebViewManager,
+    private val adapterManager: AdapterManager,
+    private val signerManager: SignerManager,
+    private val json: Json,
     private val onInitialized: () -> Unit,
     private val onNetworkChanged: (String?) -> Unit,
     private val onApiBaseUrlChanged: (String?) -> Unit,
@@ -68,7 +75,6 @@ internal class MessageDispatcher(
 
     fun dispatchMessage(payload: JSONObject) {
         val kind = payload.optString(ResponseConstants.KEY_KIND)
-        Logger.d(TAG, "📨 Message kind: $kind")
 
         when (kind) {
             ResponseConstants.VALUE_KIND_READY -> handleReady(payload)
@@ -77,50 +83,40 @@ internal class MessageDispatcher(
                 if (event != null) {
                     handleEvent(event)
                 } else {
-                    Logger.w(TAG, "⚠️ EVENT kind but no event object in payload")
+                    Logger.w(TAG, "EVENT kind but no event object in payload")
                 }
             }
             ResponseConstants.VALUE_KIND_RESPONSE -> {
                 val id = payload.optString(ResponseConstants.KEY_ID)
                 rpcClient.handleResponse(id, payload)
             }
+            ResponseConstants.VALUE_KIND_REQUEST -> handleRequest(payload)
             ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT -> handleJsBridgeEvent(payload)
-            else -> Logger.w(TAG, "⚠️ Unknown message kind: $kind")
+            else -> Logger.w(TAG, "Unknown message kind: $kind")
         }
     }
 
     suspend fun ensureEventListenersSetUp() {
-        Logger.d(TAG, "🔵 ensureEventListenersSetUp() called, areEventListenersSetUp=$areEventListenersSetUp")
         if (areEventListenersSetUp) {
-            Logger.d(TAG, "⚡ Event listeners already set up, skipping")
             return
         }
 
-        Logger.d(TAG, "🔵 Acquiring eventListenersSetupMutex...")
         eventListenersSetupMutex.withLock {
-            Logger.d(TAG, "🔵 eventListenersSetupMutex acquired")
-
             if (areEventListenersSetUp) {
-                Logger.d(TAG, "⚡ Event listeners already set up (double-check), skipping")
                 return@withLock
             }
 
             try {
-                Logger.d(TAG, "🔵 Waiting for WalletKit initialization...")
                 initManager.ensureInitialized()
                 onInitialized()
-                Logger.d(TAG, "✅ WalletKit initialization complete")
 
-                Logger.d(TAG, "🔵 Calling JS setEventsListeners()...")
                 rpcClient.call(BridgeMethodConstants.METHOD_SET_EVENTS_LISTENERS, JSONObject())
                 areEventListenersSetUp = true
-                Logger.d(TAG, "✅✅✅ Event listeners set up successfully! areEventListenersSetUp=true")
             } catch (err: Throwable) {
-                Logger.e(TAG, "❌ Failed to set up event listeners", err)
+                Logger.e(TAG, "Failed to set up event listeners", err)
                 throw WalletKitBridgeException(ERROR_FAILED_SET_UP_EVENT_LISTENERS + err.message)
             }
         }
-        Logger.d(TAG, "🔵 eventListenersSetupMutex released")
     }
 
     suspend fun removeEventListenersIfNeeded() {
@@ -138,9 +134,108 @@ internal class MessageDispatcher(
 
     fun areEventListenersSetUp(): Boolean = areEventListenersSetUp
 
-    private fun handleReady(payload: JSONObject) {
-        Logger.d(TAG, "🚀 handleReady() called")
+    // ──────────────────────────────────────────────────────────────────────────
+    // Reverse-RPC: JS sends {kind:"request", id, method, params} to invoke
+    // adapter/signer operations on the Kotlin side.  The result (or error) is
+    // delivered back via  window.__walletkitResponse(id, resultJson, errorJson).
+    // ──────────────────────────────────────────────────────────────────────────
 
+    private fun handleRequest(payload: JSONObject) {
+        val id = payload.optString(ResponseConstants.KEY_ID)
+        val method = payload.optString(ResponseConstants.KEY_METHOD)
+        val params = payload.optJSONObject(ResponseConstants.KEY_PARAMS) ?: JSONObject()
+
+        if (id.isNullOrEmpty() || method.isNullOrEmpty()) {
+            Logger.e(TAG, "Reverse-RPC request missing id or method")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val result = executeNativeRequest(method, params)
+                respondToJs(id, result, null)
+            } catch (e: Exception) {
+                Logger.e(TAG, "Reverse-RPC request failed: method=$method", e)
+                respondToJs(id, null, e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    /**
+     * Dispatches a reverse-RPC method to the appropriate native manager.
+     *
+     * @return The result as a raw string (already a JSON-safe value).
+     */
+    private suspend fun executeNativeRequest(method: String, params: JSONObject): String {
+        return when (method) {
+            REQUEST_METHOD_SIGN_WITH_CUSTOM_SIGNER -> {
+                val signerId = params.getString(ResponseConstants.KEY_SIGNER_ID)
+                val dataArray = params.getJSONArray("data")
+                val bytes = ByteArray(dataArray.length()) { dataArray.getInt(it).toByte() }
+                val signer = signerManager.getSigner(signerId)
+                    ?: throw IllegalArgumentException("Custom signer not found: $signerId")
+                signer.sign(bytes).value
+            }
+
+            REQUEST_METHOD_ADAPTER_GET_STATE_INIT -> {
+                val adapterId = params.getString("adapterId")
+                val adapter = adapterManager.getAdapter(adapterId)
+                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                adapter.stateInit().value
+            }
+
+            REQUEST_METHOD_ADAPTER_SIGN_TRANSACTION -> {
+                val adapterId = params.getString("adapterId")
+                val inputJson = params.getString("input")
+                val fakeSignature = params.optBoolean("fakeSignature", false)
+                val adapter = adapterManager.getAdapter(adapterId)
+                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONTransactionRequest>(inputJson)
+                adapter.signedSendTransaction(request, fakeSignature).value
+            }
+
+            REQUEST_METHOD_ADAPTER_SIGN_DATA -> {
+                val adapterId = params.getString("adapterId")
+                val inputJson = params.getString("input")
+                val fakeSignature = params.optBoolean("fakeSignature", false)
+                val adapter = adapterManager.getAdapter(adapterId)
+                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONPreparedSignData>(inputJson)
+                adapter.signedSignData(request, fakeSignature).value
+            }
+
+            REQUEST_METHOD_ADAPTER_SIGN_TON_PROOF -> {
+                val adapterId = params.getString("adapterId")
+                val inputJson = params.getString("input")
+                val fakeSignature = params.optBoolean("fakeSignature", false)
+                val adapter = adapterManager.getAdapter(adapterId)
+                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONProofMessage>(inputJson)
+                adapter.signedTonProof(request, fakeSignature).value
+            }
+
+            else -> throw IllegalArgumentException("Unknown reverse-RPC method: $method")
+        }
+    }
+
+    /**
+     * Delivers a reverse-RPC response back to the JS side via
+     * `window.__walletkitResponse(id, resultJson, errorJson)`.
+     */
+    private suspend fun respondToJs(id: String, result: String?, errorMessage: String?) {
+        val idLiteral = JSONObject.quote(id)
+        val resultLiteral = if (result != null) JSONObject.quote(result) else "null"
+        val errorLiteral = if (errorMessage != null) {
+            val errorObj = JSONObject().put(ResponseConstants.KEY_MESSAGE, errorMessage)
+            JSONObject.quote(errorObj.toString())
+        } else {
+            "null"
+        }
+        val script = "${WebViewConstants.JS_FUNCTION_WALLETKIT_RESPONSE}($idLiteral,$resultLiteral,$errorLiteral)"
+        webViewManager.executeJavaScript(script)
+    }
+
+    private fun handleReady(payload: JSONObject) {
         val network = payload.optNullableString(ResponseConstants.KEY_NETWORK)
         initManager.updateNetwork(network)
         onNetworkChanged(network)
@@ -149,35 +244,25 @@ internal class MessageDispatcher(
         onApiBaseUrlChanged(apiBaseUrl)
         if (!webViewManager.bridgeLoaded.isCompleted) {
             webViewManager.bridgeLoaded.complete(Unit)
-            Logger.d(TAG, "🚀 bridgeLoaded completed")
         }
         webViewManager.markJsBridgeReady()
 
         val wasAlreadyReady = rpcClient.isReady()
-        Logger.d(TAG, "🚀 wasAlreadyReady=$wasAlreadyReady")
 
         if (!wasAlreadyReady) {
-            Logger.d(TAG, "🚀 Completing ready for the first time")
             rpcClient.markReady()
-            Logger.d(TAG, "🚀 After markReady(), isReady = ${rpcClient.isReady()}")
-        } else {
-            Logger.d(TAG, "⚠️ rpcClient already ready, not calling markReady()")
         }
 
         if (wasAlreadyReady && areEventListenersSetUp) {
-            Logger.w(TAG, "⚠️⚠️⚠️ Bridge ready event received again - JavaScript context was lost! Re-setting up event listeners...")
+            Logger.w(TAG, "Bridge ready event received again - JavaScript context was lost! Re-setting up event listeners...")
             areEventListenersSetUp = false
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    Logger.d(TAG, "🔵 Re-setting up event listeners after JS context loss...")
                     ensureEventListenersSetUp()
-                    Logger.d(TAG, "✅ Event listeners re-established after JS context loss")
                 } catch (e: Exception) {
-                    Logger.e(TAG, "❌ Failed to re-setup event listeners after JS context loss", e)
+                    Logger.e(TAG, "Failed to re-setup event listeners after JS context loss", e)
                 }
             }
-        } else {
-            Logger.d(TAG, "🚀 Normal ready event (wasAlreadyReady=$wasAlreadyReady, areEventListenersSetUp=$areEventListenersSetUp)")
         }
 
         val data = JSONObject()
@@ -196,9 +281,7 @@ internal class MessageDispatcher(
                 put(ResponseConstants.KEY_TYPE, ResponseConstants.VALUE_KIND_READY)
                 put(ResponseConstants.KEY_DATA, data)
             }
-        Logger.d(TAG, "🚀 Calling handleEvent for ready event")
         handleEvent(readyEvent)
-        Logger.d(TAG, "🚀 handleReady() complete")
     }
 
     private fun handleEvent(event: JSONObject) {
@@ -206,31 +289,21 @@ internal class MessageDispatcher(
         val data = event.optJSONObject(ResponseConstants.KEY_DATA) ?: JSONObject()
         val eventId = event.optString(JsonConstants.KEY_ID, java.util.UUID.randomUUID().toString())
 
-        Logger.d(TAG, "🟢🟢🟢 === handleEvent called ===")
-        Logger.d(TAG, "🟢 Event type: $type")
-        Logger.d(TAG, "🟢 Event ID: $eventId")
-        Logger.d(TAG, "🟢 Event data keys: ${data.keys().asSequence().toList()}")
-        Logger.d(TAG, "🟢 Thread: ${Thread.currentThread().name}")
-
         val typedEvent = try {
             eventParser.parseEvent(type, data, event)
         } catch (e: Exception) {
-            Logger.e(TAG, "❌ Exception thrown while parsing event type=$type", e)
+            Logger.e(TAG, "Exception thrown while parsing event type=$type", e)
             null
         }
-        Logger.d(TAG, "🟢 Parsed typed event: ${(typedEvent?.javaClass?.simpleName ?: ResponseConstants.VALUE_UNKNOWN)}")
 
         if (typedEvent != null) {
-            Logger.d(TAG, "🟢 Typed event is NOT null, posting to main handler...")
-
             mainHandler.post {
-                Logger.d(TAG, "🟢 Main handler runnable executing for event $type")
                 runBlocking {
                     eventRouter.dispatchEvent(eventId, type, typedEvent)
                 }
             }
         } else {
-            Logger.w(TAG, "⚠️ " + MSG_FAILED_PARSE_TYPED_EVENT_PREFIX + type + " - event will be ignored")
+            Logger.w(TAG, MSG_FAILED_PARSE_TYPED_EVENT_PREFIX + type + " - event will be ignored")
         }
     }
 
@@ -238,13 +311,8 @@ internal class MessageDispatcher(
         val sessionId = payload.optString("sessionId")
         val event = payload.optJSONObject("event")
 
-        Logger.d(TAG, "📤 handleJsBridgeEvent called")
-        Logger.d(TAG, "📤 sessionId: $sessionId")
-        Logger.d(TAG, "📤 event: $event")
-        Logger.d(TAG, "📤 Full payload: $payload")
-
         if (event == null) {
-            Logger.e(TAG, "❌ No event object in ${ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT} payload")
+            Logger.e(TAG, "No event object in ${ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT} payload")
             return
         }
 
@@ -252,31 +320,24 @@ internal class MessageDispatcher(
             try {
                 // If sessionId is empty (e.g., wallet-initiated disconnect), broadcast to all WebViews
                 if (sessionId.isNullOrEmpty()) {
-                    Logger.d(TAG, "📤 sessionId is empty, broadcasting event to all registered WebViews")
                     TonConnectInjector.broadcastEventToAllWebViews(event)
                     return@post
                 }
 
-                Logger.d(TAG, "📤 Looking up WebView for session: $sessionId")
                 val targetWebView = TonConnectInjector.getWebViewForSession(sessionId)
 
                 if (targetWebView != null) {
-                    Logger.d(TAG, "✅ Found WebView for session: $sessionId")
                     val injector = targetWebView.getTonConnectInjector()
                     if (injector != null) {
-                        Logger.d(TAG, "✅ Found TonConnectInjector, sending event to WebView")
-                        Logger.d(TAG, "📤 Event being sent: $event")
                         injector.sendEvent(event)
-                        Logger.d(TAG, "✅ Event sent successfully")
                     } else {
-                        Logger.w(TAG, "⚠️  WebView found but no TonConnectInjector attached for session: $sessionId")
+                        Logger.w(TAG, "WebView found but no TonConnectInjector attached for session: $sessionId")
                     }
                 } else {
-                    Logger.w(TAG, "⚠️  No WebView found for session: $sessionId (browser may have been closed)")
-                    Logger.w(TAG, "⚠️  This means the WebView was never registered or was garbage collected")
+                    Logger.w(TAG, "No WebView found for session: $sessionId (browser may have been closed)")
                 }
             } catch (e: Exception) {
-                Logger.e(TAG, "❌ Failed to send JS Bridge event", e)
+                Logger.e(TAG, "Failed to send JS Bridge event", e)
             }
         }
     }
@@ -292,14 +353,12 @@ internal class MessageDispatcher(
      * If the call ID cannot be extracted, the error is logged but no call is failed.
      */
     fun dispatchError(exception: WalletKitBridgeException, malformedJson: String?) {
-        Logger.e(TAG, "❌ Dispatching error for malformed message", exception)
+        Logger.e(TAG, "Dispatching error for malformed message", exception)
 
         // Try to extract call ID from malformed JSON
         val callId = malformedJson?.let { tryExtractCallId(it) }
 
         if (callId != null) {
-            Logger.d(TAG, "🔍 Extracted call ID from malformed JSON: $callId")
-
             // Create error response for this specific call
             val errorResponse = JSONObject().apply {
                 put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_RESPONSE)
@@ -312,12 +371,10 @@ internal class MessageDispatcher(
                 )
             }
 
-            Logger.d(TAG, "📤 Dispatching error response for call $callId")
             // Dispatch the error response to fail the specific call
             rpcClient.handleResponse(callId, errorResponse)
         } else {
-            Logger.w(TAG, "⚠️  Could not extract call ID from malformed JSON, cannot fail specific call")
-            Logger.w(TAG, "⚠️  Malformed JSON: $malformedJson")
+            Logger.w(TAG, "Could not extract call ID from malformed JSON, cannot fail specific call")
         }
     }
 
@@ -332,7 +389,7 @@ internal class MessageDispatcher(
             val matchResult = regex.find(malformedJson)
             matchResult?.groupValues?.get(1)
         } catch (e: Exception) {
-            Logger.e(TAG, "❌ Failed to extract call ID from malformed JSON", e)
+            Logger.e(TAG, "Failed to extract call ID from malformed JSON", e)
             null
         }
     }
@@ -349,6 +406,13 @@ internal class MessageDispatcher(
         private const val TAG = LogConstants.TAG_WEBVIEW_ENGINE
         private const val MSG_FAILED_PARSE_TYPED_EVENT_PREFIX = "Failed to parse typed event for type: "
         private const val ERROR_FAILED_SET_UP_EVENT_LISTENERS = "Failed to set up event listeners: "
+
+        // Reverse-RPC method names (must match the JS bridgeRequest() method strings)
+        private const val REQUEST_METHOD_SIGN_WITH_CUSTOM_SIGNER = "signWithCustomSigner"
+        private const val REQUEST_METHOD_ADAPTER_GET_STATE_INIT = "adapterGetStateInit"
+        private const val REQUEST_METHOD_ADAPTER_SIGN_TRANSACTION = "adapterSignTransaction"
+        private const val REQUEST_METHOD_ADAPTER_SIGN_DATA = "adapterSignData"
+        private const val REQUEST_METHOD_ADAPTER_SIGN_TON_PROOF = "adapterSignTonProof"
     }
 }
 

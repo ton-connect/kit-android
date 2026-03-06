@@ -60,16 +60,21 @@ class TransactionOperationsTest : OperationsTestBase() {
     // --- createTransferTonTransaction tests ---
 
     @Test
-    fun createTransferTonTransaction_parsesTransactionWithPreview() = runBlocking {
+    fun createTransferTonTransaction_returnsTransactionJson() = runBlocking {
         givenBridgeReturns(
             JSONObject().apply {
-                put("transaction", """{"boc":"te6ccgEBAQEA..."}""")
                 put(
-                    "preview",
-                    JSONObject().apply {
-                        put("result", "success")
+                    "messages",
+                    org.json.JSONArray().apply {
+                        put(
+                            JSONObject().apply {
+                                put("address", TEST_TO_ADDRESS)
+                                put("amount", "1000000000")
+                            },
+                        )
                     },
                 )
+                put("fromAddress", TEST_ADDRESS)
             },
         )
 
@@ -80,17 +85,17 @@ class TransactionOperationsTest : OperationsTestBase() {
         )
         val result = transactionOperations.createTransferTonTransaction(TEST_ADDRESS, params)
 
-        assertNotNull(result.transaction)
-        assertTrue(result.transaction.contains("boc"))
-        assertNotNull(result.preview)
+        assertNotNull(result)
+        assertTrue(result.contains("messages"))
+        assertTrue(result.contains("fromAddress"))
     }
 
     @Test
-    fun createTransferTonTransaction_parsesTransactionWithoutPreview() = runBlocking {
+    fun createTransferTonTransaction_passesCorrectParams() = runBlocking {
         givenBridgeReturns(
             JSONObject().apply {
-                put("transaction", """{"boc":"te6ccgEBAQEA..."}""")
-                // No preview
+                put("messages", org.json.JSONArray())
+                put("fromAddress", TEST_ADDRESS)
             },
         )
 
@@ -98,45 +103,37 @@ class TransactionOperationsTest : OperationsTestBase() {
             recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_TO_ADDRESS),
             transferAmount = "1000000000",
         )
-        val result = transactionOperations.createTransferTonTransaction(TEST_ADDRESS, params)
+        transactionOperations.createTransferTonTransaction(TEST_ADDRESS, params)
 
-        assertNotNull(result.transaction)
-        assertNull(result.preview)
-    }
-
-    @Test
-    fun createTransferTonTransaction_handlesLegacyFormat() = runBlocking {
-        // Legacy format: just the transaction content without wrapper
-        givenBridgeReturns(
-            JSONObject().apply {
-                put("boc", "te6ccgEBAQEA...")
-            },
-        )
-
-        val params = TONTransferRequest(
-            recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_TO_ADDRESS),
-            transferAmount = "1000000000",
-        )
-        val result = transactionOperations.createTransferTonTransaction(TEST_ADDRESS, params)
-
-        // Falls back to returning the whole object as transaction
-        assertTrue(result.transaction.contains("boc"))
-        assertNull(result.preview)
+        // Verify the method was called with correct params
+        assertEquals("createTransferTonTransaction", capturedMethod)
+        assertNotNull(capturedParams)
     }
 
     // --- createTransferMultiTonTransaction tests ---
 
     @Test
-    fun createTransferMultiTonTransaction_parsesMultipleMessages() = runBlocking {
+    fun createTransferMultiTonTransaction_returnsTransactionJson() = runBlocking {
         givenBridgeReturns(
             JSONObject().apply {
-                put("transaction", """{"messages":[{"to":"EQ1..."},{"to":"EQ2..."}]}""")
                 put(
-                    "preview",
-                    JSONObject().apply {
-                        put("result", "success")
+                    "messages",
+                    org.json.JSONArray().apply {
+                        put(
+                            JSONObject().apply {
+                                put("address", TEST_TO_ADDRESS)
+                                put("amount", "1000000000")
+                            },
+                        )
+                        put(
+                            JSONObject().apply {
+                                put("address", TEST_ADDRESS)
+                                put("amount", "2000000000")
+                            },
+                        )
                     },
                 )
+                put("fromAddress", TEST_ADDRESS)
             },
         )
 
@@ -146,8 +143,8 @@ class TransactionOperationsTest : OperationsTestBase() {
         )
         val result = transactionOperations.createTransferMultiTonTransaction(TEST_ADDRESS, messages)
 
-        assertTrue(result.transaction.contains("messages"))
-        assertNotNull(result.preview)
+        assertTrue(result.contains("messages"))
+        assertTrue(result.contains("fromAddress"))
     }
 
     // --- sendTransaction tests ---

@@ -27,7 +27,6 @@ import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.api.MAINNET
-import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
@@ -156,7 +155,7 @@ class TonConnectViewModel(
 
             runCatching {
                 Log.d(TAG, "approveTransaction runCatching started, walletId=${request.transactionRequest?.event?.walletId}")
-                request.transactionRequest?.approve(TONNetwork.MAINNET)
+                request.transactionRequest?.approve()
                     ?: error("Transaction request not available")
             }.onSuccess {
                 _state.value = _state.value.copy(
@@ -209,7 +208,7 @@ class TonConnectViewModel(
             _state.value = _state.value.copy(isProcessing = true, error = null)
 
             runCatching {
-                request.signDataRequest?.approve(TONNetwork.MAINNET)
+                request.signDataRequest?.approve()
                     ?: error("Sign data request not available")
             }.onSuccess {
                 _state.value = _state.value.copy(

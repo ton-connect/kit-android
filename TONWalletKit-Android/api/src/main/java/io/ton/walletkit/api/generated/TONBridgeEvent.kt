@@ -48,6 +48,7 @@ import kotlinx.serialization.Serializable
  * @param messageId
  * @param traceId
  * @param dAppInfo
+ * @param returnStrategy Raw TonConnect return strategy string.
  */
 @Serializable
 data class TONBridgeEvent(
@@ -93,6 +94,10 @@ data class TONBridgeEvent(
 
     @SerialName(value = "dAppInfo")
     val dAppInfo: TONDAppInfo? = null,
+
+    /* Raw TonConnect return strategy string. */
+    @SerialName(value = "returnStrategy")
+    val returnStrategy: kotlin.String? = null,
 
 ) {
 

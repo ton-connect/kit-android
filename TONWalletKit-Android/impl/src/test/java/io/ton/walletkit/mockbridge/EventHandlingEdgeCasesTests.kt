@@ -207,7 +207,7 @@ class EventHandlingEdgeCasesTests : MockBridgeTestBase() {
         val adapter = sdk.createV5R1Adapter(signer)
         assertNotNull(adapter)
 
-        val wallet = sdk.addWallet(adapter.adapterId)
+        val wallet = sdk.addWallet(adapter)
         assertNotNull(wallet)
     }
 

@@ -28,7 +28,6 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONBase64
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -36,21 +35,45 @@ import kotlinx.serialization.Serializable
 /**
  *
  *
- * @param boc
- * @param normalizedBoc
- * @param normalizedHash
+ * @param amount
+ * @param from
+ * @param to
+ * @param network
+ * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
+ * @param maxOutgoingMessages Maximum number of outgoing messages
+ * @param providerOptions Provider-specific options
+ * @param isReverseSwap If true, amount is the amount to receive (buy). If false, amount is the amount to spend (sell).
  */
 @Serializable
-data class TONSendTransactionResponse(
+data class TONSwapQuoteParams(
 
-    @Contextual @SerialName(value = "boc")
-    val boc: io.ton.walletkit.model.TONBase64,
+    @SerialName(value = "amount")
+    val amount: kotlin.String,
 
-    @Contextual @SerialName(value = "normalizedBoc")
-    val normalizedBoc: io.ton.walletkit.model.TONBase64,
+    @SerialName(value = "from")
+    val from: TONSwapToken,
 
-    @Contextual @SerialName(value = "normalizedHash")
-    val normalizedHash: io.ton.walletkit.model.TONHex,
+    @SerialName(value = "to")
+    val to: TONSwapToken,
+
+    @SerialName(value = "network")
+    val network: TONNetwork,
+
+    /* Slippage tolerance in basis points (1 bp = 0.01%) */
+    @SerialName(value = "slippageBps")
+    val slippageBps: kotlin.Int? = null,
+
+    /* Maximum number of outgoing messages */
+    @SerialName(value = "maxOutgoingMessages")
+    val maxOutgoingMessages: kotlin.Int? = null,
+
+    /* Provider-specific options */
+    @Contextual @SerialName(value = "providerOptions")
+    val providerOptions: kotlinx.serialization.json.JsonElement? = null,
+
+    /* If true, amount is the amount to receive (buy). If false, amount is the amount to spend (sell). */
+    @SerialName(value = "isReverseSwap")
+    val isReverseSwap: kotlin.Boolean? = null,
 
 ) {
 

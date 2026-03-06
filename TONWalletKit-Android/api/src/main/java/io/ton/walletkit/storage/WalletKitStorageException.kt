@@ -49,12 +49,12 @@ package io.ton.walletkit.storage
  *         }
  *     }
  *
- *     override suspend fun save(key: String, value: String) {
+ *     override suspend fun set(key: String, value: String) {
  *         try {
  *             sharedPrefs.edit().putString(key, value).apply()
  *         } catch (e: IOException) {
  *             throw WalletKitStorageException(
- *                 operation = StorageOperation.SAVE,
+ *                 operation = StorageOperation.SET,
  *                 key = key,
  *                 message = "Failed to write to storage",
  *                 cause = e
@@ -72,7 +72,7 @@ package io.ton.walletkit.storage
  * } catch (e: WalletKitStorageException) {
  *     when (e.operation) {
  *         StorageOperation.GET -> // Handle read failure
- *         StorageOperation.SAVE -> // Handle write failure
+ *         StorageOperation.SET -> // Handle write failure
  *         StorageOperation.REMOVE -> // Handle delete failure
  *         StorageOperation.CLEAR -> // Handle clear failure
  *     }
@@ -122,7 +122,7 @@ enum class StorageOperation {
     GET,
 
     /** Writing a value to storage */
-    SAVE,
+    SET,
 
     /** Removing a value from storage */
     REMOVE,

@@ -50,7 +50,7 @@ abstract class OperationsTestBase {
 
     // Captured values from rpcClient.call()
     protected var capturedMethod: String? = null
-    protected var capturedParams: JSONObject? = null
+    protected var capturedParams: Any? = null
 
     // Response to return from rpcClient.call()
     private var mockResponse: JSONObject = JSONObject()

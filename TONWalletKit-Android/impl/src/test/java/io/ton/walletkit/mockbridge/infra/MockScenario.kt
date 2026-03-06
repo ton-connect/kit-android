@@ -25,11 +25,15 @@ import io.ton.walletkit.api.TESTNET
 import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONPreparedSignData
+import io.ton.walletkit.api.generated.TONProofMessage
+import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.model.TONBase64
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
-import io.ton.walletkit.model.WalletAdapterInfo
+import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSignerInfo
 import org.json.JSONObject
 
@@ -73,39 +77,30 @@ interface MockScenario {
     }
 
     /**
-     * Handle createV5R1Adapter RPC call.
+     * Handle createAdapter RPC call (used by createV5R1Adapter / createV4R2Adapter).
      */
-    fun handleCreateV5R1Adapter(
+    fun handleCreateAdapter(
         signerId: String,
+        publicKey: TONHex,
+        version: String,
         network: TONNetwork?,
         workchain: Int,
         walletId: Long,
-        publicKey: String?,
-        isCustom: Boolean,
-    ): WalletAdapterInfo {
-        return WalletAdapterInfo(
-            adapterId = "adapter-v5r1-${signerId.hashCode().toString(16)}",
-            address = TONUserFriendlyAddress("EQDTest${signerId.hashCode().toString(16).padStart(40, '0')}"),
-            network = network ?: TONNetwork.TESTNET,
-        )
-    }
-
-    /**
-     * Handle createV4R2Adapter RPC call.
-     */
-    fun handleCreateV4R2Adapter(
-        signerId: String,
-        network: TONNetwork?,
-        workchain: Int,
-        walletId: Long,
-        publicKey: String?,
-        isCustom: Boolean,
-    ): WalletAdapterInfo {
-        return WalletAdapterInfo(
-            adapterId = "adapter-v4r2-${signerId.hashCode().toString(16)}",
-            address = TONUserFriendlyAddress("EQDTest${signerId.hashCode().toString(16).padStart(40, '0')}"),
-            network = network ?: TONNetwork.TESTNET,
-        )
+    ): TONWalletAdapter {
+        val adapterId = "adapter-$version-${signerId.hashCode().toString(16)}"
+        val resolvedNetwork = network ?: TONNetwork.TESTNET
+        val address = TONUserFriendlyAddress("EQDTest${signerId.hashCode().toString(16).padStart(40, '0')}")
+        return object : TONWalletAdapter {
+            override fun identifier() = adapterId
+            override fun publicKey() = publicKey
+            override fun network() = resolvedNetwork
+            override fun address(testnet: Boolean) = address
+            override fun walletVersion() = version
+            override suspend fun stateInit() = TONBase64("")
+            override suspend fun signedSendTransaction(input: TONTransactionRequest, fakeSignature: Boolean?) = TONBase64("")
+            override suspend fun signedSignData(input: TONPreparedSignData, fakeSignature: Boolean?) = TONHex("")
+            override suspend fun signedTonProof(input: TONProofMessage, fakeSignature: Boolean?) = TONHex("")
+        }
     }
 
     /**

@@ -37,7 +37,7 @@ import kotlinx.serialization.Serializable
  *
  *
  * @param sessionId
- * @param walletId Wallet ID format: \"network:address\" Examples: - \"-239:EQDtFpEwcFAEcRe5mLVh2N6C0x-_hJEM7W61_JLnSF74p4q2\" (mainnet) - \"-3:EQDtFpEwcFAEcRe5mLVh2N6C0x-_hJEM7W61_JLnSF74p4q2\" (testnet)
+ * @param walletId Wallet ID - unique identifier for a wallet, should be different for similar wallets on different networks
  * @param walletAddress
  * @param createdAt
  * @param lastActivityAt
@@ -57,7 +57,7 @@ data class TONConnectSession(
     @SerialName(value = "sessionId")
     val sessionId: kotlin.String,
 
-    /* Wallet ID format: \"network:address\" Examples: - \"-239:EQDtFpEwcFAEcRe5mLVh2N6C0x-_hJEM7W61_JLnSF74p4q2\" (mainnet) - \"-3:EQDtFpEwcFAEcRe5mLVh2N6C0x-_hJEM7W61_JLnSF74p4q2\" (testnet) */
+    /* Wallet ID - unique identifier for a wallet, should be different for similar wallets on different networks */
     @SerialName(value = "walletId")
     val walletId: kotlin.String,
 

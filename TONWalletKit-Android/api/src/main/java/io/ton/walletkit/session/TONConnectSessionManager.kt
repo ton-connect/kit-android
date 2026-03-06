@@ -60,44 +60,40 @@ interface TONConnectSessionManager {
     suspend fun getSession(sessionId: String): TONConnectSession?
 
     /**
-     * Get session by domain.
+     * Get sessions filtered by optional parameters.
      *
-     * @param domain The domain to search for
-     * @return The session for that domain, or null if not found
+     * @param filter Optional filter with walletId, domain, and/or isJsBridge
+     * @return List of matching sessions
      */
-    suspend fun getSessionByDomain(domain: String): TONConnectSession?
-
-    /**
-     * Get all sessions as a list.
-     *
-     * @return List of all active sessions
-     */
-    suspend fun getSessions(): List<TONConnectSession>
-
-    /**
-     * Get sessions for a specific wallet by wallet ID.
-     *
-     * @param walletId The wallet ID to filter by
-     * @return List of sessions for that wallet
-     */
-    suspend fun getSessionsForWallet(walletId: String): List<TONConnectSession>
+    suspend fun getSessions(filter: SessionFilter? = null): List<TONConnectSession>
 
     /**
      * Remove session by ID.
      *
      * @param sessionId The session ID to remove
+     * @return The removed session, or null if not found
      */
-    suspend fun removeSession(sessionId: String)
+    suspend fun removeSession(sessionId: String): TONConnectSession?
 
     /**
-     * Remove all sessions for a wallet by wallet ID.
+     * Remove sessions matching optional filter parameters.
      *
-     * @param walletId Wallet ID string
+     * @param filter Optional filter with walletId, domain, and/or isJsBridge
+     * @return List of removed sessions
      */
-    suspend fun removeSessionsForWallet(walletId: String)
+    suspend fun removeSessions(filter: SessionFilter? = null): List<TONConnectSession>
 
     /**
      * Clear all sessions.
      */
     suspend fun clearSessions()
 }
+
+/**
+ * Filter for querying sessions.
+ */
+data class SessionFilter(
+    val walletId: String? = null,
+    val domain: String? = null,
+    val isJsBridge: Boolean? = null,
+)

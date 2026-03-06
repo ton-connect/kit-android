@@ -372,7 +372,7 @@ class EventParserTest {
         val event = parser.parseEvent(EventTypeConstants.EVENT_TRANSACTION_REQUEST, data, raw)
 
         assertNotNull("Should parse transaction request event", event)
-        assertTrue("Should be TransactionRequest event", event is TONWalletKitEvent.TransactionRequest)
+        assertTrue("Should be SendTransactionRequest event", event is TONWalletKitEvent.SendTransactionRequest)
     }
 
     // --- Sign Data Request Tests ---

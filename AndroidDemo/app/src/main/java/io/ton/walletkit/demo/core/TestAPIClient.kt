@@ -55,8 +55,8 @@ class TestAPIClient(
     private val tag = "TestAPIClient"
 
     override suspend fun sendBoc(boc: TONBase64): String {
-        Log.d(tag, "🚀 sendBoc called on network: ${network.chainId}")
-        Log.d(tag, "📦 BOC (first 50 chars): ${boc.value.take(50)}...")
+        Log.d(tag, "sendBoc called on network: ${network.chainId}")
+        Log.d(tag, "BOC (first 50 chars): ${boc.value.take(50)}...")
 
         // Simulate network delay
         delay(500)
@@ -68,7 +68,7 @@ class TestAPIClient(
 
         // For demo purposes, we'll return a mock transaction hash
         val mockTxHash = "demo_tx_${System.currentTimeMillis()}"
-        Log.d(tag, "✅ sendBoc completed, mock hash: $mockTxHash")
+        Log.d(tag, "sendBoc completed, mock hash: $mockTxHash")
 
         return mockTxHash
     }
@@ -79,11 +79,11 @@ class TestAPIClient(
         stack: List<TONRawStackItem>?,
         seqno: Int?,
     ): TONGetMethodResult {
-        Log.d(tag, "📞 runGetMethod called on network: ${network.chainId}")
-        Log.d(tag, "📍 Address: ${address.value}")
-        Log.d(tag, "🔧 Method: $method")
-        Log.d(tag, "📚 Stack items: ${stack?.size ?: 0}")
-        Log.d(tag, "🔢 Seqno: $seqno")
+        Log.d(tag, "runGetMethod called on network: ${network.chainId}")
+        Log.d(tag, "Address: ${address.value}")
+        Log.d(tag, "Method: $method")
+        Log.d(tag, "Stack items: ${stack?.size ?: 0}")
+        Log.d(tag, "Seqno: $seqno")
 
         // Simulate network delay
         delay(300)
@@ -100,7 +100,7 @@ class TestAPIClient(
             exitCode = 0, // Success exit code
         )
 
-        Log.d(tag, "✅ runGetMethod completed, exitCode: ${mockResult.exitCode}")
+        Log.d(tag, "runGetMethod completed, exitCode: ${mockResult.exitCode}")
 
         return mockResult
     }
@@ -109,8 +109,8 @@ class TestAPIClient(
         address: TONUserFriendlyAddress,
         seqno: Int?,
     ): String {
-        Log.d(tag, "💰 getBalance called on network: ${network.chainId}")
-        Log.d(tag, "📍 Address: ${address.value}")
+        Log.d(tag, "getBalance called on network: ${network.chainId}")
+        Log.d(tag, "Address: ${address.value}")
 
         // Make a real HTTP call to toncenter API
         val baseUrl = when (network) {
@@ -131,10 +131,10 @@ class TestAPIClient(
                 val json = JSONObject(response)
                 val balance = json.optString("balance", "0")
 
-                Log.d(tag, "✅ getBalance completed, balance: $balance")
+                Log.d(tag, "getBalance completed, balance: $balance")
                 balance
             } catch (e: Exception) {
-                Log.e(tag, "❌ getBalance failed", e)
+                Log.e(tag, "getBalance failed", e)
                 throw e
             }
         }

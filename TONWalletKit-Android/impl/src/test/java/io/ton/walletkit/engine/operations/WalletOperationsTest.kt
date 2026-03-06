@@ -25,8 +25,11 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.WalletVersions
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.NetworkConstants
+import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.model.WalletAdapterInfo
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -65,6 +68,7 @@ class WalletOperationsTest : OperationsTestBase() {
             ensureInitialized = ensureInitialized,
             rpcClient = rpcClient,
             signerManager = signerManager,
+            adapterManager = mockk(relaxed = true),
             currentNetworkProvider = { currentNetwork },
             json = json,
         )
@@ -74,13 +78,11 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun createSignerFromMnemonic_extractsSignerFromNestedResponse() = runBlocking {
-        // JS returns { _tempId, signer: { publicKey } }
+        // JS returns { signerId, publicKey }
         givenBridgeReturns(
             jsonOf(
-                "_tempId" to "signer-123",
-                "signer" to JSONObject().apply {
-                    put("publicKey", "0xabcdef1234567890")
-                },
+                "signerId" to "signer-123",
+                "publicKey" to "0xabcdef1234567890",
             ),
         )
 
@@ -94,10 +96,8 @@ class WalletOperationsTest : OperationsTestBase() {
     fun createSignerFromMnemonic_stripsHexPrefixFromPublicKey() = runBlocking {
         givenBridgeReturns(
             jsonOf(
-                "_tempId" to "signer-1",
-                "signer" to JSONObject().apply {
-                    put("publicKey", "0x1234abcd")
-                },
+                "signerId" to "signer-1",
+                "publicKey" to "0x1234abcd",
             ),
         )
 
@@ -110,10 +110,8 @@ class WalletOperationsTest : OperationsTestBase() {
     fun createSignerFromMnemonic_handlesPublicKeyWithoutPrefix() = runBlocking {
         givenBridgeReturns(
             jsonOf(
-                "_tempId" to "signer-1",
-                "signer" to JSONObject().apply {
-                    put("publicKey", "abcd1234")
-                },
+                "signerId" to "signer-1",
+                "publicKey" to "abcd1234",
             ),
         )
 
@@ -124,10 +122,10 @@ class WalletOperationsTest : OperationsTestBase() {
 
     @Test
     fun createSignerFromMnemonic_fallsBackToRootObjectIfNoSignerNested() = runBlocking {
-        // Legacy format: { _tempId, publicKey } without nested signer
+        // Current format: { signerId, publicKey }
         givenBridgeReturns(
             jsonOf(
-                "_tempId" to "signer-legacy",
+                "signerId" to "signer-legacy",
                 "publicKey" to "0xlegacykey",
             ),
         )
@@ -142,19 +140,14 @@ class WalletOperationsTest : OperationsTestBase() {
     fun createSignerFromMnemonic_generatesSignerIdIfTempIdMissing() = runBlocking {
         givenBridgeReturns(
             jsonOf(
-                "signer" to JSONObject().apply {
-                    put("publicKey", "0xkey123")
-                },
+                "signerId" to "signer_generated",
+                "publicKey" to "0xkey123",
             ),
         )
 
         val result = walletOperations.createSignerFromMnemonic(listOf("test"))
 
-        // Should generate an ID (starts with "signer_")
-        assertTrue(
-            "Expected generated signerId starting with signer_, got: ${result.signerId}",
-            result.signerId.startsWith("signer_"),
-        )
+        assertEquals("signer_generated", result.signerId)
         assertEquals("key123", result.publicKey.value)
     }
 
@@ -169,7 +162,7 @@ class WalletOperationsTest : OperationsTestBase() {
             capturedParams = secondArg()
             when (method) {
                 "getWalletAddress" -> {
-                    val walletId = secondArg<JSONObject?>()?.optString("walletId") ?: ""
+                    val walletId = (secondArg<Any?>() as? JSONObject)?.optString("walletId") ?: ""
                     jsonOf("value" to if (walletId.contains("wallet-1")) TEST_ADDRESS_1 else TEST_ADDRESS_2)
                 }
                 else -> JSONObject().apply {
@@ -455,7 +448,13 @@ class WalletOperationsTest : OperationsTestBase() {
             }
         }
 
-        val result = walletOperations.addWallet("adapter-123")
+        val result = walletOperations.addWallet(
+            WalletAdapterInfo(
+                adapterId = "adapter-123",
+                address = TONUserFriendlyAddress(""),
+                network = TONNetwork(chainId = "-239"),
+            ),
+        )
 
         assertEquals(TEST_ADDRESS_1, result.address.value)
         assertEquals("newkey", result.publicKey)
@@ -477,7 +476,13 @@ class WalletOperationsTest : OperationsTestBase() {
             }
         }
 
-        val result = walletOperations.addWallet("adapter-123")
+        val result = walletOperations.addWallet(
+            WalletAdapterInfo(
+                adapterId = "adapter-123",
+                address = TONUserFriendlyAddress(""),
+                network = TONNetwork(chainId = "-239"),
+            ),
+        )
 
         assertEquals("unknown", result.version)
     }

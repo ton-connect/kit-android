@@ -39,8 +39,13 @@ import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
+import io.ton.walletkit.api.isTestnet
 import io.ton.walletkit.bridge.BuildConfig
 import io.ton.walletkit.client.TONAPIClient
+import io.ton.walletkit.config.SignDataType
+import io.ton.walletkit.config.TONWalletKitConfiguration
+import io.ton.walletkit.engine.state.AdapterManager
+import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
@@ -48,12 +53,15 @@ import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.TONBase64
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.session.SessionFilter
 import io.ton.walletkit.session.TONConnectSessionManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -69,9 +77,9 @@ internal class WebViewManager(
     context: Context,
     private val assetPath: String,
     private val storageManager: StorageManager,
-    private val signerManager: io.ton.walletkit.engine.state.SignerManager,
     private val sessionManager: TONConnectSessionManager?,
     private val apiClients: List<TONAPIClient>,
+    private val adapterManager: AdapterManager,
     private val json: Json,
     private val onMessage: (JSONObject) -> Unit,
     private val onBridgeError: (WalletKitBridgeException, String?) -> Unit,
@@ -273,16 +281,10 @@ internal class WebViewManager(
         @JavascriptInterface
         fun postMessage(json: String) {
             try {
-                Logger.d(TAG, "📨 JsBinding.postMessage received from JS")
-                Logger.d(TAG, "📨 Thread: ${Thread.currentThread().name}")
-                Logger.v(TAG, "📨 Raw JSON: $json")
-
                 val payload = JSONObject(json)
-                Logger.d(TAG, "✅ JSON parsed successfully")
                 onMessage(payload)
             } catch (err: JSONException) {
-                Logger.e(TAG, "❌ JSONException: " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
-                Logger.e(TAG, "❌ Malformed JSON string: $json")
+                Logger.e(TAG, "JSONException: " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
                 onBridgeError(WalletKitBridgeException(LogConstants.ERROR_MALFORMED_PAYLOAD_PREFIX + err.message), json)
             }
         }
@@ -319,25 +321,23 @@ internal class WebViewManager(
         }
 
         @JavascriptInterface
-        fun signWithCustomSigner(
-            signerId: String,
-            bytesJson: String,
-        ): String {
-            return kotlinx.coroutines.runBlocking {
-                try {
-                    val signer =
-                        signerManager.getSigner(signerId)
-                            ?: throw IllegalArgumentException("Custom signer not found: $signerId")
-
-                    val bytesArray = org.json.JSONArray(bytesJson)
-                    val bytes = ByteArray(bytesArray.length()) { i -> bytesArray.getInt(i).toByte() }
-
-                    val signatureHex = signer.sign(bytes)
-                    // Return hex string with 0x prefix as expected by JavaScript
-                    signatureHex.value
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to sign with custom signer: $signerId", e)
-                    throw e
+        fun adapterCallSync(method: String, paramsJson: String): String = kotlinx.coroutines.runBlocking {
+            withTimeout(1000) {
+                val params = JSONObject(paramsJson)
+                val adapterId = params.getString("adapterId")
+                val adapter = adapterManager.getAdapter(adapterId)
+                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+                when (method) {
+                    "getPublicKey" -> adapter.publicKey().value
+                    "getNetwork" -> JSONObject().apply { put("chainId", adapter.network().chainId) }.toString()
+                    "getAddress" -> adapter.address(adapter.network().isTestnet).value
+                    "getWalletId" -> adapter.identifier()
+                    "getSupportedFeatures" -> {
+                        val features = adapter.supportedFeatures()
+                            ?: return@withTimeout "null"
+                        featuresToJson(features).toString()
+                    }
+                    else -> throw IllegalArgumentException("Unknown sync adapter method: $method")
                 }
             }
         }
@@ -406,82 +406,51 @@ internal class WebViewManager(
         }
 
         @JavascriptInterface
-        fun sessionGetByDomain(domain: String): String? {
+        fun sessionGetFiltered(filterJson: String): String {
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
             return kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "sessionGetByDomain: domain=$domain")
-                    val session = manager.getSessionByDomain(domain)
+                    val filter = parseSessionFilter(filterJson)
+                    val sessions = manager.getSessions(filter)
+                    json.encodeToString(sessions)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get filtered sessions", e)
+                    "[]"
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun sessionRemove(sessionId: String): String? {
+            val manager = sessionManager
+                ?: throw IllegalStateException("Session manager not configured")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    val session = manager.removeSession(sessionId)
                     session?.let { json.encodeToString(it) }
                 } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to get session by domain: $domain", e)
+                    Logger.e(TAG, "Failed to remove session: $sessionId", e)
                     null
                 }
             }
         }
 
         @JavascriptInterface
-        fun sessionGetAll(): String {
+        fun sessionRemoveFiltered(filterJson: String): String {
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
             return kotlinx.coroutines.runBlocking {
                 try {
-                    Logger.d(TAG, "sessionGetAll")
-                    val sessions = manager.getSessions()
+                    val filter = parseSessionFilter(filterJson)
+                    val sessions = manager.removeSessions(filter)
                     json.encodeToString(sessions)
                 } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to get all sessions", e)
+                    Logger.e(TAG, "Failed to remove filtered sessions", e)
                     "[]"
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun sessionGetForWallet(walletId: String): String {
-            val manager = sessionManager
-                ?: throw IllegalStateException("Session manager not configured")
-
-            return kotlinx.coroutines.runBlocking {
-                try {
-                    Logger.d(TAG, "sessionGetForWallet: walletId=$walletId")
-                    val sessions = manager.getSessionsForWallet(walletId)
-                    json.encodeToString(sessions)
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to get sessions for wallet: $walletId", e)
-                    "[]"
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun sessionRemove(sessionId: String) {
-            val manager = sessionManager
-                ?: throw IllegalStateException("Session manager not configured")
-
-            kotlinx.coroutines.runBlocking {
-                try {
-                    Logger.d(TAG, "sessionRemove: sessionId=$sessionId")
-                    manager.removeSession(sessionId)
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to remove session: $sessionId", e)
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun sessionRemoveForWallet(walletId: String) {
-            val manager = sessionManager
-                ?: throw IllegalStateException("Session manager not configured")
-
-            kotlinx.coroutines.runBlocking {
-                try {
-                    Logger.d(TAG, "sessionRemoveForWallet: walletId=$walletId")
-                    manager.removeSessionsForWallet(walletId)
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to remove sessions for wallet: $walletId", e)
                 }
             }
         }
@@ -587,6 +556,63 @@ internal class WebViewManager(
             return when (value) {
                 null, JSONObject.NULL -> null
                 else -> value.toString()
+            }
+        }
+
+        private fun parseSessionFilter(filterJson: String): SessionFilter? {
+            return try {
+                val jsonObj = org.json.JSONObject(filterJson)
+                if (jsonObj.length() == 0) {
+                    null
+                } else {
+                    SessionFilter(
+                        walletId = jsonObj.optNullableString("walletId"),
+                        domain = jsonObj.optNullableString("domain"),
+                        isJsBridge = if (jsonObj.has("isJsBridge")) jsonObj.getBoolean("isJsBridge") else null,
+                    )
+                }
+            } catch (e: Exception) {
+                Logger.w(TAG, "Failed to parse session filter: $filterJson", e)
+                null
+            }
+        }
+
+        private fun featuresToJson(features: List<TONWalletKitConfiguration.Feature>): JSONArray {
+            return JSONArray().apply {
+                for (feature in features) {
+                    when (feature) {
+                        is TONWalletKitConfiguration.SendTransactionFeature -> {
+                            put(
+                                JSONObject().apply {
+                                    put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SEND_TRANSACTION)
+                                    feature.maxMessages?.let { put(JsonConstants.KEY_MAX_MESSAGES, it) }
+                                    feature.extraCurrencySupported?.let { put("extraCurrencySupported", it) }
+                                },
+                            )
+                        }
+                        is TONWalletKitConfiguration.SignDataFeature -> {
+                            put(
+                                JSONObject().apply {
+                                    put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SIGN_DATA)
+                                    put(
+                                        JsonConstants.KEY_TYPES,
+                                        JSONArray().apply {
+                                            for (type in feature.types) {
+                                                put(
+                                                    when (type) {
+                                                        SignDataType.TEXT -> JsonConstants.VALUE_SIGN_DATA_TEXT
+                                                        SignDataType.BINARY -> JsonConstants.VALUE_SIGN_DATA_BINARY
+                                                        SignDataType.CELL -> JsonConstants.VALUE_SIGN_DATA_CELL
+                                                    },
+                                                )
+                                            }
+                                        },
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
             }
         }
     }

@@ -21,7 +21,6 @@
  */
 package io.ton.walletkit.request
 
-import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 
@@ -42,16 +41,14 @@ class TONWalletSignDataRequest(
     /**
      * Approve this sign data request.
      *
-     * @param network Network to sign on
      * @param response Optional pre-computed approval response. If provided, the SDK will use
      *                 this response directly instead of signing the data internally.
      * @throws io.ton.walletkit.WalletKitBridgeException if approval fails
      */
     suspend fun approve(
-        network: TONNetwork,
         response: TONSignDataApprovalResponse? = null,
     ) {
-        handler.approveSignData(event, network, response)
+        handler.approveSignData(event, response)
     }
 
     /**

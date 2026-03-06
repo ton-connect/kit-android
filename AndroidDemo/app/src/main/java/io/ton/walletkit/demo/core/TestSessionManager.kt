@@ -25,6 +25,7 @@ import android.util.Log
 import com.google.crypto.tink.subtle.X25519
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.session.SessionFilter
 import io.ton.walletkit.session.TONConnectSession
 import io.ton.walletkit.session.TONConnectSessionManager
 import java.net.URL
@@ -48,7 +49,7 @@ class TestSessionManager : TONConnectSessionManager {
         walletAddress: String,
         isJsBridge: Boolean,
     ): TONConnectSession {
-        Log.d(TAG, "🔵 createSession called:")
+        Log.d(TAG, "createSession called:")
         Log.d(TAG, "   sessionId: $sessionId")
         Log.d(TAG, "   dAppInfo: name=${dAppInfo.name}, url=${dAppInfo.url}")
         Log.d(TAG, "   walletId: $walletId")
@@ -94,7 +95,7 @@ class TestSessionManager : TONConnectSessionManager {
         )
 
         sessions[sessionId] = session
-        Log.d(TAG, "✅ Session stored. Total sessions: ${sessions.size}")
+        Log.d(TAG, "Session stored. Total sessions: ${sessions.size}")
 
         return session
     }
@@ -105,54 +106,47 @@ class TestSessionManager : TONConnectSessionManager {
         return session
     }
 
-    override suspend fun getSessionByDomain(domain: String): TONConnectSession? {
-        Log.d(TAG, "🔍 getSessionByDomain($domain)")
+    override suspend fun getSessions(filter: SessionFilter?): List<TONConnectSession> {
+        var result = sessions.values.toList()
 
-        // Extract host from domain URL
-        val host = try {
-            URL(domain).host
-        } catch (e: Exception) {
-            domain
-        }
-
-        for (session in sessions.values) {
-            if (session.domain == host) {
-                Log.d(TAG, "✅ Found session by domain: ${session.sessionId}")
-                return session
+        if (filter != null) {
+            filter.walletId?.let { wId ->
+                result = result.filter { it.walletId == wId }
+            }
+            filter.domain?.let { d ->
+                val host = try {
+                    URL(d).host
+                } catch (e: Exception) {
+                    d
+                }
+                result = result.filter { it.domain == host }
+            }
+            filter.isJsBridge?.let { jsb ->
+                result = result.filter { it.isJsBridge == jsb }
             }
         }
 
-        Log.d(TAG, "❌ No session found for domain: $domain")
-        return null
+        Log.d(TAG, "getSessions(filter=$filter): returning ${result.size} sessions")
+        return result
     }
 
-    override suspend fun getSessions(): List<TONConnectSession> {
-        val sessionList = sessions.values.toList()
-        Log.d(TAG, "📋 getSessions(): returning ${sessionList.size} sessions")
-        return sessionList
+    override suspend fun removeSession(sessionId: String): TONConnectSession? {
+        val removed = sessions.remove(sessionId)
+        Log.d(TAG, "removeSession($sessionId): ${if (removed != null) "removed" else "not found"}")
+        return removed
     }
 
-    override suspend fun getSessionsForWallet(walletId: String): List<TONConnectSession> {
-        val walletSessions = sessions.values.filter { it.walletId == walletId }
-        Log.d(TAG, "📋 getSessionsForWallet($walletId): returning ${walletSessions.size} sessions")
-        return walletSessions
-    }
-
-    override suspend fun removeSession(sessionId: String) {
-        val removed = sessions.remove(sessionId) != null
-        Log.d(TAG, "🗑️ removeSession($sessionId): ${if (removed) "removed" else "not found"}")
-    }
-
-    override suspend fun removeSessionsForWallet(walletId: String) {
-        val toRemove = sessions.entries.filter { it.value.walletId == walletId }.map { it.key }
-        toRemove.forEach { sessions.remove(it) }
-        Log.d(TAG, "🗑️ removeSessionsForWallet($walletId): removed ${toRemove.size} sessions")
+    override suspend fun removeSessions(filter: SessionFilter?): List<TONConnectSession> {
+        val toRemove = getSessions(filter)
+        toRemove.forEach { sessions.remove(it.sessionId) }
+        Log.d(TAG, "removeSessions(filter=$filter): removed ${toRemove.size} sessions")
+        return toRemove
     }
 
     override suspend fun clearSessions() {
         val count = sessions.size
         sessions.clear()
-        Log.d(TAG, "🗑️ clearSessions(): cleared $count sessions")
+        Log.d(TAG, "clearSessions(): cleared $count sessions")
     }
 
     private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }

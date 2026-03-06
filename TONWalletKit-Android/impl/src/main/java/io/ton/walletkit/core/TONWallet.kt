@@ -138,8 +138,8 @@ internal class TONWallet internal constructor(
      * @throws WalletKitBridgeException if transaction creation fails
      */
     override suspend fun transferTONTransaction(request: TONTransferRequest): TONTransactionRequest {
-        val result = engine.createTransferTonTransaction(id, request)
-        return json.decodeFromString<TONTransactionRequest>(result.transaction)
+        val transactionContent = engine.createTransferTonTransaction(id, request)
+        return json.decodeFromString<TONTransactionRequest>(transactionContent)
     }
 
     /**
@@ -150,8 +150,8 @@ internal class TONWallet internal constructor(
      * @throws WalletKitBridgeException if transaction creation fails
      */
     override suspend fun transferTONTransaction(requests: List<TONTransferRequest>): TONTransactionRequest {
-        val result = engine.createTransferMultiTonTransaction(id, requests)
-        return json.decodeFromString<TONTransactionRequest>(result.transaction)
+        val transactionContent = engine.createTransferMultiTonTransaction(id, requests)
+        return json.decodeFromString<TONTransactionRequest>(transactionContent)
     }
 
     /**

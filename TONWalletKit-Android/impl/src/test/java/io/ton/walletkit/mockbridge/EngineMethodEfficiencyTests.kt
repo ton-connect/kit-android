@@ -29,7 +29,8 @@ import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.mockbridge.infra.DefaultMockScenario
 import io.ton.walletkit.mockbridge.infra.MockBridgeTestBase
 import io.ton.walletkit.mockbridge.infra.MockScenario
-import io.ton.walletkit.model.WalletAdapterInfo
+import io.ton.walletkit.model.TONHex
+import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSignerInfo
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -61,8 +62,7 @@ class EngineMethodEfficiencyTests : MockBridgeTestBase() {
     class MethodTrackingScenario : DefaultMockScenario() {
         val createTonMnemonicCount = AtomicInteger(0)
         val createSignerFromMnemonicCount = AtomicInteger(0)
-        val createV5R1AdapterCount = AtomicInteger(0)
-        val createV4R2AdapterCount = AtomicInteger(0)
+        val createAdapterCount = AtomicInteger(0)
         val addWalletCount = AtomicInteger(0)
         val getWalletsCount = AtomicInteger(0)
         val getNftsCount = AtomicInteger(0)
@@ -70,8 +70,7 @@ class EngineMethodEfficiencyTests : MockBridgeTestBase() {
         fun resetCounts() {
             createTonMnemonicCount.set(0)
             createSignerFromMnemonicCount.set(0)
-            createV5R1AdapterCount.set(0)
-            createV4R2AdapterCount.set(0)
+            createAdapterCount.set(0)
             addWalletCount.set(0)
             getWalletsCount.set(0)
             getNftsCount.set(0)
@@ -87,28 +86,16 @@ class EngineMethodEfficiencyTests : MockBridgeTestBase() {
             return super.handleCreateSignerFromMnemonic(mnemonic, mnemonicType)
         }
 
-        override fun handleCreateV5R1Adapter(
+        override fun handleCreateAdapter(
             signerId: String,
+            publicKey: TONHex,
+            version: String,
             network: TONNetwork?,
             workchain: Int,
             walletId: Long,
-            publicKey: String?,
-            isCustom: Boolean,
-        ): WalletAdapterInfo {
-            createV5R1AdapterCount.incrementAndGet()
-            return super.handleCreateV5R1Adapter(signerId, network, workchain, walletId, publicKey, isCustom)
-        }
-
-        override fun handleCreateV4R2Adapter(
-            signerId: String,
-            network: TONNetwork?,
-            workchain: Int,
-            walletId: Long,
-            publicKey: String?,
-            isCustom: Boolean,
-        ): WalletAdapterInfo {
-            createV4R2AdapterCount.incrementAndGet()
-            return super.handleCreateV4R2Adapter(signerId, network, workchain, walletId, publicKey, isCustom)
+        ): TONWalletAdapter {
+            createAdapterCount.incrementAndGet()
+            return super.handleCreateAdapter(signerId, publicKey, version, network, workchain, walletId)
         }
 
         override fun handleAddWallet(adapterId: String): WalletAccount {
@@ -184,7 +171,7 @@ class EngineMethodEfficiencyTests : MockBridgeTestBase() {
 
         sdk.createV5R1Adapter(signer)
 
-        assertEquals("createV5R1Adapter should be called once", 1, trackingScenario.createV5R1AdapterCount.get())
+        assertEquals("createAdapter should be called once", 1, trackingScenario.createAdapterCount.get())
     }
 
     // ===========================================
@@ -201,7 +188,7 @@ class EngineMethodEfficiencyTests : MockBridgeTestBase() {
 
         sdk.createV4R2Adapter(signer)
 
-        assertEquals("createV4R2Adapter should be called once", 1, trackingScenario.createV4R2AdapterCount.get())
+        assertEquals("createAdapter should be called once", 1, trackingScenario.createAdapterCount.get())
     }
 
     // ===========================================
@@ -217,7 +204,7 @@ class EngineMethodEfficiencyTests : MockBridgeTestBase() {
         val adapter = sdk.createV5R1Adapter(signer)
         trackingScenario.resetCounts() // Reset before test
 
-        sdk.addWallet(adapter.adapterId)
+        sdk.addWallet(adapter)
 
         assertEquals("addWallet should be called once", 1, trackingScenario.addWalletCount.get())
     }
@@ -264,10 +251,10 @@ class EngineMethodEfficiencyTests : MockBridgeTestBase() {
 
         // Step 3: Create adapter
         val adapter = sdk.createV5R1Adapter(signer)
-        assertEquals("createV5R1Adapter should be called once", 1, trackingScenario.createV5R1AdapterCount.get())
+        assertEquals("createAdapter should be called once", 1, trackingScenario.createAdapterCount.get())
 
         // Step 4: Add wallet
-        sdk.addWallet(adapter.adapterId)
+        sdk.addWallet(adapter)
         assertEquals("addWallet should be called once", 1, trackingScenario.addWalletCount.get())
 
         // Total: 4 distinct engine calls, each called exactly once

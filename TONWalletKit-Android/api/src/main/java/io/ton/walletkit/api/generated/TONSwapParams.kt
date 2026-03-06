@@ -28,7 +28,7 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -36,21 +36,36 @@ import kotlinx.serialization.Serializable
 /**
  *
  *
- * @param boc
- * @param normalizedBoc
- * @param normalizedHash
+ * @param quote
+ * @param userAddress
+ * @param destinationAddress
+ * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
+ * @param deadline Transaction deadline in unix timestamp
+ * @param providerOptions Provider-specific options
  */
 @Serializable
-data class TONSendTransactionResponse(
+data class TONSwapParams(
 
-    @Contextual @SerialName(value = "boc")
-    val boc: io.ton.walletkit.model.TONBase64,
+    @SerialName(value = "quote")
+    val quote: TONSwapQuote,
 
-    @Contextual @SerialName(value = "normalizedBoc")
-    val normalizedBoc: io.ton.walletkit.model.TONBase64,
+    @Contextual @SerialName(value = "userAddress")
+    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    @Contextual @SerialName(value = "normalizedHash")
-    val normalizedHash: io.ton.walletkit.model.TONHex,
+    @Contextual @SerialName(value = "destinationAddress")
+    val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
+
+    /* Slippage tolerance in basis points (1 bp = 0.01%) */
+    @SerialName(value = "slippageBps")
+    val slippageBps: kotlin.Int? = null,
+
+    /* Transaction deadline in unix timestamp */
+    @SerialName(value = "deadline")
+    val deadline: kotlin.Int? = null,
+
+    /* Provider-specific options */
+    @Contextual @SerialName(value = "providerOptions")
+    val providerOptions: kotlinx.serialization.json.JsonElement? = null,
 
 ) {
 

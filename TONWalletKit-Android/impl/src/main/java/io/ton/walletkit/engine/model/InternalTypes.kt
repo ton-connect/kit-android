@@ -41,29 +41,3 @@ data class WalletAccount(
     val publicKey: String? = null,
     val version: String? = null,
 )
-
-/**
- * Internal wallet session representation.
- * Represents an active TON Connect session.
- */
-@Serializable
-data class WalletSession(
-    val sessionId: String,
-    val dAppName: String? = null,
-    val walletAddress: String? = null,
-    val dAppUrl: String? = null,
-    val manifestUrl: String? = null,
-    val iconUrl: String? = null,
-    val createdAtIso: String? = null,
-    val lastActivityIso: String? = null,
-)
-
-/**
- * Internal transaction with preview wrapper.
- * Used for transaction creation flows.
- */
-@Serializable
-data class TONTransactionWithPreview(
-    val transaction: String,
-    val preview: io.ton.walletkit.api.generated.TONTransactionEmulatedPreview? = null,
-)

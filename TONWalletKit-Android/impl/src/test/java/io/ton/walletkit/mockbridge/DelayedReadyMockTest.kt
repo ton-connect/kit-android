@@ -117,9 +117,9 @@ class DelayedReadyMockTest : MockBridgeTestBase() {
 
             val adapter = sdk.createV5R1Adapter(signer)
             assertNotNull("Adapter should be created", adapter)
-            assertTrue("Adapter should have ID", adapter.adapterId.isNotEmpty())
+            assertTrue("Adapter should have ID", adapter.identifier().isNotEmpty())
 
-            val wallet = sdk.addWallet(adapter.adapterId)
+            val wallet = sdk.addWallet(adapter)
             assertNotNull("Wallet should be created", wallet)
             assertNotNull("Wallet should have address", wallet.address)
             assertTrue("Wallet address should not be empty", wallet.address!!.value.isNotEmpty())

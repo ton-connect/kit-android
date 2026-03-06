@@ -47,7 +47,6 @@ import io.ton.walletkit.engine.infrastructure.InitializationManager
 import io.ton.walletkit.engine.infrastructure.MessageDispatcher
 import io.ton.walletkit.engine.infrastructure.StorageManager
 import io.ton.walletkit.engine.infrastructure.WebViewManager
-import io.ton.walletkit.engine.model.TONTransactionWithPreview
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.engine.operations.AssetOperations
 import io.ton.walletkit.engine.operations.CryptoOperations
@@ -55,17 +54,14 @@ import io.ton.walletkit.engine.operations.TonConnectOperations
 import io.ton.walletkit.engine.operations.TransactionOperations
 import io.ton.walletkit.engine.operations.WalletOperations
 import io.ton.walletkit.engine.parsing.EventParser
+import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.EventRouter
-import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
-import io.ton.walletkit.model.WalletAdapterInfo
-import io.ton.walletkit.model.WalletSigner
-import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.session.TONConnectSession
 import io.ton.walletkit.session.TONConnectSessionManager
 import io.ton.walletkit.storage.BridgeStorageAdapter
@@ -117,7 +113,8 @@ internal class WebViewWalletKitEngine private constructor(
 
     @Volatile private var tonApiKey: String? = null
 
-    private val signerManager = SignerManager()
+    private val adapterManager = AdapterManager()
+    private val signerManager = io.ton.walletkit.engine.state.SignerManager()
     private val eventRouter = EventRouter()
     private val storageManager = StorageManager(storageAdapter) { persistentStorageEnabled }
 
@@ -138,9 +135,9 @@ internal class WebViewWalletKitEngine private constructor(
                 context = appContext,
                 assetPath = assetPath,
                 storageManager = storageManager,
-                signerManager = signerManager,
                 sessionManager = sessionManager,
                 apiClients = apiClients,
+                adapterManager = adapterManager,
                 json = json,
                 onMessage = ::handleBridgeMessage,
                 onBridgeError = ::handleBridgeError,
@@ -155,6 +152,9 @@ internal class WebViewWalletKitEngine private constructor(
                 eventRouter = eventRouter,
                 initManager = initManager,
                 webViewManager = webViewManager,
+                adapterManager = adapterManager,
+                signerManager = signerManager,
+                json = json,
                 onInitialized = ::refreshDerivedState,
                 onNetworkChanged = ::handleNetworkChanged,
                 onApiBaseUrlChanged = ::handleApiBaseUrlChanged,
@@ -167,6 +167,7 @@ internal class WebViewWalletKitEngine private constructor(
                 ensureInitialized = ensureInitialized,
                 rpcClient = rpcClient,
                 signerManager = signerManager,
+                adapterManager = adapterManager,
                 currentNetworkProvider = { currentNetwork },
                 json = json,
             )
@@ -276,40 +277,28 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun createTonMnemonic(wordCount: Int): List<String> =
         cryptoOperations.createTonMnemonic(wordCount)
 
+    override suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount =
+        walletOperations.addWallet(adapter)
+
     override suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String,
-    ): WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType)
+    ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType)
 
-    override suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo =
-        walletOperations.createSignerFromSecretKey(secretKey)
+    override suspend fun createSignerFromSecretKey(secretKeyHex: String): io.ton.walletkit.model.WalletSignerInfo =
+        walletOperations.createSignerFromSecretKey(secretKeyHex)
 
-    override suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo =
+    override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo =
         walletOperations.createSignerFromCustom(signer)
 
-    override fun isCustomSigner(signerId: String): Boolean =
-        signerManager.hasCustomSigner(signerId)
-
-    override suspend fun createV5R1Adapter(
+    override suspend fun createAdapter(
         signerId: String,
+        publicKey: io.ton.walletkit.model.TONHex,
+        version: String,
         network: TONNetwork?,
         workchain: Int,
         walletId: Long,
-        publicKey: String?,
-        isCustom: Boolean,
-    ): WalletAdapterInfo = walletOperations.createV5R1Adapter(signerId, network, workchain, walletId, publicKey, isCustom)
-
-    override suspend fun createV4R2Adapter(
-        signerId: String,
-        network: TONNetwork?,
-        workchain: Int,
-        walletId: Long,
-        publicKey: String?,
-        isCustom: Boolean,
-    ): WalletAdapterInfo = walletOperations.createV4R2Adapter(signerId, network, workchain, walletId, publicKey, isCustom)
-
-    override suspend fun addWallet(adapterId: String): WalletAccount =
-        walletOperations.addWallet(adapterId)
+    ): io.ton.walletkit.model.TONWalletAdapter = walletOperations.createAdapter(signerId, publicKey, version, network, workchain, walletId)
 
     override suspend fun getWallets(): List<WalletAccount> = walletOperations.getWallets()
 
@@ -327,12 +316,13 @@ internal class WebViewWalletKitEngine private constructor(
         paramsJson: String?,
         url: String?,
         responseCallback: (JSONObject) -> Unit,
-    ) = tonConnectOperations.handleTonConnectRequest(messageId, method, paramsJson, url, responseCallback)
+        walletId: String?,
+    ) = tonConnectOperations.handleTonConnectRequest(messageId, method, paramsJson, url, responseCallback, walletId)
 
     override suspend fun createTransferTonTransaction(
         walletId: String,
         params: TONTransferRequest,
-    ): TONTransactionWithPreview = transactionOperations.createTransferTonTransaction(walletId, params)
+    ): String = transactionOperations.createTransferTonTransaction(walletId, params)
 
     override suspend fun handleNewTransaction(
         walletId: String,
@@ -359,9 +349,8 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun approveTransaction(
         event: TONSendTransactionRequestEvent,
-        network: TONNetwork,
         response: TONSendTransactionApprovalResponse?,
-    ) = tonConnectOperations.approveTransaction(event, network, response)
+    ) = tonConnectOperations.approveTransaction(event, response)
 
     override suspend fun rejectTransaction(
         event: TONSendTransactionRequestEvent,
@@ -371,9 +360,8 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun approveSignData(
         event: TONSignDataRequestEvent,
-        network: TONNetwork,
         response: TONSignDataApprovalResponse?,
-    ) = tonConnectOperations.approveSignData(event, network, response)
+    ) = tonConnectOperations.approveSignData(event, response)
 
     override suspend fun rejectSignData(
         event: TONSignDataRequestEvent,
@@ -420,7 +408,7 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun createTransferMultiTonTransaction(
         walletId: String,
         messages: List<TONTransferRequest>,
-    ): TONTransactionWithPreview = transactionOperations.createTransferMultiTonTransaction(walletId, messages)
+    ): String = transactionOperations.createTransferMultiTonTransaction(walletId, messages)
 
     override suspend fun getTransactionPreview(
         walletId: String,
@@ -439,33 +427,15 @@ internal class WebViewWalletKitEngine private constructor(
     }
 
     override suspend fun addEventsHandler(eventsHandler: TONBridgeEventsHandler) {
-        Logger.w(TAG, "🔵🔵🔵 addEventsHandler() called!")
-        Logger.w(TAG, "🔵 Handler class: ${eventsHandler.javaClass.name}")
-        Logger.w(TAG, "🔵 Handler identity: ${System.identityHashCode(eventsHandler)}")
-        Logger.w(TAG, "🔵 Current handlers count: ${eventRouter.getHandlerCount()}")
-        Logger.w(TAG, "🔵 Current areEventListenersSetUp: ${messageDispatcher.areEventListenersSetUp()}")
-
-        val outcome = eventRouter.addHandler(eventsHandler, logAcquired = true)
-
-        outcome.handlersBeforeAdd.forEachIndexed { index, handler ->
-            Logger.d(TAG, "🔵 Existing handler[$index]: ${handler.javaClass.name} (identity: ${System.identityHashCode(handler)})")
-        }
+        val outcome = eventRouter.addHandler(eventsHandler, logAcquired = false)
 
         if (outcome.alreadyRegistered) {
-            Logger.w(TAG, "⚠️⚠️⚠️ Handler already registered (found via .contains()), skipping!")
-            Logger.w(TAG, "🔵 eventHandlersMutex released, shouldSetupListeners=${outcome.isFirstHandler}")
+            Logger.w(TAG, "Handler already registered, skipping")
             return
         }
 
-        Logger.w(TAG, "✅✅✅ Added event handler! Total handlers: ${eventRouter.getHandlerCount()}, isFirstHandler=${outcome.isFirstHandler}")
-        Logger.w(TAG, "🔵 eventHandlersMutex released, shouldSetupListeners=${outcome.isFirstHandler}")
-
         if (outcome.isFirstHandler) {
-            Logger.w(TAG, "🔵🔵🔵 First handler registered, setting up event listeners...")
             ensureEventListenersSetUp()
-            Logger.w(TAG, "✅✅✅ Event listener setup complete after first handler registration")
-        } else {
-            Logger.w(TAG, "⚡⚡⚡ Not first handler, event listeners should already be set up (areEventListenersSetUp=${messageDispatcher.areEventListenersSetUp()})")
         }
     }
 
@@ -528,7 +498,7 @@ internal class WebViewWalletKitEngine private constructor(
             val network = configuration.network
 
             instances[network]?.let { existingInstance ->
-                Logger.w(TAG, "♻️♻️♻️ Reusing existing WebView engine for network: $network")
+                Logger.d(TAG, "Reusing existing WebView engine for network: $network")
                 if (eventsHandler != null) {
                     if (!existingInstance.eventRouter.containsHandler(eventsHandler)) {
                         existingInstance.addEventsHandler(eventsHandler)
@@ -540,11 +510,11 @@ internal class WebViewWalletKitEngine private constructor(
             val instance =
                 instanceMutex.withLock {
                     instances[network]?.let {
-                        Logger.w(TAG, "♻️♻️♻️ Reusing existing WebView engine for network: $network (after lock)")
+                        Logger.d(TAG, "Reusing existing WebView engine for network: $network (after lock)")
                         return@withLock it
                     }
 
-                    Logger.w(TAG, "🔶🔶🔶 Creating NEW WebView engine for network: $network")
+                    Logger.d(TAG, "Creating new WebView engine for network: $network")
                     val storageAdapter = createStorageAdapter(context, configuration.storageType)
                     WebViewWalletKitEngine(context, eventsHandler, storageAdapter, configuration.sessionManager, configuration.apiClients, assetPath).also {
                         instances[network] = it
@@ -566,11 +536,11 @@ internal class WebViewWalletKitEngine private constructor(
                 if (network != null) {
                     instances[network]?.destroy()
                     instances.remove(network)
-                    Logger.w(TAG, "🗑️ Cleared WebView engine for network: $network")
+                    Logger.d(TAG, "Cleared WebView engine for network: $network")
                 } else {
                     instances.values.forEach { it.destroy() }
                     instances.clear()
-                    Logger.w(TAG, "🗑️ Cleared all WebView engine instances")
+                    Logger.d(TAG, "Cleared all WebView engine instances")
                 }
             }
         }
@@ -596,7 +566,7 @@ internal class WebViewWalletKitEngine private constructor(
             sessionManager: TONConnectSessionManager? = null,
             apiClients: List<TONAPIClient> = emptyList(),
         ): WebViewWalletKitEngine {
-            Logger.w(TAG, "🧪 Creating test WebView engine with asset path: $assetPath")
+            Logger.d(TAG, "Creating test WebView engine with asset path: $assetPath")
             val storageAdapter = createStorageAdapter(context, storageType)
             return WebViewWalletKitEngine(context, eventsHandler, storageAdapter, sessionManager, apiClients, assetPath)
         }
