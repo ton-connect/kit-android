@@ -80,7 +80,7 @@ fun BatchedIntentRequestSheet(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        "Intent ${index + 1}: ${intent.type}",
+                        "Intent ${index + 1}: ${intent::class.simpleName}",
                         style = MaterialTheme.typography.titleSmall,
                     )
                     when (intent) {

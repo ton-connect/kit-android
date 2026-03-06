@@ -41,7 +41,8 @@ data class TONIntentErrorResponse(
 
     @SerialName(value = "error")
     val error: TONIntentError,
-
+    @SerialName("type")
+    val type: kotlin.String = "error",
 ) {
 
     companion object

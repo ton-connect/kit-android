@@ -278,7 +278,7 @@ class WalletKitViewModel @Inject constructor(
                 onSignDataRequest(event.request)
             }
             is TONWalletKitEvent.IntentRequest -> {
-                Log.d(LOG_TAG, "Handling IntentRequest: ${event.request.event.type}")
+                Log.d(LOG_TAG, "Handling IntentRequest: ${event.request.event::class.simpleName}")
                 onIntentRequest(event.request)
             }
             is TONWalletKitEvent.BatchedIntentRequest -> {
@@ -1452,7 +1452,7 @@ class WalletKitViewModel @Inject constructor(
                 is TONIntentRequestEvent.Action -> event.value.id
                 is TONIntentRequestEvent.Connect -> event.value.id
             },
-            intentType = event.type,
+            intentType = event::class.simpleName ?: "",
             origin = when (event) {
                 is TONIntentRequestEvent.Transaction -> event.value.origin.value
                 is TONIntentRequestEvent.SignData -> event.value.origin.value
@@ -1465,7 +1465,7 @@ class WalletKitViewModel @Inject constructor(
             request = request,
         )
         uiCoordinator.setSheet(SheetState.Intent(uiRequest))
-        eventLogger.log(R.string.wallet_event_intent_request, event.type)
+        eventLogger.log(R.string.wallet_event_intent_request, event::class.simpleName ?: "")
     }
 
     fun approveIntent(request: IntentRequestUi) {
@@ -1504,7 +1504,7 @@ class WalletKitViewModel @Inject constructor(
         val event = request.event
         val walletId = state.value.wallets.firstOrNull { it.address == state.value.activeWalletAddress }?.walletId
             ?: state.value.wallets.firstOrNull()?.walletId ?: ""
-        val intentTypes = event.intents.joinToString(" + ") { it.type }
+        val intentTypes = event.intents.joinToString(" + ") { it::class.simpleName ?: "" }
         val summary = "${event.intents.size} intent(s): $intentTypes"
         val uiRequest = BatchedIntentRequestUi(
             id = event.id,

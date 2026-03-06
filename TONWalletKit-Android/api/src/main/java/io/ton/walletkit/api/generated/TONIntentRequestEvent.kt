@@ -29,7 +29,6 @@
 package io.ton.walletkit.api.generated
 
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -38,8 +37,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
@@ -53,53 +50,36 @@ import kotlinx.serialization.serializer
 sealed class TONIntentRequestEvent {
 
     /**
-     * The discriminator value for this union type
-     */
-    abstract val type: String
-
-    /**
      *
      */
     @Serializable
     data class Transaction(
-        @SerialName("value")
         val value: TONTransactionIntentRequestEvent,
-    ) : TONIntentRequestEvent() {
-        override val type: String = "transaction"
-    }
+    ) : TONIntentRequestEvent()
 
     /**
      *
      */
     @Serializable
     data class SignData(
-        @SerialName("value")
         val value: TONSignDataIntentRequestEvent,
-    ) : TONIntentRequestEvent() {
-        override val type: String = "signData"
-    }
+    ) : TONIntentRequestEvent()
 
     /**
      *
      */
     @Serializable
     data class Action(
-        @SerialName("value")
         val value: TONActionIntentRequestEvent,
-    ) : TONIntentRequestEvent() {
-        override val type: String = "action"
-    }
+    ) : TONIntentRequestEvent()
 
     /**
      *
      */
     @Serializable
     data class Connect(
-        @SerialName("value")
-        val value: TONConnectionRequestEvent,
-    ) : TONIntentRequestEvent() {
-        override val type: String = "connect"
-    }
+        val value: TONConnectIntentRequestEvent,
+    ) : TONIntentRequestEvent()
 
     internal object Serializer : KSerializer<TONIntentRequestEvent> {
         override val descriptor: SerialDescriptor = buildClassSerialDescriptor("TONIntentRequestEvent")
@@ -109,41 +89,17 @@ sealed class TONIntentRequestEvent {
             val jsonEncoder = encoder as? JsonEncoder
                 ?: throw SerializationException("TONIntentRequestEvent can only be serialized with JSON")
 
-            val jsonObject = when (value) {
-                is Transaction -> {
-                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
-                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONTransactionIntentRequestEvent>(), value.value)
-                    buildJsonObject {
-                        put("type", JsonPrimitive("transaction"))
-                        put("value", valueJson)
-                    }
-                }
-                is SignData -> {
-                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
-                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONSignDataIntentRequestEvent>(), value.value)
-                    buildJsonObject {
-                        put("type", JsonPrimitive("signData"))
-                        put("value", valueJson)
-                    }
-                }
-                is Action -> {
-                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
-                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONActionIntentRequestEvent>(), value.value)
-                    buildJsonObject {
-                        put("type", JsonPrimitive("action"))
-                        put("value", valueJson)
-                    }
-                }
-                is Connect -> {
-                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
-                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<TONConnectionRequestEvent>(), value.value)
-                    buildJsonObject {
-                        put("type", JsonPrimitive("connect"))
-                        put("value", valueJson)
-                    }
-                }
+            val jsonElement = when (value) {
+                is Transaction ->
+                    jsonEncoder.json.encodeToJsonElement(serializer<TONTransactionIntentRequestEvent>(), value.value)
+                is SignData ->
+                    jsonEncoder.json.encodeToJsonElement(serializer<TONSignDataIntentRequestEvent>(), value.value)
+                is Action ->
+                    jsonEncoder.json.encodeToJsonElement(serializer<TONActionIntentRequestEvent>(), value.value)
+                is Connect ->
+                    jsonEncoder.json.encodeToJsonElement(serializer<TONConnectIntentRequestEvent>(), value.value)
             }
-            jsonEncoder.encodeJsonElement(jsonObject)
+            jsonEncoder.encodeJsonElement(jsonElement)
         }
 
         override fun deserialize(decoder: Decoder): TONIntentRequestEvent {
@@ -151,39 +107,27 @@ sealed class TONIntentRequestEvent {
                 ?: throw SerializationException("TONIntentRequestEvent can only be deserialized from JSON")
 
             val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val typeValue = jsonObject["type"]?.jsonPrimitive?.content
+            val discriminatorValue = jsonObject["type"]?.jsonPrimitive?.content
                 ?: throw SerializationException("Missing 'type' discriminator for TONIntentRequestEvent")
 
-            return when (typeValue) {
-                "transaction" -> {
-                    val valueJson = jsonObject["value"]
-                        ?: throw SerializationException("Missing 'value' for TONIntentRequestEvent.Transaction")
+            return when (discriminatorValue) {
+                "transaction" ->
                     Transaction(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionIntentRequestEvent>(), valueJson),
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionIntentRequestEvent>(), jsonObject),
                     )
-                }
-                "signData" -> {
-                    val valueJson = jsonObject["value"]
-                        ?: throw SerializationException("Missing 'value' for TONIntentRequestEvent.SignData")
+                "signData" ->
                     SignData(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<TONSignDataIntentRequestEvent>(), valueJson),
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONSignDataIntentRequestEvent>(), jsonObject),
                     )
-                }
-                "action" -> {
-                    val valueJson = jsonObject["value"]
-                        ?: throw SerializationException("Missing 'value' for TONIntentRequestEvent.Action")
+                "action" ->
                     Action(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<TONActionIntentRequestEvent>(), valueJson),
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONActionIntentRequestEvent>(), jsonObject),
                     )
-                }
-                "connect" -> {
-                    val valueJson = jsonObject["value"]
-                        ?: throw SerializationException("Missing 'value' for TONIntentRequestEvent.Connect")
+                "connect" ->
                     Connect(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<TONConnectionRequestEvent>(), valueJson),
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONConnectIntentRequestEvent>(), jsonObject),
                     )
-                }
-                else -> throw SerializationException("Unknown type '$typeValue' for TONIntentRequestEvent")
+                else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for TONIntentRequestEvent")
             }
         }
     }

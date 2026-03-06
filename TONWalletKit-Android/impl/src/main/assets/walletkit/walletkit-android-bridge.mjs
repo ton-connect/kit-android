@@ -34735,14 +34735,12 @@ class IntentParser {
     };
     return {
       type: "transaction",
-      value: {
-        ...base,
-        deliveryMode: "send",
-        network,
-        validUntil: resolvedTransaction.validUntil,
-        items: [],
-        resolvedTransaction
-      }
+      ...base,
+      deliveryMode: "send",
+      network,
+      validUntil: resolvedTransaction.validUntil,
+      items: [],
+      resolvedTransaction
     };
   }
   parseActionSignData(base, action, actionUrl) {
@@ -34758,12 +34756,10 @@ class IntentParser {
     }
     return {
       type: "signData",
-      value: {
-        ...base,
-        network: action.network ? { chainId: action.network } : void 0,
-        manifestUrl: actionUrl,
-        payload: this.wirePayloadToSignDataPayload(wirePayload)
-      }
+      ...base,
+      network: action.network ? { chainId: action.network } : void 0,
+      manifestUrl: actionUrl,
+      payload: this.wirePayloadToSignDataPayload(wirePayload)
     };
   }
   // -- Wire → Model mapping -------------------------------------------------
@@ -34783,13 +34779,11 @@ class IntentParser {
         const deliveryMode = request.m === "txIntent" ? "send" : "signOnly";
         event = {
           type: "transaction",
-          value: {
-            ...base,
-            deliveryMode,
-            network: request.n ? { chainId: request.n } : void 0,
-            validUntil: request.vu,
-            items: this.mapItems(request.i)
-          }
+          ...base,
+          deliveryMode,
+          network: request.n ? { chainId: request.n } : void 0,
+          validUntil: request.vu,
+          items: this.mapItems(request.i)
         };
         break;
       }
@@ -34797,22 +34791,18 @@ class IntentParser {
         const manifestUrl = request.mu || request.c?.manifestUrl || "";
         event = {
           type: "signData",
-          value: {
-            ...base,
-            network: request.n ? { chainId: request.n } : void 0,
-            manifestUrl,
-            payload: this.wirePayloadToSignDataPayload(request.p)
-          }
+          ...base,
+          network: request.n ? { chainId: request.n } : void 0,
+          manifestUrl,
+          payload: this.wirePayloadToSignDataPayload(request.p)
         };
         break;
       }
       case "actionIntent": {
         event = {
           type: "action",
-          value: {
-            ...base,
-            actionUrl: request.a
-          }
+          ...base,
+          actionUrl: request.a
         };
         break;
       }
@@ -34827,40 +34817,34 @@ class IntentParser {
       case "ton":
         return {
           type: "sendTon",
-          value: {
-            address: item.a,
-            amount: item.am,
-            payload: item.p,
-            stateInit: item.si,
-            extraCurrency: item.ec
-          }
+          address: item.a,
+          amount: item.am,
+          payload: item.p,
+          stateInit: item.si,
+          extraCurrency: item.ec
         };
       case "jetton":
         return {
           type: "sendJetton",
-          value: {
-            jettonMasterAddress: item.ma,
-            jettonAmount: item.ja,
-            destination: item.d,
-            responseDestination: item.rd,
-            customPayload: item.cp,
-            forwardTonAmount: item.fta,
-            forwardPayload: item.fp,
-            queryId: item.qi
-          }
+          jettonMasterAddress: item.ma,
+          jettonAmount: item.ja,
+          destination: item.d,
+          responseDestination: item.rd,
+          customPayload: item.cp,
+          forwardTonAmount: item.fta,
+          forwardPayload: item.fp,
+          queryId: item.qi
         };
       case "nft":
         return {
           type: "sendNft",
-          value: {
-            nftAddress: item.na,
-            newOwnerAddress: item.no,
-            responseDestination: item.rd,
-            customPayload: item.cp,
-            forwardTonAmount: item.fta,
-            forwardPayload: item.fp,
-            queryId: item.qi
-          }
+          nftAddress: item.na,
+          newOwnerAddress: item.no,
+          responseDestination: item.rd,
+          customPayload: item.cp,
+          forwardTonAmount: item.fta,
+          forwardPayload: item.fp,
+          queryId: item.qi
         };
     }
   }
@@ -34924,11 +34908,11 @@ class IntentResolver {
   async resolveItem(item, wallet2) {
     switch (item.type) {
       case "sendTon":
-        return this.resolveTonItem(item.value);
+        return this.resolveTonItem(item);
       case "sendJetton":
-        return this.resolveJettonItem(item.value, wallet2);
+        return this.resolveJettonItem(item, wallet2);
       case "sendNft":
-        return this.resolveNftItem(item.value, wallet2);
+        return this.resolveNftItem(item, wallet2);
     }
   }
   resolveTonItem(item) {
@@ -35010,10 +34994,10 @@ class IntentHandler {
     let connectItem;
     if (connectRequest) {
       const connectionEvent = await this.resolveConnectRequest(connectRequest, event);
-      connectItem = { type: "connect", value: connectionEvent };
+      connectItem = { ...connectionEvent, type: "connect" };
     }
     if (event.type === "transaction") {
-      if (connectItem || event.value.items.length > 1) {
+      if (connectItem || event.items.length > 1) {
         await this.resolveAndEmitBatchedTransaction(event, walletId, connectItem);
       } else {
         await this.resolveAndEmitTransaction(event, walletId);
@@ -35021,11 +35005,11 @@ class IntentHandler {
     } else {
       if (connectItem) {
         const batch = {
-          id: event.value.id,
-          origin: event.value.origin,
-          clientId: event.value.clientId,
-          traceId: event.value.traceId,
-          returnStrategy: event.value.returnStrategy,
+          id: event.id,
+          origin: event.origin,
+          clientId: event.clientId,
+          traceId: event.traceId,
+          returnStrategy: event.returnStrategy,
           intents: [connectItem, event]
         };
         this.emit(batch);
@@ -35052,9 +35036,10 @@ class IntentHandler {
       await CallForSuccess(() => wallet2.getClient().sendBoc(signedBoc));
     }
     const result = {
+      type: "transaction",
       boc: signedBoc
     };
-    await this.sendResponse(event, { type: "transaction", value: result });
+    await this.sendResponse(event, result);
     return result;
   }
   /**
@@ -35070,16 +35055,16 @@ class IntentHandler {
     let deliveryMode = "send";
     for (const intent of batch.intents) {
       if (intent.type === "transaction") {
-        allItems.push(...intent.value.items);
-        if (intent.value.deliveryMode === "signOnly") {
+        allItems.push(...intent.items);
+        if (intent.deliveryMode === "signOnly") {
           deliveryMode = "signOnly";
         }
       }
     }
     if (allItems.length > 0) {
       const firstTx = batch.intents.find((i) => i.type === "transaction");
-      const network = firstTx?.type === "transaction" ? firstTx.value.network : void 0;
-      const validUntil = firstTx?.type === "transaction" ? firstTx.value.validUntil : void 0;
+      const network = firstTx?.type === "transaction" ? firstTx.network : void 0;
+      const validUntil = firstTx?.type === "transaction" ? firstTx.validUntil : void 0;
       const transactionRequest = await this.resolver.intentItemsToTransactionRequest(allItems, wallet2, network, validUntil);
       const signedBoc = await wallet2.getSignedSendTransaction(transactionRequest, {
         internal: deliveryMode === "signOnly"
@@ -35088,14 +35073,15 @@ class IntentHandler {
         await CallForSuccess(() => wallet2.getClient().sendBoc(signedBoc));
       }
       const result = {
+        type: "transaction",
         boc: signedBoc
       };
-      await this.sendBatchResponse(batch, { type: "transaction", value: result });
+      await this.sendBatchResponse(batch, result);
       return result;
     }
     const signDataIntent = batch.intents.find((i) => i.type === "signData");
     if (signDataIntent && signDataIntent.type === "signData") {
-      const event = signDataIntent.value;
+      const event = signDataIntent;
       let domain = event.manifestUrl;
       try {
         domain = new URL(event.manifestUrl).host;
@@ -35109,13 +35095,14 @@ class IntentHandler {
       const signature = await wallet2.getSignedSignData(signData);
       const signatureBase64 = HexToBase64(signature);
       const result = {
+        type: "signData",
         signature: signatureBase64,
         address: wallet2.getAddress(),
         timestamp: signData.timestamp,
         domain: signData.domain,
         payload: event.payload
       };
-      await this.sendBatchResponse(batch, { type: "signData", value: result });
+      await this.sendBatchResponse(batch, result);
       return result;
     }
     throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, "Batched intent contains no transaction or signData items");
@@ -35135,13 +35122,14 @@ class IntentHandler {
     const signature = await wallet2.getSignedSignData(signData);
     const signatureBase64 = HexToBase64(signature);
     const result = {
+      type: "signData",
       signature: signatureBase64,
       address: wallet2.getAddress(),
       timestamp: signData.timestamp,
       domain: signData.domain,
       payload: event.payload
     };
-    await this.sendResponse(event, { type: "signData", value: result });
+    await this.sendResponse(event, result);
     return result;
   }
   async approveActionIntent(event, walletId) {
@@ -35149,18 +35137,19 @@ class IntentHandler {
     const actionResponse = await this.resolver.fetchActionUrl(event.actionUrl, wallet2.getAddress());
     const resolvedEvent = this.parser.parseActionResponse(actionResponse, event);
     if (resolvedEvent.type === "transaction") {
-      if (resolvedEvent.value.resolvedTransaction) {
-        resolvedEvent.value.resolvedTransaction.fromAddress = wallet2.getAddress();
+      if (resolvedEvent.resolvedTransaction) {
+        resolvedEvent.resolvedTransaction.fromAddress = wallet2.getAddress();
       }
-      return this.approveTransactionIntent(resolvedEvent.value, walletId);
+      return this.approveTransactionIntent(resolvedEvent, walletId);
     } else if (resolvedEvent.type === "signData") {
-      return this.approveSignDataIntent(resolvedEvent.value, walletId);
+      return this.approveSignDataIntent(resolvedEvent, walletId);
     }
     throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, `Action URL resolved to unsupported intent type: ${resolvedEvent.type}`);
   }
   // -- Public: Rejection ----------------------------------------------------
   async rejectIntent(event, reason, errorCode) {
     const result = {
+      type: "error",
       error: {
         code: errorCode ?? INTENT_ERROR_CODES.USER_DECLINED,
         message: reason || "User declined the request"
@@ -35168,9 +35157,9 @@ class IntentHandler {
     };
     const isBatched = "intents" in event;
     if (isBatched) {
-      await this.sendBatchResponse(event, { type: "error", value: result });
+      await this.sendBatchResponse(event, result);
     } else if (event.type !== "connect") {
-      await this.sendResponse(event.value, { type: "error", value: result });
+      await this.sendResponse(event, result);
     }
     return result;
   }
@@ -35181,16 +35170,15 @@ class IntentHandler {
   }
   // -- Private: Resolution & Emulation --------------------------------------
   async resolveAndEmitTransaction(event, walletId) {
-    const txEvent = event.value;
     const wallet2 = this.getWallet(walletId);
-    const transactionRequest = await this.resolveTransaction(txEvent, wallet2);
-    txEvent.resolvedTransaction = transactionRequest;
+    const transactionRequest = await this.resolveTransaction(event, wallet2);
+    event.resolvedTransaction = transactionRequest;
     try {
       const preview = await wallet2.getTransactionPreview(transactionRequest);
-      txEvent.preview = preview;
+      event.preview = preview;
     } catch (error2) {
       log$3.warn("Failed to emulate transaction preview", { error: error2 });
-      txEvent.preview = void 0;
+      event.preview = void 0;
     }
     this.emit(event);
   }
@@ -35200,8 +35188,8 @@ class IntentHandler {
    */
   async resolveConnectRequest(connectRequest, event) {
     const bridgeEvent = {
-      from: event.value.clientId || "",
-      id: event.value.id,
+      from: event.clientId || "",
+      id: event.id,
       method: "connect",
       params: {
         manifest: { url: connectRequest.manifestUrl },
@@ -35222,20 +35210,20 @@ class IntentHandler {
    * wallet can display the connect alongside the transaction items.
    */
   async resolveAndEmitBatchedTransaction(event, walletId, connectItem) {
-    const txEvent = event.value;
     const wallet2 = this.getWallet(walletId);
     const perItemEvents = [];
-    for (let i = 0; i < txEvent.items.length; i++) {
-      const item = txEvent.items[i];
+    for (let i = 0; i < event.items.length; i++) {
+      const item = event.items[i];
       const itemEvent = {
-        id: `${txEvent.id}_${i}`,
-        origin: txEvent.origin,
-        clientId: txEvent.clientId,
-        traceId: txEvent.traceId,
-        returnStrategy: txEvent.returnStrategy,
-        deliveryMode: txEvent.deliveryMode,
-        network: txEvent.network,
-        validUntil: txEvent.validUntil,
+        type: "transaction",
+        id: `${event.id}_${i}`,
+        origin: event.origin,
+        clientId: event.clientId,
+        traceId: event.traceId,
+        returnStrategy: event.returnStrategy,
+        deliveryMode: event.deliveryMode,
+        network: event.network,
+        validUntil: event.validUntil,
         items: [item]
       };
       try {
@@ -35246,18 +35234,18 @@ class IntentHandler {
       } catch (error2) {
         log$3.warn("Failed to resolve/emulate batched item", { error: error2, index: i });
       }
-      perItemEvents.push({ type: "transaction", value: itemEvent });
+      perItemEvents.push(itemEvent);
     }
     const intents = [];
     if (connectItem)
       intents.push(connectItem);
     intents.push(...perItemEvents);
     const batch = {
-      id: txEvent.id,
-      origin: txEvent.origin,
-      clientId: txEvent.clientId,
-      traceId: txEvent.traceId,
-      returnStrategy: txEvent.returnStrategy,
+      id: event.id,
+      origin: event.origin,
+      clientId: event.clientId,
+      traceId: event.traceId,
+      returnStrategy: event.returnStrategy,
       intents
     };
     this.emit(batch);
@@ -35299,20 +35287,20 @@ class IntentHandler {
   toWireResponse(eventId, result) {
     if (result.type === "error") {
       return {
-        error: { code: result.value.error.code, message: result.value.error.message },
+        error: { code: result.error.code, message: result.error.message },
         id: eventId
       };
     }
     if (result.type === "transaction") {
-      return { result: result.value.boc, id: eventId };
+      return { result: result.boc, id: eventId };
     }
     return {
       result: {
-        signature: result.value.signature,
-        address: result.value.address,
-        timestamp: result.value.timestamp,
-        domain: result.value.domain,
-        payload: this.signDataPayloadToWire(result.value.payload)
+        signature: result.signature,
+        address: result.address,
+        timestamp: result.timestamp,
+        domain: result.domain,
+        payload: this.signDataPayloadToWire(result.payload)
       },
       id: eventId
     };
@@ -35719,8 +35707,8 @@ class TonWalletKit {
     const connectItems = batch.intents.filter((i) => i.type === "connect");
     for (const item of connectItems) {
       if (item.type === "connect") {
-        item.value.walletId = walletId;
-        await this.requestProcessor.approveConnectRequest(item.value, proof ? { proof } : void 0);
+        item.walletId = walletId;
+        await this.requestProcessor.approveConnectRequest(item, proof ? { proof } : void 0);
       }
     }
     return this.intentHandler.approveBatchedIntent(batch, walletId);

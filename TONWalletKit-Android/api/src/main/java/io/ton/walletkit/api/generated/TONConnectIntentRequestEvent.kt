@@ -34,12 +34,11 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Transaction intent request event.  Covers both `txIntent` (send) and `signMsg` (signOnly) from the spec. The `deliveryMode` field distinguishes them.
+ * Connect intent request event, wrapping a ConnectionRequestEvent when an intent URL also carries a connect request.
  *
  * @param id Unique identifier for the bridge event
- * @param origin
- * @param deliveryMode
- * @param items Original intent action items (for display / re-conversion)
+ * @param requestedItems Items requested by the dApp (e.g., wallet address, proof)
+ * @param preview
  * @param from
  * @param walletAddress
  * @param walletId Wallet identifier associated with the event
@@ -52,28 +51,20 @@ import kotlinx.serialization.Serializable
  * @param traceId
  * @param dAppInfo
  * @param returnStrategy Raw TonConnect return strategy string.
- * @param clientId Client public key (for response encryption)
- * @param network
- * @param validUntil Transaction validity deadline (unix timestamp)
- * @param resolvedTransaction
- * @param preview
  */
 @Serializable
-data class TONTransactionIntentRequestEvent(
+data class TONConnectIntentRequestEvent(
 
     /* Unique identifier for the bridge event */
     @SerialName(value = "id")
     val id: kotlin.String,
 
-    @Contextual @SerialName(value = "origin")
-    val origin: TONIntentOrigin,
+    /* Items requested by the dApp (e.g., wallet address, proof) */
+    @SerialName(value = "requestedItems")
+    val requestedItems: kotlin.collections.List<TONConnectionRequestEventRequestedItem>,
 
-    @Contextual @SerialName(value = "deliveryMode")
-    val deliveryMode: TONIntentDeliveryMode,
-
-    /* Original intent action items (for display / re-conversion) */
-    @SerialName(value = "items")
-    val items: kotlin.collections.List<TONIntentActionItem>,
+    @SerialName(value = "preview")
+    val preview: TONConnectionRequestEventPreview,
 
     @SerialName(value = "from")
     val from: kotlin.String? = null,
@@ -116,25 +107,8 @@ data class TONTransactionIntentRequestEvent(
     /* Raw TonConnect return strategy string. */
     @SerialName(value = "returnStrategy")
     val returnStrategy: kotlin.String? = null,
-
-    /* Client public key (for response encryption) */
-    @SerialName(value = "clientId")
-    val clientId: kotlin.String? = null,
-
-    @SerialName(value = "network")
-    val network: TONNetwork? = null,
-
-    /* Transaction validity deadline (unix timestamp) */
-    @SerialName(value = "validUntil")
-    val validUntil: kotlin.Int? = null,
-
-    @SerialName(value = "resolvedTransaction")
-    val resolvedTransaction: TONTransactionRequest? = null,
-
-    @SerialName(value = "preview")
-    val preview: TONTransactionEmulatedPreview? = null,
     @SerialName("type")
-    val type: kotlin.String = "transaction",
+    val type: kotlin.String = "connect",
 ) {
 
     companion object

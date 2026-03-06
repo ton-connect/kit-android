@@ -73,7 +73,8 @@ data class TONSendJettonAction(
     /* Query ID */
     @SerialName(value = "queryId")
     val queryId: kotlin.Int? = null,
-
+    @SerialName("type")
+    val type: kotlin.String = "sendJetton",
 ) {
 
     companion object

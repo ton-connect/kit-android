@@ -69,7 +69,8 @@ data class TONSendNftAction(
     /* Query ID */
     @SerialName(value = "queryId")
     val queryId: kotlin.Int? = null,
-
+    @SerialName("type")
+    val type: kotlin.String = "sendNft",
 ) {
 
     companion object

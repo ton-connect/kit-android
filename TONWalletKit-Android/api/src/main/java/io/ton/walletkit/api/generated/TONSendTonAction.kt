@@ -61,7 +61,8 @@ data class TONSendTonAction(
     /* Map of extra currency IDs to their amounts. Extra currencies are additional tokens that can be attached to TON messages. */
     @SerialName(value = "extraCurrency")
     val extraCurrency: kotlin.collections.Map<kotlin.String, kotlin.String>? = null,
-
+    @SerialName("type")
+    val type: kotlin.String = "sendTon",
 ) {
 
     companion object

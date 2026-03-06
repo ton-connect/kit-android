@@ -120,7 +120,8 @@ data class TONSignDataIntentRequestEvent(
 
     @SerialName(value = "network")
     val network: TONNetwork? = null,
-
+    @SerialName("type")
+    val type: kotlin.String = "signData",
 ) {
 
     companion object

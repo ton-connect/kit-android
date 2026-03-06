@@ -43,7 +43,8 @@ data class TONIntentTransactionResponse(
 
     @Contextual @SerialName(value = "boc")
     val boc: io.ton.walletkit.model.TONBase64,
-
+    @SerialName("type")
+    val type: kotlin.String = "transaction",
 ) {
 
     companion object

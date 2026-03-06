@@ -112,7 +112,8 @@ data class TONActionIntentRequestEvent(
     /* Client public key (for response encryption) */
     @SerialName(value = "clientId")
     val clientId: kotlin.String? = null,
-
+    @SerialName("type")
+    val type: kotlin.String = "action",
 ) {
 
     companion object

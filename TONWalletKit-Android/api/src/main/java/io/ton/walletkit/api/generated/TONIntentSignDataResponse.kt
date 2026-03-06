@@ -62,7 +62,8 @@ data class TONIntentSignDataResponse(
 
     @SerialName(value = "payload")
     val payload: TONSignDataPayload,
-
+    @SerialName("type")
+    val type: kotlin.String = "signData",
 ) {
 
     companion object
