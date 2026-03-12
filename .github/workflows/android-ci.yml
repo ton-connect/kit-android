@@ -449,15 +449,9 @@ jobs:
             # Clear logcat before tests
             adb logcat -c
             
-            # Start screen recording in background
-            # screenrecord has a 180s limit per file, so we chain segments via a loop
+            # Start screen recording in background (single 3-min segment)
             mkdir -p test-artifacts
-            (
-              for i in 1 2 3 4 5 6; do
-                adb shell "screenrecord --time-limit 180 /sdcard/recording_$i.mp4" 2>/dev/null || true
-              done
-            ) &
-            RECORD_PID=$!
+            adb shell "screenrecord --time-limit 180 /sdcard/recording_1.mp4" &
             
             # Run tests, capture exit code
             TEST_EXIT=0
@@ -465,13 +459,10 @@ jobs:
             
             # Stop screen recording
             adb shell "pkill -INT screenrecord" 2>/dev/null || true
-            kill $RECORD_PID 2>/dev/null || true
             sleep 3
             
-            # Pull recordings
-            for i in 1 2 3 4 5 6; do
-              adb pull "/sdcard/recording_$i.mp4" "test-artifacts/recording_$i.mp4" 2>/dev/null || true
-            done
+            # Pull recording
+            adb pull "/sdcard/recording_1.mp4" "test-artifacts/recording_1.mp4" 2>/dev/null || true
             
             # Take final screenshot of emulator state
             adb shell screencap -p /sdcard/final_state.png
