@@ -274,7 +274,7 @@ class JsDAppController {
                     var btn = document.querySelector('[data-tc-wallets-modal-container] button[data-tc-icon-button="true"]');
                     if (btn) {
                         var rect = btn.getBoundingClientRect();
-                        return {x: rect.left + rect.width/2, y: rect.top + rect.height/2};
+                        return JSON.stringify({x: rect.left + rect.width/2, y: rect.top + rect.height/2});
                     }
                     return null;
                 })()
@@ -285,8 +285,8 @@ class JsDAppController {
 
             if (coordResult != null && coordResult != "null") {
                 try {
-                    // Parse coordinates and tap (strip outer quotes from evaluateJavascript)
-                    val coords = org.json.JSONObject(coordResult.removeSurrounding("\""))
+                    // Parse coordinates and tap
+                    val coords = org.json.JSONObject(coordResult)
                     val x = coords.getDouble("x").toInt()
                     val y = coords.getDouble("y").toInt()
 
@@ -535,19 +535,19 @@ class JsDAppController {
     }
 
     /**
-     * Extract the TonConnect URL from the modal.
+     * Click the copy link button in the TonConnect modal and extract the URL.
      *
-     * Strategy (CI-safe, no touch simulation or clipboard needed):
-     * 1. Wait for the TonConnect modal to appear
-     * 2. Extract the universal link URL directly from the DOM — the SDK stores it in
-     *    link href attributes, button data attributes, or the QR code value
-     * 3. Fall back to hooking the TonConnect SDK's internal connector to get the URL
+     * The modal flow on mobile:
+     * 1. Modal opens with wallet list
+     * 2. Click the QR icon button inside [data-tc-wallets-modal-universal-mobile]
+     * 3. QR code view appears with a "Copy Link" button
+     * 4. Intercept the URL by hooking clipboard API, then simulate touch on "Copy Link"
      *
      * @return The TonConnect URL if extracted successfully, empty string otherwise
      */
-    @Step("Extract TonConnect URL from modal")
+    @Step("Copy TonConnect URL from modal")
     fun clickCopyLinkInModal(): String {
-        android.util.Log.d("JsDAppController", "Extracting TonConnect URL from modal DOM...")
+        android.util.Log.d("JsDAppController", "Looking for copy URL button in modal...")
 
         // Wait for modal to be visible
         val modalVisible = jsBridge.waitForCondition(
@@ -560,142 +560,48 @@ class JsDAppController {
             return ""
         }
 
-        // Give modal content time to render
-        Thread.sleep(1000)
-
-        // Strategy 1: Extract URL directly from the DOM
-        // The TonConnect SDK renders the universal link in various places:
-        // - As href on link elements in the modal
-        // - In the QR code data (as a data attribute or in a canvas)
-        // - In the mobile section's button links
-        val domUrl = jsBridge.evaluateJs(
-            """
-            (function() {
-                var modal = document.querySelector('[data-tc-wallets-modal-container]');
-                if (!modal) return '';
-                
-                // Strategy 1a: Look for any link/anchor with tc:// or ton-connect in href
-                var links = modal.querySelectorAll('a[href]');
-                for (var i = 0; i < links.length; i++) {
-                    var href = links[i].href;
-                    if (href && (href.indexOf('tc://') === 0 || href.indexOf('ton-connect') !== -1)) {
-                        return href;
-                    }
-                }
-                
-                // Strategy 1b: Look for the universal link in the desktop section
-                var desktopSection = document.querySelector('[data-tc-wallets-modal-universal-desktop]');
-                if (desktopSection) {
-                    // The desktop section often has a "Copy" button whose previous sibling QR
-                    // or a link element contains the URL
-                    var allElements = desktopSection.querySelectorAll('*');
-                    for (var i = 0; i < allElements.length; i++) {
-                        var el = allElements[i];
-                        // Check onclick, href, data-* attributes for tc:// URLs
-                        for (var j = 0; j < el.attributes.length; j++) {
-                            var val = el.attributes[j].value;
-                            if (val && (val.indexOf('tc://') !== -1 || val.indexOf('ton-connect') !== -1)) {
-                                // Extract the tc:// URL from the attribute value
-                                var tcIdx = val.indexOf('tc://');
-                                if (tcIdx !== -1) return val.substring(tcIdx);
-                                return val;
-                            }
-                        }
-                    }
-                }
-                
-                // Strategy 1c: Look in mobile section too
-                var mobileSection = document.querySelector('[data-tc-wallets-modal-universal-mobile]');
-                if (mobileSection) {
-                    var allElements = mobileSection.querySelectorAll('*');
-                    for (var i = 0; i < allElements.length; i++) {
-                        var el = allElements[i];
-                        for (var j = 0; j < el.attributes.length; j++) {
-                            var val = el.attributes[j].value;
-                            if (val && (val.indexOf('tc://') !== -1 || val.indexOf('ton-connect') !== -1)) {
-                                var tcIdx = val.indexOf('tc://');
-                                if (tcIdx !== -1) return val.substring(tcIdx);
-                                return val;
-                            }
-                        }
-                    }
-                }
-                
-                return '';
-            })()
-            """.trimIndent(),
-        )
-
-        val cleanDomUrl = domUrl?.trim('"') ?: ""
-        android.util.Log.d("JsDAppController", "DOM URL extraction: '$cleanDomUrl'")
-
-        if (cleanDomUrl.isNotBlank() && (cleanDomUrl.startsWith("tc://") || cleanDomUrl.contains("ton-connect"))) {
-            return cleanDomUrl
-        }
-
-        // Strategy 2: Hook into TonConnect SDK's internal state
-        // The SDK exposes the universal link via its connector
-        val sdkUrl = jsBridge.evaluateJs(
-            """
-            (function() {
-                // Try tonConnectUI (v2 SDK)
-                if (window.tonConnectUI) {
-                    // The connector stores the universal link
-                    var connector = window.tonConnectUI.connector;
-                    if (connector && connector.connect) {
-                        // Try to get the last generated universal link
-                        var link = connector._universalLink || connector.universalLink;
-                        if (link) return link;
-                    }
-                }
-                
-                // Try to find tonConnect instance on React fiber
-                // The SDK stores the connect URL when modal opens
-                var root = document.querySelector('#__next') || document.querySelector('#root') || document.body;
-                if (root && root._reactRootContainer) {
-                    // React 17
-                    var fiber = root._reactRootContainer._internalRoot;
-                } else if (root) {
-                    // React 18+ - find fiber via __reactFiber
-                    var keys = Object.keys(root);
-                    for (var i = 0; i < keys.length; i++) {
-                        if (keys[i].startsWith('__reactFiber')) {
-                            break;
-                        }
-                    }
-                }
-                
-                return '';
-            })()
-            """.trimIndent(),
-        )
-
-        val cleanSdkUrl = sdkUrl?.trim('"') ?: ""
-        android.util.Log.d("JsDAppController", "SDK URL extraction: '$cleanSdkUrl'")
-
-        if (cleanSdkUrl.isNotBlank() && (cleanSdkUrl.startsWith("tc://") || cleanSdkUrl.contains("ton-connect"))) {
-            return cleanSdkUrl
-        }
-
-        // Strategy 3: Hook clipboard and click "Copy Link" using .click()
-        // This is the old approach — .click() may work even without touch events
-        android.util.Log.d("JsDAppController", "Falling back to clipboard hook + click...")
-
-        // First, click the QR icon to open the QR view (using .click() only, no touch events)
+        // STEP 1: Click the QR icon button to open QR code view using touch simulation
         val qrClickResult = jsBridge.evaluateJs(
             """
             (function() {
+                // Find the mobile section
                 var mobileSection = document.querySelector('[data-tc-wallets-modal-universal-mobile]');
-                if (!mobileSection) return 'no_mobile_section';
+                if (!mobileSection) {
+                    return 'no_mobile_section';
+                }
+                
+                // Find the icon button inside mobile section (it's the QR button)
                 var iconButton = mobileSection.querySelector('[data-tc-icon-button]');
                 if (iconButton) {
+                    // Get button position and simulate touch event
+                    var rect = iconButton.getBoundingClientRect();
+                    var x = rect.left + rect.width / 2;
+                    var y = rect.top + rect.height / 2;
+                    
+                    // Create and dispatch touch events
+                    var touchStart = new TouchEvent('touchstart', {
+                        bubbles: true, cancelable: true, view: window,
+                        touches: [new Touch({identifier: 1, target: iconButton, clientX: x, clientY: y})],
+                        targetTouches: [new Touch({identifier: 1, target: iconButton, clientX: x, clientY: y})],
+                        changedTouches: [new Touch({identifier: 1, target: iconButton, clientX: x, clientY: y})]
+                    });
+                    var touchEnd = new TouchEvent('touchend', {
+                        bubbles: true, cancelable: true, view: window,
+                        touches: [],
+                        targetTouches: [],
+                        changedTouches: [new Touch({identifier: 1, target: iconButton, clientX: x, clientY: y})]
+                    });
+                    iconButton.dispatchEvent(touchStart);
+                    iconButton.dispatchEvent(touchEnd);
                     iconButton.click();
                     return 'clicked_qr_icon';
                 }
+                
                 return 'no_qr_button';
             })()
             """.trimIndent(),
         )
+
         android.util.Log.d("JsDAppController", "QR icon click result: $qrClickResult")
 
         if (qrClickResult?.contains("clicked") != true) {
@@ -703,52 +609,97 @@ class JsDAppController {
             return ""
         }
 
-        Thread.sleep(500)
+        // Wait for QR code view to appear
 
-        // Hook clipboard and click Copy
-        jsBridge.evaluateJs(
+        // STEP 2: Hook the clipboard API to intercept the URL when copy is clicked
+        // Then click the Copy Link button using touch simulation
+        val result = jsBridge.evaluateJs(
             """
             (function() {
+                // Create a variable to store the intercepted URL
                 window.__tonConnectUrl = '';
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    var original = navigator.clipboard.writeText.bind(navigator.clipboard);
-                    navigator.clipboard.writeText = function(text) {
-                        window.__tonConnectUrl = text;
-                        return original(text).catch(function() { return Promise.resolve(); });
-                    };
-                }
-
+                
+                // Hook the clipboard API to intercept writes
+                var originalWriteText = navigator.clipboard.writeText;
+                navigator.clipboard.writeText = function(text) {
+                    window.__tonConnectUrl = text;
+                    console.log('Intercepted clipboard write: ' + text);
+                    return originalWriteText.call(navigator.clipboard, text).catch(function(e) {
+                        console.log('Clipboard write failed, but we captured: ' + text);
+                        return Promise.resolve();
+                    });
+                };
+                
+                // Find and click the Copy Link button with touch simulation
                 var buttons = document.querySelectorAll('button');
+                var copyButton = null;
                 for (var i = 0; i < buttons.length; i++) {
-                    if (buttons[i].innerText.toLowerCase().includes('copy')) {
-                        buttons[i].click();
-                        return 'clicked_copy';
+                    var text = buttons[i].innerText.toLowerCase();
+                    if (text.includes('copy')) {
+                        copyButton = buttons[i];
+                        break;
                     }
                 }
-                return 'no_copy_button';
+                
+                if (!copyButton) {
+                    return 'no_copy_button';
+                }
+                
+                // Get button position and simulate touch event
+                var rect = copyButton.getBoundingClientRect();
+                var x = rect.left + rect.width / 2;
+                var y = rect.top + rect.height / 2;
+                
+                // Create touch events
+                try {
+                    var touchStart = new TouchEvent('touchstart', {
+                        bubbles: true, cancelable: true, view: window,
+                        touches: [new Touch({identifier: 1, target: copyButton, clientX: x, clientY: y})],
+                        targetTouches: [new Touch({identifier: 1, target: copyButton, clientX: x, clientY: y})],
+                        changedTouches: [new Touch({identifier: 1, target: copyButton, clientX: x, clientY: y})]
+                    });
+                    var touchEnd = new TouchEvent('touchend', {
+                        bubbles: true, cancelable: true, view: window,
+                        touches: [],
+                        targetTouches: [],
+                        changedTouches: [new Touch({identifier: 1, target: copyButton, clientX: x, clientY: y})]
+                    });
+                    copyButton.dispatchEvent(touchStart);
+                    copyButton.dispatchEvent(touchEnd);
+                } catch(e) {
+                    console.log('Touch event error: ' + e);
+                }
+                
+                // Also fire mouse events and click as fallback
+                copyButton.dispatchEvent(new MouseEvent('mousedown', {bubbles: true, cancelable: true, view: window, clientX: x, clientY: y}));
+                copyButton.dispatchEvent(new MouseEvent('mouseup', {bubbles: true, cancelable: true, view: window, clientX: x, clientY: y}));
+                copyButton.click();
+                
+                return 'clicked_copy: ' + copyButton.innerText;
             })()
             """.trimIndent(),
         )
 
-        Thread.sleep(500)
+        android.util.Log.d("JsDAppController", "Copy link click result: $result")
 
-        // Read intercepted URL
-        val interceptedUrl = jsBridge.evaluateJs("window.__tonConnectUrl || ''")
+        // Wait for clipboard hook to capture the URL
+
+        // STEP 3: Retrieve the intercepted URL
+        val interceptedUrl = jsBridge.evaluateJs(
+            """
+            (function() {
+                return window.__tonConnectUrl || '';
+            })()
+            """.trimIndent(),
+        )
+
         val cleanUrl = interceptedUrl?.trim('"') ?: ""
-        android.util.Log.d("JsDAppController", "Clipboard intercepted URL: '$cleanUrl'")
+        android.util.Log.d("JsDAppController", "Intercepted URL: '$cleanUrl'")
 
         if (cleanUrl.isNotBlank() && (cleanUrl.startsWith("tc://") || cleanUrl.contains("ton-connect"))) {
             return cleanUrl
         }
 
-        // Strategy 4: Check Android clipboard as last resort
-        val clipUrl = getClipboardUrl()
-        if (clipUrl.isNotBlank()) {
-            android.util.Log.d("JsDAppController", "Got URL from Android clipboard: '$clipUrl'")
-            return clipUrl
-        }
-
-        android.util.Log.e("JsDAppController", "All URL extraction strategies failed")
         return ""
     }
 
@@ -871,28 +822,11 @@ class JsDAppController {
     fun waitForValidationPassed(timeoutMs: Long = 30000): Boolean {
         android.util.Log.d("JsDAppController", "Waiting for validation result...")
 
-        // First, wait for the validation element to have any non-empty text.
-        // On slow CI (SwiftShader), the page might not have rendered the result yet.
-        val hasContent = jsBridge.waitForCondition(
-            """
-            (function() {
-                var el = document.querySelector('[data-testid="connectValidation"]');
-                return el && el.innerText && el.innerText.trim().length > 0;
-            })()
-            """.trimIndent(),
-            timeoutMs = timeoutMs,
-        )
-
-        if (!hasContent) {
-            android.util.Log.w("JsDAppController", "Validation element still empty after ${timeoutMs}ms")
-            return false
-        }
-
-        // Now check for "Validation Passed"
+        // First check for official "Validation Passed"
         val passed = jsBridge.waitForElementText(
             CONNECT_VALIDATION,
             "Validation Passed",
-            timeoutMs = 5000, // Short timeout — content is already there
+            timeoutMs = 5000, // Short timeout
         )
 
         if (passed) {
