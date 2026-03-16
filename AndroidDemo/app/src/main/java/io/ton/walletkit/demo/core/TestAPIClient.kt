@@ -25,10 +25,12 @@ import android.util.Log
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
 import io.ton.walletkit.api.generated.TONGetMethodResult
+import io.ton.walletkit.api.generated.TONMasterchainInfo
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -140,6 +142,32 @@ class TestAPIClient(
         }
     }
 
+    override suspend fun getMasterchainInfo(): TONMasterchainInfo {
+        Log.d(tag, "getMasterchainInfo called on network: ${network.chainId}")
+        val baseUrl = when (network) {
+            TONNetwork.MAINNET -> "https://toncenter.com"
+            TONNetwork.TESTNET -> "https://testnet.toncenter.com"
+            else -> "https://toncenter.com"
+        }
+        return withContext(Dispatchers.IO) {
+            val url = URL("$baseUrl/api/v3/masterchainInfo")
+            val connection = url.openConnection()
+            connection.setRequestProperty("Accept", "application/json")
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+            val response = connection.getInputStream().bufferedReader().readText()
+            val json = JSONObject(response)
+            val last = json.getJSONObject("last")
+            TONMasterchainInfo(
+                seqno = last.getInt("seqno"),
+                shard = last.getString("shard"),
+                workchain = last.getInt("workchain"),
+                fileHash = TONHex(last.getString("file_hash")),
+                rootHash = TONHex(last.getString("root_hash")),
+            )
+        }
+    }
+
     companion object {
         /**
          * Create a TestAPIClient for mainnet.
@@ -203,6 +231,25 @@ class ToncenterAPIClient(
         }
     }
 
+    override suspend fun getMasterchainInfo(): TONMasterchainInfo {
+        Log.d(tag, "🔗 [Toncenter] getMasterchainInfo on ${network.chainId}")
+        return withContext(Dispatchers.IO) {
+            val url = URL("$baseUrl/api/v3/masterchainInfo")
+            val connection = url.openConnection()
+            connection.setRequestProperty("Accept", "application/json")
+            val response = connection.getInputStream().bufferedReader().readText()
+            val json = JSONObject(response)
+            val last = json.getJSONObject("last")
+            TONMasterchainInfo(
+                seqno = last.getInt("seqno"),
+                shard = last.getString("shard"),
+                workchain = last.getInt("workchain"),
+                fileHash = TONHex(last.getString("file_hash")),
+                rootHash = TONHex(last.getString("root_hash")),
+            )
+        }
+    }
+
     companion object {
         fun mainnet() = ToncenterAPIClient(TONNetwork.MAINNET)
         fun testnet() = ToncenterAPIClient(TONNetwork.TESTNET)
@@ -258,6 +305,27 @@ class TonAPIClient(
             }
             val response = connection.getInputStream().bufferedReader().readText()
             JSONObject(response).optString("balance", "0")
+        }
+    }
+
+    override suspend fun getMasterchainInfo(): TONMasterchainInfo {
+        Log.d(tag, "🔗 [TonAPI] getMasterchainInfo on ${network.chainId}")
+        return withContext(Dispatchers.IO) {
+            val url = URL("$baseUrl/v2/blockchain/masterchain-head")
+            val connection = url.openConnection()
+            connection.setRequestProperty("Accept", "application/json")
+            if (apiKey.isNotEmpty()) {
+                connection.setRequestProperty("Authorization", "Bearer $apiKey")
+            }
+            val response = connection.getInputStream().bufferedReader().readText()
+            val json = JSONObject(response)
+            TONMasterchainInfo(
+                seqno = json.getInt("seqno"),
+                shard = json.getString("shard"),
+                workchain = json.getInt("workchain_id"),
+                fileHash = TONHex("0x${json.getString("file_hash")}"),
+                rootHash = TONHex("0x${json.getString("root_hash")}"),
+            )
         }
     }
 

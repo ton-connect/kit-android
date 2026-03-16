@@ -19,37 +19,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.session
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
 
-import io.ton.walletkit.model.TONUserFriendlyAddress
+package io.ton.walletkit.api.generated
+
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Represents a TONConnect session between the wallet and a dApp.
+ * Options for configuring the referrer in Omniston swap operations
  *
- * This model is used internally for session management and matches
- * the structure expected by the JavaScript bridge.
+ * @param referrerAddress The address of the referrer
+ * @param referrerFeeBps Referrer fee in basis points (1 bp = 0.01%)
+ * @param flexibleReferrerFee Whether a flexible referrer fee is allowed
  */
 @Serializable
-data class TONConnectSession(
-    val sessionId: String,
-    val walletId: String,
-    val walletAddress: TONUserFriendlyAddress,
-    val createdAt: String,
-    val lastActivityAt: String,
-    val privateKey: String,
-    val publicKey: String,
-    val domain: String,
-    val schemaVersion: Int,
-    /** Display name of the dApp */
-    val dAppName: String? = null,
-    /** Brief description of the dApp's purpose */
-    val dAppDescription: String? = null,
-    /** Main website URL of the dApp */
-    val dAppUrl: String? = null,
-    /** Icon/logo URL of the dApp */
-    val dAppIconUrl: String? = null,
-    @SerialName("isJsBridge")
-    val isJsBridge: Boolean? = null,
-)
+data class TONOmnistonReferrerOptions(
+
+    /* The address of the referrer */
+    @SerialName(value = "referrerAddress")
+    val referrerAddress: kotlin.String? = null,
+
+    /* Referrer fee in basis points (1 bp = 0.01%) */
+    @SerialName(value = "referrerFeeBps")
+    val referrerFeeBps: kotlin.Int? = null,
+
+    /* Whether a flexible referrer fee is allowed */
+    @SerialName(value = "flexibleReferrerFee")
+    val flexibleReferrerFee: kotlin.Boolean? = null,
+
+) {
+
+    companion object
+}

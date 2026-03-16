@@ -19,37 +19,37 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.session
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
 
-import io.ton.walletkit.model.TONUserFriendlyAddress
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Represents a TONConnect session between the wallet and a dApp.
+ * Metadata stored in SwapQuote for DeDust provider
  *
- * This model is used internally for session management and matches
- * the structure expected by the JavaScript bridge.
+ * @param quoteResponse Raw quote response from API
+ * @param slippageBps Slippage used for the quote in basis points
  */
 @Serializable
-data class TONConnectSession(
-    val sessionId: String,
-    val walletId: String,
-    val walletAddress: TONUserFriendlyAddress,
-    val createdAt: String,
-    val lastActivityAt: String,
-    val privateKey: String,
-    val publicKey: String,
-    val domain: String,
-    val schemaVersion: Int,
-    /** Display name of the dApp */
-    val dAppName: String? = null,
-    /** Brief description of the dApp's purpose */
-    val dAppDescription: String? = null,
-    /** Main website URL of the dApp */
-    val dAppUrl: String? = null,
-    /** Icon/logo URL of the dApp */
-    val dAppIconUrl: String? = null,
-    @SerialName("isJsBridge")
-    val isJsBridge: Boolean? = null,
-)
+data class TONDeDustQuoteMetadata(
+
+    /* Raw quote response from API */
+    @Contextual @SerialName(value = "quoteResponse")
+    val quoteResponse: kotlinx.serialization.json.JsonElement,
+
+    /* Slippage used for the quote in basis points */
+    @SerialName(value = "slippageBps")
+    val slippageBps: kotlin.Int,
+
+) {
+
+    companion object
+}

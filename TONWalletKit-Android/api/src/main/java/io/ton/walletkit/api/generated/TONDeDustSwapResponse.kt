@@ -19,37 +19,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.session
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
 
-import io.ton.walletkit.model.TONUserFriendlyAddress
+package io.ton.walletkit.api.generated
+
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Represents a TONConnect session between the wallet and a dApp.
+ * Swap response from DeDust Router API
  *
- * This model is used internally for session management and matches
- * the structure expected by the JavaScript bridge.
+ * @param queryId
+ * @param transactions
  */
 @Serializable
-data class TONConnectSession(
-    val sessionId: String,
-    val walletId: String,
-    val walletAddress: TONUserFriendlyAddress,
-    val createdAt: String,
-    val lastActivityAt: String,
-    val privateKey: String,
-    val publicKey: String,
-    val domain: String,
-    val schemaVersion: Int,
-    /** Display name of the dApp */
-    val dAppName: String? = null,
-    /** Brief description of the dApp's purpose */
-    val dAppDescription: String? = null,
-    /** Main website URL of the dApp */
-    val dAppUrl: String? = null,
-    /** Icon/logo URL of the dApp */
-    val dAppIconUrl: String? = null,
-    @SerialName("isJsBridge")
-    val isJsBridge: Boolean? = null,
-)
+data class TONDeDustSwapResponse(
+
+    @SerialName(value = "query_id")
+    val queryId: kotlin.Int,
+
+    @SerialName(value = "transactions")
+    val transactions: kotlin.collections.List<TONDeDustSwapTransaction>,
+
+) {
+
+    companion object
+}
