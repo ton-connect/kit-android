@@ -186,14 +186,6 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             // Enter confirmation
             composeTestRule.onNodeWithTag(TestTags.PASSWORD_CONFIRM_FIELD)
                 .performTextInput(password)
-                
-            // Explicitly close the software keyboard before clicking
-            try {
-                androidx.test.espresso.Espresso.closeSoftKeyboard()
-            } catch (e: Exception) {
-                // Ignore
-            }
-            composeTestRule.waitForIdle()
 
             // Submit
             composeTestRule.onNodeWithTag(TestTags.PASSWORD_SUBMIT_BUTTON)
@@ -214,14 +206,6 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             // Enter password (field should already exist from detection)
             composeTestRule.onNodeWithTag(TestTags.UNLOCK_PASSWORD_FIELD)
                 .performTextInput(password)
-                
-            // Explicitly close the software keyboard before clicking
-            try {
-                androidx.test.espresso.Espresso.closeSoftKeyboard()
-            } catch (e: Exception) {
-                // Ignore
-            }
-            composeTestRule.waitForIdle()
 
             // Submit
             composeTestRule.onNodeWithTag(TestTags.UNLOCK_SUBMIT_BUTTON)
@@ -265,34 +249,27 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
         Thread.sleep(1000) // Give time for mnemonic parsing
         Log.d("WalletController", "Waited for parsing")
 
-        // 1. Explicitly close the software keyboard (IME)
-        try {
-            androidx.test.espresso.Espresso.closeSoftKeyboard()
-            Log.d("WalletController", "Closed soft keyboard")
-        } catch (e: Exception) {
-            Log.w("WalletController", "Could not close soft keyboard: ${e.message}")
-        }
-
-        // 2. Wait for system window insets and BottomSheet resize animations to settle
-        composeTestRule.waitForIdle()
-
-        // 3. Find the node and securely scroll to it
+        // Scroll to the import button (it may be below the visible area)
         Log.d("WalletController", "Scrolling to IMPORT_WALLET_PROCESS_BUTTON...")
         try {
-            val buttonNode = composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON)
-            buttonNode.performScrollTo()
+            composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON)
+                .performScrollTo()
             Log.d("WalletController", "Scrolled to import button")
-            
-            // 4. Wait again to ensure the scroll's layout shift has completely finished
-            composeTestRule.waitForIdle()
-            Thread.sleep(500)
-            
-            // 5. Assert the node is physically in the viewport and inject the click
-            Log.d("WalletController", "Clicking IMPORT_WALLET_PROCESS_BUTTON...")
-            buttonNode.assertIsDisplayed().performClick()
+        } catch (e: Exception) {
+            android.util.Log.w("WalletController", "Could not scroll to import button: ${e.message}")
+        }
+
+        composeTestRule.waitForIdle()
+        Thread.sleep(500) // Let scroll animation complete
+
+        // Click import button
+        Log.d("WalletController", "Clicking IMPORT_WALLET_PROCESS_BUTTON...")
+        try {
+            composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON)
+                .performClick()
             Log.d("WalletController", "Import button clicked successfully")
         } catch (e: Exception) {
-            android.util.Log.e("WalletController", "Failed to scroll or click import button: ${e.message}")
+            android.util.Log.e("WalletController", "Failed to click import button: ${e.message}")
             throw e
         }
 

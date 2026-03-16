@@ -418,43 +418,8 @@ jobs:
             # Give the system time to index the newly installed apps
             sleep 5
             
-            # Clear logcat before tests
-            adb logcat -c
-            
-            # Write recording loop script (chains 3-min segments for full test coverage)
-            mkdir -p test-artifacts
-            printf '#!/bin/sh\ni=1\nwhile [ "$i" -le 6 ]; do\n  adb shell "screenrecord --time-limit 180 /sdcard/recording_${i}.mp4" 2>/dev/null || true\n  i=$((i + 1))\ndone\n' > /tmp/record_loop.sh
-            chmod +x /tmp/record_loop.sh
-            /tmp/record_loop.sh &
-            RECORD_PID=$!
-            
-            # Run tests, capture exit code
-            TEST_EXIT=0
-            /tmp/run_tests.sh || TEST_EXIT=$?
-            
-            # Stop screen recording
-            kill $RECORD_PID 2>/dev/null || true
-            adb shell "pkill -INT screenrecord" 2>/dev/null || true
-            sleep 3
-            
-            # Pull all recording segments
-            for i in 1 2 3 4 5 6; do adb pull "/sdcard/recording_${i}.mp4" "test-artifacts/recording_${i}.mp4" 2>/dev/null || true; done
-            
-            # Take final screenshot of emulator state
-            adb shell screencap -p /sdcard/final_state.png
-            adb pull /sdcard/final_state.png test-artifacts/final_state.png 2>/dev/null || true
-            
-            # Dump filtered logcat (test-relevant tags)
-            adb logcat -d -s "WalletController:*" "JsDAppController:*" "WebViewJsBridge:*" "BaseE2ETest:*" "ConnectTest:*" "SendTxTest:*" "chromium:*" "WebViewFactory:*" > test-artifacts/logcat_test_tags.txt 2>/dev/null || true
-            
-            # Dump full logcat (for deeper debugging)
-            adb logcat -d > test-artifacts/logcat_full.txt 2>/dev/null || true
-            
-            # Dump WebView info
-            adb shell "dumpsys webviewupdate" > test-artifacts/webview_info.txt 2>/dev/null || true
-            
-            echo "Test artifacts collected."
-            exit $TEST_EXIT
+            # Run tests
+            /tmp/run_tests.sh
 
       - name: Upload test results
         if: always()
@@ -465,14 +430,6 @@ jobs:
             AndroidDemo/app/build/outputs/androidTest-results/
             AndroidDemo/app/build/reports/androidTests/
           retention-days: 7
-
-      - name: Upload debug artifacts (recordings, logs, screenshots)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-debug-${{ matrix.name }}
-          path: test-artifacts/
-          retention-days: 3
 
   # Summary job that waits for all E2E tests
   e2e-summary:
