@@ -19,13 +19,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.api
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
+
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /**
- * Standard TON blockchain chain IDs.
+ * Options for configuring the referral in DeDust swap operations
+ *
+ * @param referralAddress The address of the referrer
+ * @param referralFeeBps Referral fee in basis points (max 100 = 1%)
  */
-object ChainIds {
-    const val MAINNET = "-239"
-    const val TESTNET = "-3"
-    const val TETRA = "662387"
+@Serializable
+data class TONDeDustReferralOptions(
+
+    /* The address of the referrer */
+    @SerialName(value = "referralAddress")
+    val referralAddress: kotlin.String? = null,
+
+    /* Referral fee in basis points (max 100 = 1%) */
+    @SerialName(value = "referralFeeBps")
+    val referralFeeBps: kotlin.Int? = null,
+
+) {
+
+    companion object
 }

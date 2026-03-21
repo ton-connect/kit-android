@@ -19,13 +19,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.api
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
+
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /**
- * Standard TON blockchain chain IDs.
+ * Swap request to DeDust Router API
+ *
+ * @param senderAddress
+ * @param swapData
+ * @param referralAddress
+ * @param referralFee
+ * @param jettonWalletStateInit
+ * @param customPayload
  */
-object ChainIds {
-    const val MAINNET = "-239"
-    const val TESTNET = "-3"
-    const val TETRA = "662387"
+@Serializable
+data class TONDeDustSwapRequest(
+
+    @SerialName(value = "sender_address")
+    val senderAddress: kotlin.String,
+
+    @SerialName(value = "swap_data")
+    val swapData: TONDeDustSwapRequestSwapData,
+
+    @SerialName(value = "referral_address")
+    val referralAddress: kotlin.String? = null,
+
+    @SerialName(value = "referral_fee")
+    val referralFee: kotlin.Int? = null,
+
+    @SerialName(value = "jetton_wallet_state_init")
+    val jettonWalletStateInit: kotlin.String? = null,
+
+    @SerialName(value = "custom_payload")
+    val customPayload: kotlin.String? = null,
+
+) {
+
+    companion object
 }

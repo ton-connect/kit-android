@@ -24,6 +24,7 @@ package io.ton.walletkit
 import android.content.Context
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
@@ -56,16 +57,25 @@ interface ITONWalletKit {
 
     /**
      * Create a signer from a mnemonic phrase.
+     *
+     * @param domain Optional signature domain for L2 chains (e.g. Tetra).
+     *   Pass [TONSignatureDomain.L2] with the chain's globalId for L2 signing.
      */
     suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String = "ton",
+        domain: TONSignatureDomain? = null,
     ): WalletSignerInfo
 
     /**
      * Create a signer from a 32-byte secret key.
+     *
+     * @param domain Optional signature domain for L2 chains (e.g., Tetra).
      */
-    suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo
+    suspend fun createSignerFromSecretKey(
+        secretKey: ByteArray,
+        domain: TONSignatureDomain? = null,
+    ): WalletSignerInfo
 
     /**
      * Create a signer from a custom [WalletSigner] (e.g. hardware wallet).

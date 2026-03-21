@@ -19,13 +19,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.api
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
+
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /**
- * Standard TON blockchain chain IDs.
+ * Options for configuring the referrer in Omniston swap operations
+ *
+ * @param referrerAddress The address of the referrer
+ * @param referrerFeeBps Referrer fee in basis points (1 bp = 0.01%)
+ * @param flexibleReferrerFee Whether a flexible referrer fee is allowed
  */
-object ChainIds {
-    const val MAINNET = "-239"
-    const val TESTNET = "-3"
-    const val TETRA = "662387"
+@Serializable
+data class TONOmnistonReferrerOptions(
+
+    /* The address of the referrer */
+    @SerialName(value = "referrerAddress")
+    val referrerAddress: kotlin.String? = null,
+
+    /* Referrer fee in basis points (1 bp = 0.01%) */
+    @SerialName(value = "referrerFeeBps")
+    val referrerFeeBps: kotlin.Int? = null,
+
+    /* Whether a flexible referrer fee is allowed */
+    @SerialName(value = "flexibleReferrerFee")
+    val flexibleReferrerFee: kotlin.Boolean? = null,
+
+) {
+
+    companion object
 }

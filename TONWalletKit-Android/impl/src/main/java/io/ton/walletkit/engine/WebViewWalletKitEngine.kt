@@ -37,6 +37,7 @@ import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.client.TONAPIClient
@@ -283,10 +284,13 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String,
-    ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType)
+        domain: TONSignatureDomain?,
+    ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType, domain)
 
-    override suspend fun createSignerFromSecretKey(secretKeyHex: String): io.ton.walletkit.model.WalletSignerInfo =
-        walletOperations.createSignerFromSecretKey(secretKeyHex)
+    override suspend fun createSignerFromSecretKey(
+        secretKeyHex: String,
+        domain: TONSignatureDomain?,
+    ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromSecretKey(secretKeyHex, domain)
 
     override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo =
         walletOperations.createSignerFromCustom(signer)

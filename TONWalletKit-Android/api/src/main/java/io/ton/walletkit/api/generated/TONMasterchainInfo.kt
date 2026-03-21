@@ -19,13 +19,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.api
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
+
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /**
- * Standard TON blockchain chain IDs.
+ * Information about the latest masterchain block.
+ *
+ * @param seqno Sequence number of the masterchain block
+ * @param shard Shard identifier of the block
+ * @param workchain Workchain ID of the block
+ * @param fileHash
+ * @param rootHash
  */
-object ChainIds {
-    const val MAINNET = "-239"
-    const val TESTNET = "-3"
-    const val TETRA = "662387"
+@Serializable
+data class TONMasterchainInfo(
+
+    /* Sequence number of the masterchain block */
+    @SerialName(value = "seqno")
+    val seqno: kotlin.Int,
+
+    /* Shard identifier of the block */
+    @SerialName(value = "shard")
+    val shard: kotlin.String,
+
+    /* Workchain ID of the block */
+    @SerialName(value = "workchain")
+    val workchain: kotlin.Int,
+
+    @Contextual @SerialName(value = "fileHash")
+    val fileHash: io.ton.walletkit.model.TONHex,
+
+    @Contextual @SerialName(value = "rootHash")
+    val rootHash: io.ton.walletkit.model.TONHex,
+
+) {
+
+    companion object
 }

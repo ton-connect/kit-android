@@ -19,13 +19,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.api
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
+
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /**
- * Standard TON blockchain chain IDs.
+ *
+ *
+ * @param alias
  */
-object ChainIds {
-    const val MAINNET = "-239"
-    const val TESTNET = "-3"
-    const val TETRA = "662387"
+@Serializable
+data class TONOmnistonProviderOptions(
+
+    @SerialName(value = "_alias")
+    val alias: kotlin.String? = null,
+
+) {
+
+    companion object
 }

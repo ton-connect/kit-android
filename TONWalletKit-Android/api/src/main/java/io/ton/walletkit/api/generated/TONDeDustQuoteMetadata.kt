@@ -19,13 +19,37 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.api
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
+
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /**
- * Standard TON blockchain chain IDs.
+ * Metadata stored in SwapQuote for DeDust provider
+ *
+ * @param quoteResponse Raw quote response from API
+ * @param slippageBps Slippage used for the quote in basis points
  */
-object ChainIds {
-    const val MAINNET = "-239"
-    const val TESTNET = "-3"
-    const val TETRA = "662387"
+@Serializable
+data class TONDeDustQuoteMetadata(
+
+    /* Raw quote response from API */
+    @Contextual @SerialName(value = "quoteResponse")
+    val quoteResponse: kotlinx.serialization.json.JsonElement,
+
+    /* Slippage used for the quote in basis points */
+    @SerialName(value = "slippageBps")
+    val slippageBps: kotlin.Int,
+
+) {
+
+    companion object
 }

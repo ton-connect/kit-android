@@ -19,13 +19,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.api
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
+
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /**
- * Standard TON blockchain chain IDs.
+ * Metadata associated with an Omniston quote
+ *
+ * @param omnistonQuote The actual omniston quote object
  */
-object ChainIds {
-    const val MAINNET = "-239"
-    const val TESTNET = "-3"
-    const val TETRA = "662387"
+@Serializable
+data class TONOmnistonQuoteMetadata(
+
+    /* The actual omniston quote object */
+    @Contextual @SerialName(value = "omnistonQuote")
+    val omnistonQuote: kotlinx.serialization.json.JsonElement,
+
+) {
+
+    companion object
 }

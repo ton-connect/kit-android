@@ -19,13 +19,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.api
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
+
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /**
- * Standard TON blockchain chain IDs.
+ *
+ *
+ * @param slippageBps
+ * @param routes
  */
-object ChainIds {
-    const val MAINNET = "-239"
-    const val TESTNET = "-3"
-    const val TETRA = "662387"
+@Serializable
+data class TONDeDustSwapRequestSwapData(
+
+    @SerialName(value = "slippage_bps")
+    val slippageBps: kotlin.Int,
+
+    @SerialName(value = "routes")
+    val routes: kotlin.collections.List<TONDeDustRouteStep>,
+
+) {
+
+    companion object
 }

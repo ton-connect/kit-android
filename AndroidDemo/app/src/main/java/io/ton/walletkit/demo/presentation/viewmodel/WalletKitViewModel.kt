@@ -29,12 +29,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.api.MAINNET
-import io.ton.walletkit.api.TESTNET
 import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignatureDomain
+import io.ton.walletkit.api.isTetra
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.core.RequestErrorTracker
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
@@ -631,11 +631,13 @@ class WalletKitViewModel @Inject constructor(
                             _state.update { it.copy(error = uiString(R.string.wallet_error_invalid_secret_key)) }
                             return@launch
                         }
-                        kit.createSignerFromSecretKey(secretKeyBytes)
+                        val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
+                        kit.createSignerFromSecretKey(secretKeyBytes, domain = domain)
                     }
                     WalletInterfaceType.MNEMONIC -> {
                         // Create regular mnemonic wallet
-                        kit.createSignerFromMnemonic(cleaned)
+                        val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
+                        kit.createSignerFromMnemonic(cleaned, domain = domain)
                     }
                 }
 
@@ -740,7 +742,8 @@ class WalletKitViewModel @Inject constructor(
                 val kit = getKit()
                 // Generate a new TON mnemonic explicitly (matches JS docs pattern)
                 val mnemonic = kit.createTonMnemonic()
-                val signer = kit.createSignerFromMnemonic(mnemonic)
+                val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
+                val signer = kit.createSignerFromMnemonic(mnemonic, domain = domain)
                 val adapter = when (version) {
                     WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network)
                     WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network)
@@ -1587,10 +1590,8 @@ class WalletKitViewModel @Inject constructor(
         private const val TRANSACTION_FETCH_LIMIT = 20
         private val DEFAULT_NETWORK = TONNetwork.MAINNET
         private const val LOG_TAG = "WalletKitVM"
-        private const val ERROR_REQUEST_OBJECT_NOT_AVAILABLE = "Request object not available"
         private const val DEFAULT_REJECTION_REASON = "User declined the connection"
         private const val SIGNER_CONFIRMATION_CANCEL_REASON = "User cancelled signer confirmation"
-        private const val ERROR_DIRECT_SIGNING_UNSUPPORTED = "Direct signing not supported - use SDK's transaction/signData methods"
 
         // TonConnect error codes (from @tonconnect/protocol)
         private const val BAD_REQUEST_ERROR_CODE = 1 // Used for validation errors like insufficient balance
