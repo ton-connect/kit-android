@@ -118,10 +118,19 @@ class WalletLifecycleManager(
 
     suspend fun loadWalletSummaries(sessions: List<SessionSummary>): List<WalletSummary> {
         val kit = kitProvider()
-        val wallets = kit.getWallets()
-        tonWallets.clear()
-        wallets.forEach { wallet ->
-            wallet.address?.value?.let { tonWallets[it] = wallet }
+        val freshWallets = kit.getWallets()
+        // If the bridge returns empty but we have cached wallets, the bridge is likely
+        // reinitializing (e.g. after the in-app WebView browser was closed on a slow CI
+        // emulator). Preserve the cache so activeWalletAddress is not incorrectly nulled out.
+        val wallets = if (freshWallets.isEmpty() && tonWallets.isNotEmpty()) {
+            Log.w(LOG_TAG, "loadWalletSummaries: kit returned empty but cache has ${tonWallets.size} wallets – reusing cache")
+            tonWallets.values.toList()
+        } else {
+            tonWallets.clear()
+            freshWallets.forEach { wallet ->
+                wallet.address?.value?.let { tonWallets[it] = wallet }
+            }
+            freshWallets
         }
 
         val knownAddresses = wallets.map { it.address.value }.toSet()
