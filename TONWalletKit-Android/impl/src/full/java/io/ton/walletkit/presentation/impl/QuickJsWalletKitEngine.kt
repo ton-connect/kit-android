@@ -437,6 +437,14 @@ internal class QuickJsWalletKitEngine(
         call("handleTonConnectUrl", params)
     }
 
+    override suspend fun connectionEventFromUrl(url: String): TONWalletConnectionRequest {
+        ensureWalletKitInitialized()
+        val params = JSONObject().apply { put("url", url) }
+        val result = call("connectionEventFromUrl", params)
+        val event = json.decodeFromString<TONConnectionRequestEvent>(result.toString())
+        return TONWalletConnectionRequest(event = event, handler = this)
+    }
+
     override suspend fun handleNewTransaction(
         walletAddress: String,
         transactionContent: String,

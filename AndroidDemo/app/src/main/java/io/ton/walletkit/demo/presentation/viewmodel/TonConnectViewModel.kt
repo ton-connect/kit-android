@@ -91,6 +91,43 @@ class TonConnectViewModel(
     }
 
     /**
+     * Parse a TON Connect URL inline without routing through event handlers.
+     * On success the connection request is immediately approved with the specified wallet.
+     */
+    fun connectionEventFromUrl(url: String, walletAddress: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isProcessing = true, error = null)
+
+            val wallet = getWalletByAddress(walletAddress)
+            if (wallet == null) {
+                _state.value = _state.value.copy(
+                    isProcessing = false,
+                    error = "Wallet not found",
+                )
+                return@launch
+            }
+
+            runCatching {
+                val request = walletKit().connectionEventFromUrl(url.trim())
+                Log.d(TAG, "connectionEventFromUrl: dApp=${request.event.dAppInfo?.name}")
+                request.approve(wallet)
+            }.onSuccess {
+                _state.value = _state.value.copy(
+                    isProcessing = false,
+                    successMessage = "Connected via connectionEventFromUrl",
+                )
+                onSessionsChanged()
+            }.onFailure { error ->
+                Log.e(TAG, "connectionEventFromUrl failed", error)
+                _state.value = _state.value.copy(
+                    isProcessing = false,
+                    error = error.message ?: "connectionEventFromUrl failed",
+                )
+            }
+        }
+    }
+
+    /**
      * Approve a connection request from a dApp.
      */
     fun approveConnect(request: ConnectRequestUi, walletAddress: String) {
