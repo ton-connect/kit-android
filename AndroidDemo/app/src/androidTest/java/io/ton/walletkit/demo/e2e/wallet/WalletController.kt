@@ -262,11 +262,6 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
         composeTestRule.waitForIdle()
         Thread.sleep(500) // Let scroll animation complete
 
-        // Check if import button exists and is enabled
-        val importButtonExists = composeTestRule.onAllNodesWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON)
-            .fetchSemanticsNodes().isNotEmpty()
-        Log.d("WalletController", "Import button exists: $importButtonExists")
-
         // Click import button
         Log.d("WalletController", "Clicking IMPORT_WALLET_PROCESS_BUTTON...")
         try {
@@ -278,13 +273,22 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             throw e
         }
 
-        // Wait for wallet to be imported - check for home screen or error
+        // Wait for wallet to be imported and explicitly verify it's loaded in UI
         composeTestRule.waitForIdle()
-        Thread.sleep(2000) // Give time for import to complete
+        Log.d("WalletController", "Waiting for WALLET_ADDRESS to appear after import...")
+        try {
+            composeTestRule.waitUntil(15000) {
+                composeTestRule.onAllNodesWithTag(TestTags.WALLET_ADDRESS)
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            Log.d("WalletController", "Wallet loaded successfully in UI")
+        } catch (e: Exception) {
+            Log.e("WalletController", "Wallet address still not visible after timeout")
+        }
 
         // Check if we're on home screen now
         val onHomeAfterImport = try {
-            composeTestRule.onNodeWithTag(TestTags.BROWSER_NO_INJECT_BUTTON).assertExists()
+            composeTestRule.onNodeWithTag(TestTags.WALLET_ADDRESS).assertExists()
             true
         } catch (e: AssertionError) {
             false
@@ -426,7 +430,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     @Step("Wait for wallet home screen")
     fun waitForWalletHome() {
         composeTestRule.waitUntil(SHEET_APPEAR_TIMEOUT) {
-            composeTestRule.onAllNodesWithTag(TestTags.BROWSER_NO_INJECT_BUTTON)
+            composeTestRule.onAllNodesWithTag(TestTags.WALLET_ADDRESS)
                 .fetchSemanticsNodes().isNotEmpty()
         }
     }
