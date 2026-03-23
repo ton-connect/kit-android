@@ -1,7 +1,19 @@
+{{#vendorExtensions.x-skip-model}}
+{{! Suppressed model (e.g., single-field variant inlined into parent union) }}
+{{/vendorExtensions.x-skip-model}}
+{{^vendorExtensions.x-skip-model}}
+{{#vendorExtensions.x-type-alias}}
+typealias {{{classname}}} = {{modelNamePrefix}}{{{vendorExtensions.x-alias-target}}}
+{{/vendorExtensions.x-type-alias}}
+{{^vendorExtensions.x-type-alias}}
 {{#vendorExtensions.x-discriminated-union}}
 {{>modelDiscriminatedUnion}}
 {{/vendorExtensions.x-discriminated-union}}
 {{^vendorExtensions.x-discriminated-union}}
+{{#vendorExtensions.x-is-generic}}
+{{>modelGeneric}}
+{{/vendorExtensions.x-is-generic}}
+{{^vendorExtensions.x-is-generic}}
 {{^multiplatform}}
 {{#kotlinx_serialization}}
 import kotlinx.serialization.Serializable
@@ -16,6 +28,21 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 {{/enumUnknownDefaultCase}}
+{{#vendorExtensions.x-inline-interface-unions}}
+{{#-first}}
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.serializer
+{{/-first}}
+{{/vendorExtensions.x-inline-interface-unions}}
 {{/kotlinx_serialization}}
 {{#parcelizeModels}}
 import android.os.Parcelable
@@ -40,12 +67,77 @@ import kotlinx.parcelize.Parcelize
 {{#nonPublicApi}}internal {{/nonPublicApi}}{{#hasVars}}data {{/hasVars}}class {{classname}} (
 
 {{#allVars}}
-{{#required}}{{>data_class_req_var}}{{/required}}{{^required}}{{>data_class_opt_var}}{{/required}}{{^-last}},{{/-last}}
+{{#vendorExtensions.x-frozen}}
+    @SerialName("{{{baseName}}}")
+    private val {{{name}}}: {{{dataType}}}{{^required}}? = null{{/required}}{{/vendorExtensions.x-frozen}}
+{{^vendorExtensions.x-frozen}}
+{{#vendorExtensions.x-interface-union}}
+    @SerialName("{{{baseName}}}")
+    val {{{name}}}: {{#lambda.titlecase}}{{{name}}}{{/lambda.titlecase}}{{^required}}? = null{{/required}}{{/vendorExtensions.x-interface-union}}
+{{^vendorExtensions.x-interface-union}}
+{{#required}}{{>data_class_req_var}}{{/required}}{{^required}}{{>data_class_opt_var}}{{/required}}{{/vendorExtensions.x-interface-union}}
+{{/vendorExtensions.x-frozen}}
+{{^-last}},{{/-last}}
 
 {{/allVars}}
+{{#vendorExtensions.x-constant-fields}}
+{{#-first}}{{#hasVars}},{{/hasVars}}{{/-first}}
+    @SerialName("{{{name}}}")
+    val {{{name}}}: kotlin.String = "{{{value}}}"{{^-last}},{{/-last}}
+{{/vendorExtensions.x-constant-fields}}
 ){{#parent}} : {{{parent}}}(){{/parent}} {
 
     companion object
+{{#vendorExtensions.x-inline-interface-unions}}
+
+    @Serializable(with = {{#lambda.titlecase}}{{{propertyName}}}{{/lambda.titlecase}}.Serializer::class)
+    sealed class {{#lambda.titlecase}}{{{propertyName}}}{{/lambda.titlecase}} {
+{{#cases}}
+
+        @Serializable
+        data class {{#lambda.titlecase}}{{{caseName}}}{{/lambda.titlecase}}(
+            val value: {{modelNamePrefix}}{{{typeName}}}
+        ) : {{#lambda.titlecase}}{{{propertyName}}}{{/lambda.titlecase}}()
+{{/cases}}
+
+        internal object Serializer : KSerializer<{{#lambda.titlecase}}{{{propertyName}}}{{/lambda.titlecase}}> {
+            override val descriptor: SerialDescriptor = buildClassSerialDescriptor("{{classname}}.{{#lambda.titlecase}}{{{propertyName}}}{{/lambda.titlecase}}")
+
+            @Suppress("UNCHECKED_CAST")
+            override fun serialize(encoder: Encoder, value: {{#lambda.titlecase}}{{{propertyName}}}{{/lambda.titlecase}}) {
+                val jsonEncoder = encoder as? JsonEncoder
+                    ?: throw SerializationException("{{#lambda.titlecase}}{{{propertyName}}}{{/lambda.titlecase}} can only be serialized with JSON")
+
+                val jsonElement = when (value) {
+{{#cases}}
+                    is {{#lambda.titlecase}}{{{caseName}}}{{/lambda.titlecase}} ->
+                        jsonEncoder.json.encodeToJsonElement(serializer<{{modelNamePrefix}}{{{typeName}}}>(), value.value)
+{{/cases}}
+                }
+                jsonEncoder.encodeJsonElement(jsonElement)
+            }
+
+            override fun deserialize(decoder: Decoder): {{#lambda.titlecase}}{{{propertyName}}}{{/lambda.titlecase}} {
+                val jsonDecoder = decoder as? JsonDecoder
+                    ?: throw SerializationException("{{#lambda.titlecase}}{{{propertyName}}}{{/lambda.titlecase}} can only be deserialized from JSON")
+
+                val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
+                val discriminatorValue = jsonObject["{{{discriminatorField}}}"]?.jsonPrimitive?.content
+                    ?: throw SerializationException("Missing '{{{discriminatorField}}}' discriminator for {{#lambda.titlecase}}{{{propertyName}}}{{/lambda.titlecase}}")
+
+                return when (discriminatorValue) {
+{{#cases}}
+                    "{{{rawValue}}}" ->
+                        {{#lambda.titlecase}}{{{caseName}}}{{/lambda.titlecase}}(
+                            jsonDecoder.json.decodeFromJsonElement(serializer<{{modelNamePrefix}}{{{typeName}}}>(), jsonObject)
+                        )
+{{/cases}}
+                    else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for {{#lambda.titlecase}}{{{propertyName}}}{{/lambda.titlecase}}")
+                }
+            }
+        }
+    }
+{{/vendorExtensions.x-inline-interface-unions}}
 {{#hasEnums}}
 {{#vars}}
 {{#isEnum}}
@@ -70,4 +162,7 @@ import kotlinx.parcelize.Parcelize
 {{/vars}}
 {{/hasEnums}}
 }
+{{/vendorExtensions.x-is-generic}}
 {{/vendorExtensions.x-discriminated-union}}
+{{/vendorExtensions.x-type-alias}}
+{{/vendorExtensions.x-skip-model}}
