@@ -64,6 +64,13 @@ internal class TonConnectOperations(
         rpcClient.call(BridgeMethodConstants.METHOD_HANDLE_TON_CONNECT_URL, url)
     }
 
+    suspend fun connectionEventFromUrl(url: String): TONConnectionRequestEvent {
+        ensureInitialized()
+
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CONNECTION_EVENT_FROM_URL, url)
+        return json.decodeFromString<TONConnectionRequestEvent>(result.toString())
+    }
+
     suspend fun handleTonConnectRequest(
         messageId: String,
         method: String,

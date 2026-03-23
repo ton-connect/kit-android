@@ -31,6 +31,7 @@ import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
+import io.ton.walletkit.request.TONWalletConnectionRequest
 
 /**
  * TON Wallet Kit SDK for managing wallets and TON Connect.
@@ -139,6 +140,12 @@ interface ITONWalletKit {
      * Handle a TON Connect URL (tc:// or https://).
      */
     suspend fun connect(url: String)
+
+    /**
+     * Parse a TON Connect URL into a connection request without routing it to event handlers.
+     * Allows inline handling of connection requests instead of waiting for [TONBridgeEventsHandler.onConnectRequest].
+     */
+    suspend fun connectionEventFromUrl(url: String): TONWalletConnectionRequest
 
     suspend fun listSessions(): List<io.ton.walletkit.session.TONConnectSession>
 

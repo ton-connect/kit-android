@@ -386,6 +386,11 @@ internal class TONWalletKit private constructor(
         engine.handleTonConnectUrl(url)
     }
 
+    override suspend fun connectionEventFromUrl(url: String): io.ton.walletkit.request.TONWalletConnectionRequest {
+        checkNotDestroyed()
+        return engine.connectionEventFromUrl(url)
+    }
+
     /**
      * Create a WebView TonConnect injector for the given WebView.
      *

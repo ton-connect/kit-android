@@ -62,6 +62,7 @@ import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
+import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.session.TONConnectSession
 import io.ton.walletkit.session.TONConnectSessionManager
 import io.ton.walletkit.storage.BridgeStorageAdapter
@@ -309,6 +310,11 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun getBalance(walletId: String): String = walletOperations.getBalance(walletId)
 
     override suspend fun handleTonConnectUrl(url: String) = tonConnectOperations.handleTonConnectUrl(url)
+
+    override suspend fun connectionEventFromUrl(url: String): TONWalletConnectionRequest {
+        val event = tonConnectOperations.connectionEventFromUrl(url)
+        return TONWalletConnectionRequest(event = event, handler = this)
+    }
 
     override suspend fun handleTonConnectRequest(
         messageId: String,
