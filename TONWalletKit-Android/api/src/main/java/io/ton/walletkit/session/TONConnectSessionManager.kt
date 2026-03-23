@@ -71,17 +71,15 @@ interface TONConnectSessionManager {
      * Remove session by ID.
      *
      * @param sessionId The session ID to remove
-     * @return The removed session, or null if not found
      */
-    suspend fun removeSession(sessionId: String): TONConnectSession?
+    suspend fun removeSession(sessionId: String)
 
     /**
      * Remove sessions matching optional filter parameters.
      *
      * @param filter Optional filter with walletId, domain, and/or isJsBridge
-     * @return List of removed sessions
      */
-    suspend fun removeSessions(filter: SessionFilter? = null): List<TONConnectSession>
+    suspend fun removeSessions(filter: SessionFilter? = null)
 
     /**
      * Clear all sessions.

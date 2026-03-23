@@ -95,7 +95,6 @@ interface MockScenario {
             override fun publicKey() = publicKey
             override fun network() = resolvedNetwork
             override fun address(testnet: Boolean) = address
-            override fun walletVersion() = version
             override suspend fun stateInit() = TONBase64("")
             override suspend fun signedSendTransaction(input: TONTransactionRequest, fakeSignature: Boolean?) = TONBase64("")
             override suspend fun signedSignData(input: TONPreparedSignData, fakeSignature: Boolean?) = TONHex("")

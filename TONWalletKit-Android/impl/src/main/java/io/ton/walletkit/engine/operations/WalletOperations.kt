@@ -157,7 +157,6 @@ internal class WalletOperations(
             cachedPublicKey = publicKey,
             cachedNetwork = resolvedNetwork,
             cachedAddress = TONUserFriendlyAddress(address),
-            cachedWalletVersion = version,
             rpcClient = rpcClient,
         )
     }

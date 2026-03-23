@@ -46,7 +46,6 @@ internal class BridgeWalletAdapter(
     private val cachedPublicKey: TONHex,
     private val cachedNetwork: TONNetwork,
     private val cachedAddress: TONUserFriendlyAddress,
-    private val cachedWalletVersion: String,
     private val rpcClient: BridgeRpcClient,
 ) : TONWalletAdapter {
 
@@ -57,8 +56,6 @@ internal class BridgeWalletAdapter(
     override fun network(): TONNetwork = cachedNetwork
 
     override fun address(testnet: Boolean): TONUserFriendlyAddress = cachedAddress
-
-    override fun walletVersion(): String = cachedWalletVersion
 
     override suspend fun stateInit(): TONBase64 {
         throw UnsupportedOperationException("BridgeWalletAdapter delegates to JS engine")
