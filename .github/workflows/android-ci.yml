@@ -63,8 +63,7 @@ jobs:
   #       run: ./gradlew spotlessCheck
 
   # Build and test SDK
-  # COMMENTED OUT: Skipping unit tests for publish workflow testing
-  # test-sdk:
+  test-sdk:
     name: Test & Build SDK
     runs-on: ubuntu-latest
     steps:
