@@ -175,6 +175,17 @@ rm -rf "$DEST_DIR"
 mkdir -p "$DEST_DIR"
 cp -R "$MODELS_DIR/"* "$DEST_DIR/"
 
+# Remove empty generated files (from x-skip-model suppression)
+echo "🧹 Removing empty generated files..."
+find "$DEST_DIR" -name '*.kt' -type f -empty -delete
+find "$DEST_DIR" -name '*.kt' -type f | while read -r file; do
+    # Check if file contains only whitespace/blank lines/comments/package/suppress but no actual code
+    if ! grep -qE '^\s*(class |data class |sealed class |object |interface |typealias |enum class |fun |val |var |abstract )' "$file"; then
+        echo "  Removing boilerplate-only file: $(basename "$file")"
+        rm "$file"
+    fi
+done
+
 # Clean up generated directory
 echo "🧹 Cleaning up generated directory..."
 rm -rf "$OUTPUT_DIR"

@@ -4,6 +4,7 @@
   Vendor extensions used:
   - x-generic-params: array of {name} for type parameters
   - x-generic-type-ref: string indicating a property uses a generic type parameter
+  - x-frozen: boolean indicating the field should use JsonElement type with private val access
 
   Generates Kotlin data classes with generic type parameters and kotlinx.serialization support.
 --}}
@@ -23,6 +24,11 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 @Serializable
 {{#nonPublicApi}}internal {{/nonPublicApi}}data class {{{classname}}}<{{#vendorExtensions.x-generic-params}}{{{name}}}{{^-last}}, {{/-last}}{{/vendorExtensions.x-generic-params}}>(
 {{#vars}}
+{{#vendorExtensions.x-frozen}}
+    @SerialName("{{{baseName}}}")
+    private val {{{name}}}: {{{dataType}}}{{^required}}? = null{{/required}}{{^-last}},{{/-last}}
+{{/vendorExtensions.x-frozen}}
+{{^vendorExtensions.x-frozen}}
 {{#vendorExtensions.x-generic-type-ref}}
     @SerialName("{{{baseName}}}")
     val {{{name}}}: {{{vendorExtensions.x-generic-type-ref}}}{{^required}}? = null{{/required}}{{^-last}},{{/-last}}
@@ -31,6 +37,7 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
     @SerialName("{{{baseName}}}")
     val {{{name}}}: {{{dataType}}}{{^required}}? = null{{/required}}{{^-last}},{{/-last}}
 {{/vendorExtensions.x-generic-type-ref}}
+{{/vendorExtensions.x-frozen}}
 {{/vars}}
 ) {
     companion object

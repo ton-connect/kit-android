@@ -130,17 +130,15 @@ class TestSessionManager : TONConnectSessionManager {
         return result
     }
 
-    override suspend fun removeSession(sessionId: String): TONConnectSession? {
+    override suspend fun removeSession(sessionId: String) {
         val removed = sessions.remove(sessionId)
         Log.d(TAG, "removeSession($sessionId): ${if (removed != null) "removed" else "not found"}")
-        return removed
     }
 
-    override suspend fun removeSessions(filter: SessionFilter?): List<TONConnectSession> {
+    override suspend fun removeSessions(filter: SessionFilter?) {
         val toRemove = getSessions(filter)
         toRemove.forEach { sessions.remove(it.sessionId) }
         Log.d(TAG, "removeSessions(filter=$filter): removed ${toRemove.size} sessions")
-        return toRemove
     }
 
     override suspend fun clearSessions() {

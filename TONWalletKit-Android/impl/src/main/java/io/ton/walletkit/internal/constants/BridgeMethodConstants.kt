@@ -80,6 +80,11 @@ internal object BridgeMethodConstants {
     const val METHOD_HANDLE_TON_CONNECT_URL = "handleTonConnectUrl"
 
     /**
+     * Method name for parsing a TON Connect URL into a connection request event without routing to event handlers.
+     */
+    const val METHOD_CONNECTION_EVENT_FROM_URL = "connectionEventFromUrl"
+
+    /**
      * Method name for creating a TON transfer transaction.
      * Matches JS API: wallet.createTransferTonTransaction()
      */

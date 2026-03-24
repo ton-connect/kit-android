@@ -174,6 +174,16 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun handleTonConnectUrl(url: String)
 
     /**
+     * Parse a TON Connect URL into a connection request without routing it to event handlers.
+     * Allows inline handling of connection requests.
+     *
+     * @param url TON Connect URL (tc:// or https://)
+     * @return A connection request that can be approved or rejected
+     * @throws WalletKitBridgeException if URL parsing fails
+     */
+    suspend fun connectionEventFromUrl(url: String): io.ton.walletkit.request.TONWalletConnectionRequest
+
+    /**
      * Handle a TonConnect request from a dApp (via internal browser or extension).
      * This processes the request and invokes the callback with the response.
      *
