@@ -34,8 +34,14 @@ val TONNetwork.Companion.MAINNET: TONNetwork
 val TONNetwork.Companion.TESTNET: TONNetwork
     get() = TONNetwork(chainId = ChainIds.TESTNET)
 
+val TONNetwork.Companion.TETRA: TONNetwork
+    get() = TONNetwork(chainId = ChainIds.TETRA)
+
 val TONNetwork.isTestnet: Boolean
     get() = this == TONNetwork.TESTNET
 
 val TONNetwork.isMainnet: Boolean
     get() = this == TONNetwork.MAINNET
+
+val TONNetwork.isTetra: Boolean
+    get() = chainId == ChainIds.TETRA

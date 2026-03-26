@@ -26,6 +26,7 @@ import android.webkit.WebView
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.WebViewTonConnectInjector
+import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WalletKitEngine
@@ -175,15 +176,19 @@ internal class TONWalletKit private constructor(
     override suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String,
+        domain: TONSignatureDomain?,
     ): io.ton.walletkit.model.WalletSignerInfo {
         checkNotDestroyed()
-        return engine.createSignerFromMnemonic(mnemonic, mnemonicType)
+        return engine.createSignerFromMnemonic(mnemonic, mnemonicType, domain)
     }
 
-    override suspend fun createSignerFromSecretKey(secretKey: ByteArray): io.ton.walletkit.model.WalletSignerInfo {
+    override suspend fun createSignerFromSecretKey(
+        secretKey: ByteArray,
+        domain: TONSignatureDomain?,
+    ): io.ton.walletkit.model.WalletSignerInfo {
         checkNotDestroyed()
         val hex = io.ton.walletkit.WalletKitUtils.byteArrayToHexNoPrefix(secretKey)
-        return engine.createSignerFromSecretKey(hex)
+        return engine.createSignerFromSecretKey(hex, domain)
     }
 
     override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo {
