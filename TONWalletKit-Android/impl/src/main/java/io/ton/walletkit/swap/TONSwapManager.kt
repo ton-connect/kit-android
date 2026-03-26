@@ -19,35 +19,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
+package io.ton.walletkit.swap
 
-package io.ton.walletkit.api.generated
+import io.ton.walletkit.api.generated.TONSwapParams
+import io.ton.walletkit.api.generated.TONSwapQuote
+import io.ton.walletkit.api.generated.TONSwapQuoteParams
+import io.ton.walletkit.engine.WalletKitEngine
+import kotlinx.serialization.json.JsonElement
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+internal class TONSwapManager(
+    private val engine: WalletKitEngine,
+) : ITONSwapManager {
 
-/**
- * Fee information for swap
- *
- * @param amount Amount of the fee
- * @param token
- */
-@Serializable
-data class TONSwapFee(
+    override suspend fun registerProvider(provider: TONSwapProvider) {
+        engine.registerSwapProvider(provider.providerId)
+    }
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    override suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote {
+        return engine.getSwapQuote(params, providerId)
+    }
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
-
-) {
-
-    companion object
+    override suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): String {
+        return engine.buildSwapTransaction(params)
+    }
 }

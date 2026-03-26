@@ -19,35 +19,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
-
-package io.ton.walletkit.api.generated
-
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+package io.ton.walletkit.swap
 
 /**
- * Fee information for swap
+ * Handle for a registered swap provider.
  *
- * @param amount Amount of the fee
- * @param token
+ * Created via [io.ton.walletkit.ITONWalletKit.omnistonSwapProvider] or
+ * [io.ton.walletkit.ITONWalletKit.deDustSwapProvider].
+ * Register with [ITONSwapManager.registerProvider] before calling [ITONSwapManager.getQuote].
  */
-@Serializable
-data class TONSwapFee(
-
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
-
-    @SerialName(value = "token")
-    val token: TONSwapToken,
-
-) {
-
-    companion object
-}
+data class TONSwapProvider(val providerId: String)

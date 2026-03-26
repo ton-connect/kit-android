@@ -39,10 +39,10 @@ import kotlinx.serialization.Serializable
  * @param toToken
  * @param rawFromAmount
  * @param rawToAmount
- * @param fromAmount
- * @param toAmount
+ * @param fromAmount Amount of tokens to sell
+ * @param toAmount Amount of tokens to buy
  * @param rawMinReceived
- * @param minReceived
+ * @param minReceived Minimum amount of tokens to receive (after slippage)
  * @param network
  * @param providerId Identifier of the swap provider
  * @param priceImpact Price impact of the swap in basis points (100 = 1%)
@@ -65,15 +65,18 @@ data class TONSwapQuote(
     @SerialName(value = "rawToAmount")
     val rawToAmount: kotlin.String,
 
+    /* Amount of tokens to sell */
     @SerialName(value = "fromAmount")
     val fromAmount: kotlin.String,
 
+    /* Amount of tokens to buy */
     @SerialName(value = "toAmount")
     val toAmount: kotlin.String,
 
     @SerialName(value = "rawMinReceived")
     val rawMinReceived: kotlin.String,
 
+    /* Minimum amount of tokens to receive (after slippage) */
     @SerialName(value = "minReceived")
     val minReceived: kotlin.String,
 

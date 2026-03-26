@@ -19,43 +19,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
+package io.ton.walletkit.swap
 
-package io.ton.walletkit.api.generated
-
-import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
+ * Configuration for the Omniston (STON.fi) swap provider.
  *
- *
- * @param quote
- * @param userAddress
- * @param destinationAddress
- * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
- * @param deadline Transaction deadline in unix timestamp
- * @param providerOptions Provider-specific options
+ * All fields are optional; omitting them uses provider defaults.
  */
 @Serializable
-data class TONSwapParams<TProviderOptions>(
-    @SerialName("quote")
-    val quote: TONSwapQuote,
-    @SerialName("userAddress")
-    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
-    @SerialName("destinationAddress")
-    val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-    @SerialName("slippageBps")
-    val slippageBps: kotlin.Int? = null,
-    @SerialName("deadline")
-    val deadline: kotlin.Int? = null,
-    @SerialName("providerOptions")
-    val providerOptions: TProviderOptions? = null,
-) {
-    companion object
-}
+data class TONOmnistonSwapProviderConfig(
+    /** Custom provider identifier. Defaults to "omniston". */
+    @SerialName("providerId") val providerId: String? = null,
+    /** Omniston WebSocket API URL. Default: wss://omni-ws.ston.fi */
+    @SerialName("apiUrl") val apiUrl: String? = null,
+    /** Default slippage tolerance in basis points (1 bp = 0.01%). */
+    @SerialName("defaultSlippageBps") val defaultSlippageBps: Int? = null,
+    /** Timeout for quote requests in milliseconds. */
+    @SerialName("quoteTimeoutMs") val quoteTimeoutMs: Int? = null,
+    /** Referrer address. */
+    @SerialName("referrerAddress") val referrerAddress: String? = null,
+    /** Referrer fee in basis points. */
+    @SerialName("referrerFeeBps") val referrerFeeBps: Int? = null,
+    /** Whether a flexible referrer fee is allowed. */
+    @SerialName("flexibleReferrerFee") val flexibleReferrerFee: Boolean? = null,
+)

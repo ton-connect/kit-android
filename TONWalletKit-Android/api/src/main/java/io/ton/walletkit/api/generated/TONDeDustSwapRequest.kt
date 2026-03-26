@@ -28,34 +28,41 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
+ * Swap request to DeDust Router API
  *
- *
- * @param quote
- * @param userAddress
- * @param destinationAddress
- * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
- * @param deadline Transaction deadline in unix timestamp
- * @param providerOptions Provider-specific options
+ * @param senderAddress
+ * @param swapData
+ * @param referralAddress
+ * @param referralFee
+ * @param jettonWalletStateInit
+ * @param customPayload
  */
 @Serializable
-data class TONSwapParams<TProviderOptions>(
-    @SerialName("quote")
-    val quote: TONSwapQuote,
-    @SerialName("userAddress")
-    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
-    @SerialName("destinationAddress")
-    val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-    @SerialName("slippageBps")
-    val slippageBps: kotlin.Int? = null,
-    @SerialName("deadline")
-    val deadline: kotlin.Int? = null,
-    @SerialName("providerOptions")
-    val providerOptions: TProviderOptions? = null,
+data class TONDeDustSwapRequest(
+
+    @SerialName(value = "sender_address")
+    val senderAddress: kotlin.String,
+
+    @SerialName(value = "swap_data")
+    val swapData: TONDeDustSwapRequestSwapData,
+
+    @SerialName(value = "referral_address")
+    val referralAddress: kotlin.String? = null,
+
+    @SerialName(value = "referral_fee")
+    val referralFee: kotlin.Int? = null,
+
+    @SerialName(value = "jetton_wallet_state_init")
+    val jettonWalletStateInit: kotlin.String? = null,
+
+    @SerialName(value = "custom_payload")
+    val customPayload: kotlin.String? = null,
+
 ) {
+
     companion object
 }
