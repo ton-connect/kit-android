@@ -30933,6 +30933,9 @@ async function getJettonWalletAddressFromClient(client, jettonAddress, ownerAddr
 async function getJettonBalanceFromClient(client, jettonWalletAddress) {
   try {
     const result = await client.runGetMethod(jettonWalletAddress, "get_wallet_data");
+    if (result.exitCode !== 0) {
+      return "0";
+    }
     const parsedStack = ParseStack(result.stack);
     const balance = parsedStack[0].type === "int" ? parsedStack[0].value : 0n;
     return balance.toString();
