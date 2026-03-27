@@ -34,6 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.net.HttpURLConnection
 import java.net.URL
 
 /**
@@ -175,9 +176,35 @@ class ToncenterAPIClient(
 
     override suspend fun sendBoc(boc: TONBase64): String {
         Log.d(tag, "🚀 [Toncenter] sendBoc on ${network.chainId}")
-        // Real implementation would call: POST $baseUrl/api/v3/sendBocReturnHash
-        delay(100)
-        return "toncenter_tx_${System.currentTimeMillis()}"
+        return withContext(Dispatchers.IO) {
+            val url = URL("$baseUrl/api/v3/message")
+            val connection = url.openConnection() as HttpURLConnection
+            try {
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Accept", "application/json")
+                connection.doOutput = true
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+
+                val body = """{"boc":"${boc.value}"}"""
+                connection.outputStream.use { it.write(body.toByteArray()) }
+
+                val code = connection.responseCode
+                if (code in 200..299) {
+                    val response = connection.inputStream.bufferedReader().readText()
+                    val hash = JSONObject(response).optString("message_hash", "")
+                    Log.d(tag, "🚀 [Toncenter] sendBoc complete ($code), hash: $hash")
+                    hash
+                } else {
+                    val error = connection.errorStream?.bufferedReader()?.readText() ?: "(no body)"
+                    Log.e(tag, "🚀 [Toncenter] sendBoc failed ($code): $error")
+                    throw RuntimeException("sendBoc HTTP $code: $error")
+                }
+            } finally {
+                connection.disconnect()
+            }
+        }
     }
 
     override suspend fun runGetMethod(
@@ -187,9 +214,52 @@ class ToncenterAPIClient(
         seqno: Int?,
     ): TONGetMethodResult {
         Log.d(tag, "📞 [Toncenter] runGetMethod: $method on ${address.value}")
-        // Real implementation would call: POST $baseUrl/api/v3/runGetMethod
-        delay(100)
-        return TONGetMethodResult(gasUsed = 1000, stack = emptyList(), exitCode = 0)
+        return withContext(Dispatchers.IO) {
+            val url = URL("$baseUrl/api/v3/runGetMethod")
+            val connection = url.openConnection() as HttpURLConnection
+            try {
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Accept", "application/json")
+                connection.doOutput = true
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+                val body = """{"address":"${address.value}","method":"$method","stack":[]}"""
+                connection.outputStream.use { it.write(body.toByteArray()) }
+                val code = connection.responseCode
+                if (code in 200..299) {
+                    val response = connection.inputStream.bufferedReader().readText()
+                    Log.d(tag, "📞 [Toncenter] runGetMethod ($code): $response")
+                    val json = JSONObject(response)
+                    val gasUsed = json.optInt("gas_used", 0)
+                    val exitCode = json.optInt("exit_code", 0)
+                    val stackArray = json.optJSONArray("stack")
+                    val stackItems = mutableListOf<TONRawStackItem>()
+                    if (stackArray != null) {
+                        for (i in 0 until stackArray.length()) {
+                            val item = stackArray.getJSONObject(i)
+                            val type = item.optString("type")
+                            val value = item.optString("value", "")
+                            val stackItem = when (type) {
+                                "num" -> TONRawStackItem.Num(value)
+                                "cell" -> TONRawStackItem.Cell(value)
+                                "slice" -> TONRawStackItem.Slice(value)
+                                "builder" -> TONRawStackItem.Builder(value)
+                                else -> TONRawStackItem.Null
+                            }
+                            stackItems.add(stackItem)
+                        }
+                    }
+                    TONGetMethodResult(gasUsed = gasUsed, stack = stackItems, exitCode = exitCode)
+                } else {
+                    val error = connection.errorStream?.bufferedReader()?.readText() ?: "(no body)"
+                    Log.e(tag, "📞 [Toncenter] runGetMethod failed ($code): $error")
+                    throw RuntimeException("runGetMethod HTTP $code: $error")
+                }
+            } finally {
+                connection.disconnect()
+            }
+        }
     }
 
     override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {

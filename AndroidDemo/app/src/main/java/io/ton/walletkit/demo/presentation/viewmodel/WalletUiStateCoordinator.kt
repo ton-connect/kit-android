@@ -75,6 +75,10 @@ class WalletUiStateCoordinator(
         setSheet(SheetState.TransferJetton(details))
     }
 
+    fun openSwapSheet(wallet: WalletSummary) {
+        setSheet(SheetState.Swap(wallet))
+    }
+
     fun openBrowser(url: String, injectTonConnect: Boolean = true) {
         setSheet(SheetState.Browser(url, injectTonConnect))
     }
