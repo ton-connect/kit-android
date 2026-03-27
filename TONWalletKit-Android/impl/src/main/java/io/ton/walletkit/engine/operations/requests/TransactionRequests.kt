@@ -21,6 +21,8 @@
  */
 package io.ton.walletkit.engine.operations.requests
 
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONTransactionRequestMessage
 import io.ton.walletkit.api.generated.TONTransferRequest
 import kotlinx.serialization.Serializable
 
@@ -56,12 +58,17 @@ internal data class HandleNewTransactionRequest(
 @Serializable
 internal data class SendTransactionRequest(
     val walletId: String,
-    val transactionContent: String,
+    val messages: List<TONTransactionRequestMessage>,
+    val network: TONNetwork? = null,
+    val validUntil: Int? = null,
+    val fromAddress: String? = null,
 )
 
 @Serializable
 internal data class GetTransactionPreviewRequest(
     val walletId: String,
-    // JSON string
-    val transactionContent: String,
+    val messages: List<TONTransactionRequestMessage>,
+    val network: TONNetwork? = null,
+    val validUntil: Int? = null,
+    val fromAddress: String? = null,
 )

@@ -42320,40 +42320,40 @@ var __async = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
-const providerStore = /* @__PURE__ */ new Map();
+function getSwap() {
+  return __async(this, null, function* () {
+    const instance = yield getKit();
+    if (!instance.swap) throw new Error("Swap is not configured");
+    return instance.swap;
+  });
+}
 function createOmnistonSwapProvider(args) {
   return __async(this, null, function* () {
     const provider = new OmnistonSwapProvider(args.config);
-    providerStore.set(provider.providerId, provider);
+    retainWithId(provider.providerId, provider);
     return { providerId: provider.providerId };
   });
 }
 function createDeDustSwapProvider(args) {
   return __async(this, null, function* () {
     const provider = new DeDustSwapProvider(args.config);
-    providerStore.set(provider.providerId, provider);
+    retainWithId(provider.providerId, provider);
     return { providerId: provider.providerId };
   });
 }
 function registerSwapProvider(args) {
   return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    const provider = providerStore.get(args.providerId);
-    if (!provider) throw new Error(`Swap provider '${args.providerId}' not found`);
-    kit2.swap.registerProvider(provider);
-    return { ok: true };
+    (yield getSwap()).registerProvider(get(args.providerId));
   });
 }
 function getSwapQuote(args) {
   return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    return kit2.swap.getQuote(args.params, args.providerId);
+    return (yield getSwap()).getQuote(args.params, args.providerId);
   });
 }
 function buildSwapTransaction(args) {
   return __async(this, null, function* () {
-    const kit2 = yield getKit();
-    return kit2.swap.buildSwapTransaction(args.params);
+    return (yield getSwap()).buildSwapTransaction(args.params);
   });
 }
 const api = {
