@@ -21,54 +21,36 @@
  */
 package io.ton.walletkit.engine.operations.requests
 
-import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.generated.TONTransactionRequestMessage
-import io.ton.walletkit.api.generated.TONTransferRequest
 import kotlinx.serialization.Serializable
 
 /**
- * Internal bridge request models for transaction operations.
- * These DTOs represent the exact JSON structure sent to the JavaScript bridge.
+ * Internal bridge request models for swap operations.
  *
  * @suppress Internal bridge communication only.
  */
 
 @Serializable
-internal data class CreateTransferTonRequest(
-    val walletId: String,
-    val recipientAddress: String,
-    val transferAmount: String,
-    val comment: String? = null,
-    val body: String? = null,
-    val stateInit: String? = null,
+internal data class CreateOmnistonSwapProviderRequest(
+    val config: kotlinx.serialization.json.JsonElement? = null,
 )
 
 @Serializable
-internal data class CreateTransferMultiTonRequest(
-    val walletId: String,
-    val messages: List<TONTransferRequest>,
+internal data class CreateDeDustSwapProviderRequest(
+    val config: kotlinx.serialization.json.JsonElement? = null,
 )
 
 @Serializable
-internal data class HandleNewTransactionRequest(
-    val walletId: String,
-    val transactionContent: String,
+internal data class RegisterSwapProviderRequest(
+    val providerId: String,
 )
 
 @Serializable
-internal data class SendTransactionRequest(
-    val walletId: String,
-    val messages: List<TONTransactionRequestMessage>,
-    val network: TONNetwork? = null,
-    val validUntil: Int? = null,
-    val fromAddress: String? = null,
+internal data class GetSwapQuoteRequest(
+    val params: kotlinx.serialization.json.JsonElement,
+    val providerId: String? = null,
 )
 
 @Serializable
-internal data class GetTransactionPreviewRequest(
-    val walletId: String,
-    val messages: List<TONTransactionRequestMessage>,
-    val network: TONNetwork? = null,
-    val validUntil: Int? = null,
-    val fromAddress: String? = null,
+internal data class BuildSwapTransactionRequest(
+    val params: kotlinx.serialization.json.JsonElement,
 )

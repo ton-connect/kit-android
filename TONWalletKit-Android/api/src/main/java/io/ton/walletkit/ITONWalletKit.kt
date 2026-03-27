@@ -32,6 +32,10 @@ import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.TONWalletConnectionRequest
+import io.ton.walletkit.swap.ITONSwapManager
+import io.ton.walletkit.swap.TONDeDustSwapProviderConfig
+import io.ton.walletkit.swap.TONOmnistonSwapProviderConfig
+import io.ton.walletkit.swap.TONSwapProvider
 
 /**
  * TON Wallet Kit SDK for managing wallets and TON Connect.
@@ -155,6 +159,27 @@ interface ITONWalletKit {
      * Create WebView TON Connect injector.
      */
     fun createWebViewInjector(webView: android.webkit.WebView, walletId: String? = null): WebViewTonConnectInjector
+
+    // ── Swap ──
+
+    /**
+     * Create an Omniston (STON.fi) swap provider.
+     *
+     * Call [swap().registerProvider] with the returned handle before calling [swap().getQuote].
+     */
+    suspend fun omnistonSwapProvider(config: TONOmnistonSwapProviderConfig? = null): TONSwapProvider
+
+    /**
+     * Create a DeDust swap provider.
+     *
+     * Call [swap().registerProvider] with the returned handle before calling [swap().getQuote].
+     */
+    suspend fun deDustSwapProvider(config: TONDeDustSwapProviderConfig? = null): TONSwapProvider
+
+    /**
+     * Get the swap manager for registering providers and executing swaps.
+     */
+    fun swap(): ITONSwapManager
 }
 
 interface WebViewTonConnectInjector {

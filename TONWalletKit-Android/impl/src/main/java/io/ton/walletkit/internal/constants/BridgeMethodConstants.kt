@@ -231,4 +231,21 @@ internal object BridgeMethodConstants {
      * Method name for getting jetton wallet address.
      */
     const val METHOD_GET_JETTON_WALLET_ADDRESS = "getJettonWalletAddress"
+
+    // Swap methods
+
+    /** Create an Omniston swap provider instance. */
+    const val METHOD_CREATE_OMNISTON_SWAP_PROVIDER = "createOmnistonSwapProvider"
+
+    /** Create a DeDust swap provider instance. */
+    const val METHOD_CREATE_DEDUST_SWAP_PROVIDER = "createDeDustSwapProvider"
+
+    /** Register a previously created swap provider with the swap manager. */
+    const val METHOD_REGISTER_SWAP_PROVIDER = "registerSwapProvider"
+
+    /** Get a swap quote from a registered provider. */
+    const val METHOD_GET_SWAP_QUOTE = "getSwapQuote"
+
+    /** Build a transaction for executing a swap. */
+    const val METHOD_BUILD_SWAP_TRANSACTION = "buildSwapTransaction"
 }
