@@ -43,12 +43,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
+import io.ton.walletkit.demo.presentation.util.TestTags
 import io.ton.walletkit.demo.presentation.util.abbreviated
 import kotlinx.coroutines.launch
 
@@ -87,7 +89,7 @@ fun WalletCard(
                     Text(
                         text = wallet.address.abbreviated(),
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).testTag(TestTags.WALLET_ADDRESS),
                     )
                     IconButton(
                         onClick = {

@@ -29,10 +29,6 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 
 /**
  * Wallet adapter interface for wrapping existing wallet implementations.
- *
- * Implement this to integrate existing wallet entities with WalletKit
- * without going through the signer/adapter factory pattern.
- * Mirrors iOS `TONWalletAdapterProtocol`.
  */
 interface TONWalletAdapter {
     /** Stable unique wallet identifier. */
@@ -62,13 +58,5 @@ interface TONWalletAdapter {
         fakeSignature: Boolean? = null,
     ): TONHex
 
-    /** Wallet contract version ("v4r2", "v5r1"), or null for default (V5R1). */
-    fun walletVersion(): String? = null
-
-    /**
-     * Get supported TON Connect features for this wallet adapter.
-     * If not implemented (returns null), features from deviceInfo configuration will be used.
-     * Mirrors iOS `TONWalletAdapterProtocol.supportedFeatures()`.
-     */
     fun supportedFeatures(): List<TONWalletKitConfiguration.Feature>? = null
 }

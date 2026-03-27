@@ -423,34 +423,30 @@ internal class WebViewManager(
         }
 
         @JavascriptInterface
-        fun sessionRemove(sessionId: String): String? {
+        fun sessionRemove(sessionId: String) {
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
-            return kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.runBlocking {
                 try {
-                    val session = manager.removeSession(sessionId)
-                    session?.let { json.encodeToString(it) }
+                    manager.removeSession(sessionId)
                 } catch (e: Exception) {
                     Logger.e(TAG, "Failed to remove session: $sessionId", e)
-                    null
                 }
             }
         }
 
         @JavascriptInterface
-        fun sessionRemoveFiltered(filterJson: String): String {
+        fun sessionRemoveFiltered(filterJson: String) {
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
-            return kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.runBlocking {
                 try {
                     val filter = parseSessionFilter(filterJson)
-                    val sessions = manager.removeSessions(filter)
-                    json.encodeToString(sessions)
+                    manager.removeSessions(filter)
                 } catch (e: Exception) {
                     Logger.e(TAG, "Failed to remove filtered sessions", e)
-                    "[]"
                 }
             }
         }
