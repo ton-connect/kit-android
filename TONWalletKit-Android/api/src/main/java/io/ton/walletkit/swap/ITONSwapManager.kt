@@ -40,13 +40,21 @@ interface ITONSwapManager {
     suspend fun registerProvider(provider: TONSwapProvider)
 
     /**
-     * Get a swap quote from the specified provider (or the default registered provider).
+     * Get a swap quote from a specific provider.
      *
      * @param params Quote parameters including from/to tokens and amount.
-     * @param providerId Optional provider ID. Uses the first registered provider if omitted.
+     * @param providerId ID of the provider to use.
      * @return Swap quote with pricing information.
      */
-    suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String? = null): TONSwapQuote
+    suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String): TONSwapQuote
+
+    /**
+     * Get a swap quote using the default registered provider.
+     *
+     * @param params Quote parameters including from/to tokens and amount.
+     * @return Swap quote with pricing information.
+     */
+    suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>): TONSwapQuote
 
     /**
      * Build a transaction for executing a swap.

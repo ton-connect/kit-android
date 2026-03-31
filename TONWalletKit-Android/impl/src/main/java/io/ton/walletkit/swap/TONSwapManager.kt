@@ -35,8 +35,12 @@ internal class TONSwapManager(
         engine.registerSwapProvider(provider.providerId)
     }
 
-    override suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote {
+    override suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String): TONSwapQuote {
         return engine.getSwapQuote(params, providerId)
+    }
+
+    override suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>): TONSwapQuote {
+        return engine.getSwapQuote(params, null)
     }
 
     override suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): String {
