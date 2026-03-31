@@ -34,7 +34,6 @@ import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONSwapToken
-import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.swap.ITONSwapManager
 import io.ton.walletkit.swap.TONDeDustSwapProvider
 import io.ton.walletkit.swap.TONOmnistonSwapProvider
@@ -44,7 +43,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
 class SwapViewModel(
@@ -102,8 +100,6 @@ class SwapViewModel(
     )
 
     private var swapResources: SwapResources? = null
-
-    private val json = Json { ignoreUnknownKeys = true }
 
     fun setFromAmount(value: String) {
         if (value.isNotEmpty() && value.toDoubleOrNull() == null) return
@@ -211,8 +207,7 @@ class SwapViewModel(
                     quote = quote,
                     userAddress = wallet.address,
                 )
-                val transactionContent = manager.buildSwapTransaction(params)
-                val transactionRequest = json.decodeFromString(TONTransactionRequest.serializer(), transactionContent)
+                val transactionRequest = manager.buildSwapTransaction(params)
                 wallet.send(transactionRequest)
             }.onSuccess {
                 _state.update {
