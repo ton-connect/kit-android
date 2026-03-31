@@ -24,6 +24,7 @@ package io.ton.walletkit.swap
 import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
+import io.ton.walletkit.api.generated.TONTransactionRequest
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
@@ -46,8 +47,8 @@ interface ITONSwapManager {
     /** Get a quote using the default registered provider. */
     suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>): TONSwapQuote
 
-    /** Build a swap transaction. Pass the result to [io.ton.walletkit.ITONWallet.sendTransaction]. */
-    suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): String
+    /** Build a swap transaction ready to pass to [io.ton.walletkit.ITONWallet.send]. */
+    suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): TONTransactionRequest
 }
 
 /** Get a quote from a specific typed provider, inferring the serializer via reified [TQuoteOptions]. */
