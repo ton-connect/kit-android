@@ -257,5 +257,4 @@ internal object BridgeMethodConstants {
 
     /** Build a transaction for executing a swap. */
     const val METHOD_BUILD_SWAP_TRANSACTION = "buildSwapTransaction"
-
 }

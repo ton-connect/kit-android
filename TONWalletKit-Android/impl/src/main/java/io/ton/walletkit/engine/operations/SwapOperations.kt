@@ -117,5 +117,4 @@ internal class SwapOperations(
         val result = rpcClient.call(BridgeMethodConstants.METHOD_BUILD_SWAP_TRANSACTION, json.toJSONObject(request))
         return result.toString()
     }
-
 }
