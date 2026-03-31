@@ -95,9 +95,13 @@ class SwapViewModel(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private var swapManager: ITONSwapManager? = null
-    private var omnistonProvider: TONOmnistonSwapProvider? = null
-    private var deDustProvider: TONDeDustSwapProvider? = null
+    private data class SwapResources(
+        val manager: ITONSwapManager,
+        val omnistonProvider: TONOmnistonSwapProvider,
+        val deDustProvider: TONDeDustSwapProvider,
+    )
+
+    private var swapResources: SwapResources? = null
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -149,7 +153,7 @@ class SwapViewModel(
 
         viewModelScope.launch {
             runCatching {
-                val manager = getSwapManager()
+                val (manager, omnistonProvider, deDustProvider) = getSwapResources()
                 when (current.selectedProvider) {
                     SwapProvider.OMNISTON -> manager.getQuote(
                         TONSwapQuoteParams<TONOmnistonProviderOptions>(
@@ -161,7 +165,7 @@ class SwapViewModel(
                             maxOutgoingMessages = 4,
                             isReverseSwap = current.isReverseSwap,
                         ),
-                        omnistonProvider!!,
+                        omnistonProvider,
                     )
                     SwapProvider.DEDUST -> manager.getQuote(
                         TONSwapQuoteParams<TONDeDustProviderOptions>(
@@ -173,7 +177,7 @@ class SwapViewModel(
                             maxOutgoingMessages = 4,
                             isReverseSwap = current.isReverseSwap,
                         ),
-                        deDustProvider!!,
+                        deDustProvider,
                     )
                 }
             }.onSuccess { quote ->
@@ -202,7 +206,7 @@ class SwapViewModel(
 
         viewModelScope.launch {
             runCatching {
-                val manager = getSwapManager()
+                val manager = getSwapResources().manager
                 val params = TONSwapParams<JsonElement>(
                     quote = quote,
                     userAddress = wallet.address,
@@ -226,21 +230,18 @@ class SwapViewModel(
         }
     }
 
-    private suspend fun getSwapManager(): ITONSwapManager {
-        swapManager?.let { return it }
+    private suspend fun getSwapResources(): SwapResources {
+        swapResources?.let { return it }
 
         val manager = kit.swap()
 
         val omniston = kit.omnistonSwapProvider()
         manager.registerProvider(omniston)
-        omnistonProvider = omniston
 
         val deDust = kit.deDustSwapProvider()
         manager.registerProvider(deDust)
-        deDustProvider = deDust
 
-        swapManager = manager
-        return manager
+        return SwapResources(manager, omniston, deDust).also { swapResources = it }
     }
 
     companion object {
