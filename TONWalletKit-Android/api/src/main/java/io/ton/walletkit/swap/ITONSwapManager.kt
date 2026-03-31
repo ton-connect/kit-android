@@ -24,35 +24,34 @@ package io.ton.walletkit.swap
 import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.serializer
 
-/**
- * Manages swap providers and executes swap operations.
- *
- * Obtain via [io.ton.walletkit.ITONWalletKit.swap].
- */
+/** Manages swap providers and executes swap operations. Obtain via [io.ton.walletkit.ITONWalletKit.swap]. */
 interface ITONSwapManager {
-    /**
-     * Register a swap provider so it can be used in [getQuote] and [buildSwapTransaction].
-     * Providers created via [io.ton.walletkit.ITONWalletKit.omnistonSwapProvider] or
-     * [io.ton.walletkit.ITONWalletKit.deDustSwapProvider] must be registered before use.
-     */
-    suspend fun registerProvider(provider: TONSwapProvider)
+    /** Register a provider before calling [getQuote]. */
+    suspend fun registerProvider(provider: TONSwapProvider<*>)
 
     /**
-     * Get a swap quote from the specified provider (or the default registered provider).
-     *
-     * @param params Quote parameters including from/to tokens and amount.
-     * @param providerId Optional provider ID. Uses the first registered provider if omitted.
-     * @return Swap quote with pricing information.
+     * Get a quote from a specific typed provider.
+     * Prefer the inline [getQuote] extension — it infers [serializer] automatically.
      */
-    suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String? = null): TONSwapQuote
+    suspend fun <TQuoteOptions> getQuote(
+        params: TONSwapQuoteParams<TQuoteOptions>,
+        provider: TONSwapProvider<TQuoteOptions>,
+        serializer: KSerializer<TQuoteOptions>,
+    ): TONSwapQuote
 
-    /**
-     * Build a transaction for executing a swap.
-     *
-     * @param params Swap parameters including the quote obtained from [getQuote].
-     * @return Transaction content as JSON string (pass to [io.ton.walletkit.ITONWallet.sendTransaction]).
-     */
+    /** Get a quote using the default registered provider. */
+    suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>): TONSwapQuote
+
+    /** Build a swap transaction. Pass the result to [io.ton.walletkit.ITONWallet.sendTransaction]. */
     suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): String
 }
+
+/** Get a quote from a specific typed provider, inferring the serializer via reified [TQuoteOptions]. */
+suspend inline fun <reified TQuoteOptions> ITONSwapManager.getQuote(
+    params: TONSwapQuoteParams<TQuoteOptions>,
+    provider: TONSwapProvider<TQuoteOptions>,
+): TONSwapQuote = getQuote(params, provider, serializer())

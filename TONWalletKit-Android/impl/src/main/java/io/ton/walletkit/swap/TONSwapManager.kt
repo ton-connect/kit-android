@@ -25,18 +25,39 @@ import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.engine.WalletKitEngine
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
 internal class TONSwapManager(
     private val engine: WalletKitEngine,
 ) : ITONSwapManager {
 
-    override suspend fun registerProvider(provider: TONSwapProvider) {
+    override suspend fun registerProvider(provider: TONSwapProvider<*>) {
         engine.registerSwapProvider(provider.providerId)
     }
 
-    override suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote {
-        return engine.getSwapQuote(params, providerId)
+    override suspend fun <TQuoteOptions> getQuote(
+        params: TONSwapQuoteParams<TQuoteOptions>,
+        provider: TONSwapProvider<TQuoteOptions>,
+        serializer: KSerializer<TQuoteOptions>,
+    ): TONSwapQuote {
+        val jsonOptions = params.providerOptions?.let { Json.encodeToJsonElement(serializer, it) }
+        val jsonParams = TONSwapQuoteParams(
+            amount = params.amount,
+            from = params.from,
+            to = params.to,
+            network = params.network,
+            slippageBps = params.slippageBps,
+            maxOutgoingMessages = params.maxOutgoingMessages,
+            providerOptions = jsonOptions,
+            isReverseSwap = params.isReverseSwap,
+        )
+        return engine.getSwapQuote(jsonParams, provider.providerId)
+    }
+
+    override suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>): TONSwapQuote {
+        return engine.getSwapQuote(params, null)
     }
 
     override suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): String {

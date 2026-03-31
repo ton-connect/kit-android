@@ -21,11 +21,21 @@
  */
 package io.ton.walletkit.swap
 
+import io.ton.walletkit.api.generated.TONDeDustProviderOptions
+import io.ton.walletkit.api.generated.TONOmnistonProviderOptions
+
 /**
- * Handle for a registered swap provider.
+ * Handle for a registered swap provider. The type parameter [TQuoteOptions] carries
+ * the provider-specific options type used in [ITONSwapManager.getQuote].
  *
  * Created via [io.ton.walletkit.ITONWalletKit.omnistonSwapProvider] or
  * [io.ton.walletkit.ITONWalletKit.deDustSwapProvider].
  * Register with [ITONSwapManager.registerProvider] before calling [ITONSwapManager.getQuote].
  */
-data class TONSwapProvider(val providerId: String)
+data class TONSwapProvider<TQuoteOptions>(val providerId: String)
+
+/** Typed handle for the Omniston (STON.fi) swap provider. */
+typealias TONOmnistonSwapProvider = TONSwapProvider<TONOmnistonProviderOptions>
+
+/** Typed handle for the DeDust swap provider. */
+typealias TONDeDustSwapProvider = TONSwapProvider<TONDeDustProviderOptions>
