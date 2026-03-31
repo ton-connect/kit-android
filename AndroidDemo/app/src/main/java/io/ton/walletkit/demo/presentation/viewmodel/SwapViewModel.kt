@@ -27,13 +27,18 @@ import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.generated.TONDeDustProviderOptions
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONOmnistonProviderOptions
 import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONSwapToken
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.swap.ITONSwapManager
+import io.ton.walletkit.swap.TONDeDustSwapProvider
+import io.ton.walletkit.swap.TONOmnistonSwapProvider
+import io.ton.walletkit.swap.getQuote
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -91,8 +96,8 @@ class SwapViewModel(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var swapManager: ITONSwapManager? = null
-    private var omnistonProviderId: String? = null
-    private var deDustProviderId: String? = null
+    private var omnistonProvider: TONOmnistonSwapProvider? = null
+    private var deDustProvider: TONDeDustSwapProvider? = null
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -145,20 +150,32 @@ class SwapViewModel(
         viewModelScope.launch {
             runCatching {
                 val manager = getSwapManager()
-                val providerId = when (current.selectedProvider) {
-                    SwapProvider.OMNISTON -> omnistonProviderId
-                    SwapProvider.DEDUST -> deDustProviderId
+                when (current.selectedProvider) {
+                    SwapProvider.OMNISTON -> manager.getQuote(
+                        TONSwapQuoteParams<TONOmnistonProviderOptions>(
+                            amount = amount,
+                            from = current.fromToken,
+                            to = current.toToken,
+                            network = TONNetwork.MAINNET,
+                            slippageBps = current.slippageBps,
+                            maxOutgoingMessages = 4,
+                            isReverseSwap = current.isReverseSwap,
+                        ),
+                        omnistonProvider!!,
+                    )
+                    SwapProvider.DEDUST -> manager.getQuote(
+                        TONSwapQuoteParams<TONDeDustProviderOptions>(
+                            amount = amount,
+                            from = current.fromToken,
+                            to = current.toToken,
+                            network = TONNetwork.MAINNET,
+                            slippageBps = current.slippageBps,
+                            maxOutgoingMessages = 4,
+                            isReverseSwap = current.isReverseSwap,
+                        ),
+                        deDustProvider!!,
+                    )
                 }
-                val params = TONSwapQuoteParams<JsonElement>(
-                    amount = amount,
-                    from = current.fromToken,
-                    to = current.toToken,
-                    network = TONNetwork.MAINNET,
-                    slippageBps = current.slippageBps,
-                    maxOutgoingMessages = 4,
-                    isReverseSwap = current.isReverseSwap,
-                )
-                manager.getQuote(params, providerId)
             }.onSuccess { quote ->
                 _state.update { current ->
                     val updatedFromAmount = if (current.isReverseSwap) quote.fromAmount else current.fromAmount
@@ -216,11 +233,11 @@ class SwapViewModel(
 
         val omniston = kit.omnistonSwapProvider()
         manager.registerProvider(omniston)
-        omnistonProviderId = omniston.providerId
+        omnistonProvider = omniston
 
         val deDust = kit.deDustSwapProvider()
         manager.registerProvider(deDust)
-        deDustProviderId = deDust.providerId
+        deDustProvider = deDust
 
         swapManager = manager
         return manager
