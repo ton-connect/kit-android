@@ -43,6 +43,9 @@ interface ITONSwapManager {
     /** Returns true if [provider] is currently registered. */
     suspend fun hasProvider(provider: TONSwapProvider<*>): Boolean
 
+    /** Returns [provider] if it is currently registered, null otherwise. */
+    suspend fun <TQuoteOptions> provider(provider: TONSwapProvider<TQuoteOptions>): TONSwapProvider<TQuoteOptions>?
+
     /**
      * Get a quote from a specific typed provider.
      * Prefer the inline [getQuote] extension — it infers [serializer] automatically.

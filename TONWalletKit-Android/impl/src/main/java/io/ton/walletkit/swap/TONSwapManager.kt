@@ -52,6 +52,10 @@ internal class TONSwapManager(
         return engine.hasSwapProvider(provider.providerId)
     }
 
+    override suspend fun <TQuoteOptions> provider(provider: TONSwapProvider<TQuoteOptions>): TONSwapProvider<TQuoteOptions>? {
+        return if (engine.hasSwapProvider(provider.providerId)) provider else null
+    }
+
     override suspend fun <TQuoteOptions> getQuote(
         params: TONSwapQuoteParams<TQuoteOptions>,
         provider: TONSwapProvider<TQuoteOptions>,
