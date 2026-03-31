@@ -32,20 +32,20 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
+ * Metadata stored in SwapQuote for DeDust provider
  *
- * @param amount Amount of the fee
- * @param token
+ * @param quoteResponse Raw quote response from API
+ * @param slippageBps Slippage used for the quote in basis points
  */
 @Serializable
-data class TONSwapFee(
+data class TONDeDustQuoteMetadata(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    @SerialName("quoteResponse")
+    private val quoteResponse: kotlinx.serialization.json.JsonElement,
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    /* Slippage used for the quote in basis points */
+    @SerialName(value = "slippageBps")
+    val slippageBps: kotlin.Int,
 
 ) {
 

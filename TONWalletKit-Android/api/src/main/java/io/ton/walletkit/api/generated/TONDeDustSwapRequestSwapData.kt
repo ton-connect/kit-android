@@ -32,20 +32,19 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
  *
- * @param amount Amount of the fee
- * @param token
+ *
+ * @param slippageBps
+ * @param routes
  */
 @Serializable
-data class TONSwapFee(
+data class TONDeDustSwapRequestSwapData(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    @SerialName(value = "slippage_bps")
+    val slippageBps: kotlin.Int,
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    @SerialName(value = "routes")
+    val routes: kotlin.collections.List<TONDeDustRouteStep>,
 
 ) {
 

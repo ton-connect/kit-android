@@ -32,20 +32,43 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
+ * Quote response from DeDust Router API
  *
- * @param amount Amount of the fee
- * @param token
+ * @param inAmount
+ * @param outAmount
+ * @param swapData
+ * @param swapIsPossible
+ * @param priceImpact
+ * @param improvement
+ * @param inMinterPrice
+ * @param outMinterPrice
  */
 @Serializable
-data class TONSwapFee(
+data class TONDeDustQuoteResponse(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    @SerialName(value = "in_amount")
+    val inAmount: kotlin.String,
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    @SerialName(value = "out_amount")
+    val outAmount: kotlin.String,
+
+    @SerialName(value = "swap_data")
+    val swapData: TONDeDustSwapData,
+
+    @SerialName(value = "swap_is_possible")
+    val swapIsPossible: kotlin.Boolean,
+
+    @SerialName(value = "price_impact")
+    val priceImpact: kotlin.Int? = null,
+
+    @SerialName(value = "improvement")
+    val improvement: kotlin.String? = null,
+
+    @SerialName(value = "in_minter_price")
+    val inMinterPrice: kotlin.String? = null,
+
+    @SerialName(value = "out_minter_price")
+    val outMinterPrice: kotlin.String? = null,
 
 ) {
 

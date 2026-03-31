@@ -28,24 +28,21 @@
 
 package io.ton.walletkit.api.generated
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
  *
- * @param amount Amount of the fee
- * @param token
+ *
+ * @param settlementMethods Settlement methods to use for the swap
  */
 @Serializable
-data class TONSwapFee(
+data class TONOmnistonSwapOptions(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
-
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    /* Settlement methods to use for the swap */
+    @SerialName(value = "settlementMethods")
+    val settlementMethods: kotlin.collections.List<@Contextual TONSettlementMethodValue>? = null,
 
 ) {
 

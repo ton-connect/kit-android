@@ -32,20 +32,15 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
+ * Metadata associated with an Omniston quote
  *
- * @param amount Amount of the fee
- * @param token
+ * @param omnistonQuote The actual omniston quote object
  */
 @Serializable
-data class TONSwapFee(
+data class TONOmnistonQuoteMetadata(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
-
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    @SerialName("omnistonQuote")
+    private val omnistonQuote: kotlinx.serialization.json.JsonElement,
 
 ) {
 

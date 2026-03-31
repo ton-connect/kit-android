@@ -28,24 +28,39 @@
 
 package io.ton.walletkit.api.generated
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
+ * Information about the latest masterchain block.
  *
- * @param amount Amount of the fee
- * @param token
+ * @param seqno Sequence number of the masterchain block
+ * @param shard Shard identifier of the block
+ * @param workchain Workchain ID of the block
+ * @param fileHash
+ * @param rootHash
  */
 @Serializable
-data class TONSwapFee(
+data class TONMasterchainInfo(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    /* Sequence number of the masterchain block */
+    @SerialName(value = "seqno")
+    val seqno: kotlin.Int,
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    /* Shard identifier of the block */
+    @SerialName(value = "shard")
+    val shard: kotlin.String,
+
+    /* Workchain ID of the block */
+    @SerialName(value = "workchain")
+    val workchain: kotlin.Int,
+
+    @Contextual @SerialName(value = "fileHash")
+    val fileHash: io.ton.walletkit.model.TONHex,
+
+    @Contextual @SerialName(value = "rootHash")
+    val rootHash: io.ton.walletkit.model.TONHex,
 
 ) {
 

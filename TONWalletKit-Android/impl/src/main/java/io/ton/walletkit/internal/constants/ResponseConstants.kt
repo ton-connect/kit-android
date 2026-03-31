@@ -322,6 +322,11 @@ internal object ResponseConstants {
     const val KEY_OK = "ok"
 
     /**
+     * JSON key for provider identifier (swap).
+     */
+    const val KEY_PROVIDER_ID = "providerId"
+
+    /**
      * JSON key for 'removed' status flag.
      */
     const val KEY_REMOVED = "removed"

@@ -32,20 +32,19 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
+ * Swap response from DeDust Router API
  *
- * @param amount Amount of the fee
- * @param token
+ * @param queryId
+ * @param transactions
  */
 @Serializable
-data class TONSwapFee(
+data class TONDeDustSwapResponse(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    @SerialName(value = "query_id")
+    val queryId: kotlin.Int,
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    @SerialName(value = "transactions")
+    val transactions: kotlin.collections.List<TONDeDustSwapTransaction>,
 
 ) {
 

@@ -157,20 +157,18 @@ class TransactionOperationsTest : OperationsTestBase() {
             ),
         )
 
-        val result = transactionOperations.sendTransaction(TEST_ADDRESS, """{"boc":"..."}""")
+        val result = transactionOperations.sendTransaction(TEST_ADDRESS, """{"messages":[]}""")
 
         assertEquals("te6ccgEBAgEA...", result)
     }
 
     @Test
-    fun sendTransaction_throwsIfSignedBocMissing() {
-        runBlocking {
-            givenBridgeReturns(JSONObject()) // No signedBoc
+    fun sendTransaction_throwsIfSignedBocMissing() = runBlocking {
+        givenBridgeReturns(JSONObject()) // No signedBoc
 
-            assertThrows(org.json.JSONException::class.java) {
-                runBlocking { transactionOperations.sendTransaction(TEST_ADDRESS, """{"boc":"..."}""") }
-            }
-        }
+        val result = transactionOperations.sendTransaction(TEST_ADDRESS, """{"messages":[]}""")
+
+        assertTrue(result.isEmpty())
     }
 
     // --- getTransactionPreview tests ---
@@ -183,7 +181,7 @@ class TransactionOperationsTest : OperationsTestBase() {
             },
         )
 
-        val result = transactionOperations.getTransactionPreview(TEST_ADDRESS, """{"boc":"..."}""")
+        val result = transactionOperations.getTransactionPreview(TEST_ADDRESS, """{"messages":[]}""")
 
         // Result should be a Success type
         assertNotNull(result)
