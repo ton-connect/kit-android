@@ -65,9 +65,9 @@ data class TONStakingQuote(
     @SerialName(value = "providerId")
     val providerId: kotlin.String,
 
-    /* Annual Percentage Yield in basis points (100 = 1%) */
+    /* Annual Percentage Yield as a percentage (e.g. 5.42 = 5.42%) */
     @SerialName(value = "apy")
-    val apy: kotlin.Int? = null,
+    val apy: kotlin.Double? = null,
 
     @Contextual @SerialName(value = "unstakeMode")
     val unstakeMode: TONUnstakeMode? = null,
