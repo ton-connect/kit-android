@@ -161,16 +161,6 @@ interface ITONWalletKit {
 
     /**
      * Access the staking manager for registering providers and performing staking operations.
-     *
-     * Mirrors the iOS `TONWalletKit.staking()` method.
-     *
-     * Example:
-     * ```kotlin
-     * val provider = kit.tonStakersStakingProvider()
-     * kit.staking().register(provider)
-     * kit.staking().setDefaultProvider(provider.providerId)
-     * val quote = kit.staking().getQuote(TONStakingQuoteParams(direction = TONStakingQuoteDirection.stake, amount = "1000000000"))
-     * ```
      */
     fun staking(): ITONStakingManager
 
@@ -178,8 +168,6 @@ interface ITONWalletKit {
      * Create a TonStakers staking provider.
      *
      * Call [ITONStakingManager.register] with the returned provider to make it available for quotes.
-     *
-     * Mirrors the iOS `TONWalletKit.stakingProvider(config:)` method.
      *
      * @param config Optional per-chain configuration (contract address, TonAPI key)
      * @return A provider that can be registered with [staking]
