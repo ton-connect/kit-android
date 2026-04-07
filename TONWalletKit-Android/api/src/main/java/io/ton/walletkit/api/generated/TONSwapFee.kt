@@ -34,13 +34,12 @@ import kotlinx.serialization.Serializable
 /**
  * Fee information for swap
  *
- * @param amount Amount of the fee
+ * @param amount
  * @param token
  */
 @Serializable
 data class TONSwapFee(
 
-    /* Amount of the fee */
     @SerialName(value = "amount")
     val amount: kotlin.String,
 
