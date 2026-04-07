@@ -127,19 +127,16 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String = "ton",
-        domain: TONSignatureDomain? = null,
     ): WalletSignerInfo
 
     /**
      * Create a signer from a secret key hex string.
      *
      * @param secretKeyHex Private key as hex string
-     * @param domain Optional signature domain for L2 chains (e.g., Tetra)
      * @return Signer info with ID and public key
      */
     suspend fun createSignerFromSecretKey(
         secretKeyHex: String,
-        domain: TONSignatureDomain? = null,
     ): WalletSignerInfo
 
     suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo
@@ -151,6 +148,7 @@ internal interface WalletKitEngine : RequestHandler {
         network: TONNetwork? = null,
         workchain: Int = 0,
         walletId: Long = 2147483409L,
+        domain: TONSignatureDomain? = null,
     ): TONWalletAdapter
 
     suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount

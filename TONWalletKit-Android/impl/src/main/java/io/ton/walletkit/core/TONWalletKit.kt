@@ -176,19 +176,17 @@ internal class TONWalletKit private constructor(
     override suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String,
-        domain: TONSignatureDomain?,
     ): io.ton.walletkit.model.WalletSignerInfo {
         checkNotDestroyed()
-        return engine.createSignerFromMnemonic(mnemonic, mnemonicType, domain)
+        return engine.createSignerFromMnemonic(mnemonic, mnemonicType)
     }
 
     override suspend fun createSignerFromSecretKey(
         secretKey: ByteArray,
-        domain: TONSignatureDomain?,
     ): io.ton.walletkit.model.WalletSignerInfo {
         checkNotDestroyed()
         val hex = io.ton.walletkit.WalletKitUtils.byteArrayToHexNoPrefix(secretKey)
-        return engine.createSignerFromSecretKey(hex, domain)
+        return engine.createSignerFromSecretKey(hex)
     }
 
     override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo {
@@ -203,6 +201,7 @@ internal class TONWalletKit private constructor(
         network: io.ton.walletkit.api.generated.TONNetwork,
         workchain: Int,
         walletId: Long,
+        domain: TONSignatureDomain?,
     ): io.ton.walletkit.model.TONWalletAdapter {
         checkNotDestroyed()
         return engine.createAdapter(
@@ -212,6 +211,7 @@ internal class TONWalletKit private constructor(
             network = network,
             workchain = workchain,
             walletId = walletId,
+            domain = domain,
         )
     }
 
@@ -220,6 +220,7 @@ internal class TONWalletKit private constructor(
         network: io.ton.walletkit.api.generated.TONNetwork,
         workchain: Int,
         walletId: Long,
+        domain: TONSignatureDomain?,
     ): io.ton.walletkit.model.TONWalletAdapter {
         checkNotDestroyed()
         return engine.createAdapter(
@@ -229,6 +230,7 @@ internal class TONWalletKit private constructor(
             network = network,
             workchain = workchain,
             walletId = walletId,
+            domain = domain,
         )
     }
 

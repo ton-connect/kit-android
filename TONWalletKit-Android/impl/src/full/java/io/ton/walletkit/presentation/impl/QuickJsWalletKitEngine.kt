@@ -347,6 +347,7 @@ internal class QuickJsWalletKitEngine(
         network: io.ton.walletkit.api.generated.TONNetwork?,
         workchain: Int,
         walletId: Long,
+        domain: io.ton.walletkit.api.generated.TONSignatureDomain?,
     ): io.ton.walletkit.model.TONWalletAdapter {
         throw UnsupportedOperationException("QuickJS engine does not support createAdapter. Use WebView engine.")
     }

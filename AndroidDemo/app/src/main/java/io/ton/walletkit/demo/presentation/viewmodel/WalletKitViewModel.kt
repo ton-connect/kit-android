@@ -631,15 +631,16 @@ class WalletKitViewModel @Inject constructor(
                             _state.update { it.copy(error = uiString(R.string.wallet_error_invalid_secret_key)) }
                             return@launch
                         }
-                        val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
-                        kit.createSignerFromSecretKey(secretKeyBytes, domain = domain)
+                        kit.createSignerFromSecretKey(secretKeyBytes)
                     }
                     WalletInterfaceType.MNEMONIC -> {
                         // Create regular mnemonic wallet
-                        val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
-                        kit.createSignerFromMnemonic(cleaned, domain = domain)
+                        kit.createSignerFromMnemonic(cleaned)
                     }
                 }
+
+                // Tetra (L2) wallets require an L2 signature domain
+                val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
 
                 // Create adapter based on wallet version
                 // Note: You can optionally specify workchain and walletId parameters:
@@ -647,8 +648,8 @@ class WalletKitViewModel @Inject constructor(
                 // - walletId: unique ID for multiple wallets from same signer
                 // Example: kit.createV5R1Adapter(signerInfo, network, workchain = 0, walletId = WalletKitConstants.DEFAULT_WALLET_ID_V5R1)
                 val adapter = when (version) {
-                    WalletVersions.V4R2 -> kit.createV4R2Adapter(signerInfo, network)
-                    WalletVersions.V5R1 -> kit.createV5R1Adapter(signerInfo, network)
+                    WalletVersions.V4R2 -> kit.createV4R2Adapter(signerInfo, network, domain = domain)
+                    WalletVersions.V5R1 -> kit.createV5R1Adapter(signerInfo, network, domain = domain)
                     else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                 }
 
@@ -743,10 +744,10 @@ class WalletKitViewModel @Inject constructor(
                 // Generate a new TON mnemonic explicitly (matches JS docs pattern)
                 val mnemonic = kit.createTonMnemonic()
                 val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
-                val signer = kit.createSignerFromMnemonic(mnemonic, domain = domain)
+                val signer = kit.createSignerFromMnemonic(mnemonic)
                 val adapter = when (version) {
-                    WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network)
-                    WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network)
+                    WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network, domain = domain)
+                    WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network, domain = domain)
                     else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                 }
                 kit.addWallet(adapter)

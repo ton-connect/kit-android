@@ -63,14 +63,12 @@ internal class WalletOperations(
     suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String = "ton",
-        domain: TONSignatureDomain? = null,
     ): WalletSignerInfo {
         ensureInitialized()
 
         val request = JSONObject().apply {
             put("mnemonic", JSONArray(mnemonic))
             put("mnemonicType", mnemonicType)
-            domain?.let { put("domain", signatureDomainToJson(it)) }
         }
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER_FROM_MNEMONIC, request)
         val signerId = result.optString("signerId").takeIf { it.isNotEmpty() }
@@ -82,13 +80,11 @@ internal class WalletOperations(
 
     suspend fun createSignerFromSecretKey(
         secretKeyHex: String,
-        domain: TONSignatureDomain? = null,
     ): WalletSignerInfo {
         ensureInitialized()
 
         val request = JSONObject().apply {
             put("secretKey", secretKeyHex)
-            domain?.let { put("domain", signatureDomainToJson(it)) }
         }
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER_FROM_PRIVATE_KEY, request)
         val signerId = result.optString("signerId").takeIf { it.isNotEmpty() }
@@ -130,6 +126,7 @@ internal class WalletOperations(
         network: TONNetwork?,
         workchain: Int,
         walletId: Long,
+        domain: TONSignatureDomain? = null,
     ): TONWalletAdapter {
         ensureInitialized()
 
@@ -146,6 +143,7 @@ internal class WalletOperations(
             put("network", JSONObject().apply { put("chainId", resolvedNetwork.chainId) })
             put("workchain", workchain)
             put("walletId", walletId)
+            domain?.let { put("domain", signatureDomainToJson(it)) }
         }
         val result = rpcClient.call(method, request)
         val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }

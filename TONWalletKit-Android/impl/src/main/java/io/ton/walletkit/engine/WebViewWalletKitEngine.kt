@@ -284,13 +284,11 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String,
-        domain: TONSignatureDomain?,
-    ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType, domain)
+    ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType)
 
     override suspend fun createSignerFromSecretKey(
         secretKeyHex: String,
-        domain: TONSignatureDomain?,
-    ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromSecretKey(secretKeyHex, domain)
+    ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromSecretKey(secretKeyHex)
 
     override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo =
         walletOperations.createSignerFromCustom(signer)
@@ -302,7 +300,8 @@ internal class WebViewWalletKitEngine private constructor(
         network: TONNetwork?,
         workchain: Int,
         walletId: Long,
-    ): io.ton.walletkit.model.TONWalletAdapter = walletOperations.createAdapter(signerId, publicKey, version, network, workchain, walletId)
+        domain: TONSignatureDomain?,
+    ): io.ton.walletkit.model.TONWalletAdapter = walletOperations.createAdapter(signerId, publicKey, version, network, workchain, walletId, domain)
 
     override suspend fun getWallets(): List<WalletAccount> = walletOperations.getWallets()
 

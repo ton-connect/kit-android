@@ -175,10 +175,10 @@ class WalletKitDemoApp :
                     val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
 
                     // Use 3-step wallet creation pattern
-                    val signer = kit.createSignerFromMnemonic(mnemonicWords, domain = domain)
+                    val signer = kit.createSignerFromMnemonic(mnemonicWords)
                     val adapter = when (walletRecord.version) {
-                        WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network)
-                        WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network)
+                        WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network, domain = domain)
+                        WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network, domain = domain)
                         else -> {
                             Log.w(TAG, "Unsupported wallet version: ${walletRecord.version}, skipping")
                             continue

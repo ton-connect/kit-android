@@ -57,24 +57,17 @@ interface ITONWalletKit {
 
     /**
      * Create a signer from a mnemonic phrase.
-     *
-     * @param domain Optional signature domain for L2 chains (e.g. Tetra).
-     *   Pass [TONSignatureDomain.L2] with the chain's globalId for L2 signing.
      */
     suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String = "ton",
-        domain: TONSignatureDomain? = null,
     ): WalletSignerInfo
 
     /**
      * Create a signer from a 32-byte secret key.
-     *
-     * @param domain Optional signature domain for L2 chains (e.g., Tetra).
      */
     suspend fun createSignerFromSecretKey(
         secretKey: ByteArray,
-        domain: TONSignatureDomain? = null,
     ): WalletSignerInfo
 
     /**
@@ -86,22 +79,28 @@ interface ITONWalletKit {
 
     /**
      * Create a V5R1 wallet adapter.
+     *
+     * @param domain Optional signature domain for L2 chains (e.g. Tetra).
      */
     suspend fun createV5R1Adapter(
         signer: WalletSignerInfo,
         network: TONNetwork = TONNetwork.MAINNET,
         workchain: Int = WalletKitConstants.DEFAULT_WORKCHAIN,
         walletId: Long = WalletKitConstants.DEFAULT_WALLET_ID_V5R1,
+        domain: TONSignatureDomain? = null,
     ): TONWalletAdapter
 
     /**
      * Create a V4R2 wallet adapter.
+     *
+     * @param domain Optional signature domain for L2 chains (e.g. Tetra).
      */
     suspend fun createV4R2Adapter(
         signer: WalletSignerInfo,
         network: TONNetwork = TONNetwork.MAINNET,
         workchain: Int = WalletKitConstants.DEFAULT_WORKCHAIN,
         walletId: Long = WalletKitConstants.DEFAULT_WALLET_ID_V4R2,
+        domain: TONSignatureDomain? = null,
     ): TONWalletAdapter
 
     // ── Add wallet ──
