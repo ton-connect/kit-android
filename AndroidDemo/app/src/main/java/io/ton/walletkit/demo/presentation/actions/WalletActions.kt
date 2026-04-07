@@ -74,4 +74,5 @@ interface WalletActions {
     fun onShowTransferJetton(jetton: JettonDetails)
     fun onLoadMoreJettons()
     fun onRefreshJettons()
+    fun onSwapClick()
 }
