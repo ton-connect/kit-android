@@ -38048,8 +38048,7 @@ function handleNewTransaction(args) {
   return __async$3(this, null, function* () {
     const k2 = yield getKit();
     const w2 = yield getWallet(args.walletId);
-    yield k2.handleNewTransaction(w2, args.transactionContent);
-    return { success: true };
+    return k2.handleNewTransaction(w2, args.transactionContent);
   });
 }
 var __async$2 = (__this, __arguments, generator) => {
@@ -38607,6 +38606,21 @@ class TonStakersStakingProvider extends StakingProvider {
     return Number(poolInfo.pool.apy);
   }
 }
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __objRest = (source, exclude) => {
+  var target = {};
+  for (var prop in source)
+    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
+      target[prop] = source[prop];
+  if (source != null && __getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(source)) {
+      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
+        target[prop] = source[prop];
+    }
+  return target;
+};
 var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
@@ -38652,27 +38666,16 @@ function setDefaultStakingProvider(args) {
 }
 function getStakingQuote(args) {
   return __async(this, null, function* () {
+    const _a = args, { providerId } = _a, params = __objRest(_a, ["providerId"]);
     const instance = yield getKit();
-    const params = {
-      direction: args.direction,
-      amount: args.amount,
-      userAddress: args.userAddress,
-      network: args.network,
-      unstakeMode: args.unstakeMode,
-      providerOptions: args.providerOptions
-    };
-    return instance.staking.getQuote(params, args.providerId);
+    return instance.staking.getQuote(params, providerId);
   });
 }
 function buildStakeTransaction(args) {
   return __async(this, null, function* () {
+    const _a = args, { providerId } = _a, params = __objRest(_a, ["providerId"]);
     const instance = yield getKit();
-    const params = {
-      quote: args.quote,
-      userAddress: args.userAddress,
-      providerOptions: args.providerOptions
-    };
-    return instance.staking.buildStakeTransaction(params, args.providerId);
+    return instance.staking.buildStakeTransaction(params, providerId);
   });
 }
 function getStakedBalance(args) {
