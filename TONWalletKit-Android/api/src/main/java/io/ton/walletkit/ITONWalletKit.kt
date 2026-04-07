@@ -23,8 +23,8 @@ package io.ton.walletkit
 
 import android.content.Context
 import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.TONTonStakersProviderConfig
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.generated.TONTonStakersProviderConfig
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler

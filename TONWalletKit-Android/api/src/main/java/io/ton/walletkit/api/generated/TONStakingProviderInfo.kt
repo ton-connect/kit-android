@@ -19,30 +19,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
+
 package io.ton.walletkit.api.generated
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
 /**
- * Configuration for creating a TonStakers staking provider.
+ * Staking information for a provider
  *
- * Mirrors the iOS `TONTonStakersProviderConfig` for cross-platform consistency.
- * Fields correspond to TON chain IDs: mainnet = "-239", testnet = "-3".
- *
- * @param mainnet Mainnet-specific configuration (optional)
- * @param testnet Testnet-specific configuration (optional)
+ * @param apy Annual Percentage Yield in basis points (100 = 1%)
+ * @param providerId Identifier of the staking provider
+ * @param instantUnstakeAvailable
  */
-data class TONTonStakersProviderConfig(
-    val mainnet: TONTonStakersChainConfig? = null,
-    val testnet: TONTonStakersChainConfig? = null,
+@Serializable
+data class TONStakingProviderInfo(
+
+    /* Annual Percentage Yield in basis points (100 = 1%) */
+    @SerialName(value = "apy")
+    val apy: kotlin.Int,
+
+    /* Identifier of the staking provider */
+    @SerialName(value = "providerId")
+    val providerId: kotlin.String,
+
+    @SerialName(value = "instantUnstakeAvailable")
+    val instantUnstakeAvailable: kotlin.String? = null,
+
 ) {
-    /**
-     * Converts to a chain-ID-keyed map expected by the JavaScript bridge.
-     */
-    fun toChainConfigMap(): Map<String, TONTonStakersChainConfig> {
-        return buildMap {
-            mainnet?.let { put("-239", it) }
-            testnet?.let { put("-3", it) }
-        }
-    }
 
     companion object
 }

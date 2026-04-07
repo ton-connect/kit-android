@@ -28,7 +28,7 @@ import io.ton.walletkit.ITONTonStakersStakingProvider
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.WebViewTonConnectInjector
-import io.ton.walletkit.api.generated.TONTonStakersProviderConfig
+import io.ton.walletkit.api.TONTonStakersProviderConfig
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WalletKitEngine
