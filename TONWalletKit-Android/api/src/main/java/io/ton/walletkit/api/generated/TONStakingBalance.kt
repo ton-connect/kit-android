@@ -19,49 +19,49 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.engine.operations.requests
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
 
-import io.ton.walletkit.api.generated.TONTransferRequest
+package io.ton.walletkit.api.generated
+
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 
 /**
- * Internal bridge request models for transaction operations.
- * These DTOs represent the exact JSON structure sent to the JavaScript bridge.
+ * Staking balance information for a user
  *
- * @suppress Internal bridge communication only.
+ * @param rawStakedBalance
+ * @param stakedBalance Amount currently staked
+ * @param rawInstantUnstakeAvailable
+ * @param instantUnstakeAvailable Amount available for instant unstake
+ * @param providerId Identifier of the staking provider
  */
-
 @Serializable
-internal data class CreateTransferTonRequest(
-    val walletId: String,
-    val recipientAddress: String,
-    val transferAmount: String,
-    val comment: String? = null,
-    val body: String? = null,
-    val stateInit: String? = null,
-)
+data class TONStakingBalance(
 
-@Serializable
-internal data class CreateTransferMultiTonRequest(
-    val walletId: String,
-    val messages: List<TONTransferRequest>,
-)
+    @SerialName(value = "rawStakedBalance")
+    val rawStakedBalance: kotlin.String,
 
-@Serializable
-internal data class HandleNewTransactionRequest(
-    val walletId: String,
-    val transactionContent: JsonElement,
-)
+    /* Amount currently staked */
+    @SerialName(value = "stakedBalance")
+    val stakedBalance: kotlin.String,
 
-@Serializable
-internal data class SendTransactionRequest(
-    val walletId: String,
-    val transactionContent: JsonElement,
-)
+    @SerialName(value = "rawInstantUnstakeAvailable")
+    val rawInstantUnstakeAvailable: kotlin.String,
 
-@Serializable
-internal data class GetTransactionPreviewRequest(
-    val walletId: String,
-    val transactionContent: JsonElement,
-)
+    /* Amount available for instant unstake */
+    @SerialName(value = "instantUnstakeAvailable")
+    val instantUnstakeAvailable: kotlin.String,
+
+    /* Identifier of the staking provider */
+    @SerialName(value = "providerId")
+    val providerId: kotlin.String,
+
+) {
+
+    companion object
+}

@@ -34,8 +34,15 @@ import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONStakeParams
+import io.ton.walletkit.api.generated.TONStakingBalance
+import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingQuote
+import io.ton.walletkit.api.generated.TONStakingQuoteParams
+import io.ton.walletkit.api.generated.TONTonStakersChainConfig
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
+import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.model.WalletAccount
@@ -459,6 +466,88 @@ internal interface WalletKitEngine : RequestHandler {
      * @throws WalletKitBridgeException if address retrieval fails
      */
     suspend fun getJettonWalletAddress(walletId: String, jettonAddress: String): String
+
+    // ── Staking ──
+
+    /**
+     * Create a TonStakers staking provider in the JS bridge.
+     *
+     * @param chainConfig Chain-ID keyed config, e.g. { "-239" to TONTonStakersChainConfig(...) }
+     * @return JS registry reference ID for the created provider
+     */
+    suspend fun createTonStakersStakingProvider(chainConfig: Map<String, TONTonStakersChainConfig>?): String
+
+    /**
+     * Register a previously created staking provider with the staking manager.
+     *
+     * @param providerId JS registry reference ID from [createTonStakersStakingProvider]
+     */
+    suspend fun registerStakingProvider(providerId: String)
+
+    /**
+     * Set the default staking provider used when no providerId is specified.
+     *
+     * @param providerId JS registry reference ID of the provider to set as default
+     */
+    suspend fun setDefaultStakingProvider(providerId: String)
+
+    /**
+     * Get a stake or unstake quote from the staking manager.
+     *
+     * @param params Quote parameters (direction, amount, optional user address / network / mode)
+     * @param providerId Optional provider ID; uses the default provider when null
+     * @return Staking quote with amounts and metadata
+     */
+    suspend fun getStakingQuote(
+        params: TONStakingQuoteParams<kotlinx.serialization.json.JsonElement>,
+        providerId: String?,
+    ): TONStakingQuote
+
+    /**
+     * Build a stake or unstake transaction from a previously obtained quote.
+     *
+     * @param params Stake parameters (quote, user address, optional provider options)
+     * @param providerId Optional provider ID; uses the default provider when null
+     * @return Transaction content as JSON string (pass to sendTransaction)
+     */
+    suspend fun buildStakeTransaction(
+        params: TONStakeParams<kotlinx.serialization.json.JsonElement>,
+        providerId: String?,
+    ): String
+
+    /**
+     * Get the user's staked balance for a provider.
+     *
+     * @param userAddress User's wallet address (user-friendly format)
+     * @param network TON network; uses the current network when null
+     * @param providerId Optional provider ID; uses the default provider when null
+     * @return Staking balance with staked amount and instant-unstake liquidity
+     */
+    suspend fun getStakedBalance(
+        userAddress: String,
+        network: TONNetwork?,
+        providerId: String?,
+    ): TONStakingBalance
+
+    /**
+     * Get general information about a staking provider (APY, liquidity).
+     *
+     * @param network TON network; uses the current network when null
+     * @param providerId Optional provider ID; uses the default provider when null
+     * @return Provider info including APY and available instant-unstake liquidity
+     */
+    suspend fun getStakingProviderInfo(
+        network: TONNetwork?,
+        providerId: String?,
+    ): TONStakingProviderInfo
+
+    /**
+     * Get the unstake modes supported by a staking provider.
+     *
+     * @param providerId Optional provider ID; uses the default provider when null
+     * @return List of supported unstake modes
+     */
+    suspend fun getSupportedUnstakeModes(providerId: String?): List<TONUnstakeMode>
 
     /**
      * Call a bridge method directly.

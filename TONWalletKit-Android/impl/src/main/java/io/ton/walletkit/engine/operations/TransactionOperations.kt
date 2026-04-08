@@ -35,6 +35,7 @@ import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 
 /**
  * Groups TON transaction related bridge operations including creation, preview,
@@ -51,6 +52,15 @@ internal class TransactionOperations(
     private val rpcClient: BridgeRpcClient,
     private val json: Json,
 ) {
+    private fun parseTransactionContent(transactionContent: String): JsonElement =
+        try {
+            json.parseToJsonElement(transactionContent)
+        } catch (e: SerializationException) {
+            throw JSValueConversionException.DecodingError(
+                message = "Failed to decode TONTransactionRequest: ${e.message}",
+                cause = e,
+            )
+        }
 
     suspend fun createTransferTonTransaction(
         walletId: String,
@@ -84,22 +94,35 @@ internal class TransactionOperations(
     suspend fun handleNewTransaction(walletId: String, transactionContent: String) {
         ensureInitialized()
 
-        val request = HandleNewTransactionRequest(walletId = walletId, transactionContent = transactionContent)
+        val request = HandleNewTransactionRequest(
+            walletId = walletId,
+            transactionContent = parseTransactionContent(transactionContent),
+        )
         rpcClient.call(BridgeMethodConstants.METHOD_HANDLE_NEW_TRANSACTION, json.toJSONObject(request))
     }
 
     suspend fun sendTransaction(walletId: String, transactionContent: String): String {
         ensureInitialized()
 
-        val request = SendTransactionRequest(walletId = walletId, transactionContent = transactionContent)
+        val request = SendTransactionRequest(
+            walletId = walletId,
+            transactionContent = parseTransactionContent(transactionContent),
+        )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_SEND_TRANSACTION, json.toJSONObject(request))
-        return result.getString(ResponseConstants.KEY_SIGNED_BOC)
+        return when {
+            result.has(ResponseConstants.KEY_SIGNED_BOC) -> result.getString(ResponseConstants.KEY_SIGNED_BOC)
+            result.has(ResponseConstants.KEY_BOC) -> result.getString(ResponseConstants.KEY_BOC)
+            else -> throw org.json.JSONException("No value for signedBoc or boc")
+        }
     }
 
     suspend fun getTransactionPreview(walletId: String, transactionContent: String): TONTransactionEmulatedPreview {
         ensureInitialized()
 
-        val request = GetTransactionPreviewRequest(walletId = walletId, transactionContent = transactionContent)
+        val request = GetTransactionPreviewRequest(
+            walletId = walletId,
+            transactionContent = parseTransactionContent(transactionContent),
+        )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW, json.toJSONObject(request))
         return try {
             json.decodeFromString(TONTransactionEmulatedPreview.serializer(), result.toString())

@@ -233,6 +233,11 @@ internal object ResponseConstants {
     const val KEY_SIGNED_BOC = "signedBoc"
 
     /**
+     * JSON key for sent transaction BOC returned by wallet.sendTransaction().
+     */
+    const val KEY_BOC = "boc"
+
+    /**
      * JSON key for URL parameter.
      */
     const val KEY_URL = "url"

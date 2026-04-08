@@ -37,8 +37,15 @@ import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONStakeParams
+import io.ton.walletkit.api.generated.TONStakingBalance
+import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingQuote
+import io.ton.walletkit.api.generated.TONStakingQuoteParams
+import io.ton.walletkit.api.generated.TONTonStakersChainConfig
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
+import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
@@ -50,6 +57,7 @@ import io.ton.walletkit.engine.infrastructure.WebViewManager
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.engine.operations.AssetOperations
 import io.ton.walletkit.engine.operations.CryptoOperations
+import io.ton.walletkit.engine.operations.StakingOperations
 import io.ton.walletkit.engine.operations.TonConnectOperations
 import io.ton.walletkit.engine.operations.TransactionOperations
 import io.ton.walletkit.engine.operations.WalletOperations
@@ -129,6 +137,7 @@ internal class WebViewWalletKitEngine private constructor(
     private val transactionOperations: TransactionOperations
     private val tonConnectOperations: TonConnectOperations
     private val assetOperations: AssetOperations
+    private val stakingOperations: StakingOperations
 
     init {
         webViewManager =
@@ -192,6 +201,12 @@ internal class WebViewWalletKitEngine private constructor(
             )
         assetOperations =
             AssetOperations(
+                ensureInitialized = ensureInitialized,
+                rpcClient = rpcClient,
+                json = json,
+            )
+        stakingOperations =
+            StakingOperations(
                 ensureInitialized = ensureInitialized,
                 rpcClient = rpcClient,
                 json = json,
@@ -427,6 +442,39 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun getJettonWalletAddress(walletId: String, jettonAddress: String): String =
         assetOperations.getJettonWalletAddress(walletId, jettonAddress)
+
+    override suspend fun createTonStakersStakingProvider(chainConfig: Map<String, TONTonStakersChainConfig>?): String =
+        stakingOperations.createTonStakersStakingProvider(chainConfig)
+
+    override suspend fun registerStakingProvider(providerId: String) =
+        stakingOperations.registerStakingProvider(providerId)
+
+    override suspend fun setDefaultStakingProvider(providerId: String) =
+        stakingOperations.setDefaultStakingProvider(providerId)
+
+    override suspend fun getStakingQuote(
+        params: TONStakingQuoteParams<kotlinx.serialization.json.JsonElement>,
+        providerId: String?,
+    ): TONStakingQuote = stakingOperations.getStakingQuote(params, providerId)
+
+    override suspend fun buildStakeTransaction(
+        params: TONStakeParams<kotlinx.serialization.json.JsonElement>,
+        providerId: String?,
+    ): String = stakingOperations.buildStakeTransaction(params, providerId)
+
+    override suspend fun getStakedBalance(
+        userAddress: String,
+        network: TONNetwork?,
+        providerId: String?,
+    ): TONStakingBalance = stakingOperations.getStakedBalance(userAddress, network, providerId)
+
+    override suspend fun getStakingProviderInfo(
+        network: TONNetwork?,
+        providerId: String?,
+    ): TONStakingProviderInfo = stakingOperations.getStakingProviderInfo(network, providerId)
+
+    override suspend fun getSupportedUnstakeModes(providerId: String?): List<TONUnstakeMode> =
+        stakingOperations.getSupportedUnstakeModes(providerId)
 
     override suspend fun callBridgeMethod(method: String, params: JSONObject?): JSONObject {
         return call(method, params)

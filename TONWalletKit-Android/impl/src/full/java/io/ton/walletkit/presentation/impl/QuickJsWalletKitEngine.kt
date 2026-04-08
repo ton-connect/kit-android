@@ -452,8 +452,8 @@ internal class QuickJsWalletKitEngine(
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
-                put("walletAddress", walletAddress)
-                put("transactionContent", transactionContent)
+                put("walletId", walletAddress)
+                put("transactionContent", JSONObject(transactionContent))
             }
         call(BridgeMethodConstants.METHOD_HANDLE_NEW_TRANSACTION, params)
     }
@@ -465,12 +465,15 @@ internal class QuickJsWalletKitEngine(
         ensureWalletKitInitialized()
         val params =
             JSONObject().apply {
-                put("walletAddress", walletAddress)
-                put("transactionContent", transactionContent)
+                put("walletId", walletAddress)
+                put("transactionContent", JSONObject(transactionContent))
             }
         val result = call(BridgeMethodConstants.METHOD_SEND_TRANSACTION, params)
-        // Extract the signedBoc from the result
-        return result.getString("signedBoc")
+        return when {
+            result.has("signedBoc") -> result.getString("signedBoc")
+            result.has("boc") -> result.getString("boc")
+            else -> throw WalletKitBridgeException("No value for signedBoc or boc")
+        }
     }
 
     override suspend fun approveConnect(
@@ -677,7 +680,7 @@ internal class QuickJsWalletKitEngine(
     ): io.ton.walletkit.api.generated.TONTransactionEmulatedPreview {
         ensureWalletKitInitialized()
         val paramsJson = JSONObject().apply {
-            put("address", walletAddress)
+            put("walletId", walletAddress)
             put("transactionContent", JSONObject(transactionContent))
         }
         val result = call(BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW, paramsJson)

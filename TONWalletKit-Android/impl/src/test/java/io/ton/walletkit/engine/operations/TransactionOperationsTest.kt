@@ -160,12 +160,30 @@ class TransactionOperationsTest : OperationsTestBase() {
         val result = transactionOperations.sendTransaction(TEST_ADDRESS, """{"boc":"..."}""")
 
         assertEquals("te6ccgEBAgEA...", result)
+        val params = capturedParams as JSONObject
+        assertTrue(params.get("transactionContent") is JSONObject)
+        assertEquals("...", params.getJSONObject("transactionContent").getString("boc"))
     }
 
     @Test
-    fun sendTransaction_throwsIfSignedBocMissing() {
+    fun sendTransaction_extractsBocFromWalletSendResponse() = runBlocking {
+        givenBridgeReturns(
+            jsonOf(
+                "boc" to "te6ccgEBAgEA...wallet",
+                "normalizedBoc" to "te6ccgEBAgEA...normalized",
+                "normalizedHash" to "0xabc123",
+            ),
+        )
+
+        val result = transactionOperations.sendTransaction(TEST_ADDRESS, """{"messages":[{"address":"$TEST_TO_ADDRESS","amount":"1000000000"}]}""")
+
+        assertEquals("te6ccgEBAgEA...wallet", result)
+    }
+
+    @Test
+    fun sendTransaction_throwsIfSignedBocAndBocMissing() {
         runBlocking {
-            givenBridgeReturns(JSONObject()) // No signedBoc
+            givenBridgeReturns(JSONObject()) // No signedBoc or boc
 
             assertThrows(org.json.JSONException::class.java) {
                 runBlocking { transactionOperations.sendTransaction(TEST_ADDRESS, """{"boc":"..."}""") }
@@ -188,6 +206,8 @@ class TransactionOperationsTest : OperationsTestBase() {
         // Result should be a Success type
         assertNotNull(result)
         assertNotNull(result.result)
+        val params = capturedParams as JSONObject
+        assertTrue(params.get("transactionContent") is JSONObject)
     }
 
     // --- handleNewTransaction tests ---
@@ -198,5 +218,7 @@ class TransactionOperationsTest : OperationsTestBase() {
 
         // Should not throw
         transactionOperations.handleNewTransaction(TEST_ADDRESS, """{"boc":"..."}""")
+        val params = capturedParams as JSONObject
+        assertTrue(params.get("transactionContent") is JSONObject)
     }
 }
