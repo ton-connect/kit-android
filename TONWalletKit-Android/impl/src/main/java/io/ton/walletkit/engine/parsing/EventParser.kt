@@ -170,6 +170,24 @@ internal class EventParser(
             EventTypeConstants.EVENT_SESSIONS_CHANGED,
             -> null
 
+            EventTypeConstants.EVENT_STREAMING_UPDATE -> {
+                try {
+                    val updateObj = data.optJSONObject("update") ?: throw Exception("Missing 'update' field")
+                    val subscriptionId = data.optString("subscriptionId")
+                    val update = json.decodeFromString<io.ton.walletkit.api.generated.TONStreamingUpdate>(updateObj.toString())
+                    io.ton.walletkit.event.TONWalletKitEvent.StreamingUpdate(subscriptionId, update)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to parse EVENT_STREAMING_UPDATE: ${e.message}", e)
+                    null
+                }
+            }
+
+            EventTypeConstants.EVENT_STREAMING_CONNECTION_CHANGE -> {
+                val subscriptionId = data.optString("subscriptionId")
+                val connected = data.optBoolean("connected", false)
+                io.ton.walletkit.event.TONWalletKitEvent.StreamingConnectionChange(subscriptionId, connected)
+            }
+
             else -> null
         }
 

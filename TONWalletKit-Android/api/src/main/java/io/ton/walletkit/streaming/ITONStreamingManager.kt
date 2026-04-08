@@ -19,34 +19,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
+package io.ton.walletkit.streaming
 
-package io.ton.walletkit.api.generated
+import io.ton.walletkit.api.generated.TONBalanceUpdate
+import io.ton.walletkit.api.generated.TONJettonUpdate
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONStreamingUpdate
+import io.ton.walletkit.api.generated.TONStreamingWatchType
+import io.ton.walletkit.api.generated.TONTransactionsUpdate
+import kotlinx.coroutines.flow.Flow
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+interface ITONStreamingManager {
+    fun hasProvider(network: TONNetwork): Boolean
 
-/**
- * Fee information for swap
- *
- * @param amount
- * @param token
- */
-@Serializable
-data class TONSwapFee(
+    suspend fun register(provider: ITONStreamingProvider)
 
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    suspend fun connect()
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    suspend fun disconnect()
 
-) {
+    fun connectionChange(network: TONNetwork): Flow<Boolean>
 
-    companion object
+    fun balance(network: TONNetwork, address: String): Flow<TONBalanceUpdate>
+
+    fun transactions(network: TONNetwork, address: String): Flow<TONTransactionsUpdate>
+
+    fun jettons(network: TONNetwork, address: String): Flow<TONJettonUpdate>
+
+    fun updates(network: TONNetwork, address: String, types: List<TONStreamingWatchType>): Flow<TONStreamingUpdate>
 }

@@ -150,6 +150,59 @@ internal class TONWalletKit private constructor(
      *
      * This is called automatically when the instance is garbage collected.
      */
+    override suspend fun createTonCenterStreamingProvider(
+        config: io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig,
+    ): io.ton.walletkit.streaming.ITONStreamingProvider {
+        checkNotDestroyed()
+        val configJson = org.json.JSONObject()
+        val networkJson = org.json.JSONObject()
+        networkJson.put("chainId", config.network.chainId)
+        configJson.put("network", networkJson)
+        if (config.endpoint != null) configJson.put("endpoint", config.endpoint)
+        if (config.apiKey != null) configJson.put("apiKey", config.apiKey)
+
+        val args = org.json.JSONObject()
+        args.put("config", configJson)
+
+        val result = engine.callBridgeMethod("createTonCenterStreamingProvider", args)
+        val providerId = result.getString("providerId")
+
+        return io.ton.walletkit.core.streaming.TONStreamingProviderImpl(
+            engine = engine,
+            network = config.network,
+            providerId = providerId,
+        )
+    }
+
+    override suspend fun createTonApiStreamingProvider(
+        config: io.ton.walletkit.api.generated.TONTonApiStreamingProviderConfig,
+    ): io.ton.walletkit.streaming.ITONStreamingProvider {
+        checkNotDestroyed()
+        val configJson = org.json.JSONObject()
+        val networkJson = org.json.JSONObject()
+        networkJson.put("chainId", config.network.chainId)
+        configJson.put("network", networkJson)
+        if (config.endpoint != null) configJson.put("endpoint", config.endpoint)
+        if (config.apiKey != null) configJson.put("apiKey", config.apiKey)
+
+        val args = org.json.JSONObject()
+        args.put("config", configJson)
+
+        val result = engine.callBridgeMethod("createTonApiStreamingProvider", args)
+        val providerId = result.getString("providerId")
+
+        return io.ton.walletkit.core.streaming.TONStreamingProviderImpl(
+            engine = engine,
+            network = config.network,
+            providerId = providerId,
+        )
+    }
+
+    override fun streaming(): io.ton.walletkit.streaming.ITONStreamingManager {
+        checkNotDestroyed()
+        return io.ton.walletkit.core.streaming.TONStreamingManager(engine)
+    }
+
     override suspend fun destroy() {
         if (isDestroyed) return
 
