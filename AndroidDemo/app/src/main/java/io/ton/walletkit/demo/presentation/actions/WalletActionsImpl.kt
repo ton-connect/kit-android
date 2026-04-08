@@ -55,6 +55,8 @@ class WalletActionsImpl @Inject constructor(
 
     override fun onSendFromWallet(address: String) = viewModel.openSendTransactionSheet(address)
 
+    override fun onStakeFromWallet(address: String) = viewModel.openStakingSheet(address)
+
     override fun onDisconnectSession(sessionId: String) = viewModel.disconnectSession(sessionId)
 
     override fun onToggleWalletSwitcher() = viewModel.toggleWalletSwitcher()

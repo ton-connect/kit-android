@@ -92,6 +92,10 @@ object TestTags {
     const val WALLET_COPY_ADDRESS_BUTTON = "copy-address"
     const val WALLET_RECEIVE_BUTTON = "receive"
     const val WALLET_SEND_BUTTON = "send"
+    const val WALLET_STAKE_BUTTON = "stake"
+    const val STAKING_AMOUNT_FIELD = "staking-amount"
+    const val STAKING_ACTION_BUTTON = "staking-action"
+    const val STAKING_CANCEL_BUTTON = "staking-cancel"
 
     // Mnemonic paste field (for clipboard import)
     const val MNEMONIC_PASTE_FIELD = "mnemonic-paste-field"

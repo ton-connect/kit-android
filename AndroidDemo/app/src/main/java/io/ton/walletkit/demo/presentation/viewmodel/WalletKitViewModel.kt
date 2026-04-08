@@ -874,6 +874,13 @@ class WalletKitViewModel @Inject constructor(
         }
     }
 
+    fun openStakingSheet(walletAddress: String) {
+        val wallet = state.value.wallets.firstOrNull { it.address == walletAddress }
+        if (wallet != null) {
+            uiCoordinator.openStakingSheet(wallet)
+        }
+    }
+
     fun sendLocalTransaction(walletAddress: String, recipient: String, amount: String, comment: String = "") {
         walletOperationsViewModel.sendLocalTransaction(walletAddress, recipient, amount, comment)
     }
