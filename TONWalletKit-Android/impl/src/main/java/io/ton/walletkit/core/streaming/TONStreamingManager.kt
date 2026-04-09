@@ -55,12 +55,9 @@ internal class TONStreamingManager(
     }
 
     override suspend fun register(provider: ITONStreamingProvider) {
-        val bridgeProvider = provider as? TONStreamingProviderImpl
-            ?: throw IllegalArgumentException("Provider must be created via TONWalletKit.createStreamingProvider")
-
         engine.callBridgeMethod(
             BridgeMethodConstants.METHOD_REGISTER_STREAMING_PROVIDER,
-            JSONObject().apply { put("providerId", bridgeProvider.id) },
+            JSONObject().apply { put("providerId", provider.id) },
         )
     }
 
