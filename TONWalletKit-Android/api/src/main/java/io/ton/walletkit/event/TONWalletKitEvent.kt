@@ -93,26 +93,4 @@ sealed class TONWalletKitEvent {
     data class RequestError(
         val event: TONRequestErrorEvent,
     ) : TONWalletKitEvent()
-
-    /**
-     * A streaming update event (e.g. balance, transactions, jettons)
-     *
-     * @property subscriptionId The ID of the subscription that generated this update
-     * @property update The streaming update details
-     */
-    data class StreamingUpdate(
-        val subscriptionId: String,
-        val update: io.ton.walletkit.api.generated.TONStreamingUpdate,
-    ) : TONWalletKitEvent()
-
-    /**
-     * A streaming provider connection change event.
-     *
-     * @property subscriptionId The ID of the subscription that generated this update
-     * @property connected Whether the provider is now connected
-     */
-    data class StreamingConnectionChange(
-        val subscriptionId: String,
-        val connected: Boolean,
-    ) : TONWalletKitEvent()
 }

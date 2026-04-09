@@ -64,7 +64,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -301,12 +300,6 @@ class WalletKitViewModel @Inject constructor(
                     errorMessage = event.event.error.message ?: "Unknown error",
                 )
                 Log.d(LOG_TAG, "✅ RequestErrorTracker.recordError completed")
-            }
-            is TONWalletKitEvent.StreamingUpdate -> {
-                Log.d(LOG_TAG, "Streaming update received: ${event.update}")
-            }
-            is TONWalletKitEvent.StreamingConnectionChange -> {
-                Log.d(LOG_TAG, "Streaming connection changed. connected: ${event.connected}")
             }
         }
     }
@@ -1445,7 +1438,9 @@ class WalletKitViewModel @Inject constructor(
                                         balance = TonFormatter.formatTon(update.rawBalance),
                                         lastUpdated = System.currentTimeMillis(),
                                     )
-                                } else wallet
+                                } else {
+                                    wallet
+                                }
                             },
                         )
                     }

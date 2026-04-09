@@ -96,6 +96,7 @@ internal class WebViewWalletKitEngine private constructor(
     private val assetPath: String = WebViewConstants.DEFAULT_ASSET_PATH,
 ) : WalletKitEngine {
     override val kind: WalletKitEngineKind = WalletKitEngineKind.WEBVIEW
+    override val streamingEvents get() = messageDispatcher.streamingEvents
 
     private val appContext = context.applicationContext
 
