@@ -40,6 +40,7 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.core.streaming.StreamingEvent
 import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.engine.state.KotlinStreamingProviderManager
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONWalletAdapter
@@ -67,6 +68,7 @@ import kotlinx.coroutines.flow.SharedFlow
 internal interface WalletKitEngine : RequestHandler {
     val kind: WalletKitEngineKind
     val streamingEvents: SharedFlow<StreamingEvent>
+    val kotlinStreamingProviderManager: KotlinStreamingProviderManager
 
     /**
      * Initialize WalletKit with custom configuration. This must be called before any other method;

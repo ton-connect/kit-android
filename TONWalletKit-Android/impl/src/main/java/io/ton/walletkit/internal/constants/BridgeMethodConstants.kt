@@ -232,6 +232,9 @@ internal object BridgeMethodConstants {
      */
     const val METHOD_GET_JETTON_WALLET_ADDRESS = "getJettonWalletAddress"
 
+    const val METHOD_REGISTER_KOTLIN_STREAMING_PROVIDER = "registerKotlinStreamingProvider"
+    const val METHOD_KOTLIN_PROVIDER_DISPATCH = "kotlinProviderDispatch"
+
     const val METHOD_CREATE_TON_CENTER_STREAMING_PROVIDER = "createTonCenterStreamingProvider"
     const val METHOD_CREATE_TON_API_STREAMING_PROVIDER = "createTonApiStreamingProvider"
     const val METHOD_REGISTER_STREAMING_PROVIDER = "registerStreamingProvider"

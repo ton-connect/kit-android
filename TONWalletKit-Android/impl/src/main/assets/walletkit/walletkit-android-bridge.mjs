@@ -38219,6 +38219,41 @@ var __async = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
+const kotlinSubCallbacks = /* @__PURE__ */ new Map();
+class ProxyStreamingProvider {
+  constructor(providerId, network) {
+    this.providerId = providerId;
+    this.type = "streaming";
+    this.network = network;
+  }
+  watch(type, address, onChange) {
+    const subId = v7();
+    kotlinSubCallbacks.set(subId, onChange);
+    void bridgeRequest("kotlinProviderWatch", { providerId: this.providerId, subId, type, address });
+    return () => {
+      kotlinSubCallbacks.delete(subId);
+      void bridgeRequest("kotlinProviderUnwatch", { subId });
+    };
+  }
+  watchBalance(address, onChange) {
+    return this.watch("balance", address, onChange);
+  }
+  watchTransactions(address, onChange) {
+    return this.watch("transactions", address, onChange);
+  }
+  watchJettons(address, onChange) {
+    return this.watch("jettons", address, onChange);
+  }
+  onConnectionChange(callback) {
+    return this.watch("connectionChange", null, callback);
+  }
+  connect() {
+    void bridgeRequest("kotlinProviderConnect", { providerId: this.providerId });
+  }
+  disconnect() {
+    void bridgeRequest("kotlinProviderDisconnect", { providerId: this.providerId });
+  }
+}
 function createTonCenterStreamingProvider(args) {
   return __async(this, null, function* () {
     const instance = yield getKit();
@@ -38328,6 +38363,25 @@ function streamingWatchJettons(args) {
     return { subscriptionId };
   });
 }
+function registerKotlinStreamingProvider(args) {
+  return __async(this, null, function* () {
+    const instance = yield getKit();
+    const provider = new ProxyStreamingProvider(args.providerId, args.network);
+    retainWithId(args.providerId, provider);
+    instance.streaming.registerProvider(() => provider);
+  });
+}
+function kotlinProviderDispatch(args) {
+  return __async(this, null, function* () {
+    const callback = kotlinSubCallbacks.get(args.subId);
+    if (callback) {
+      try {
+        callback(JSON.parse(args.updateJson));
+      } catch (e) {
+      }
+    }
+  });
+}
 const api = {
   // Initialization
   init,
@@ -38398,7 +38452,9 @@ const api = {
   streamingWatchConnectionChange,
   streamingWatchBalance,
   streamingWatchTransactions,
-  streamingWatchJettons
+  streamingWatchJettons,
+  registerKotlinStreamingProvider,
+  kotlinProviderDispatch
 };
 setBridgeApi(api);
 registerNativeCallHandler();

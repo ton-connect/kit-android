@@ -89,5 +89,24 @@ internal class JsRef private constructor(
                 Logger.w(TAG, "Failed to release JS ref: $id")
             }
         }
+
+        /**
+         * A [JsRef] for a streaming subscription ID.
+         *
+         * Unlike a plain [JsRef], closing this calls [BridgeMethodConstants.METHOD_STREAMING_UNWATCH]
+         * which first invokes the JS-side unwatch callback (stopping the subscription) and then
+         * removes the entry from the registry. A plain [releaseRef] would only remove the registry
+         * entry, leaking the underlying WebSocket subscription.
+         */
+        fun subscription(id: String, engine: WalletKitEngine): JsRef = JsRef(id) {
+            try {
+                engine.callBridgeMethod(
+                    BridgeMethodConstants.METHOD_STREAMING_UNWATCH,
+                    JSONObject().apply { put("subscriptionId", id) },
+                )
+            } catch (_: Exception) {
+                Logger.w(TAG, "Failed to unwatch streaming subscription: $id")
+            }
+        }
     }
 }
