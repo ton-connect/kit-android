@@ -21,26 +21,6 @@
  */
 package io.ton.walletkit.streaming
 
-import io.ton.walletkit.api.generated.TONBalanceUpdate
-import io.ton.walletkit.api.generated.TONJettonUpdate
-import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.generated.TONTransactionsUpdate
-import kotlinx.coroutines.flow.Flow
-
-interface ITONStreamingProvider {
-    val id: String
-    val type: TONProviderType get() = TONProviderType.STREAMING
-    val network: TONNetwork
-
-    suspend fun connect()
-
-    suspend fun disconnect()
-
-    fun connectionChange(): Flow<Boolean>
-
-    fun balance(address: String): Flow<TONBalanceUpdate>
-
-    fun transactions(address: String): Flow<TONTransactionsUpdate>
-
-    fun jettons(address: String): Flow<TONJettonUpdate>
+enum class TONProviderType {
+    STREAMING,
 }

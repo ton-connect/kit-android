@@ -60,7 +60,7 @@ internal class TONStreamingManager(
 
         engine.callBridgeMethod(
             BridgeMethodConstants.METHOD_REGISTER_STREAMING_PROVIDER,
-            JSONObject().apply { put("providerId", bridgeProvider.providerId) },
+            JSONObject().apply { put("providerId", bridgeProvider.id) },
         )
     }
 

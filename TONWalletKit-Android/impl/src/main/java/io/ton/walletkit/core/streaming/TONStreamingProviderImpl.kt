@@ -40,7 +40,7 @@ import org.json.JSONObject
 internal class TONStreamingProviderImpl(
     private val engine: WalletKitEngine,
     override val network: TONNetwork,
-    internal val providerId: String,
+    override val id: String,
 ) : ITONStreamingProvider {
 
     override suspend fun connect() {
