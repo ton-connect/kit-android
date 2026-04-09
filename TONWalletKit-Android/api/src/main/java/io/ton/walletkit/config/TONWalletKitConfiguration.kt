@@ -143,11 +143,6 @@ data class TONWalletKitConfiguration(
 
     /**
      * API client type for a network configuration.
-     *
-     * - [DEFAULT] uses the built-in Toncenter-compatible client (legacy behaviour).
-     * - [TONCENTER] explicitly creates a Toncenter API client.
-     * - [TONAPI] creates a TonAPI client (required for Tetra and other L2 networks).
-     * - [CUSTOM] delegates to a native [TONAPIClient] implementation.
      */
     @Serializable
     enum class APIClientType {
@@ -199,7 +194,6 @@ data class TONWalletKitConfiguration(
 
         /**
          * Create a network configuration with an explicit API client type.
-         * Use [APIClientType.TONAPI] for Tetra and other networks requiring TonAPI.
          */
         constructor(
             network: TONNetwork,
