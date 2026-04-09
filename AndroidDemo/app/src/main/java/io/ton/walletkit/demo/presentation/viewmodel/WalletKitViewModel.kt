@@ -29,12 +29,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.api.MAINNET
-import io.ton.walletkit.api.TESTNET
 import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignatureDomain
+import io.ton.walletkit.api.isTetra
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.core.RequestErrorTracker
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
@@ -639,14 +639,17 @@ class WalletKitViewModel @Inject constructor(
                     }
                 }
 
+                // Tetra (L2) wallets require an L2 signature domain
+                val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
+
                 // Create adapter based on wallet version
                 // Note: You can optionally specify workchain and walletId parameters:
                 // - workchain: 0 (basechain, default) or -1 (masterchain)
                 // - walletId: unique ID for multiple wallets from same signer
                 // Example: kit.createV5R1Adapter(signerInfo, network, workchain = 0, walletId = WalletKitConstants.DEFAULT_WALLET_ID_V5R1)
                 val adapter = when (version) {
-                    WalletVersions.V4R2 -> kit.createV4R2Adapter(signerInfo, network)
-                    WalletVersions.V5R1 -> kit.createV5R1Adapter(signerInfo, network)
+                    WalletVersions.V4R2 -> kit.createV4R2Adapter(signerInfo, network, domain = domain)
+                    WalletVersions.V5R1 -> kit.createV5R1Adapter(signerInfo, network, domain = domain)
                     else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                 }
 
@@ -740,10 +743,11 @@ class WalletKitViewModel @Inject constructor(
                 val kit = getKit()
                 // Generate a new TON mnemonic explicitly (matches JS docs pattern)
                 val mnemonic = kit.createTonMnemonic()
+                val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
                 val signer = kit.createSignerFromMnemonic(mnemonic)
                 val adapter = when (version) {
-                    WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network)
-                    WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network)
+                    WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network, domain = domain)
+                    WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network, domain = domain)
                     else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                 }
                 kit.addWallet(adapter)
@@ -1587,10 +1591,8 @@ class WalletKitViewModel @Inject constructor(
         private const val TRANSACTION_FETCH_LIMIT = 20
         private val DEFAULT_NETWORK = TONNetwork.MAINNET
         private const val LOG_TAG = "WalletKitVM"
-        private const val ERROR_REQUEST_OBJECT_NOT_AVAILABLE = "Request object not available"
         private const val DEFAULT_REJECTION_REASON = "User declined the connection"
         private const val SIGNER_CONFIRMATION_CANCEL_REASON = "User cancelled signer confirmation"
-        private const val ERROR_DIRECT_SIGNING_UNSUPPORTED = "Direct signing not supported - use SDK's transaction/signData methods"
 
         // TonConnect error codes (from @tonconnect/protocol)
         private const val BAD_REQUEST_ERROR_CODE = 1 // Used for validation errors like insufficient balance

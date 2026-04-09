@@ -24,6 +24,7 @@ package io.ton.walletkit.engine.operations
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.engine.adapter.BridgeWalletAdapter
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
@@ -77,16 +78,30 @@ internal class WalletOperations(
         return WalletSignerInfo(signerId = signerId, publicKey = TONHex(publicKeyHex))
     }
 
-    suspend fun createSignerFromSecretKey(secretKeyHex: String): WalletSignerInfo {
+    suspend fun createSignerFromSecretKey(
+        secretKeyHex: String,
+    ): WalletSignerInfo {
         ensureInitialized()
 
-        val request = JSONObject().apply { put("secretKey", secretKeyHex) }
+        val request = JSONObject().apply {
+            put("secretKey", secretKeyHex)
+        }
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER_FROM_PRIVATE_KEY, request)
         val signerId = result.optString("signerId").takeIf { it.isNotEmpty() }
             ?: throw WalletKitBridgeException("JS did not return signerId")
         val publicKeyHex = WalletKitUtils.stripHexPrefix(result.optString("publicKey", ""))
 
         return WalletSignerInfo(signerId = signerId, publicKey = TONHex(publicKeyHex))
+    }
+
+    private fun signatureDomainToJson(domain: TONSignatureDomain): JSONObject = when (domain) {
+        is TONSignatureDomain.L2 -> JSONObject().apply {
+            put("type", "l2")
+            put("globalId", domain.value)
+        }
+        is TONSignatureDomain.Empty -> JSONObject().apply {
+            put("type", "empty")
+        }
     }
 
     suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo {
@@ -111,6 +126,7 @@ internal class WalletOperations(
         network: TONNetwork?,
         workchain: Int,
         walletId: Long,
+        domain: TONSignatureDomain? = null,
     ): TONWalletAdapter {
         ensureInitialized()
 
@@ -127,6 +143,7 @@ internal class WalletOperations(
             put("network", JSONObject().apply { put("chainId", resolvedNetwork.chainId) })
             put("workchain", workchain)
             put("walletId", walletId)
+            domain?.let { put("domain", signatureDomainToJson(it)) }
         }
         val result = rpcClient.call(method, request)
         val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }

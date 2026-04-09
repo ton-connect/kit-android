@@ -26,6 +26,7 @@ import android.webkit.WebView
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.WebViewTonConnectInjector
+import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.WalletKitEngine
@@ -180,7 +181,9 @@ internal class TONWalletKit private constructor(
         return engine.createSignerFromMnemonic(mnemonic, mnemonicType)
     }
 
-    override suspend fun createSignerFromSecretKey(secretKey: ByteArray): io.ton.walletkit.model.WalletSignerInfo {
+    override suspend fun createSignerFromSecretKey(
+        secretKey: ByteArray,
+    ): io.ton.walletkit.model.WalletSignerInfo {
         checkNotDestroyed()
         val hex = io.ton.walletkit.WalletKitUtils.byteArrayToHexNoPrefix(secretKey)
         return engine.createSignerFromSecretKey(hex)
@@ -198,6 +201,7 @@ internal class TONWalletKit private constructor(
         network: io.ton.walletkit.api.generated.TONNetwork,
         workchain: Int,
         walletId: Long,
+        domain: TONSignatureDomain?,
     ): io.ton.walletkit.model.TONWalletAdapter {
         checkNotDestroyed()
         return engine.createAdapter(
@@ -207,6 +211,7 @@ internal class TONWalletKit private constructor(
             network = network,
             workchain = workchain,
             walletId = walletId,
+            domain = domain,
         )
     }
 
@@ -215,6 +220,7 @@ internal class TONWalletKit private constructor(
         network: io.ton.walletkit.api.generated.TONNetwork,
         workchain: Int,
         walletId: Long,
+        domain: TONSignatureDomain?,
     ): io.ton.walletkit.model.TONWalletAdapter {
         checkNotDestroyed()
         return engine.createAdapter(
@@ -224,6 +230,7 @@ internal class TONWalletKit private constructor(
             network = network,
             workchain = workchain,
             walletId = walletId,
+            domain = domain,
         )
     }
 

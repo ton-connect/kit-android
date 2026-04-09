@@ -24,6 +24,7 @@ package io.ton.walletkit.demo.core
 import android.util.Log
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.TETRA
 import io.ton.walletkit.api.generated.TONGetMethodResult
 import io.ton.walletkit.api.generated.TONMasterchainInfo
 import io.ton.walletkit.api.generated.TONNetwork
@@ -272,6 +273,7 @@ class TonAPIClient(
     private val baseUrl: String = when (network) {
         TONNetwork.MAINNET -> "https://tonapi.io"
         TONNetwork.TESTNET -> "https://testnet.tonapi.io"
+        TONNetwork.TETRA -> "https://tetra.tonapi.io"
         else -> "https://tonapi.io"
     }
 
@@ -332,5 +334,6 @@ class TonAPIClient(
     companion object {
         fun mainnet(apiKey: String = "") = TonAPIClient(TONNetwork.MAINNET, apiKey)
         fun testnet(apiKey: String = "") = TonAPIClient(TONNetwork.TESTNET, apiKey)
+        fun tetra(apiKey: String = "") = TonAPIClient(TONNetwork.TETRA, apiKey)
     }
 }
