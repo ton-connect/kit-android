@@ -163,17 +163,11 @@ interface ITONWalletKit {
      */
     fun streaming(): io.ton.walletkit.streaming.ITONStreamingManager
 
-    /**
-     * Create a streaming provider using TON Center.
-     */
-    suspend fun createTonCenterStreamingProvider(
+    suspend fun createStreamingProvider(
         config: io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig,
     ): io.ton.walletkit.streaming.ITONStreamingProvider
 
-    /**
-     * Create a streaming provider using TON API.
-     */
-    suspend fun createTonApiStreamingProvider(
+    suspend fun createStreamingProvider(
         config: io.ton.walletkit.api.generated.TONTonApiStreamingProviderConfig,
     ): io.ton.walletkit.streaming.ITONStreamingProvider
 }

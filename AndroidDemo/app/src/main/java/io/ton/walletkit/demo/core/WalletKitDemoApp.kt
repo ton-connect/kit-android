@@ -350,7 +350,7 @@ object TONWalletKitHelper {
             val kit = ITONWalletKit.initialize(application, config)
 
             try {
-                val toncenterStreaming = kit.createTonCenterStreamingProvider(
+                val toncenterStreaming = kit.createStreamingProvider(
                     io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig(
                         network = TONNetwork.MAINNET,
                         apiKey = "459a138f1bd20bd91869cbe7d377aeae44e8ced22dfe9c5708c0b6f1b153db88",
