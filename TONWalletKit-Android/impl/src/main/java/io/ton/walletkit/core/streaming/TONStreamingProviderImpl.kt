@@ -24,24 +24,24 @@ package io.ton.walletkit.core.streaming
 import io.ton.walletkit.api.generated.TONBalanceUpdate
 import io.ton.walletkit.api.generated.TONJettonUpdate
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.generated.TONStreamingUpdate
-import io.ton.walletkit.api.generated.TONStreamingWatchType
 import io.ton.walletkit.api.generated.TONTransactionsUpdate
 import io.ton.walletkit.engine.WalletKitEngine
+import io.ton.walletkit.engine.infrastructure.JsRef
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.streaming.ITONStreamingProvider
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
-import org.json.JSONArray
 import org.json.JSONObject
 
 internal class TONStreamingProviderImpl(
     private val engine: WalletKitEngine,
     override val network: TONNetwork,
-    override val id: String,
-) : ITONStreamingProvider {
+    private val ref: JsRef,
+) : ITONStreamingProvider, AutoCloseable by ref {
+
+    override val id: String get() = ref.id
 
     override suspend fun connect() {
         engine.callBridgeMethod(BridgeMethodConstants.METHOD_STREAMING_CONNECT)
@@ -75,39 +75,52 @@ internal class TONStreamingProviderImpl(
 
         awaitClose {
             collectJob.cancel()
-            launch { subscriptionId?.let { subId -> unwatch(subId) } }
+            launch {
+                subscriptionId?.let { subId ->
+                    try {
+                        engine.callBridgeMethod(
+                            BridgeMethodConstants.METHOD_STREAMING_UNWATCH,
+                            JSONObject().apply { put("subscriptionId", subId) },
+                        )
+                    } catch (_: Exception) { }
+                }
+            }
         }
     }
 
     override fun balance(address: String): Flow<TONBalanceUpdate> =
-        watchFlow(watchParams(address, TONStreamingWatchType.balance)) {
-            (it as? TONStreamingUpdate.Balance)?.value
+        watchFlow(BridgeMethodConstants.METHOD_STREAMING_WATCH_BALANCE, address) { event ->
+            (event as? StreamingEvent.BalanceUpdate)?.update
         }
 
     override fun transactions(address: String): Flow<TONTransactionsUpdate> =
-        watchFlow(watchParams(address, TONStreamingWatchType.transactions)) {
-            (it as? TONStreamingUpdate.Transactions)?.value
+        watchFlow(BridgeMethodConstants.METHOD_STREAMING_WATCH_TRANSACTIONS, address) { event ->
+            (event as? StreamingEvent.TransactionsUpdate)?.update
         }
 
     override fun jettons(address: String): Flow<TONJettonUpdate> =
-        watchFlow(watchParams(address, TONStreamingWatchType.jettons)) {
-            (it as? TONStreamingUpdate.Jettons)?.value
+        watchFlow(BridgeMethodConstants.METHOD_STREAMING_WATCH_JETTONS, address) { event ->
+            (event as? StreamingEvent.JettonsUpdate)?.update
         }
 
-    private fun <T> watchFlow(params: JSONObject, transform: (TONStreamingUpdate) -> T?): Flow<T> = callbackFlow {
+    private fun <T> watchFlow(method: String, address: String, transform: (StreamingEvent) -> T?): Flow<T> = callbackFlow {
         var subscriptionId: String? = null
+        val params = JSONObject().apply {
+            put("network", JSONObject().apply { put("chainId", network.chainId) })
+            put("address", address)
+        }
 
         val collectJob = launch {
             engine.streamingEvents.collect { event ->
                 val sub = subscriptionId ?: return@collect
-                if (event is StreamingEvent.Update && event.subscriptionId == sub) {
-                    transform(event.update)?.let { trySend(it) }
+                if (event.subscriptionId == sub) {
+                    transform(event)?.let { trySend(it) }
                 }
             }
         }
 
         try {
-            val response = engine.callBridgeMethod(BridgeMethodConstants.METHOD_STREAMING_WATCH, params)
+            val response = engine.callBridgeMethod(method, params)
             subscriptionId = response.optString("subscriptionId").takeUnless { it.isBlank() }
         } catch (e: Exception) {
             collectJob.cancel()
@@ -117,25 +130,18 @@ internal class TONStreamingProviderImpl(
 
         awaitClose {
             collectJob.cancel()
-            launch { subscriptionId?.let { subId -> unwatch(subId) } }
+            launch {
+                subscriptionId?.let { subId ->
+                    try {
+                        engine.callBridgeMethod(
+                            BridgeMethodConstants.METHOD_STREAMING_UNWATCH,
+                            JSONObject().apply { put("subscriptionId", subId) },
+                        )
+                    } catch (_: Exception) { }
+                }
+            }
         }
     }
-
-    private suspend fun unwatch(subscriptionId: String) {
-        try {
-            engine.callBridgeMethod(
-                BridgeMethodConstants.METHOD_STREAMING_UNWATCH,
-                JSONObject().apply { put("subscriptionId", subscriptionId) },
-            )
-        } catch (_: Exception) { }
-    }
-
-    private fun watchParams(address: String, vararg types: TONStreamingWatchType): JSONObject =
-        JSONObject().apply {
-            put("network", networkJson())
-            put("address", address)
-            put("types", JSONArray().apply { types.forEach { put(it.value) } })
-        }
 
     private fun networkJson(): JSONObject =
         JSONObject().apply { put("chainId", network.chainId) }

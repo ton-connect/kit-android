@@ -38295,6 +38295,39 @@ function streamingWatchConnectionChange(args) {
     return { subscriptionId };
   });
 }
+function streamingWatchBalance(args) {
+  return __async(this, null, function* () {
+    const instance = yield getKit();
+    let subscriptionId;
+    const unwatch = instance.streaming.watchBalance(args.network, args.address, (update) => {
+      emit("streamingBalanceUpdate", { subscriptionId, update });
+    });
+    subscriptionId = retain("streamingSub", unwatch);
+    return { subscriptionId };
+  });
+}
+function streamingWatchTransactions(args) {
+  return __async(this, null, function* () {
+    const instance = yield getKit();
+    let subscriptionId;
+    const unwatch = instance.streaming.watchTransactions(args.network, args.address, (update) => {
+      emit("streamingTransactionsUpdate", { subscriptionId, update });
+    });
+    subscriptionId = retain("streamingSub", unwatch);
+    return { subscriptionId };
+  });
+}
+function streamingWatchJettons(args) {
+  return __async(this, null, function* () {
+    const instance = yield getKit();
+    let subscriptionId;
+    const unwatch = instance.streaming.watchJettons(args.network, args.address, (update) => {
+      emit("streamingJettonsUpdate", { subscriptionId, update });
+    });
+    subscriptionId = retain("streamingSub", unwatch);
+    return { subscriptionId };
+  });
+}
 const api = {
   // Initialization
   init,
@@ -38362,7 +38395,10 @@ const api = {
   streamingUnwatch,
   streamingConnect,
   streamingDisconnect,
-  streamingWatchConnectionChange
+  streamingWatchConnectionChange,
+  streamingWatchBalance,
+  streamingWatchTransactions,
+  streamingWatchJettons
 };
 setBridgeApi(api);
 registerNativeCallHandler();

@@ -21,7 +21,10 @@
  */
 package io.ton.walletkit.core.streaming
 
+import io.ton.walletkit.api.generated.TONBalanceUpdate
+import io.ton.walletkit.api.generated.TONJettonUpdate
 import io.ton.walletkit.api.generated.TONStreamingUpdate
+import io.ton.walletkit.api.generated.TONTransactionsUpdate
 
 /**
  * Internal streaming events dispatched through the dedicated streaming channel,
@@ -30,13 +33,31 @@ import io.ton.walletkit.api.generated.TONStreamingUpdate
  * @suppress Internal component used by [TONStreamingManager].
  */
 internal sealed class StreamingEvent {
+    abstract val subscriptionId: String
+
+    /** Generic multi-type update (from [streamingWatch]). */
     data class Update(
-        val subscriptionId: String,
+        override val subscriptionId: String,
         val update: TONStreamingUpdate,
     ) : StreamingEvent()
 
     data class ConnectionChange(
-        val subscriptionId: String,
+        override val subscriptionId: String,
         val connected: Boolean,
+    ) : StreamingEvent()
+
+    data class BalanceUpdate(
+        override val subscriptionId: String,
+        val update: TONBalanceUpdate,
+    ) : StreamingEvent()
+
+    data class TransactionsUpdate(
+        override val subscriptionId: String,
+        val update: TONTransactionsUpdate,
+    ) : StreamingEvent()
+
+    data class JettonsUpdate(
+        override val subscriptionId: String,
+        val update: TONJettonUpdate,
     ) : StreamingEvent()
 }

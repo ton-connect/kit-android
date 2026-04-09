@@ -241,4 +241,7 @@ internal object BridgeMethodConstants {
     const val METHOD_STREAMING_CONNECT = "streamingConnect"
     const val METHOD_STREAMING_DISCONNECT = "streamingDisconnect"
     const val METHOD_STREAMING_WATCH_CONNECTION_CHANGE = "streamingWatchConnectionChange"
+    const val METHOD_STREAMING_WATCH_BALANCE = "streamingWatchBalance"
+    const val METHOD_STREAMING_WATCH_TRANSACTIONS = "streamingWatchTransactions"
+    const val METHOD_STREAMING_WATCH_JETTONS = "streamingWatchJettons"
 }

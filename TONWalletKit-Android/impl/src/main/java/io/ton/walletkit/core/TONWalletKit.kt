@@ -31,6 +31,7 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.streaming.TONStreamingManager
 import io.ton.walletkit.core.streaming.TONStreamingProviderImpl
 import io.ton.walletkit.engine.WalletKitEngine
+import io.ton.walletkit.engine.infrastructure.JsRef
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.listener.TONBridgeEventsHandler
@@ -156,7 +157,7 @@ internal class TONWalletKit private constructor(
         checkNotDestroyed()
         val args = JSONObject().apply { put("config", json.toJSONObject(config)) }
         val result = engine.callBridgeMethod(BridgeMethodConstants.METHOD_CREATE_TON_CENTER_STREAMING_PROVIDER, args)
-        return TONStreamingProviderImpl(engine = engine, network = config.network, id = result.getString("providerId"))
+        return TONStreamingProviderImpl(engine = engine, network = config.network, ref = JsRef(result.getString("providerId"), engine))
     }
 
     override suspend fun createStreamingProvider(
@@ -165,7 +166,7 @@ internal class TONWalletKit private constructor(
         checkNotDestroyed()
         val args = JSONObject().apply { put("config", json.toJSONObject(config)) }
         val result = engine.callBridgeMethod(BridgeMethodConstants.METHOD_CREATE_TON_API_STREAMING_PROVIDER, args)
-        return TONStreamingProviderImpl(engine = engine, network = config.network, id = result.getString("providerId"))
+        return TONStreamingProviderImpl(engine = engine, network = config.network, ref = JsRef(result.getString("providerId"), engine))
     }
 
     override fun streaming(): io.ton.walletkit.streaming.ITONStreamingManager {
