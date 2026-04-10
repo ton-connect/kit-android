@@ -85,6 +85,12 @@ internal object EventTypeConstants {
      */
     const val EVENT_BROWSER_BRIDGE_REQUEST = "browserBridgeRequest"
 
+    const val EVENT_STREAMING_UPDATE = "streamingUpdate"
+    const val EVENT_STREAMING_CONNECTION_CHANGE = "streamingConnectionChange"
+    const val EVENT_STREAMING_BALANCE_UPDATE = "streamingBalanceUpdate"
+    const val EVENT_STREAMING_TRANSACTIONS_UPDATE = "streamingTransactionsUpdate"
+    const val EVENT_STREAMING_JETTONS_UPDATE = "streamingJettonsUpdate"
+
     /**
      * Event type for request errors (validation failures, etc.).
      */
