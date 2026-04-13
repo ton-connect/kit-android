@@ -29,7 +29,7 @@ import io.ton.walletkit.api.generated.TONOmnistonProviderOptions
  * the provider-specific options type used in [ITONSwapManager.getQuote].
  *
  * Created via [io.ton.walletkit.ITONWalletKit.omnistonSwapProvider] or
- * [io.ton.walletkit.ITONWalletKit.deDustSwapProvider].
+ * [io.ton.walletkit.ITONWalletKit.dedustSwapProvider].
  * Register with [ITONSwapManager.registerProvider] before calling [ITONSwapManager.getQuote].
  */
 data class TONSwapProvider<TQuoteOptions>(val providerId: String)

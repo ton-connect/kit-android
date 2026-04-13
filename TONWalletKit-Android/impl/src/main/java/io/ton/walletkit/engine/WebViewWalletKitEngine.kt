@@ -40,6 +40,7 @@ import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
+import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.client.TONAPIClient
@@ -300,8 +301,9 @@ internal class WebViewWalletKitEngine private constructor(
         mnemonicType: String,
     ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType)
 
-    override suspend fun createSignerFromSecretKey(secretKeyHex: String): io.ton.walletkit.model.WalletSignerInfo =
-        walletOperations.createSignerFromSecretKey(secretKeyHex)
+    override suspend fun createSignerFromSecretKey(
+        secretKeyHex: String,
+    ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromSecretKey(secretKeyHex)
 
     override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo =
         walletOperations.createSignerFromCustom(signer)
@@ -313,7 +315,8 @@ internal class WebViewWalletKitEngine private constructor(
         network: TONNetwork?,
         workchain: Int,
         walletId: Long,
-    ): io.ton.walletkit.model.TONWalletAdapter = walletOperations.createAdapter(signerId, publicKey, version, network, workchain, walletId)
+        domain: TONSignatureDomain?,
+    ): io.ton.walletkit.model.TONWalletAdapter = walletOperations.createAdapter(signerId, publicKey, version, network, workchain, walletId, domain)
 
     override suspend fun getWallets(): List<WalletAccount> = walletOperations.getWallets()
 
@@ -542,20 +545,28 @@ internal class WebViewWalletKitEngine private constructor(
             val network = configuration.network
 
             instances[network]?.let { existingInstance ->
-                Logger.d(TAG, "Reusing existing WebView engine for network: $network")
-                if (eventsHandler != null) {
-                    if (!existingInstance.eventRouter.containsHandler(eventsHandler)) {
-                        existingInstance.addEventsHandler(eventsHandler)
+                if (existingInstance.isDestroyed) {
+                    Logger.d(TAG, "Existing WebView engine for network $network is destroyed, removing from cache")
+                    instances.remove(network)
+                } else {
+                    Logger.d(TAG, "Reusing existing WebView engine for network: $network")
+                    if (eventsHandler != null) {
+                        if (!existingInstance.eventRouter.containsHandler(eventsHandler)) {
+                            existingInstance.addEventsHandler(eventsHandler)
+                        }
                     }
+                    return existingInstance
                 }
-                return existingInstance
             }
 
             val instance =
                 instanceMutex.withLock {
                     instances[network]?.let {
-                        Logger.d(TAG, "Reusing existing WebView engine for network: $network (after lock)")
-                        return@withLock it
+                        if (!it.isDestroyed) {
+                            Logger.d(TAG, "Reusing existing WebView engine for network: $network (after lock)")
+                            return@withLock it
+                        }
+                        instances.remove(network)
                     }
 
                     Logger.d(TAG, "Creating new WebView engine for network: $network")
