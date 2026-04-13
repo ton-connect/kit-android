@@ -22,6 +22,7 @@
 package io.ton.walletkit.client
 
 import io.ton.walletkit.api.generated.TONGetMethodResult
+import io.ton.walletkit.api.generated.TONMasterchainInfo
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.model.TONBase64
@@ -85,4 +86,12 @@ interface TONAPIClient {
         address: TONUserFriendlyAddress,
         seqno: Int? = null,
     ): String
+
+    /**
+     * Get the latest masterchain block info.
+     *
+     * @return The masterchain info including seqno, shard, workchain, and hashes
+     * @throws Exception if the query fails
+     */
+    suspend fun getMasterchainInfo(): TONMasterchainInfo
 }

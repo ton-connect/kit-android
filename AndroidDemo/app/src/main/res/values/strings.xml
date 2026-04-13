@@ -26,6 +26,7 @@
     <!-- Network names -->
     <string name="network_mainnet">Mainnet</string>
     <string name="network_testnet">Testnet</string>
+    <string name="network_tetra">Tetra</string>
 
     <!-- Quick actions card -->
     <string name="quick_actions_title">Quick Actions</string>

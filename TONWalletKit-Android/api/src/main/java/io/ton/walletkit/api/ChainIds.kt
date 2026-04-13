@@ -27,4 +27,5 @@ package io.ton.walletkit.api
 object ChainIds {
     const val MAINNET = "-239"
     const val TESTNET = "-3"
+    const val TETRA = "662387"
 }

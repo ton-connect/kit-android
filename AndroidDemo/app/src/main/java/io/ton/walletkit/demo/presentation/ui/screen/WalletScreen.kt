@@ -87,6 +87,7 @@ import io.ton.walletkit.demo.presentation.ui.dialog.UrlPromptDialog
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 import io.ton.walletkit.demo.presentation.ui.sections.EventLogSection
 import io.ton.walletkit.demo.presentation.ui.sections.JettonsSection
+import io.ton.walletkit.demo.presentation.ui.sections.MasterchainInfoSection
 import io.ton.walletkit.demo.presentation.ui.sections.NFTsSection
 import io.ton.walletkit.demo.presentation.ui.sections.SessionsSection
 import io.ton.walletkit.demo.presentation.ui.sections.WalletsSection
@@ -352,6 +353,11 @@ fun WalletScreen(
                 onLoadMore = actions::onLoadMoreJettons,
                 onRefresh = actions::onRefreshJettons,
             )
+
+            // Masterchain Info demo
+            if (activeWallet != null) {
+                MasterchainInfoSection(network = activeWallet.network)
+            }
 
             // Transaction history - Coming Soon
             Card(

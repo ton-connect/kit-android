@@ -37,6 +37,7 @@ import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
+import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -140,7 +141,9 @@ internal interface WalletKitEngine : RequestHandler {
      * @param secretKeyHex Private key as hex string
      * @return Signer info with ID and public key
      */
-    suspend fun createSignerFromSecretKey(secretKeyHex: String): WalletSignerInfo
+    suspend fun createSignerFromSecretKey(
+        secretKeyHex: String,
+    ): WalletSignerInfo
 
     suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo
 
@@ -151,6 +154,7 @@ internal interface WalletKitEngine : RequestHandler {
         network: TONNetwork? = null,
         workchain: Int = 0,
         walletId: Long = 2147483409L,
+        domain: TONSignatureDomain? = null,
     ): TONWalletAdapter
 
     suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount

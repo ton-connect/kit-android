@@ -142,6 +142,24 @@ data class TONWalletKitConfiguration(
     )
 
     /**
+     * API client type for a network configuration.
+     */
+    @Serializable
+    enum class APIClientType {
+        @SerialName("default")
+        DEFAULT,
+
+        @SerialName("toncenter")
+        TONCENTER,
+
+        @SerialName("tonapi")
+        TONAPI,
+
+        @SerialName("custom")
+        CUSTOM,
+    }
+
+    /**
      * Network-specific configuration.
      *
      * Each network configuration can have either:
@@ -152,6 +170,7 @@ data class TONWalletKitConfiguration(
      *
      * @property network The blockchain network this configuration applies to
      * @property apiClientConfiguration Built-in API client configuration (optional, mutually exclusive with apiClient)
+     * @property apiClientType The type of built-in API client to create (default: [APIClientType.DEFAULT])
      * @property apiClient Custom API client implementation (optional, mutually exclusive with apiClientConfiguration)
      */
     @Serializable
@@ -159,6 +178,7 @@ data class TONWalletKitConfiguration(
         val network: TONNetwork,
         @SerialName("apiClient")
         val apiClientConfiguration: APIClientConfiguration? = null,
+        val apiClientType: APIClientType = APIClientType.DEFAULT,
         @kotlinx.serialization.Transient
         val apiClient: TONAPIClient? = null,
     ) {
@@ -173,12 +193,27 @@ data class TONWalletKitConfiguration(
         )
 
         /**
+         * Create a network configuration with an explicit API client type.
+         */
+        constructor(
+            network: TONNetwork,
+            apiClientConfiguration: APIClientConfiguration,
+            apiClientType: APIClientType,
+        ) : this(
+            network = network,
+            apiClientConfiguration = apiClientConfiguration,
+            apiClientType = apiClientType,
+            apiClient = null,
+        )
+
+        /**
          * Create a network configuration with a custom API client.
          * Use this when you want to provide your own API client implementation.
          */
         constructor(network: TONNetwork, apiClient: TONAPIClient) : this(
             network = network,
             apiClientConfiguration = null,
+            apiClientType = APIClientType.CUSTOM,
             apiClient = apiClient,
         )
 

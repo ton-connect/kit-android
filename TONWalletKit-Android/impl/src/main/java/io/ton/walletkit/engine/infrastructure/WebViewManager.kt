@@ -547,6 +547,24 @@ internal class WebViewManager(
             }
         }
 
+        @JavascriptInterface
+        fun apiGetMasterchainInfo(networkJson: String): String {
+            val network = json.decodeFromString<TONNetwork>(networkJson)
+            val client = apiClients.find { it.network == network }
+                ?: throw IllegalArgumentException("No API client configured for network: $network")
+
+            return kotlinx.coroutines.runBlocking {
+                try {
+                    Logger.d(TAG, "apiGetMasterchainInfo: network=$network")
+                    val result = client.getMasterchainInfo()
+                    json.encodeToString(result)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to get masterchain info", e)
+                    throw e
+                }
+            }
+        }
+
         private fun JSONObject.optNullableString(key: String): String? {
             val value = opt(key)
             return when (value) {
