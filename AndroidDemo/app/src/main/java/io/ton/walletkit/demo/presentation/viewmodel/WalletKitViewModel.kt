@@ -1324,26 +1324,12 @@ class WalletKitViewModel @Inject constructor(
         val dAppInfo = request.event.preview.dAppInfo ?: request.event.dAppInfo
         val fallbackDAppName = uiString(R.string.wallet_event_generic_dapp)
 
-        // Extract payload type and content from the event
         val payloadData = request.event.payload.data
         val payloadType = payloadData.type.replaceFirstChar { it.uppercase() }
-        val payloadContent = when (payloadData) {
-            is io.ton.walletkit.api.generated.TONSignData.Text -> payloadData.value.content
-            is io.ton.walletkit.api.generated.TONSignData.Binary -> payloadData.value.content.value
-            is io.ton.walletkit.api.generated.TONSignData.Cell -> payloadData.value.content.value
-            else -> ""
-        }
+        val payloadContent = extractSignDataPayloadContent(payloadData)
+        val previewContent = extractSignDataPreviewContent(request.event.preview.data)
+            ?.takeIf { it.isNotBlank() }
 
-        // Extract preview content
-        val previewData = request.event.preview.data
-        val previewContent = when (previewData) {
-            is io.ton.walletkit.api.generated.TONSignData.Text -> previewData.value.content
-            is io.ton.walletkit.api.generated.TONSignData.Binary -> previewData.value.content.value
-            is io.ton.walletkit.api.generated.TONSignData.Cell -> previewData.value.content.value
-            else -> ""
-        }
-
-        // Convert to UI model with actual payload data from request
         val uiRequest = SignDataRequestUi(
             id = request.hashCode().toString(),
             walletAddress = request.event.walletAddress?.value ?: state.value.activeWalletAddress ?: "",
@@ -1358,6 +1344,18 @@ class WalletKitViewModel @Inject constructor(
         uiCoordinator.setSheet(SheetState.SignData(uiRequest))
         val eventDAppName = dAppInfo?.name ?: fallbackDAppName
         eventLogger.log(R.string.wallet_event_sign_data_request, eventDAppName)
+    }
+
+    private fun extractSignDataPayloadContent(data: io.ton.walletkit.api.generated.TONSignData): String = when (data) {
+        is io.ton.walletkit.api.generated.TONSignData.Text -> data.value.content
+        is io.ton.walletkit.api.generated.TONSignData.Binary -> data.value.content.value
+        is io.ton.walletkit.api.generated.TONSignData.Cell -> data.value.content.value
+    }
+
+    private fun extractSignDataPreviewContent(data: io.ton.walletkit.api.generated.TONSignDataPreview): String? = when (data) {
+        is io.ton.walletkit.api.generated.TONSignDataPreview.Text -> data.value.content
+        is io.ton.walletkit.api.generated.TONSignDataPreview.Binary -> data.value.content.value
+        is io.ton.walletkit.api.generated.TONSignDataPreview.Cell -> data.value.parsed?.toString() ?: data.value.content.value
     }
 
     override fun onCleared() {

@@ -117,12 +117,15 @@ class SessionsViewModel(
             try {
                 Log.d(TAG, "Disconnecting session: $sessionId")
                 val kit = getKit()
+                val manager = TONWalletKitHelper.sessionManager
 
-                // Use kit.disconnectSession() directly
                 kit.disconnectSession(sessionId)
+                runCatching { manager?.removeSession(sessionId) }
+                    .onFailure { cleanupError ->
+                        Log.w(TAG, "Session disconnected but local cleanup failed for $sessionId", cleanupError)
+                    }
                 Log.d(TAG, "Disconnected session $sessionId")
 
-                // Refresh sessions after disconnection
                 loadSessions()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to disconnect session $sessionId", e)
@@ -130,7 +133,6 @@ class SessionsViewModel(
                     error = e.message ?: "Failed to disconnect session",
                 )
 
-                // Still refresh to update UI
                 loadSessions()
             }
         }
