@@ -32,7 +32,6 @@ import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONSwapToken
-import kotlinx.serialization.json.JsonElement
 import io.ton.walletkit.swap.ITONSwapManager
 import io.ton.walletkit.swap.TONDeDustSwapProvider
 import io.ton.walletkit.swap.TONOmnistonSwapProvider
@@ -43,6 +42,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonElement
 
 class SwapViewModel(
     private val wallet: ITONWallet,
@@ -165,7 +165,7 @@ class SwapViewModel(
                         slippageBps = current.slippageBps.toDouble(),
                         maxOutgoingMessages = 4.0,
                         isReverseSwap = current.isReverseSwap,
-                    )
+                    ),
                 )
             }.onSuccess { quote ->
                 _state.update { current ->
@@ -199,7 +199,7 @@ class SwapViewModel(
                     TONSwapParams<JsonElement>(
                         quote = quote,
                         userAddress = wallet.address,
-                    )
+                    ),
                 )
                 wallet.send(transactionRequest)
             }.onSuccess {
@@ -226,7 +226,7 @@ class SwapViewModel(
         val omniston = kit.omnistonSwapProvider()
         manager.registerProvider(omniston)
 
-        val deDust = kit.deDustSwapProvider()
+        val deDust = kit.dedustSwapProvider()
         manager.registerProvider(deDust)
 
         val defaultProvider = if (_state.value.selectedProvider == SwapProvider.OMNISTON) omniston else deDust
