@@ -33,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.TETRA
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
 
@@ -41,11 +42,13 @@ fun NetworkBadge(network: TONNetwork) {
     val color = when (network.chainId) {
         TONNetwork.MAINNET.chainId -> MAINNET_COLOR
         TONNetwork.TESTNET.chainId -> TESTNET_COLOR
+        TONNetwork.TETRA.chainId -> TETRA_COLOR
         else -> MAINNET_COLOR
     }
     val label = when (network.chainId) {
         TONNetwork.MAINNET.chainId -> stringResource(R.string.network_mainnet)
         TONNetwork.TESTNET.chainId -> stringResource(R.string.network_testnet)
+        TONNetwork.TETRA.chainId -> stringResource(R.string.network_tetra)
         else -> "Unknown"
     }
     Surface(shape = MaterialTheme.shapes.medium, color = color.copy(alpha = 0.12f)) {
@@ -62,6 +65,7 @@ private val BADGE_HORIZONTAL_PADDING = 10.dp
 private val BADGE_VERTICAL_PADDING = 4.dp
 private val MAINNET_COLOR = Color(0xFF2E7D32)
 private val TESTNET_COLOR = Color(0xFFF57C00)
+private val TETRA_COLOR = Color(0xFF1565C0)
 
 @Preview
 @Composable

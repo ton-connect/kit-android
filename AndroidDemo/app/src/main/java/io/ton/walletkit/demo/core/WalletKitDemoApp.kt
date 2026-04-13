@@ -36,8 +36,11 @@ import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.api.ChainIds
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.TETRA
 import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignatureDomain
+import io.ton.walletkit.api.isTetra
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
@@ -161,17 +164,21 @@ class WalletKitDemoApp :
                     val mnemonicWords = walletRecord.mnemonic.split(" ").filter { it.isNotBlank() }
 
                     // Convert network string to TONNetwork enum
-                    val network = when (walletRecord.network.lowercase()) {
+                    val network = when (walletRecord.network) {
                         ChainIds.MAINNET -> TONNetwork.MAINNET
                         ChainIds.TESTNET -> TONNetwork.TESTNET
+                        ChainIds.TETRA -> TONNetwork.TETRA
                         else -> TONNetwork.MAINNET
                     }
+
+                    // Tetra (L2) wallets require an L2 signature domain
+                    val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
 
                     // Use 3-step wallet creation pattern
                     val signer = kit.createSignerFromMnemonic(mnemonicWords)
                     val adapter = when (walletRecord.version) {
-                        WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network)
-                        WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network)
+                        WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network, domain = domain)
+                        WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network, domain = domain)
                         else -> {
                             Log.w(TAG, "Unsupported wallet version: ${walletRecord.version}, skipping")
                             continue
@@ -303,6 +310,10 @@ object TONWalletKitHelper {
                         network = TONNetwork.TESTNET,
                         apiClient = TonAPIClient.testnet(),
                     ),
+                    TONWalletKitConfiguration.NetworkConfiguration(
+                        network = TONNetwork.TETRA,
+                        apiClient = TonAPIClient.tetra(),
+                    ),
                 )
             } else {
                 // Use SDK's built-in API client with default configuration
@@ -318,6 +329,13 @@ object TONWalletKitHelper {
                         apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(
                             key = "", // Empty key uses default behavior
                         ),
+                    ),
+                    TONWalletKitConfiguration.NetworkConfiguration(
+                        network = TONNetwork.TETRA,
+                        apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(
+                            key = "",
+                        ),
+                        apiClientType = TONWalletKitConfiguration.APIClientType.TONAPI,
                     ),
                 )
             }

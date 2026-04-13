@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import io.ton.walletkit.api.ChainIds
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.TETRA
 import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
@@ -153,7 +154,7 @@ fun AddWalletSheet(
 
         Text(stringResource(R.string.label_network), style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            listOf(TONNetwork.MAINNET, TONNetwork.TESTNET).forEach { option ->
+            listOf(TONNetwork.MAINNET, TONNetwork.TESTNET, TONNetwork.TETRA).forEach { option ->
                 FilterChip(
                     selected = network == option,
                     onClick = { network = option },
@@ -162,6 +163,7 @@ fun AddWalletSheet(
                             when (option.chainId) {
                                 ChainIds.MAINNET -> stringResource(R.string.network_mainnet)
                                 ChainIds.TESTNET -> stringResource(R.string.network_testnet)
+                                ChainIds.TETRA -> stringResource(R.string.network_tetra)
                                 else -> "Unknown"
                             },
                         )

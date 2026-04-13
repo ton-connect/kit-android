@@ -133,7 +133,7 @@ internal object TestWalletKitFactory {
         }
 
         // Setup createAdapter (used by createV5R1Adapter / createV4R2Adapter via TONWalletKit)
-        coEvery { mockEngine.createAdapter(any(), any(), any(), any(), any(), any()) } answers {
+        coEvery { mockEngine.createAdapter(any(), any(), any(), any(), any(), any(), any()) } answers {
             scenario.handleCreateAdapter(
                 signerId = firstArg(),
                 publicKey = secondArg(),
