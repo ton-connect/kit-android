@@ -32,20 +32,35 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
+ * Swap request to DeDust Router API
  *
- * @param amount Amount of the fee
- * @param token
+ * @param senderAddress
+ * @param swapData
+ * @param referralAddress
+ * @param referralFee
+ * @param jettonWalletStateInit
+ * @param customPayload
  */
 @Serializable
-data class TONSwapFee(
+data class TONDeDustSwapRequest(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    @SerialName(value = "sender_address")
+    val senderAddress: kotlin.String,
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    @SerialName(value = "swap_data")
+    val swapData: TONDeDustSwapRequestSwapData,
+
+    @SerialName(value = "referral_address")
+    val referralAddress: kotlin.String? = null,
+
+    @SerialName(value = "referral_fee")
+    val referralFee: kotlin.Int? = null,
+
+    @SerialName(value = "jetton_wallet_state_init")
+    val jettonWalletStateInit: kotlin.String? = null,
+
+    @SerialName(value = "custom_payload")
+    val customPayload: kotlin.String? = null,
 
 ) {
 

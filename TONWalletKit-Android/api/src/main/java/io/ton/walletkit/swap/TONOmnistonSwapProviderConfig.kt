@@ -19,35 +19,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
-
-package io.ton.walletkit.api.generated
+package io.ton.walletkit.swap
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
+ * Configuration for the Omniston (STON.fi) swap provider.
  *
- * @param amount Amount of the fee
- * @param token
+ * All fields are optional; omitting them uses provider defaults.
  */
 @Serializable
-data class TONSwapFee(
-
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
-
-    @SerialName(value = "token")
-    val token: TONSwapToken,
-
-) {
-
-    companion object
-}
+data class TONOmnistonSwapProviderConfig(
+    /** Custom provider identifier. Defaults to "omniston". */
+    @SerialName("providerId") val providerId: String? = null,
+    /** Omniston WebSocket API URL. Default: wss://omni-ws.ston.fi */
+    @SerialName("apiUrl") val apiUrl: String? = null,
+    /** Default slippage tolerance in basis points (1 bp = 0.01%). */
+    @SerialName("defaultSlippageBps") val defaultSlippageBps: Int? = null,
+    /** Timeout for quote requests in milliseconds. */
+    @SerialName("quoteTimeoutMs") val quoteTimeoutMs: Int? = null,
+    /** Referrer address. */
+    @SerialName("referrerAddress") val referrerAddress: String? = null,
+    /** Referrer fee in basis points. */
+    @SerialName("referrerFeeBps") val referrerFeeBps: Int? = null,
+    /** Whether a flexible referrer fee is allowed. */
+    @SerialName("flexibleReferrerFee") val flexibleReferrerFee: Boolean? = null,
+)

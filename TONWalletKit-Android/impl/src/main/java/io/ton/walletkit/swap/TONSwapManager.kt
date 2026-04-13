@@ -1,0 +1,112 @@
+/*
+ * Copyright (c) 2025 TonTech
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package io.ton.walletkit.swap
+
+import io.ton.walletkit.api.generated.TONSwapParams
+import io.ton.walletkit.api.generated.TONSwapQuote
+import io.ton.walletkit.api.generated.TONSwapQuoteParams
+import io.ton.walletkit.api.generated.TONTransactionRequest
+import io.ton.walletkit.engine.WalletKitEngine
+import io.ton.walletkit.exceptions.JSValueConversionException
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+
+internal class TONSwapManager(
+    private val engine: WalletKitEngine,
+) : ITONSwapManager {
+
+    override suspend fun registerProvider(provider: TONSwapProvider<*>) {
+        engine.registerSwapProvider(provider.providerId)
+    }
+
+    override suspend fun setDefaultProvider(provider: TONSwapProvider<*>) {
+        engine.setDefaultSwapProvider(provider.providerId)
+    }
+
+    override suspend fun registeredProviders(): List<String> {
+        return engine.getRegisteredSwapProviders()
+    }
+
+    override suspend fun hasProvider(provider: TONSwapProvider<*>): Boolean {
+        return engine.hasSwapProvider(provider.providerId)
+    }
+
+    override suspend fun <TQuoteOptions> provider(provider: TONSwapProvider<TQuoteOptions>): TONSwapProvider<TQuoteOptions>? {
+        return if (engine.hasSwapProvider(provider.providerId)) provider else null
+    }
+
+    override suspend fun <TQuoteOptions> getQuote(
+        params: TONSwapQuoteParams<TQuoteOptions>,
+        provider: TONSwapProvider<TQuoteOptions>,
+        serializer: KSerializer<TQuoteOptions>,
+    ): TONSwapQuote {
+        val jsonOptions = params.providerOptions?.let { Json.encodeToJsonElement(serializer, it) }
+        val jsonParams = TONSwapQuoteParams(
+            amount = params.amount,
+            from = params.from,
+            to = params.to,
+            network = params.network,
+            slippageBps = params.slippageBps,
+            maxOutgoingMessages = params.maxOutgoingMessages,
+            providerOptions = jsonOptions,
+            isReverseSwap = params.isReverseSwap,
+        )
+        return engine.getSwapQuote(jsonParams, provider.providerId)
+    }
+
+    override suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>): TONSwapQuote {
+        return engine.getSwapQuote(params, null)
+    }
+
+    override suspend fun <TSwapOptions> buildSwapTransaction(
+        params: TONSwapParams<TSwapOptions>,
+        serializer: KSerializer<TSwapOptions>,
+    ): TONTransactionRequest {
+        val jsonOptions = params.providerOptions?.let { Json.encodeToJsonElement(serializer, it) }
+        val jsonParams = TONSwapParams(
+            quote = params.quote,
+            userAddress = params.userAddress,
+            destinationAddress = params.destinationAddress,
+            slippageBps = params.slippageBps,
+            deadline = params.deadline,
+            providerOptions = jsonOptions,
+        )
+        return decodeTransactionRequest(engine.buildSwapTransaction(jsonParams))
+    }
+
+    override suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): TONTransactionRequest {
+        return decodeTransactionRequest(engine.buildSwapTransaction(params))
+    }
+
+    private fun decodeTransactionRequest(json: String): TONTransactionRequest {
+        return try {
+            Json.decodeFromString(TONTransactionRequest.serializer(), json)
+        } catch (e: SerializationException) {
+            throw JSValueConversionException.DecodingError(
+                message = "Failed to decode TONTransactionRequest: ${e.message}",
+                cause = e,
+            )
+        }
+    }
+}

@@ -19,35 +19,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
+package io.ton.walletkit.swap
 
-package io.ton.walletkit.api.generated
-
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import io.ton.walletkit.api.generated.TONDeDustProviderOptions
+import io.ton.walletkit.api.generated.TONOmnistonProviderOptions
 
 /**
- * Fee information for swap
+ * Handle for a registered swap provider. The type parameter [TQuoteOptions] carries
+ * the provider-specific options type used in [ITONSwapManager.getQuote].
  *
- * @param amount Amount of the fee
- * @param token
+ * Created via [io.ton.walletkit.ITONWalletKit.omnistonSwapProvider] or
+ * [io.ton.walletkit.ITONWalletKit.dedustSwapProvider].
+ * Register with [ITONSwapManager.registerProvider] before calling [ITONSwapManager.getQuote].
  */
-@Serializable
-data class TONSwapFee(
+data class TONSwapProvider<TQuoteOptions>(val providerId: String)
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+/** Typed handle for the Omniston (STON.fi) swap provider. */
+typealias TONOmnistonSwapProvider = TONSwapProvider<TONOmnistonProviderOptions>
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
-
-) {
-
-    companion object
-}
+/** Typed handle for the DeDust swap provider. */
+typealias TONDeDustSwapProvider = TONSwapProvider<TONDeDustProviderOptions>

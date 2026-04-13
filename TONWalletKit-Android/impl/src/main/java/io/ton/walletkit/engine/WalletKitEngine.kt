@@ -35,6 +35,9 @@ import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONSignatureDomain
+import io.ton.walletkit.api.generated.TONSwapParams
+import io.ton.walletkit.api.generated.TONSwapQuote
+import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -46,6 +49,9 @@ import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.RequestHandler
+import io.ton.walletkit.swap.TONDeDustSwapProviderConfig
+import io.ton.walletkit.swap.TONOmnistonSwapProviderConfig
+import kotlinx.serialization.json.JsonElement
 
 /**
  * Abstraction over a runtime that can execute the WalletKit JavaScript bundle and expose
@@ -463,6 +469,24 @@ internal interface WalletKitEngine : RequestHandler {
      * @throws WalletKitBridgeException if address retrieval fails
      */
     suspend fun getJettonWalletAddress(walletId: String, jettonAddress: String): String
+
+    // ── Swap ──
+
+    suspend fun createOmnistonSwapProvider(config: TONOmnistonSwapProviderConfig?): String
+
+    suspend fun createDeDustSwapProvider(config: TONDeDustSwapProviderConfig?): String
+
+    suspend fun registerSwapProvider(providerId: String)
+
+    suspend fun setDefaultSwapProvider(providerId: String)
+
+    suspend fun getRegisteredSwapProviders(): List<String>
+
+    suspend fun hasSwapProvider(providerId: String): Boolean
+
+    suspend fun getSwapQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote
+
+    suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): String
 
     /**
      * Call a bridge method directly.

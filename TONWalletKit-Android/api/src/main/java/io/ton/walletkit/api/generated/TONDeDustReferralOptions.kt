@@ -32,20 +32,21 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
+ * Options for configuring the referral in DeDust swap operations
  *
- * @param amount Amount of the fee
- * @param token
+ * @param referralAddress The address of the referrer
+ * @param referralFeeBps Referral fee in basis points (max 100 = 1%)
  */
 @Serializable
-data class TONSwapFee(
+data class TONDeDustReferralOptions(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    /* The address of the referrer */
+    @SerialName(value = "referralAddress")
+    val referralAddress: kotlin.String? = null,
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    /* Referral fee in basis points (max 100 = 1%) */
+    @SerialName(value = "referralFeeBps")
+    val referralFeeBps: kotlin.Int? = null,
 
 ) {
 

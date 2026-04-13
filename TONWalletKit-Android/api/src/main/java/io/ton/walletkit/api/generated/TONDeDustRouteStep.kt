@@ -32,20 +32,47 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
+ * Route step from DeDust Router API
  *
- * @param amount Amount of the fee
- * @param token
+ * @param poolAddress
+ * @param isStable
+ * @param inMinter
+ * @param outMinter
+ * @param inAmount
+ * @param outAmount
+ * @param networkFee
+ * @param protocolSlug
+ * @param stonfiExtraDetails
  */
 @Serializable
-data class TONSwapFee(
+data class TONDeDustRouteStep(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    @SerialName(value = "pool_address")
+    val poolAddress: kotlin.String,
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    @SerialName(value = "is_stable")
+    val isStable: kotlin.Boolean,
+
+    @SerialName(value = "in_minter")
+    val inMinter: kotlin.String,
+
+    @SerialName(value = "out_minter")
+    val outMinter: kotlin.String,
+
+    @SerialName(value = "in_amount")
+    val inAmount: kotlin.String,
+
+    @SerialName(value = "out_amount")
+    val outAmount: kotlin.String,
+
+    @SerialName(value = "network_fee")
+    val networkFee: kotlin.String,
+
+    @SerialName(value = "protocol_slug")
+    val protocolSlug: kotlin.String,
+
+    @SerialName(value = "stonfi_extra_details")
+    val stonfiExtraDetails: TONDeDustRouteStepStonfiExtraDetails? = null,
 
 ) {
 

@@ -28,24 +28,24 @@
 
 package io.ton.walletkit.api.generated
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
+ * Swap data from DeDust Router API quote response
  *
- * @param amount Amount of the fee
- * @param token
+ * @param slippageBps
+ * @param routes
  */
 @Serializable
-data class TONSwapFee(
+data class TONDeDustSwapData(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    @SerialName(value = "slippage_bps")
+    val slippageBps: kotlin.Int,
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    @SerialName(value = "routes")
+    val routes: kotlin.collections.List<@Contextual kotlin.collections.List<TONDeDustRouteStep>>,
 
 ) {
 

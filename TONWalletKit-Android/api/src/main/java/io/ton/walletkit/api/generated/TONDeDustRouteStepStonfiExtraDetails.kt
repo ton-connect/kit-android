@@ -32,20 +32,23 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
  *
- * @param amount Amount of the fee
- * @param token
+ *
+ * @param router
+ * @param fromRouterWallet
+ * @param toRouterWallet
  */
 @Serializable
-data class TONSwapFee(
+data class TONDeDustRouteStepStonfiExtraDetails(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    @SerialName(value = "router")
+    val router: kotlin.String,
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    @SerialName(value = "from_router_wallet")
+    val fromRouterWallet: kotlin.String,
+
+    @SerialName(value = "to_router_wallet")
+    val toRouterWallet: kotlin.String,
 
 ) {
 
