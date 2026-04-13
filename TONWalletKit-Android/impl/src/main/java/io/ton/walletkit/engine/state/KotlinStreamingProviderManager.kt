@@ -35,13 +35,7 @@ import kotlinx.serialization.json.Json
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Manages Kotlin-implemented [ITONStreamingProvider] instances.
- *
- * When a developer registers a custom Kotlin provider, JS creates a [ProxyStreamingProvider]
- * that calls back here via the reverse-RPC mechanism (same pattern as [ProxyWalletAdapter]).
- * Updates are dispatched to JS via [BridgeMethodConstants.METHOD_KOTLIN_PROVIDER_DISPATCH].
- */
+/** Manages custom Kotlin [ITONStreamingProvider] instances registered into the JS bridge. */
 internal class KotlinStreamingProviderManager(
     private val rpcClient: BridgeRpcClient,
     private val json: Json,
@@ -123,7 +117,6 @@ internal class KotlinStreamingProviderManager(
                 },
             )
         } catch (_: Exception) {
-            // Subscription may have been unwatched; ignore dispatch failures silently.
         }
     }
 

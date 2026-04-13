@@ -1,5 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+fun String.escapeForBuildConfig(): String = replace("\\", "\\\\").replace("\"", "\\\"")
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
@@ -41,6 +43,10 @@ android {
         val allureToken =
             findProperty("allureToken") as String?
                 ?: System.getenv("ALLURE_API_TOKEN")
+        val tonCenterApiKey =
+            findProperty("tonCenterApiKey") as String?
+                ?: System.getenv("TONCENTER_API_KEY")
+                ?: ""
 
         testMnemonic?.let {
             testInstrumentationRunnerArguments["testMnemonic"] = it
@@ -49,6 +55,7 @@ android {
         allureToken?.let {
             testInstrumentationRunnerArguments["allureToken"] = it
         }
+        buildConfigField("String", "TONCENTER_API_KEY", "\"${tonCenterApiKey.escapeForBuildConfig()}\"")
     }
 
     buildTypes {
@@ -63,6 +70,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }

@@ -57,16 +57,11 @@ internal class TONStreamingManager(
 
     override suspend fun register(provider: ITONStreamingProvider) {
         if (provider is TONStreamingProviderImpl) {
-            // JS-backed provider: its JsRef id points to a live JS registry entry.
-            // Pass it to the JS streaming manager so it routes subscriptions to it.
             engine.callBridgeMethod(
                 BridgeMethodConstants.METHOD_REGISTER_STREAMING_PROVIDER,
                 JSONObject().apply { put("providerId", provider.id) },
             )
         } else {
-            // Custom Kotlin provider: register it with the local manager so reverse-RPC
-            // calls from JS's ProxyStreamingProvider reach it, then tell JS to create
-            // the proxy and register it with the JS streaming manager.
             engine.kotlinStreamingProviderManager.register(provider.id, provider)
             engine.callBridgeMethod(
                 BridgeMethodConstants.METHOD_REGISTER_KOTLIN_STREAMING_PROVIDER,
