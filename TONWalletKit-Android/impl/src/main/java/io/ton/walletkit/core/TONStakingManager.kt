@@ -23,6 +23,8 @@ package io.ton.walletkit.core
 
 import io.ton.walletkit.ITONStakingManager
 import io.ton.walletkit.ITONTonStakersStakingProvider
+import io.ton.walletkit.TONStakingProviderIdentifier
+import io.ton.walletkit.TONTonStakersStakingProviderIdentifier
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONStakeParams
 import io.ton.walletkit.api.generated.TONStakingBalance
@@ -48,66 +50,68 @@ internal class TONStakingManager(
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun register(provider: ITONTonStakersStakingProvider) {
-        engine.registerStakingProvider(provider.internalRef)
+        val internalProvider = provider as? TONTonStakersStakingProvider
+            ?: throw IllegalArgumentException("Unsupported staking provider implementation: ${provider::class.java.name}")
+        engine.registerStakingProvider(internalProvider.internalRef)
     }
 
-    override fun setDefaultProvider(providerId: String) {
+    override fun setDefaultProvider(providerId: TONStakingProviderIdentifier) {
         // Delegates to engine on the next coroutine opportunity.
         // Stored locally so the manager can be used before the first suspending call.
         _pendingDefaultProviderId = providerId
     }
 
-    /** Buffered default provider ID applied lazily on the next bridge call. */
+    /** Buffered default provider identifier applied lazily on the next bridge call. */
     @Suppress("PropertyName")
     @Volatile
-    private var _pendingDefaultProviderId: String? = null
+    private var _pendingDefaultProviderId: TONStakingProviderIdentifier? = null
 
     private suspend fun applyPendingDefault() {
-        _pendingDefaultProviderId?.let { id ->
-            engine.setDefaultStakingProvider(id)
+        _pendingDefaultProviderId?.let { identifier ->
+            engine.setDefaultStakingProvider(identifier.name)
             _pendingDefaultProviderId = null
         }
     }
 
     override suspend fun getQuote(
         params: TONStakingQuoteParams<JsonElement>,
-        providerId: String?,
+        providerId: TONStakingProviderIdentifier?,
     ): TONStakingQuote {
         applyPendingDefault()
-        return engine.getStakingQuote(params, providerId)
+        return engine.getStakingQuote(params, providerId?.name)
     }
 
     override suspend fun buildStakeTransaction(
         params: TONStakeParams<JsonElement>,
-        providerId: String?,
+        providerId: TONStakingProviderIdentifier?,
     ): TONTransactionRequest {
         applyPendingDefault()
-        val content = engine.buildStakeTransaction(params, providerId)
+        val content = engine.buildStakeTransaction(params, providerId?.name)
         return json.decodeFromString(content)
     }
 
     override suspend fun getStakedBalance(
         userAddress: TONUserFriendlyAddress,
         network: TONNetwork?,
-        providerId: String?,
+        providerId: TONStakingProviderIdentifier?,
     ): TONStakingBalance {
         applyPendingDefault()
-        return engine.getStakedBalance(userAddress.value, network, providerId)
+        return engine.getStakedBalance(userAddress.value, network, providerId?.name)
     }
 
     override suspend fun getStakingProviderInfo(
         network: TONNetwork?,
-        providerId: String?,
+        providerId: TONStakingProviderIdentifier?,
     ): TONStakingProviderInfo {
         applyPendingDefault()
-        return engine.getStakingProviderInfo(network, providerId)
+        return engine.getStakingProviderInfo(network, providerId?.name)
     }
 
     override suspend fun getSupportedUnstakeModes(
-        providerId: String?,
+        providerId: TONStakingProviderIdentifier?,
     ): List<TONUnstakeMode> {
         applyPendingDefault()
-        return engine.getSupportedUnstakeModes(providerId)
+        return engine.getSupportedUnstakeModes(providerId?.name)
     }
 }
 
@@ -115,14 +119,9 @@ internal class TONStakingManager(
  * Internal [ITONTonStakersStakingProvider] implementation.
  *
  * @property internalRef JS bridge registry reference ID returned by `createTonStakersStakingProvider`.
- * @property providerId The provider ID understood by the JS staking manager ("tonstakers").
+ * @property identifier The typed provider identifier understood by the staking manager.
  */
 internal data class TONTonStakersStakingProvider(
-    override val internalRef: String,
-    override val providerId: String = PROVIDER_ID,
-) : ITONTonStakersStakingProvider {
-
-    companion object {
-        const val PROVIDER_ID = "tonstakers"
-    }
-}
+    internal val internalRef: String,
+    override val identifier: TONTonStakersStakingProviderIdentifier = TONTonStakersStakingProviderIdentifier(),
+) : ITONTonStakersStakingProvider

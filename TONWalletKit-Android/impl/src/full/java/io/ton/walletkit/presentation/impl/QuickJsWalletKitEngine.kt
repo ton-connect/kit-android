@@ -40,7 +40,14 @@ import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONStakeParams
+import io.ton.walletkit.api.generated.TONStakingBalance
+import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingQuote
+import io.ton.walletkit.api.generated.TONStakingQuoteParams
+import io.ton.walletkit.api.generated.TONTonStakersChainConfig
 import io.ton.walletkit.api.generated.TONTransferRequest
+import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
@@ -71,6 +78,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Headers
@@ -347,6 +355,7 @@ internal class QuickJsWalletKitEngine(
         network: io.ton.walletkit.api.generated.TONNetwork?,
         workchain: Int,
         walletId: Long,
+        domain: io.ton.walletkit.api.generated.TONSignatureDomain?,
     ): io.ton.walletkit.model.TONWalletAdapter {
         throw UnsupportedOperationException("QuickJS engine does not support createAdapter. Use WebView engine.")
     }
@@ -608,6 +617,51 @@ internal class QuickJsWalletKitEngine(
         val params = JSONObject()
         sessionId?.let { params.put("sessionId", it) }
         call("disconnectSession", if (params.length() == 0) null else params)
+    }
+
+    override suspend fun createTonStakersStakingProvider(chainConfig: Map<String, TONTonStakersChainConfig>?): String {
+        throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
+    }
+
+    override suspend fun registerStakingProvider(providerId: String) {
+        throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
+    }
+
+    override suspend fun setDefaultStakingProvider(providerId: String) {
+        throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
+    }
+
+    override suspend fun getStakingQuote(
+        params: TONStakingQuoteParams<JsonElement>,
+        providerId: String?,
+    ): TONStakingQuote {
+        throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
+    }
+
+    override suspend fun buildStakeTransaction(
+        params: TONStakeParams<JsonElement>,
+        providerId: String?,
+    ): String {
+        throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
+    }
+
+    override suspend fun getStakedBalance(
+        userAddress: String,
+        network: TONNetwork?,
+        providerId: String?,
+    ): TONStakingBalance {
+        throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
+    }
+
+    override suspend fun getStakingProviderInfo(
+        network: TONNetwork?,
+        providerId: String?,
+    ): TONStakingProviderInfo {
+        throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
+    }
+
+    override suspend fun getSupportedUnstakeModes(providerId: String?): List<TONUnstakeMode> {
+        throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
     }
 
     override suspend fun getNfts(walletAddress: String, limit: Int, offset: Int): io.ton.walletkit.api.generated.TONNFTsResponse {

@@ -29,6 +29,8 @@ import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
 import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignatureDomain
+import io.ton.walletkit.api.isTetra
 import io.ton.walletkit.demo.data.cache.TransactionCache
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.UserPreferences
@@ -215,20 +217,26 @@ class WalletLifecycleManager(
                 continue
             }
 
+            if (record.mnemonic.isEmpty()) {
+                Log.w(LOG_TAG, "rehydrate: skipping $storedAddress (mnemonic is empty)")
+                continue
+            }
+
             val networkEnum = parseNetworkString(record.network, currentNetwork)
             val version = record.version.ifBlank { defaultWalletVersion }
             val name = record.name.ifBlank { defaultWalletNameProvider(restoredCount) }
+            val domain = if (networkEnum.isTetra) TONSignatureDomain.L2(value = 662387) else null
 
             val result = runCatching {
                 when (version) {
                     WalletVersions.V4R2 -> {
                         val signer = kit.createSignerFromMnemonic(record.mnemonic)
-                        val adapter = kit.createV4R2Adapter(signer, networkEnum)
+                        val adapter = kit.createV4R2Adapter(signer, networkEnum, domain = domain)
                         kit.addWallet(adapter)
                     }
                     WalletVersions.V5R1 -> {
                         val signer = kit.createSignerFromMnemonic(record.mnemonic)
-                        val adapter = kit.createV5R1Adapter(signer, networkEnum)
+                        val adapter = kit.createV5R1Adapter(signer, networkEnum, domain = domain)
                         kit.addWallet(adapter)
                     }
                     else -> {

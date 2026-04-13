@@ -45,9 +45,9 @@ interface ITONStakingManager {
     /**
      * Set the default provider used when no providerId is passed to query methods.
      *
-     * @param providerId The [ITONTonStakersStakingProvider.providerId] of the provider to use by default
+     * @param providerId The [ITONTonStakersStakingProvider.identifier] of the provider to use by default
      */
-    fun setDefaultProvider(providerId: String)
+    fun setDefaultProvider(providerId: TONStakingProviderIdentifier)
 
     /**
      * Get a stake or unstake quote.
@@ -58,7 +58,7 @@ interface ITONStakingManager {
      */
     suspend fun getQuote(
         params: TONStakingQuoteParams<JsonElement>,
-        providerId: String? = null,
+        providerId: TONStakingProviderIdentifier? = null,
     ): TONStakingQuote
 
     /**
@@ -72,7 +72,7 @@ interface ITONStakingManager {
      */
     suspend fun buildStakeTransaction(
         params: TONStakeParams<JsonElement>,
-        providerId: String? = null,
+        providerId: TONStakingProviderIdentifier? = null,
     ): TONTransactionRequest
 
     /**
@@ -86,7 +86,7 @@ interface ITONStakingManager {
     suspend fun getStakedBalance(
         userAddress: TONUserFriendlyAddress,
         network: TONNetwork? = null,
-        providerId: String? = null,
+        providerId: TONStakingProviderIdentifier? = null,
     ): TONStakingBalance
 
     /**
@@ -98,7 +98,7 @@ interface ITONStakingManager {
      */
     suspend fun getStakingProviderInfo(
         network: TONNetwork? = null,
-        providerId: String? = null,
+        providerId: TONStakingProviderIdentifier? = null,
     ): TONStakingProviderInfo
 
     /**
@@ -108,7 +108,7 @@ interface ITONStakingManager {
      * @return List of supported unstake modes
      */
     suspend fun getSupportedUnstakeModes(
-        providerId: String? = null,
+        providerId: TONStakingProviderIdentifier? = null,
     ): List<TONUnstakeMode>
 }
 
@@ -118,9 +118,6 @@ interface ITONStakingManager {
  * Created via [ITONWalletKit.tonStakersStakingProvider] and registered with [ITONStakingManager.register].
  */
 interface ITONTonStakersStakingProvider {
-    /** Internal JS bridge registry reference ID. */
-    val internalRef: String
-
-    /** The staking provider ID recognised by [ITONStakingManager]. */
-    val providerId: String
+    /** Typed staking provider identifier recognised by [ITONStakingManager]. */
+    val identifier: TONTonStakersStakingProviderIdentifier
 }

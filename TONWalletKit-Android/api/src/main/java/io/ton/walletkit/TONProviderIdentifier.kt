@@ -19,13 +19,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.api
+package io.ton.walletkit
 
 /**
- * Standard TON blockchain chain IDs.
+ * Typed provider identifier used by public SDK APIs instead of raw strings.
  */
-object ChainIds {
-    const val MAINNET = "-239"
-    const val TESTNET = "-3"
-    const val TETRA = "662387"
+interface TONProviderIdentifier {
+    val name: String
+}
+
+/**
+ * Type-erased provider identifier.
+ */
+data class AnyTONProviderIdentifier(
+    override val name: String,
+) : TONProviderIdentifier
+
+/**
+ * Marker interface for staking provider identifiers.
+ */
+interface TONStakingProviderIdentifier : TONProviderIdentifier
+
+/**
+ * Identifier for the TonStakers staking provider.
+ */
+data class TONTonStakersStakingProviderIdentifier(
+    override val name: String = DEFAULT_NAME,
+) : TONStakingProviderIdentifier {
+    companion object {
+        const val DEFAULT_NAME = "tonstakers"
+    }
 }
