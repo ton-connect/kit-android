@@ -24,6 +24,7 @@ package io.ton.walletkit
 import android.content.Context
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
@@ -66,7 +67,9 @@ interface ITONWalletKit {
     /**
      * Create a signer from a 32-byte secret key.
      */
-    suspend fun createSignerFromSecretKey(secretKey: ByteArray): WalletSignerInfo
+    suspend fun createSignerFromSecretKey(
+        secretKey: ByteArray,
+    ): WalletSignerInfo
 
     /**
      * Create a signer from a custom [WalletSigner] (e.g. hardware wallet).
@@ -77,22 +80,28 @@ interface ITONWalletKit {
 
     /**
      * Create a V5R1 wallet adapter.
+     *
+     * @param domain Optional signature domain for L2 chains (e.g. Tetra).
      */
     suspend fun createV5R1Adapter(
         signer: WalletSignerInfo,
         network: TONNetwork = TONNetwork.MAINNET,
         workchain: Int = WalletKitConstants.DEFAULT_WORKCHAIN,
         walletId: Long = WalletKitConstants.DEFAULT_WALLET_ID_V5R1,
+        domain: TONSignatureDomain? = null,
     ): TONWalletAdapter
 
     /**
      * Create a V4R2 wallet adapter.
+     *
+     * @param domain Optional signature domain for L2 chains (e.g. Tetra).
      */
     suspend fun createV4R2Adapter(
         signer: WalletSignerInfo,
         network: TONNetwork = TONNetwork.MAINNET,
         workchain: Int = WalletKitConstants.DEFAULT_WORKCHAIN,
         walletId: Long = WalletKitConstants.DEFAULT_WALLET_ID_V4R2,
+        domain: TONSignatureDomain? = null,
     ): TONWalletAdapter
 
     // ── Add wallet ──
