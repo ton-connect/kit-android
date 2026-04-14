@@ -29,6 +29,7 @@
 package io.ton.walletkit.api.generated
 
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -43,19 +44,30 @@ import kotlinx.serialization.Serializable
  * @param providerOptions Provider-specific options
  */
 @Serializable
-data class TONSwapParams<TProviderOptions>(
-    @SerialName("quote")
+data class TONSwapParams(
+
+    @SerialName(value = "quote")
     val quote: TONSwapQuote,
-    @SerialName("userAddress")
+
+    @Contextual @SerialName(value = "userAddress")
     val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
-    @SerialName("destinationAddress")
+
+    @Contextual @SerialName(value = "destinationAddress")
     val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-    @SerialName("slippageBps")
+
+    /* Slippage tolerance in basis points (1 bp = 0.01%) */
+    @SerialName(value = "slippageBps")
     val slippageBps: kotlin.Int? = null,
-    @SerialName("deadline")
+
+    /* Transaction deadline in unix timestamp */
+    @SerialName(value = "deadline")
     val deadline: kotlin.Int? = null,
-    @SerialName("providerOptions")
-    val providerOptions: TProviderOptions? = null,
+
+    /* Provider-specific options */
+    @Contextual @SerialName(value = "providerOptions")
+    val providerOptions: kotlinx.serialization.json.JsonElement? = null,
+
 ) {
+
     companion object
 }

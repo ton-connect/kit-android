@@ -28,13 +28,14 @@
 
 package io.ton.walletkit.api.generated
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
  *
  *
- * @param amount Amount of tokens to swap (incoming or outgoing depending on isReverseSwap)
+ * @param amount
  * @param from
  * @param to
  * @param network
@@ -44,23 +45,37 @@ import kotlinx.serialization.Serializable
  * @param isReverseSwap If true, amount is the amount to receive (buy). If false, amount is the amount to spend (sell).
  */
 @Serializable
-data class TONSwapQuoteParams<TProviderOptions>(
-    @SerialName("amount")
+data class TONSwapQuoteParams(
+
+    @SerialName(value = "amount")
     val amount: kotlin.String,
-    @SerialName("from")
+
+    @SerialName(value = "from")
     val from: TONSwapToken,
-    @SerialName("to")
+
+    @SerialName(value = "to")
     val to: TONSwapToken,
-    @SerialName("network")
+
+    @SerialName(value = "network")
     val network: TONNetwork,
-    @SerialName("slippageBps")
+
+    /* Slippage tolerance in basis points (1 bp = 0.01%) */
+    @SerialName(value = "slippageBps")
     val slippageBps: kotlin.Int? = null,
-    @SerialName("maxOutgoingMessages")
+
+    /* Maximum number of outgoing messages */
+    @SerialName(value = "maxOutgoingMessages")
     val maxOutgoingMessages: kotlin.Int? = null,
-    @SerialName("providerOptions")
-    val providerOptions: TProviderOptions? = null,
-    @SerialName("isReverseSwap")
+
+    /* Provider-specific options */
+    @Contextual @SerialName(value = "providerOptions")
+    val providerOptions: kotlinx.serialization.json.JsonElement? = null,
+
+    /* If true, amount is the amount to receive (buy). If false, amount is the amount to spend (sell). */
+    @SerialName(value = "isReverseSwap")
     val isReverseSwap: kotlin.Boolean? = null,
+
 ) {
+
     companion object
 }
