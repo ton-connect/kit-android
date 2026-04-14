@@ -410,4 +410,4 @@ private fun formatTokenDisplay(value: String?): String = runCatching {
         .toPlainString()
 }.getOrDefault(value ?: "0")
 
-private fun formatApy(apyPercent: Double): String = String.format(Locale.US, "%.2f%%", apyPercent)
+private fun formatApy(apyPercent: Number): String = String.format(Locale.US, "%.2f%%", apyPercent.toDouble())

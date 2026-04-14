@@ -21,8 +21,8 @@
  */
 package io.ton.walletkit.demo.core
 
-import io.ton.walletkit.api.generated.TONTonStakersChainConfig
 import io.ton.walletkit.api.TONTonStakersProviderConfig
+import io.ton.walletkit.api.generated.TONTonStakersChainConfig
 import io.ton.walletkit.demo.BuildConfig
 
 object DemoApiConfig {
