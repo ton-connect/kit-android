@@ -231,4 +231,44 @@ internal object BridgeMethodConstants {
      * Method name for getting jetton wallet address.
      */
     const val METHOD_GET_JETTON_WALLET_ADDRESS = "getJettonWalletAddress"
+
+    /**
+     * Method name for creating a TonStakers staking provider.
+     */
+    const val METHOD_CREATE_TON_STAKERS_STAKING_PROVIDER = "createTonStakersStakingProvider"
+
+    /**
+     * Method name for registering a staking provider with the staking manager.
+     */
+    const val METHOD_REGISTER_STAKING_PROVIDER = "registerStakingProvider"
+
+    /**
+     * Method name for setting the default staking provider.
+     */
+    const val METHOD_SET_DEFAULT_STAKING_PROVIDER = "setDefaultStakingProvider"
+
+    /**
+     * Method name for getting a staking quote (stake or unstake).
+     */
+    const val METHOD_GET_STAKING_QUOTE = "getStakingQuote"
+
+    /**
+     * Method name for building a stake or unstake transaction.
+     */
+    const val METHOD_BUILD_STAKE_TRANSACTION = "buildStakeTransaction"
+
+    /**
+     * Method name for getting the user's staked balance.
+     */
+    const val METHOD_GET_STAKED_BALANCE = "getStakedBalance"
+
+    /**
+     * Method name for getting staking provider information (APY, liquidity).
+     */
+    const val METHOD_GET_STAKING_PROVIDER_INFO = "getStakingProviderInfo"
+
+    /**
+     * Method name for getting supported unstake modes for a staking provider.
+     */
+    const val METHOD_GET_SUPPORTED_UNSTAKE_MODES = "getSupportedUnstakeModes"
 }

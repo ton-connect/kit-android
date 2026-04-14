@@ -23,9 +23,12 @@ package io.ton.walletkit.core
 
 import android.content.Context
 import android.webkit.WebView
+import io.ton.walletkit.ITONStakingManager
+import io.ton.walletkit.ITONTonStakersStakingProvider
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.WebViewTonConnectInjector
+import io.ton.walletkit.api.TONTonStakersProviderConfig
 import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -115,6 +118,9 @@ internal class TONWalletKit private constructor(
 
     @Volatile
     private var isDestroyed = false
+
+    @Suppress("PropertyName")
+    private val _stakingManager: ITONStakingManager by lazy { TONStakingManager(engine) }
 
     /**
      * Add an event handler to receive SDK events.
@@ -406,5 +412,19 @@ internal class TONWalletKit private constructor(
      */
     override fun createWebViewInjector(webView: WebView, walletId: String?): WebViewTonConnectInjector {
         return TonConnectInjector(webView, this, walletId)
+    }
+
+    override fun staking(): ITONStakingManager {
+        checkNotDestroyed()
+        return _stakingManager
+    }
+
+    override suspend fun tonStakersStakingProvider(
+        config: TONTonStakersProviderConfig?,
+    ): ITONTonStakersStakingProvider {
+        checkNotDestroyed()
+        val chainConfig = config?.toChainConfigMap()
+        val internalRef = engine.createTonStakersStakingProvider(chainConfig?.takeIf { it.isNotEmpty() })
+        return TONTonStakersStakingProvider(internalRef = internalRef)
     }
 }

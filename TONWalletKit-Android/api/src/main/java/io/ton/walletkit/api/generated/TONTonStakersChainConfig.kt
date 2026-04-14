@@ -19,49 +19,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.engine.operations.requests
+@file:Suppress(
+    "ArrayInDataClass",
+    "EnumEntryName",
+    "RemoveRedundantQualifierName",
+    "UnusedImport",
+)
 
-import io.ton.walletkit.api.generated.TONTransferRequest
+package io.ton.walletkit.api.generated
+
+import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 
 /**
- * Internal bridge request models for transaction operations.
- * These DTOs represent the exact JSON structure sent to the JavaScript bridge.
  *
- * @suppress Internal bridge communication only.
+ *
+ * @param contractAddress
+ * @param tonApiToken
  */
-
 @Serializable
-internal data class CreateTransferTonRequest(
-    val walletId: String,
-    val recipientAddress: String,
-    val transferAmount: String,
-    val comment: String? = null,
-    val body: String? = null,
-    val stateInit: String? = null,
-)
+data class TONTonStakersChainConfig(
 
-@Serializable
-internal data class CreateTransferMultiTonRequest(
-    val walletId: String,
-    val messages: List<TONTransferRequest>,
-)
+    @Contextual @SerialName(value = "contractAddress")
+    val contractAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
 
-@Serializable
-internal data class HandleNewTransactionRequest(
-    val walletId: String,
-    val transactionContent: JsonElement,
-)
+    @SerialName(value = "tonApiToken")
+    val tonApiToken: kotlin.String? = null,
 
-@Serializable
-internal data class SendTransactionRequest(
-    val walletId: String,
-    val transactionContent: JsonElement,
-)
+) {
 
-@Serializable
-internal data class GetTransactionPreviewRequest(
-    val walletId: String,
-    val transactionContent: JsonElement,
-)
+    companion object
+}

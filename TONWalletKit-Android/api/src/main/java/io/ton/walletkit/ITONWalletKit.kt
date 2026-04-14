@@ -23,6 +23,7 @@ package io.ton.walletkit
 
 import android.content.Context
 import io.ton.walletkit.api.MAINNET
+import io.ton.walletkit.api.TONTonStakersProviderConfig
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -164,6 +165,25 @@ interface ITONWalletKit {
      * Create WebView TON Connect injector.
      */
     fun createWebViewInjector(webView: android.webkit.WebView, walletId: String? = null): WebViewTonConnectInjector
+
+    // ── Staking ──
+
+    /**
+     * Access the staking manager for registering providers and performing staking operations.
+     */
+    fun staking(): ITONStakingManager
+
+    /**
+     * Create a TonStakers staking provider.
+     *
+     * Call [ITONStakingManager.register] with the returned provider to make it available for quotes.
+     *
+     * @param config Optional per-chain configuration (contract address, TonAPI key)
+     * @return A provider that can be registered with [staking]
+     */
+    suspend fun tonStakersStakingProvider(
+        config: TONTonStakersProviderConfig? = null,
+    ): ITONTonStakersStakingProvider
 }
 
 interface WebViewTonConnectInjector {
