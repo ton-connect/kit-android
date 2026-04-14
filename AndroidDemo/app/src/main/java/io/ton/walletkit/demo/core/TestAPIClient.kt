@@ -192,6 +192,7 @@ class TestAPIClient(
  */
 class ToncenterAPIClient(
     override val network: TONNetwork,
+    private val apiKey: String = "",
 ) : TONAPIClient {
 
     private val tag = "ToncenterAPIClient"
@@ -227,6 +228,9 @@ class ToncenterAPIClient(
             val url = URL("$baseUrl/api/v3/addressInformation?address=${address.value}")
             val connection = url.openConnection()
             connection.setRequestProperty("Accept", "application/json")
+            if (apiKey.isNotEmpty()) {
+                connection.setRequestProperty("x-api-key", apiKey)
+            }
             val response = connection.getInputStream().bufferedReader().readText()
             JSONObject(response).optString("balance", "0")
         }
@@ -238,6 +242,9 @@ class ToncenterAPIClient(
             val url = URL("$baseUrl/api/v3/masterchainInfo")
             val connection = url.openConnection()
             connection.setRequestProperty("Accept", "application/json")
+            if (apiKey.isNotEmpty()) {
+                connection.setRequestProperty("x-api-key", apiKey)
+            }
             val response = connection.getInputStream().bufferedReader().readText()
             val json = JSONObject(response)
             val last = json.getJSONObject("last")
@@ -252,8 +259,8 @@ class ToncenterAPIClient(
     }
 
     companion object {
-        fun mainnet() = ToncenterAPIClient(TONNetwork.MAINNET)
-        fun testnet() = ToncenterAPIClient(TONNetwork.TESTNET)
+        fun mainnet(apiKey: String = "") = ToncenterAPIClient(TONNetwork.MAINNET, apiKey)
+        fun testnet(apiKey: String = "") = ToncenterAPIClient(TONNetwork.TESTNET, apiKey)
     }
 }
 
