@@ -299,16 +299,18 @@ object TONWalletKitHelper {
             val kit = ITONWalletKit.initialize(application, config)
             val tonCenterApiKey = BuildConfig.TONCENTER_API_KEY.takeIf { it.isNotBlank() }
             if (tonCenterApiKey != null) {
-                try {
-                    val toncenterStreaming = kit.createStreamingProvider(
-                        io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig(
-                            network = TONNetwork.MAINNET,
-                            apiKey = tonCenterApiKey,
-                        ),
-                    )
-                    kit.streaming().register(toncenterStreaming)
-                } catch (e: Exception) {
-                    Log.e("WalletKitDemoApp", "Streaming init ERROR - ${e.message}", e)
+                listOf(TONNetwork.MAINNET, TONNetwork.TESTNET, TONNetwork.TETRA).forEach { network ->
+                    try {
+                        val streamingProvider = kit.createStreamingProvider(
+                            io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig(
+                                network = network,
+                                apiKey = tonCenterApiKey,
+                            ),
+                        )
+                        kit.streaming().register(streamingProvider)
+                    } catch (e: Exception) {
+                        Log.e("WalletKitDemoApp", "Streaming init ERROR network=${network.chainId} - ${e.message}", e)
+                    }
                 }
             } else {
                 Log.w("WalletKitDemoApp", "TONCENTER_API_KEY is not set; TonCenter streaming provider disabled")

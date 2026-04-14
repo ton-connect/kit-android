@@ -53,6 +53,10 @@ android {
             localProps.getProperty("tonCenterApiKey")
                 ?: System.getenv("TONCENTER_API_KEY")
                 ?: ""
+        val tonApiKey =
+            localProps.getProperty("tonApiKey")
+                ?: System.getenv("TONAPI_API_KEY")
+                ?: ""
 
         testMnemonic?.let {
             testInstrumentationRunnerArguments["testMnemonic"] = it
@@ -62,6 +66,7 @@ android {
             testInstrumentationRunnerArguments["allureToken"] = it
         }
         buildConfigField("String", "TONCENTER_API_KEY", "\"${tonCenterApiKey.escapeForBuildConfig()}\"")
+        buildConfigField("String", "TONAPI_API_KEY", "\"${tonApiKey.escapeForBuildConfig()}\"")
     }
 
     buildTypes {
