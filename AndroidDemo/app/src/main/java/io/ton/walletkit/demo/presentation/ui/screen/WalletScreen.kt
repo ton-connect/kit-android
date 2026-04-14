@@ -333,6 +333,7 @@ fun WalletScreen(
                 totalWallets = state.wallets.size,
                 onWalletSelected = actions::onWalletDetails,
                 onSendFromWallet = actions::onSendFromWallet,
+                isStreamingConnected = state.isStreamingConnected,
             )
 
             // Show NFTs for the active wallet (if ViewModel is available)

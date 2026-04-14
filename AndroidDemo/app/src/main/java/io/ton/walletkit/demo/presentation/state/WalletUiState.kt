@@ -50,4 +50,5 @@ data class WalletUiState(
     val isLoadingJettons: Boolean = false,
     val jettonsError: String? = null,
     val canLoadMoreJettons: Boolean = false,
+    val isStreamingConnected: Boolean? = null,
 )

@@ -164,6 +164,21 @@ interface ITONWalletKit {
      * Create WebView TON Connect injector.
      */
     fun createWebViewInjector(webView: android.webkit.WebView, walletId: String? = null): WebViewTonConnectInjector
+
+    // ── Streaming ──
+
+    /**
+     * Get the streaming manager.
+     */
+    fun streaming(): io.ton.walletkit.streaming.ITONStreamingManager
+
+    suspend fun createStreamingProvider(
+        config: io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig,
+    ): io.ton.walletkit.streaming.ITONStreamingProvider
+
+    suspend fun createStreamingProvider(
+        config: io.ton.walletkit.api.generated.TONTonApiStreamingProviderConfig,
+    ): io.ton.walletkit.streaming.ITONStreamingProvider
 }
 
 interface WebViewTonConnectInjector {

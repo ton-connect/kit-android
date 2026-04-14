@@ -27,6 +27,7 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.engine.adapter.BridgeWalletAdapter
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
+import io.ton.walletkit.engine.infrastructure.JsRef
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.engine.operations.requests.WalletIdRequest
@@ -150,12 +151,18 @@ internal class WalletOperations(
             ?: throw WalletKitBridgeException("JS did not return adapterId")
         val address = result.optString("address", "")
 
+        // Mnemonic/key signers are JS-only objects; they are no longer needed once the
+        // adapter is created. Custom signers live in SignerManager (Kotlin-side) and must
+        // not be released here.
+        if (!signerManager.hasCustomSigner(signerId)) {
+            JsRef(signerId, rpcClient).close()
+        }
+
         return BridgeWalletAdapter(
-            adapterId = adapterId,
+            ref = JsRef(adapterId, rpcClient),
             cachedPublicKey = publicKey,
             cachedNetwork = resolvedNetwork,
             cachedAddress = TONUserFriendlyAddress(address),
-            rpcClient = rpcClient,
         )
     }
 
@@ -308,7 +315,6 @@ internal class WalletOperations(
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_BALANCE, json.toJSONObject(request))
 
         return when {
-            result is String -> result
             result.has(ResponseConstants.KEY_BALANCE) -> result.optString(ResponseConstants.KEY_BALANCE)
             result.has(ResponseConstants.KEY_VALUE) -> result.optString(ResponseConstants.KEY_VALUE)
             else -> result.toString().takeIf { it != "null" && it.isNotEmpty() }

@@ -49,52 +49,31 @@ data class JettonSummary(
         get() = imageUrl ?: imageData
 
     companion object {
-        /**
-         * Create JettonSummary from SDK's TONJetton.
-         *
-         * @param jetton Jetton from SDK
-         * @return UI-friendly jetton summary
-         */
-        fun from(jetton: TONJetton): JettonSummary {
-            val info = jetton.info
-
-            val name = info.name ?: "Unknown Jetton"
-            val symbol = info.symbol ?: "UNKNOWN"
-            val address = jetton.walletAddress.value
-            val balance = jetton.balance
-
-            // Format balance with decimals
-            val formattedBalance = try {
-                val decimals = jetton.decimalsNumber ?: 9
-                val balanceBigInt = BigDecimal(balance)
-                val divisor = BigDecimal.TEN.pow(decimals)
-                val formattedValue = balanceBigInt.divide(divisor, decimals, RoundingMode.DOWN)
-
-                // Remove trailing zeros
-                val strippedValue = formattedValue.stripTrailingZeros()
-                val plainString = strippedValue.toPlainString()
-
-                // Format with symbol
-                "$plainString $symbol"
+        fun formatBalance(rawBalance: String, decimals: Int?, symbol: String): String =
+            try {
+                val d = decimals ?: 9
+                val divisor = BigDecimal.TEN.pow(d)
+                val formatted = BigDecimal(rawBalance)
+                    .divide(divisor, d, RoundingMode.DOWN)
+                    .stripTrailingZeros()
+                    .toPlainString()
+                "$formatted $symbol"
             } catch (e: Exception) {
-                "$balance $symbol (raw)"
+                "$rawBalance $symbol (raw)"
             }
 
-            val imageUrl = info.image?.mediumUrl ?: info.image?.url
-            val imageData = info.image?.data
-
-            // Placeholder for estimated value - would need price data
-            val estimatedValue = "≈ \$0.00"
-
+        fun from(jetton: TONJetton): JettonSummary {
+            val info = jetton.info
+            val symbol = info.symbol ?: "UNKNOWN"
             return JettonSummary(
-                name = name,
+                name = info.name ?: "Unknown Jetton",
                 symbol = symbol,
-                address = address,
-                balance = balance,
-                formattedBalance = formattedBalance,
-                imageUrl = imageUrl,
-                imageData = imageData,
-                estimatedValue = estimatedValue,
+                address = jetton.walletAddress.value,
+                balance = jetton.balance,
+                formattedBalance = formatBalance(jetton.balance, jetton.decimalsNumber, symbol),
+                imageUrl = info.image?.mediumUrl ?: info.image?.url,
+                imageData = info.image?.data,
+                estimatedValue = "≈ \$0.00",
                 jetton = jetton,
             )
         }

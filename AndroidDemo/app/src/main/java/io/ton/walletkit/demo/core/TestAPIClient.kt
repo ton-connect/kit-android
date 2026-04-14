@@ -30,6 +30,7 @@ import io.ton.walletkit.api.generated.TONMasterchainInfo
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.client.TONAPIClient
+import io.ton.walletkit.demo.BuildConfig
 import io.ton.walletkit.model.TONBase64
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
@@ -332,8 +333,8 @@ class TonAPIClient(
     }
 
     companion object {
-        fun mainnet(apiKey: String = "") = TonAPIClient(TONNetwork.MAINNET, apiKey)
-        fun testnet(apiKey: String = "") = TonAPIClient(TONNetwork.TESTNET, apiKey)
-        fun tetra(apiKey: String = "") = TonAPIClient(TONNetwork.TETRA, apiKey)
+        fun mainnet(apiKey: String = BuildConfig.TONAPI_API_KEY) = TonAPIClient(TONNetwork.MAINNET, apiKey)
+        fun testnet(apiKey: String = BuildConfig.TONAPI_API_KEY) = TonAPIClient(TONNetwork.TESTNET, apiKey)
+        fun tetra(apiKey: String = BuildConfig.TONAPI_API_KEY) = TonAPIClient(TONNetwork.TETRA, apiKey)
     }
 }

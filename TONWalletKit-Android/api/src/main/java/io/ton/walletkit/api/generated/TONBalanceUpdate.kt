@@ -28,6 +28,7 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -35,46 +36,28 @@ import kotlinx.serialization.Serializable
 /**
  *
  *
- * @param amount
- * @param from
- * @param to
- * @param network
- * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
- * @param maxOutgoingMessages Maximum number of outgoing messages
- * @param providerOptions Provider-specific options
- * @param isReverseSwap If true, amount is the amount to receive (buy). If false, amount is the amount to spend (sell).
+ * @param status
+ * @param address
+ * @param rawBalance
+ * @param balance The formatted balance
  */
 @Serializable
-data class TONSwapQuoteParams(
+data class TONBalanceUpdate(
 
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    @Contextual @SerialName(value = "status")
+    val status: TONStreamingUpdateStatus,
 
-    @SerialName(value = "from")
-    val from: TONSwapToken,
+    @Contextual @SerialName(value = "address")
+    val address: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    @SerialName(value = "to")
-    val to: TONSwapToken,
+    @SerialName(value = "rawBalance")
+    val rawBalance: kotlin.String,
 
-    @SerialName(value = "network")
-    val network: TONNetwork,
-
-    /* Slippage tolerance in basis points (1 bp = 0.01%) */
-    @SerialName(value = "slippageBps")
-    val slippageBps: kotlin.Int? = null,
-
-    /* Maximum number of outgoing messages */
-    @SerialName(value = "maxOutgoingMessages")
-    val maxOutgoingMessages: kotlin.Int? = null,
-
-    /* Provider-specific options */
-    @Contextual @SerialName(value = "providerOptions")
-    val providerOptions: kotlinx.serialization.json.JsonElement? = null,
-
-    /* If true, amount is the amount to receive (buy). If false, amount is the amount to spend (sell). */
-    @SerialName(value = "isReverseSwap")
-    val isReverseSwap: kotlin.Boolean? = null,
-
+    /* The formatted balance */
+    @SerialName(value = "balance")
+    val balance: kotlin.String,
+    @SerialName("type")
+    val type: kotlin.String = "balance",
 ) {
 
     companion object

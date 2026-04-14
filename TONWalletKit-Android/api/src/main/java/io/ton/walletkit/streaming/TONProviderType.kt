@@ -19,34 +19,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
+package io.ton.walletkit.streaming
 
-package io.ton.walletkit.api.generated
-
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-
-/**
- * Fee information for swap
- *
- * @param amount
- * @param token
- */
-@Serializable
-data class TONSwapFee(
-
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
-
-    @SerialName(value = "token")
-    val token: TONSwapToken,
-
-) {
-
-    companion object
+enum class TONProviderType {
+    STREAMING,
 }
