@@ -26,8 +26,8 @@ import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.api.ChainIds
 import io.ton.walletkit.api.MAINNET
-import io.ton.walletkit.api.TETRA
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.TETRA
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.data.cache.TransactionCache
 import io.ton.walletkit.demo.data.storage.DemoAppStorage

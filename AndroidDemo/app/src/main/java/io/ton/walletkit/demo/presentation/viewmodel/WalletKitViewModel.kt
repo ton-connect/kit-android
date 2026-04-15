@@ -175,6 +175,13 @@ class WalletKitViewModel @Inject constructor(
         viewModelScope.launch {
             sdkInitialized.first { it } // Wait for true
             bootstrap()
+            val kit = getKit()
+            val mnemonic = kit.createTonMnemonic()
+            val keyPair = kit.mnemonicToKeyPair(mnemonic)
+            // keyPair.secretKey is 64 bytes (seed || pubkey); take only the 32-byte seed for import
+            val secretKeyHex = WalletKitUtils.byteArrayToHex(keyPair.secretKey.sliceArray(0 until 32))
+            Log.d("SecretKeyTest", "mnemonic: $mnemonic")
+            Log.d("SecretKeyTest", "secretKey: $secretKeyHex")
         }
 
         // Listen to SDK events
@@ -585,9 +592,11 @@ class WalletKitViewModel @Inject constructor(
                 }
             }
             WalletInterfaceType.SECRET_KEY -> {
-                // Validate hex string format and length (64 hex chars = 32 bytes)
+                // Accept 32-byte seed (64 hex chars) or tweetnacl's 64-byte extended key
+                // (128 hex chars = seed || pubkey). mnemonicToKeyPair returns the latter;
+                // the JS bridge needs only the seed, so we slice to the first 32 bytes below.
                 val trimmed = WalletKitUtils.stripHexPrefix(secretKeyHex.trim())
-                if (!trimmed.matches(Regex("^[0-9a-fA-F]{64}$"))) {
+                if (!trimmed.matches(Regex("^[0-9a-fA-F]{64}([0-9a-fA-F]{64})?$"))) {
                     _state.update { it.copy(error = uiString(R.string.wallet_error_invalid_secret_key)) }
                     return
                 }
@@ -624,9 +633,12 @@ class WalletKitViewModel @Inject constructor(
                         kit.createSignerFromCustom(customSigner)
                     }
                     WalletInterfaceType.SECRET_KEY -> {
-                        // Create wallet from secret key
+                        // Create wallet from secret key.
+                        // If caller passed tweetnacl's 64-byte extended key (seed || pubkey),
+                        // take only the first 32 bytes — the JS bridge uses keyPairFromSeed.
                         val secretKeyBytes = try {
-                            WalletKitUtils.hexToByteArray(secretKeyHex.trim())
+                            val bytes = WalletKitUtils.hexToByteArray(secretKeyHex.trim())
+                            if (bytes.size == 64) bytes.sliceArray(0 until 32) else bytes
                         } catch (e: Exception) {
                             _state.update { it.copy(error = uiString(R.string.wallet_error_invalid_secret_key)) }
                             return@launch
