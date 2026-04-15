@@ -69,9 +69,9 @@ internal data class GetJettonsRequest(
 @Serializable
 internal data class CreateTransferJettonRequest(
     val walletId: String,
-    val toAddress: String,
+    val recipientAddress: String,
     val jettonAddress: String,
-    val amount: String,
+    val transferAmount: String,
     val comment: String? = null,
 )
 

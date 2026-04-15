@@ -155,9 +155,9 @@ internal class AssetOperations(
 
         val request = CreateTransferJettonRequest(
             walletId = walletId,
-            toAddress = params.recipientAddress.value,
+            recipientAddress = params.recipientAddress.value,
             jettonAddress = params.jettonAddress.value,
-            amount = params.transferAmount,
+            transferAmount = params.transferAmount,
             comment = params.comment,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_JETTON_TRANSACTION, json.toJSONObject(request))
