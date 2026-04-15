@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.demo.core
 
+import android.util.Base64
 import android.util.Log
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
@@ -33,7 +34,10 @@ import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.model.TONBase64
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 /**
  * Test implementation of TONAPIClient for demonstration purposes.
@@ -118,8 +122,24 @@ class TestAPIClient(
 
     override suspend fun getMasterchainInfo(): TONMasterchainInfo {
         Log.d(tag, "getMasterchainInfo called on network: ${network.chainId}")
-        delay(300)
-        return mockMasterchainInfo(network)
+        val baseUrl = if (network == TONNetwork.MAINNET) "https://toncenter.com" else "https://testnet.toncenter.com"
+        return withContext(Dispatchers.IO) {
+            val conn = java.net.URL("$baseUrl/api/v3/masterchainInfo").openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 10_000
+            try {
+                val last = JSONObject(conn.inputStream.bufferedReader().readText()).getJSONObject("last")
+                TONMasterchainInfo(
+                    seqno = last.getInt("seqno"),
+                    shard = last.getString("shard"),
+                    workchain = last.getInt("workchain"),
+                    fileHash = TONHex("0x${base64ToHex(last.getString("file_hash"))}"),
+                    rootHash = TONHex("0x${base64ToHex(last.getString("root_hash"))}"),
+                )
+            } finally {
+                conn.disconnect()
+            }
+        }
     }
 
     companion object {
@@ -174,8 +194,24 @@ class ToncenterAPIClient(
 
     override suspend fun getMasterchainInfo(): TONMasterchainInfo {
         Log.d(tag, "🔗 [Toncenter] getMasterchainInfo on ${network.chainId}")
-        delay(100)
-        return mockMasterchainInfo(network)
+        val baseUrl = if (network == TONNetwork.MAINNET) "https://toncenter.com" else "https://testnet.toncenter.com"
+        return withContext(Dispatchers.IO) {
+            val conn = java.net.URL("$baseUrl/api/v3/masterchainInfo").openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 10_000
+            try {
+                val last = JSONObject(conn.inputStream.bufferedReader().readText()).getJSONObject("last")
+                TONMasterchainInfo(
+                    seqno = last.getInt("seqno"),
+                    shard = last.getString("shard"),
+                    workchain = last.getInt("workchain"),
+                    fileHash = TONHex("0x${base64ToHex(last.getString("file_hash"))}"),
+                    rootHash = TONHex("0x${base64ToHex(last.getString("root_hash"))}"),
+                )
+            } finally {
+                conn.disconnect()
+            }
+        }
     }
 
     companion object {
@@ -222,8 +258,29 @@ class TonAPIClient(
 
     override suspend fun getMasterchainInfo(): TONMasterchainInfo {
         Log.d(tag, "🔗 [TonAPI] getMasterchainInfo on ${network.chainId}, apiKeyConfigured=${apiKey.isNotEmpty()}")
-        delay(100)
-        return mockMasterchainInfo(network)
+        val baseUrl = when (network) {
+            TONNetwork.MAINNET -> "https://tonapi.io"
+            TONNetwork.TETRA -> "https://tetra.tonapi.io"
+            else -> "https://testnet.tonapi.io"
+        }
+        return withContext(Dispatchers.IO) {
+            val conn = java.net.URL("$baseUrl/v2/blockchain/masterchain-head").openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 10_000
+            if (apiKey.isNotEmpty()) conn.setRequestProperty("Authorization", "Bearer $apiKey")
+            try {
+                val root = JSONObject(conn.inputStream.bufferedReader().readText())
+                TONMasterchainInfo(
+                    seqno = root.getInt("seqno"),
+                    shard = root.getString("shard"),
+                    workchain = root.getInt("workchain_id"),
+                    fileHash = TONHex("0x${root.getString("file_hash")}"),
+                    rootHash = TONHex("0x${root.getString("root_hash")}"),
+                )
+            } finally {
+                conn.disconnect()
+            }
+        }
     }
 
     companion object {
@@ -240,15 +297,7 @@ private fun mockBalance(network: TONNetwork): String = when (network) {
     else -> "1000000000"
 }
 
-private fun mockMasterchainInfo(network: TONNetwork): TONMasterchainInfo = TONMasterchainInfo(
-    seqno = when (network) {
-        TONNetwork.MAINNET -> 51_234_567
-        TONNetwork.TESTNET -> 12_345_678
-        TONNetwork.TETRA -> 6_623_870
-        else -> 1
-    },
-    shard = "-9223372036854775808",
-    workchain = -1,
-    fileHash = TONHex("0x" + "0".repeat(64)),
-    rootHash = TONHex("0x" + "1".repeat(64)),
-)
+private fun base64ToHex(base64: String): String {
+    val bytes = Base64.decode(base64, Base64.DEFAULT)
+    return bytes.joinToString("") { "%02x".format(it) }
+}
