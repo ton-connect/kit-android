@@ -33,9 +33,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -92,6 +92,7 @@ import io.ton.walletkit.demo.presentation.ui.sections.NFTsSection
 import io.ton.walletkit.demo.presentation.ui.sections.SessionsSection
 import io.ton.walletkit.demo.presentation.ui.sections.WalletsSection
 import io.ton.walletkit.demo.presentation.ui.sheet.AddWalletSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSession
 import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.ConnectRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.JettonDetailsSheet
@@ -102,7 +103,6 @@ import io.ton.walletkit.demo.presentation.ui.sheet.TransferJettonSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.WalletDetailsSheet
 import io.ton.walletkit.demo.presentation.util.TestTags
 import io.ton.walletkit.demo.presentation.viewmodel.NFTsListViewModel
-import io.ton.walletkit.extensions.cleanupTonConnect
 
 // URL for the TonConnect E2E test runner dApp
 // This is the same dApp used by web demo-wallet E2E tests
@@ -123,19 +123,15 @@ fun WalletScreen(
     var selectedNFT by remember { mutableStateOf<TONNFT?>(null) }
     val nftDetailsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // Keep browser WebView alive across sheet changes to prevent destruction during TonConnect requests
-    // This WebView persists even when switching to Connect/Transaction sheets
-    val browserWebViewHolder = remember { mutableStateOf<android.webkit.WebView?>(null) }
+    // Two independent browser sessions — one with WalletKit injection, one without.
+    // Kept at this level so tabs survive Connect/Transaction overlay sheets.
+    val injectedSession = remember { BrowserSession(injectTonConnect = true) }
+    val plainSession = remember { BrowserSession(injectTonConnect = false) }
 
-    // Cleanup WebView when WalletScreen is disposed
     DisposableEffect(Unit) {
         onDispose {
-            browserWebViewHolder.value?.let { webView ->
-                // Clean up TonConnect resources before destroying WebView
-                webView.cleanupTonConnect()
-                webView.destroy()
-            }
-            browserWebViewHolder.value = null
+            injectedSession.destroyAllWebViews()
+            plainSession.destroyAllWebViews()
         }
     }
 
@@ -147,12 +143,14 @@ fun WalletScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val sheet = state.sheetState
     val showSheet = sheet !is SheetState.None
-    // Ensure the modal bottom sheet is hidden when the ViewModel clears the sheet state.
     LaunchedEffect(state.sheetState) {
         if (state.sheetState is SheetState.None && sheetState.isVisible) {
-            // Animate hide to avoid leaving the sheet visible when it's removed from composition
             sheetState.hide()
         }
+        // Open initial tab when browser sheet is first shown for each session type
+        val browserSheet = state.sheetState as? SheetState.Browser ?: return@LaunchedEffect
+        val session = if (browserSheet.injectTonConnect) injectedSession else plainSession
+        if (session.tabs.isEmpty()) session.openTab(browserSheet.url)
     }
     val activeWallet = state.wallets.firstOrNull { it.address == state.activeWalletAddress }
         ?: state.wallets.firstOrNull()
@@ -210,11 +208,9 @@ fun WalletScreen(
                 )
 
                 is SheetState.Browser -> BrowserSheet(
-                    url = sheet.url,
+                    session = if (sheet.injectTonConnect) injectedSession else plainSession,
                     onClose = actions::onDismissSheet,
                     walletKit = walletKit,
-                    webViewHolder = browserWebViewHolder,
-                    injectTonConnect = sheet.injectTonConnect,
                 )
 
                 is SheetState.JettonDetails -> {
@@ -269,15 +265,13 @@ fun WalletScreen(
                 },
                 actions = {
                     IconButton(onClick = { actions.onOpenBrowser(DEFAULT_DAPP_URL) }) {
-                        Icon(Icons.Default.Language, contentDescription = "Open dApp Browser")
+                        Icon(Icons.Default.AccountBalanceWallet, contentDescription = "Open Injected Browser")
                     }
-                    // Open browser WITHOUT TonConnect injection
-                    // This allows E2E tests to use the standard TonConnect modal with QR code
                     IconButton(
                         onClick = { actions.onOpenBrowser(DEFAULT_DAPP_URL, injectTonConnect = false) },
                         modifier = Modifier.testTag(TestTags.BROWSER_NO_INJECT_BUTTON),
                     ) {
-                        Icon(Icons.Outlined.Language, contentDescription = "Open dApp Browser (No Injection)")
+                        Icon(Icons.Default.Language, contentDescription = "Open Plain Browser")
                     }
                     IconButton(onClick = actions::onRefresh) {
                         Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.action_refresh))
