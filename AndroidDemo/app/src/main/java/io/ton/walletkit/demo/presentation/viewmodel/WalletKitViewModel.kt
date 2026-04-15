@@ -704,14 +704,6 @@ class WalletKitViewModel @Inject constructor(
     ) {
         // Create wallet with random mnemonic
         viewModelScope.launch {
-            // Check if trying to generate signer wallet (not supported)
-            if (interfaceType == WalletInterfaceType.SIGNER) {
-                _state.update {
-                    it.copy(error = uiString(R.string.wallet_error_signer_cannot_generate))
-                }
-                return@launch
-            }
-
             // Check if trying to generate secret key wallet (not supported)
             if (interfaceType == WalletInterfaceType.SECRET_KEY) {
                 _state.update {
@@ -728,15 +720,22 @@ class WalletKitViewModel @Inject constructor(
 
             val result = runCatching {
                 val kit = getKit()
-                val generatedMnemonic = kit.createTonMnemonic()
+                // Generate a new TON mnemonic explicitly (matches JS docs pattern)
+                val mnemonic = kit.createTonMnemonic()
                 val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
-                val signer = kit.createSignerFromMnemonic(generatedMnemonic)
+                val signer = when (interfaceType) {
+                    WalletInterfaceType.SIGNER -> {
+                        val customSigner = createDemoSigner(mnemonic, pendingMetadata.name)
+                        kit.createSignerFromCustom(customSigner)
+                    }
+                    else -> kit.createSignerFromMnemonic(mnemonic)
+                }
                 val adapter = when (version) {
                     WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network, domain = domain)
                     WalletVersions.V5R1 -> kit.createV5R1Adapter(signer, network, domain = domain)
                     else -> throw IllegalArgumentException("Unsupported wallet version: $version")
                 }
-                kit.addWallet(adapter) to generatedMnemonic
+                kit.addWallet(adapter) to mnemonic
             }
 
             if (result.isSuccess) {
@@ -745,8 +744,11 @@ class WalletKitViewModel @Inject constructor(
                 lifecycleManager.tonWallets[newAddress] = newWallet
                 lifecycleManager.walletMetadata[newAddress] = pendingMetadata
 
+                // Save mnemonic for SIGNER wallets so the signer can be reconstructed on restart.
+                // For plain MNEMONIC wallets the demo doesn't persist the mnemonic.
+                val mnemonicToSave = if (interfaceType == WalletInterfaceType.SIGNER) generatedMnemonic else emptyList()
                 val record = WalletRecord(
-                    mnemonic = generatedMnemonic,
+                    mnemonic = mnemonicToSave,
                     name = pendingMetadata.name,
                     network = network.chainId,
                     version = version,
