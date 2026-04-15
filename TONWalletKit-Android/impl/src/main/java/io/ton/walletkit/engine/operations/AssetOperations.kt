@@ -30,6 +30,7 @@ import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONPagination
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
+import org.json.JSONObject
 import io.ton.walletkit.engine.operations.requests.CreateTransferJettonRequest
 import io.ton.walletkit.engine.operations.requests.CreateTransferNftRawRequest
 import io.ton.walletkit.engine.operations.requests.CreateTransferNftRequest
@@ -106,7 +107,7 @@ internal class AssetOperations(
             walletId = walletId,
             nftAddress = params.nftAddress.value,
             transferAmount = params.transferAmount,
-            toAddress = params.recipientAddress.value,
+            recipientAddress = params.recipientAddress.value,
             comment = params.comment,
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_TRANSACTION, json.toJSONObject(request))
@@ -119,13 +120,16 @@ internal class AssetOperations(
     ): String {
         ensureInitialized()
 
+        val messageJson = json.encodeToString(io.ton.walletkit.api.generated.TONNFTRawTransferRequestMessage.serializer(), params.message)
         val request = CreateTransferNftRawRequest(
             walletId = walletId,
             nftAddress = params.nftAddress.value,
             transferAmount = params.transferAmount,
-            transferMessage = json.encodeToString(io.ton.walletkit.api.generated.TONNFTRawTransferRequestMessage.serializer(), params.message),
+            message = messageJson,
         )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_RAW_TRANSACTION, json.toJSONObject(request))
+        val requestObj = json.toJSONObject(request)
+        requestObj.put("message", JSONObject(messageJson))
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_RAW_TRANSACTION, requestObj)
         return result.toString()
     }
 
