@@ -744,9 +744,10 @@ class WalletKitViewModel @Inject constructor(
                 lifecycleManager.tonWallets[newAddress] = newWallet
                 lifecycleManager.walletMetadata[newAddress] = pendingMetadata
 
-                // Save mnemonic for SIGNER wallets so the signer can be reconstructed on restart.
-                // For plain MNEMONIC wallets the demo doesn't persist the mnemonic.
-                val mnemonicToSave = if (interfaceType == WalletInterfaceType.SIGNER) generatedMnemonic else emptyList()
+                // Always save the generated mnemonic so the wallet can be restored on restart.
+                // The SDK's JS bridge does not reload wallets from its own storage after restart,
+                // so DemoAppStorage is the only source of truth for reconstruction.
+                val mnemonicToSave = generatedMnemonic
                 val record = WalletRecord(
                     mnemonic = mnemonicToSave,
                     name = pendingMetadata.name,
