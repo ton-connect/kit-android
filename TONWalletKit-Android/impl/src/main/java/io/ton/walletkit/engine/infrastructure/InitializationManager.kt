@@ -185,6 +185,13 @@ internal class InitializationManager(
                                             put("chainId", networkConfig.network.chainId)
                                         },
                                     )
+                                    val apiClientTypeStr = when (networkConfig.apiClientType) {
+                                        TONWalletKitConfiguration.APIClientType.DEFAULT -> "default"
+                                        TONWalletKitConfiguration.APIClientType.TONCENTER -> "toncenter"
+                                        TONWalletKitConfiguration.APIClientType.TONAPI -> "tonapi"
+                                        TONWalletKitConfiguration.APIClientType.CUSTOM -> "custom"
+                                    }
+                                    put("apiClientType", apiClientTypeStr)
                                     networkConfig.apiClientConfiguration?.let { apiConfig ->
                                         put(
                                             "apiClientConfiguration",
