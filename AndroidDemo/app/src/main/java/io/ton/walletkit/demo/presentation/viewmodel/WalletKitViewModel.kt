@@ -217,6 +217,11 @@ class WalletKitViewModel @Inject constructor(
             sessionsJob.await()
         }
 
+        // Mark that the initial wallet load cycle has finished.
+        // setupPassword/unlockWallet wait on this flag before deciding whether
+        // to open the "add wallet" sheet, so they never race with this load.
+        _state.update { it.copy(walletsBootstrapped = true) }
+
         // Restore saved active wallet after wallets are loaded
         // Only restore if the saved wallet actually exists in the loaded wallets
         val tonWallets = lifecycleManager.tonWallets
@@ -1436,10 +1441,10 @@ class WalletKitViewModel @Inject constructor(
             try {
                 securityController.setPassword(password)
 
-                // Wait for SDK to initialize and wallets to load
-                sdkInitialized.first { it }
+                // Wait until the initial wallet load cycle in bootstrap() has fully completed
+                // before deciding whether to open the "add wallet" sheet.
+                _state.first { it.walletsBootstrapped }
 
-                // If no wallets exist, automatically open add wallet sheet
                 if (_state.value.wallets.isEmpty()) {
                     uiCoordinator.openAddWalletSheet()
                 }
@@ -1455,7 +1460,9 @@ class WalletKitViewModel @Inject constructor(
         val verified = securityController.verifyPassword(password)
         if (verified) {
             viewModelScope.launch {
-                sdkInitialized.first { it }
+                // Wait until the initial wallet load cycle in bootstrap() has fully completed
+                // before deciding whether to open the "add wallet" sheet.
+                _state.first { it.walletsBootstrapped }
                 if (_state.value.wallets.isEmpty()) {
                     uiCoordinator.openAddWalletSheet()
                 }

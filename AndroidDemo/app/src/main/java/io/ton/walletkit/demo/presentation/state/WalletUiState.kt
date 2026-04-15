@@ -37,6 +37,7 @@ data class WalletUiState(
     val isUrlPromptVisible: Boolean = false,
     val isWalletSwitcherExpanded: Boolean = false,
     val isLoadingWallets: Boolean = false,
+    val walletsBootstrapped: Boolean = false, // true after the first refreshWallets() in bootstrap() completes
     val isLoadingSessions: Boolean = false,
     val isLoadingTransactions: Boolean = false,
     val isSendingTransaction: Boolean = false,
