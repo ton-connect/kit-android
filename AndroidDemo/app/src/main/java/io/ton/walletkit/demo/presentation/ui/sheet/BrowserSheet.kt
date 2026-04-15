@@ -58,6 +58,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.demo.presentation.model.BrowserPageState
 import io.ton.walletkit.extensions.cleanupTonConnect
@@ -126,15 +128,6 @@ fun BrowserSheet(
                 key(tab.id) {
                     val isActive = tab.id == session.activeTabId
 
-                    DisposableEffect(tab.id) {
-                        onDispose {
-                            session.webViews.remove(tab.id)?.let { wv ->
-                                wv.cleanupTonConnect()
-                                wv.destroy()
-                            }
-                        }
-                    }
-
                     AndroidView(
                         factory = {
                             session.webViews.getOrPut(tab.id) {
@@ -183,6 +176,17 @@ private fun createTabWebView(
         ViewGroup.LayoutParams.MATCH_PARENT,
     )
     isNestedScrollingEnabled = false
+    // Use the URL host as profile name so localStorage/cookies persist across app restarts.
+    // A per-tab UUID would create a fresh profile on every restart, wiping TonConnect state.
+    val profileName = stableProfileName(url)
+    if (WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
+        WebViewCompat.setProfile(this, profileName)
+        WebViewCompat.getProfile(this)?.also { profile ->
+            profile.cookieManager.setAcceptCookie(true)
+            profile.cookieManager.setAcceptThirdPartyCookies(this, true)
+            profile.cookieManager.flush()
+        }
+    }
     webViewClient = object : WebViewClient() {
         override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
             onUpdate(url, null, true)
@@ -198,6 +202,21 @@ private fun createTabWebView(
     }
     if (injectTonConnect) injectTonConnect(walletKit)
     loadUrl(url)
+}
+
+/**
+ * Derives a stable WebView profile name from a URL so that storage (localStorage, cookies)
+ * persists across app restarts for the same dApp host.
+ * Falls back to a fixed "default" name if the host cannot be extracted.
+ */
+private fun stableProfileName(url: String): String {
+    val host = try {
+        android.net.Uri.parse(url).host?.lowercase() ?: "default"
+    } catch (_: Exception) {
+        "default"
+    }
+    // Profile names must be non-empty alphanumeric-ish strings; sanitize the host.
+    return host.replace(Regex("[^a-zA-Z0-9._-]"), "_").take(64).ifEmpty { "default" }
 }
 
 @Composable

@@ -59,6 +59,10 @@ class BrowserSession(val injectTonConnect: Boolean) {
         val idx = tabs.indexOfFirst { it.id == tabId }
         tabs.removeAll { it.id == tabId }
         pageStates.remove(tabId)
+        webViews.remove(tabId)?.let { wv ->
+            wv.cleanupTonConnect()
+            wv.destroy()
+        }
         if (activeTabId == tabId) {
             activeTabId = tabs.getOrNull(minOf(idx, tabs.size - 1))?.id
         }
