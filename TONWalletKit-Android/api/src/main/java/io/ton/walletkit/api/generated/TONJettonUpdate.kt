@@ -29,33 +29,49 @@
 package io.ton.walletkit.api.generated
 
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
  *
  *
- * @param quote
- * @param userAddress
- * @param destinationAddress
- * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
- * @param deadline Transaction deadline in unix timestamp
- * @param providerOptions Provider-specific options
+ * @param status
+ * @param masterAddress
+ * @param walletAddress
+ * @param ownerAddress
+ * @param rawBalance
+ * @param decimals Decimals mapped from metadata if available
+ * @param balance Human readable formatted balance if decimals are known
  */
 @Serializable
-data class TONSwapParams<TProviderOptions>(
-    @SerialName("quote")
-    val quote: TONSwapQuote,
-    @SerialName("userAddress")
-    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
-    @SerialName("destinationAddress")
-    val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-    @SerialName("slippageBps")
-    val slippageBps: kotlin.Int? = null,
-    @SerialName("deadline")
-    val deadline: kotlin.Int? = null,
-    @SerialName("providerOptions")
-    val providerOptions: TProviderOptions? = null,
+data class TONJettonUpdate(
+
+    @Contextual @SerialName(value = "status")
+    val status: TONStreamingUpdateStatus,
+
+    @Contextual @SerialName(value = "masterAddress")
+    val masterAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
+
+    @Contextual @SerialName(value = "walletAddress")
+    val walletAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
+
+    @Contextual @SerialName(value = "ownerAddress")
+    val ownerAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
+
+    @SerialName(value = "rawBalance")
+    val rawBalance: kotlin.String,
+
+    /* Decimals mapped from metadata if available */
+    @SerialName(value = "decimals")
+    val decimals: kotlin.Int? = null,
+
+    /* Human readable formatted balance if decimals are known */
+    @SerialName(value = "balance")
+    val balance: kotlin.String? = null,
+    @SerialName("type")
+    val type: kotlin.String = "jettons",
 ) {
+
     companion object
 }

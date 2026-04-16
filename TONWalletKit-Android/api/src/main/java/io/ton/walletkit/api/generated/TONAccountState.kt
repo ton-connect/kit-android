@@ -34,8 +34,8 @@ import kotlinx.serialization.Serializable
 /**
  * State of an account at a specific point in time.
  *
- * @param hash The state hash of the account
  * @param balance
+ * @param hash The state hash of the account
  * @param extraCurrencies Map of extra currency IDs to their amounts. Extra currencies are additional tokens that can be attached to TON messages.
  * @param accountStatus
  * @param frozenHash The hash of the frozen account state, if the account is frozen
@@ -45,12 +45,12 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class TONAccountState(
 
-    /* The state hash of the account */
-    @SerialName(value = "hash")
-    val hash: kotlin.String,
-
     @SerialName(value = "balance")
     val balance: kotlin.String,
+
+    /* The state hash of the account */
+    @SerialName(value = "hash")
+    val hash: kotlin.String? = null,
 
     /* Map of extra currency IDs to their amounts. Extra currencies are additional tokens that can be attached to TON messages. */
     @SerialName(value = "extraCurrencies")

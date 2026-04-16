@@ -37,23 +37,14 @@ import kotlinx.serialization.Serializable
  *
  * @param quote
  * @param userAddress
- * @param destinationAddress
- * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
- * @param deadline Transaction deadline in unix timestamp
  * @param providerOptions Provider-specific options
  */
 @Serializable
-data class TONSwapParams<TProviderOptions>(
+data class TONStakeParams<TProviderOptions>(
     @SerialName("quote")
-    val quote: TONSwapQuote,
+    val quote: TONStakingQuote,
     @SerialName("userAddress")
     val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
-    @SerialName("destinationAddress")
-    val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-    @SerialName("slippageBps")
-    val slippageBps: kotlin.Int? = null,
-    @SerialName("deadline")
-    val deadline: kotlin.Int? = null,
     @SerialName("providerOptions")
     val providerOptions: TProviderOptions? = null,
 ) {

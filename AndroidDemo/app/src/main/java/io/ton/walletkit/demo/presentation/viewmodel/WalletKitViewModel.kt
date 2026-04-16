@@ -652,7 +652,7 @@ class WalletKitViewModel @Inject constructor(
                 }
 
                 // Tetra (L2) wallets require an L2 signature domain
-                val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
+                val domain = if (network.isTetra) TONSignatureDomain.L2(globalId = 662387) else null
 
                 // Create adapter based on wallet version
                 // Note: You can optionally specify workchain and walletId parameters:
@@ -739,7 +739,7 @@ class WalletKitViewModel @Inject constructor(
                 val kit = getKit()
                 // Generate a new TON mnemonic explicitly (matches JS docs pattern)
                 val mnemonic = kit.createTonMnemonic()
-                val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
+                val domain = if (network.isTetra) TONSignatureDomain.L2(globalId = 662387) else null
                 val signer = when (interfaceType) {
                     WalletInterfaceType.SIGNER -> {
                         val customSigner = createDemoSigner(mnemonic, pendingMetadata.name)

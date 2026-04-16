@@ -29,33 +29,46 @@
 package io.ton.walletkit.api.generated
 
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
  *
  *
- * @param quote
- * @param userAddress
- * @param destinationAddress
- * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
- * @param deadline Transaction deadline in unix timestamp
- * @param providerOptions Provider-specific options
+ * @param status
+ * @param address
+ * @param transactions The array of transactions
+ * @param traceHash
+ * @param addressBook Map of raw addresses to their metadata entries.
+ * @param metadata Metadata about addresses, including indexing and associated token info.
  */
 @Serializable
-data class TONSwapParams<TProviderOptions>(
-    @SerialName("quote")
-    val quote: TONSwapQuote,
-    @SerialName("userAddress")
-    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
-    @SerialName("destinationAddress")
-    val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-    @SerialName("slippageBps")
-    val slippageBps: kotlin.Int? = null,
-    @SerialName("deadline")
-    val deadline: kotlin.Int? = null,
-    @SerialName("providerOptions")
-    val providerOptions: TProviderOptions? = null,
+data class TONTransactionsUpdate(
+
+    @Contextual @SerialName(value = "status")
+    val status: TONStreamingUpdateStatus,
+
+    @Contextual @SerialName(value = "address")
+    val address: io.ton.walletkit.model.TONUserFriendlyAddress,
+
+    /* The array of transactions */
+    @SerialName(value = "transactions")
+    val transactions: kotlin.collections.List<TONTransaction>,
+
+    @Contextual @SerialName(value = "traceHash")
+    val traceHash: io.ton.walletkit.model.TONHex,
+
+    /* Map of raw addresses to their metadata entries. */
+    @Contextual @SerialName(value = "addressBook")
+    val addressBook: kotlin.collections.Map<kotlin.String, TONAddressBookEntry>? = null,
+
+    /* Metadata about addresses, including indexing and associated token info. */
+    @Contextual @SerialName(value = "metadata")
+    val metadata: kotlin.collections.Map<kotlin.String, TONTransactionAddressMetadataEntry>? = null,
+    @SerialName("type")
+    val type: kotlin.String = "transactions",
 ) {
+
     companion object
 }

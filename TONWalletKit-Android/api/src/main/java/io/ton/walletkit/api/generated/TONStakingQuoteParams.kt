@@ -35,25 +35,25 @@ import kotlinx.serialization.Serializable
 /**
  *
  *
- * @param quote
+ * @param direction
+ * @param amount Amount of tokens to stake or unstake
  * @param userAddress
- * @param destinationAddress
- * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
- * @param deadline Transaction deadline in unix timestamp
+ * @param network
+ * @param unstakeMode
  * @param providerOptions Provider-specific options
  */
 @Serializable
-data class TONSwapParams<TProviderOptions>(
-    @SerialName("quote")
-    val quote: TONSwapQuote,
+data class TONStakingQuoteParams<TProviderOptions>(
+    @SerialName("direction")
+    val direction: TONStakingQuoteDirection,
+    @SerialName("amount")
+    val amount: kotlin.String,
     @SerialName("userAddress")
-    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
-    @SerialName("destinationAddress")
-    val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-    @SerialName("slippageBps")
-    val slippageBps: kotlin.Int? = null,
-    @SerialName("deadline")
-    val deadline: kotlin.Int? = null,
+    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
+    @SerialName("network")
+    val network: TONNetwork? = null,
+    @SerialName("unstakeMode")
+    val unstakeMode: TONUnstakeMode? = null,
     @SerialName("providerOptions")
     val providerOptions: TProviderOptions? = null,
 ) {
