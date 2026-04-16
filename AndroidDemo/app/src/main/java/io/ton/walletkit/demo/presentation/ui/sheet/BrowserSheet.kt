@@ -48,6 +48,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +76,25 @@ fun BrowserSheet(
 ) {
     val context = LocalContext.current
     var showAddTabDialog by remember { mutableStateOf(false) }
+    val usesLegacyIsolation = !WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)
+    var sessionReady by remember(session, usesLegacyIsolation) { mutableStateOf(!usesLegacyIsolation) }
+
+    // Pre-API-35 fallback: swap the active shared browser profile before any WebViews load.
+    LaunchedEffect(session, usesLegacyIsolation) {
+        if (usesLegacyIsolation) {
+            sessionReady = false
+            session.activatePreApi35Isolation()
+            sessionReady = true
+        }
+    }
+
+    DisposableEffect(session, usesLegacyIsolation) {
+        onDispose {
+            if (usesLegacyIsolation) {
+                session.deactivatePreApi35Isolation()
+            }
+        }
+    }
 
     if (showAddTabDialog) {
         AddTabDialog(
@@ -123,38 +143,51 @@ fun BrowserSheet(
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
 
-        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            session.tabs.forEach { tab ->
-                key(tab.id) {
-                    val isActive = tab.id == session.activeTabId
+        if (!sessionReady) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                Text(
+                    text = "Preparing browser session…",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                session.tabs.forEach { tab ->
+                    key(tab.id) {
+                        val isActive = tab.id == session.activeTabId
+                        val initialUrl = session.pageStates[tab.id]?.currentUrl
+                            ?.takeIf { it.isNotBlank() }
+                            ?: tab.url
 
-                    AndroidView(
-                        factory = {
-                            session.webViews.getOrPut(tab.id) {
-                                createTabWebView(
-                                    context = context,
-                                    url = tab.url,
-                                    injectTonConnect = session.injectTonConnect,
-                                    walletKit = walletKit,
-                                ) { url, title, loading ->
-                                    val cur = session.pageStates[tab.id] ?: BrowserPageState()
-                                    session.pageStates[tab.id] = cur.copy(
-                                        currentUrl = url ?: cur.currentUrl,
-                                        title = title ?: cur.title,
-                                        isLoading = loading,
-                                    )
+                        AndroidView(
+                            factory = {
+                                session.webViews.getOrPut(tab.id) {
+                                    createTabWebView(
+                                        context = context,
+                                        url = initialUrl,
+                                        injectTonConnect = session.injectTonConnect,
+                                        walletKit = walletKit,
+                                    ) { url, title, loading ->
+                                        val cur = session.pageStates[tab.id] ?: BrowserPageState()
+                                        session.pageStates[tab.id] = cur.copy(
+                                            currentUrl = url ?: cur.currentUrl,
+                                            title = title ?: cur.title,
+                                            isLoading = loading,
+                                        )
+                                    }
                                 }
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                        update = { view ->
-                            view.visibility = if (isActive) View.VISIBLE else View.GONE
-                            view.setOnTouchListener { v, _ ->
-                                v.parent?.requestDisallowInterceptTouchEvent(true)
-                                false
-                            }
-                        },
-                    )
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                            update = { view ->
+                                view.visibility = if (isActive) View.VISIBLE else View.GONE
+                                view.setOnTouchListener { v, _ ->
+                                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                                    false
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -178,7 +211,8 @@ private fun createTabWebView(
     isNestedScrollingEnabled = false
     // Use the URL host as profile name so localStorage/cookies persist across app restarts.
     // A per-tab UUID would create a fresh profile on every restart, wiping TonConnect state.
-    val profileName = stableProfileName(url)
+    val sessionPrefix = if (injectTonConnect) "injected" else "plain"
+    val profileName = "${sessionPrefix}_${stableProfileName(url)}"
     if (WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
         WebViewCompat.setProfile(this, profileName)
         WebViewCompat.getProfile(this)?.also { profile ->
