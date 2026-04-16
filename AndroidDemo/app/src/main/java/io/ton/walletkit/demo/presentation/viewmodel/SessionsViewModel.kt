@@ -26,19 +26,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.demo.core.TONWalletKitHelper
 import io.ton.walletkit.demo.presentation.model.SessionSummary
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.Instant
 
 /**
  * ViewModel for managing TON Connect sessions.
  * Handles session listing, disconnection, and refresh.
- *
- * NOTE: Session listing from wallets is not currently exposed in the SDK API.
- * Sessions are tracked internally and only exposed through events.
- * This ViewModel provides stubbed implementations for now.
  */
 class SessionsViewModel(
     private val getAllWallets: () -> List<ITONWallet>,
@@ -64,26 +62,48 @@ class SessionsViewModel(
         Log.d(TAG, "SessionsViewModel cleared")
     }
 
-    /**
-     * Load sessions from all wallets.
-     *
-     * TODO: Sessions listing is not currently exposed in the SDK API.
-     * The wallet.sessions() method has been removed.
-     * Sessions are now tracked internally and managed through events.
-     */
     fun loadSessions() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
 
-            // TODO: Implement session listing when API is available
-            // For now, return empty list
-            Log.d(TAG, "Session listing not currently available in SDK API")
-
-            _state.value = _state.value.copy(
-                sessions = emptyList(),
-                isLoading = false,
-                error = null,
-            )
+            runCatching {
+                val walletAddresses = getAllWallets().map { it.address.value }.toSet()
+                val manager = TONWalletKitHelper.sessionManager
+                if (manager == null) {
+                    Log.d(TAG, "Custom session manager not enabled; returning empty session list")
+                    emptyList()
+                } else {
+                    manager.getSessions()
+                        .filter { it.walletAddress.value in walletAddresses }
+                        .sortedByDescending { parseTimestamp(it.lastActivityAt) ?: 0L }
+                        .map { session ->
+                            SessionSummary(
+                                sessionId = session.sessionId,
+                                dAppName = session.dAppName?.takeIf { it.isNotBlank() } ?: unknownDAppLabel,
+                                walletAddress = session.walletAddress.value,
+                                dAppUrl = session.dAppUrl,
+                                manifestUrl = null,
+                                iconUrl = session.dAppIconUrl,
+                                createdAt = parseTimestamp(session.createdAt),
+                                lastActivity = parseTimestamp(session.lastActivityAt),
+                            )
+                        }
+                }
+            }.onSuccess { sessions ->
+                Log.d(TAG, "Loaded ${sessions.size} sessions")
+                _state.value = _state.value.copy(
+                    sessions = sessions,
+                    isLoading = false,
+                    error = null,
+                )
+            }.onFailure { error ->
+                Log.e(TAG, "Failed to load sessions", error)
+                _state.value = _state.value.copy(
+                    sessions = emptyList(),
+                    isLoading = false,
+                    error = error.message ?: "Failed to load sessions",
+                )
+            }
         }
     }
 
@@ -97,12 +117,15 @@ class SessionsViewModel(
             try {
                 Log.d(TAG, "Disconnecting session: $sessionId")
                 val kit = getKit()
+                val manager = TONWalletKitHelper.sessionManager
 
-                // Use kit.disconnectSession() directly
                 kit.disconnectSession(sessionId)
+                runCatching { manager?.removeSession(sessionId) }
+                    .onFailure { cleanupError ->
+                        Log.w(TAG, "Session disconnected but local cleanup failed for $sessionId", cleanupError)
+                    }
                 Log.d(TAG, "Disconnected session $sessionId")
 
-                // Refresh sessions after disconnection
                 loadSessions()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to disconnect session $sessionId", e)
@@ -110,7 +133,6 @@ class SessionsViewModel(
                     error = e.message ?: "Failed to disconnect session",
                 )
 
-                // Still refresh to update UI
                 loadSessions()
             }
         }
@@ -133,4 +155,8 @@ class SessionsViewModel(
     companion object {
         private const val TAG = "SessionsViewModel"
     }
+
+    private fun parseTimestamp(value: String?): Long? = runCatching {
+        value?.let { Instant.parse(it).toEpochMilli() }
+    }.getOrNull()
 }
