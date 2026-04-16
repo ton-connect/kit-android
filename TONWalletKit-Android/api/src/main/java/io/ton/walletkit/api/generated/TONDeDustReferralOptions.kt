@@ -28,34 +28,27 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
+ * Options for configuring the referral in DeDust swap operations
  *
- *
- * @param quote
- * @param userAddress
- * @param destinationAddress
- * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
- * @param deadline Transaction deadline in unix timestamp
- * @param providerOptions Provider-specific options
+ * @param referralAddress The address of the referrer
+ * @param referralFeeBps Referral fee in basis points (max 100 = 1%)
  */
 @Serializable
-data class TONSwapParams<TProviderOptions>(
-    @SerialName("quote")
-    val quote: TONSwapQuote,
-    @SerialName("userAddress")
-    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
-    @SerialName("destinationAddress")
-    val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-    @SerialName("slippageBps")
-    val slippageBps: kotlin.Int? = null,
-    @SerialName("deadline")
-    val deadline: kotlin.Int? = null,
-    @SerialName("providerOptions")
-    val providerOptions: TProviderOptions? = null,
+data class TONDeDustReferralOptions(
+
+    /* The address of the referrer */
+    @SerialName(value = "referralAddress")
+    val referralAddress: kotlin.String? = null,
+
+    /* Referral fee in basis points (max 100 = 1%) */
+    @SerialName(value = "referralFeeBps")
+    val referralFeeBps: kotlin.Int? = null,
+
 ) {
+
     companion object
 }

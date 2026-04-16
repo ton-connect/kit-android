@@ -28,34 +28,53 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
+ * Route step from DeDust Router API
  *
- *
- * @param quote
- * @param userAddress
- * @param destinationAddress
- * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
- * @param deadline Transaction deadline in unix timestamp
- * @param providerOptions Provider-specific options
+ * @param poolAddress
+ * @param isStable
+ * @param inMinter
+ * @param outMinter
+ * @param inAmount
+ * @param outAmount
+ * @param networkFee
+ * @param protocolSlug
+ * @param stonfiExtraDetails
  */
 @Serializable
-data class TONSwapParams<TProviderOptions>(
-    @SerialName("quote")
-    val quote: TONSwapQuote,
-    @SerialName("userAddress")
-    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
-    @SerialName("destinationAddress")
-    val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-    @SerialName("slippageBps")
-    val slippageBps: kotlin.Int? = null,
-    @SerialName("deadline")
-    val deadline: kotlin.Int? = null,
-    @SerialName("providerOptions")
-    val providerOptions: TProviderOptions? = null,
+data class TONDeDustRouteStep(
+
+    @SerialName(value = "pool_address")
+    val poolAddress: kotlin.String,
+
+    @SerialName(value = "is_stable")
+    val isStable: kotlin.Boolean,
+
+    @SerialName(value = "in_minter")
+    val inMinter: kotlin.String,
+
+    @SerialName(value = "out_minter")
+    val outMinter: kotlin.String,
+
+    @SerialName(value = "in_amount")
+    val inAmount: kotlin.String,
+
+    @SerialName(value = "out_amount")
+    val outAmount: kotlin.String,
+
+    @SerialName(value = "network_fee")
+    val networkFee: kotlin.String,
+
+    @SerialName(value = "protocol_slug")
+    val protocolSlug: kotlin.String,
+
+    @SerialName(value = "stonfi_extra_details")
+    val stonfiExtraDetails: TONDeDustRouteStepStonfiExtraDetails? = null,
+
 ) {
+
     companion object
 }

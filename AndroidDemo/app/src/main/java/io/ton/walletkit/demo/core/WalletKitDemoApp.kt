@@ -165,7 +165,7 @@ class WalletKitDemoApp :
                         else -> TONNetwork.MAINNET
                     }
 
-                    val domain = if (network.isTetra) TONSignatureDomain.L2(value = 662387) else null
+                    val domain = if (network.isTetra) TONSignatureDomain.L2(globalId = 662387) else null
                     val signer = kit.createSignerFromMnemonic(walletRecord.mnemonic)
                     val adapter = when (walletRecord.version) {
                         WalletVersions.V4R2 -> kit.createV4R2Adapter(signer, network, domain = domain)
