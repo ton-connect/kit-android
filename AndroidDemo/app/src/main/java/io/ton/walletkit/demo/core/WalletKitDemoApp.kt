@@ -365,6 +365,7 @@ object TONWalletKitHelper {
 
     private const val DEFAULT_MANIFEST_NAME = "Wallet"
     private const val DEFAULT_APP_NAME = "Wallet"
+
     // "tonkeeper" matches the jsBridgeKey in the official TonConnect wallet list, so dApps
     // using @tonconnect/ui-react will discover our injected bridge via window["tonkeeper"].tonconnect.
     private const val DEFAULT_JS_BRIDGE_KEY = "tonkeeper"

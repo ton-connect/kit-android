@@ -34,9 +34,9 @@ import io.ton.walletkit.demo.presentation.model.BrowserPageState
 import io.ton.walletkit.demo.presentation.model.BrowserTab
 import io.ton.walletkit.extensions.cleanupTonConnect
 import io.ton.walletkit.session.TONConnectSession
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.UUID
 import kotlin.coroutines.resume
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Holds the live state for a browser session (injected or plain).
