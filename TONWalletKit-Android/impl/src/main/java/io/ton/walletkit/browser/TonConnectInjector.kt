@@ -686,7 +686,7 @@ internal class TonConnectInjector(
                                 "types",
                                 buildJsonArray {
                                     for (type in feature.types) {
-                                        add(type.name.lowercase())
+                                        add(JsonPrimitive(type.name.lowercase()))
                                     }
                                 },
                             )
