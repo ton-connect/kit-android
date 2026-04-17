@@ -1907,7 +1907,7 @@ function setupNativeBridge() {
   }
 }
 setupNativeBridge();
-var __async$f = (__this, __arguments, generator) => {
+var __async$c = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -1936,7 +1936,7 @@ let DefaultSignature$1 = null;
 let WalletV4R2Adapter$1 = null;
 let WalletV5R1Adapter$1 = null;
 function ensureWalletKitLoaded() {
-  return __async$f(this, null, function* () {
+  return __async$c(this, null, function* () {
     var _a, _b, _c, _d, _e, _f;
     if (TonWalletKit$1 && Signer$1 && MnemonicToKeyPair$1 && DefaultSignature$1 && WalletV4R2Adapter$1 && WalletV5R1Adapter$1) {
       return;
@@ -4427,8 +4427,8 @@ class SessionCrypto {
     };
   }
 }
-var dist$2 = {};
-var Address$1 = {};
+var dist$1 = {};
+var Address = {};
 var inspect = {};
 var hasRequiredInspect;
 function requireInspect() {
@@ -4472,18 +4472,18 @@ function requireCrc16() {
 }
 var hasRequiredAddress;
 function requireAddress() {
-  if (hasRequiredAddress) return Address$1;
+  if (hasRequiredAddress) return Address;
   hasRequiredAddress = 1;
   var _a;
-  Object.defineProperty(Address$1, "__esModule", { value: true });
-  Address$1.address = Address$1.Address = void 0;
+  Object.defineProperty(Address, "__esModule", { value: true });
+  Address.address = Address.Address = void 0;
   const inspect_1 = requireInspect();
   const crc16_1 = requireCrc16();
   const bounceable_tag = 17;
   const non_bounceable_tag = 81;
   const test_flag = 128;
   function parseFriendlyAddress(src) {
-    if (typeof src === "string" && !Address2.isFriendly(src)) {
+    if (typeof src === "string" && !Address$1.isFriendly(src)) {
       throw new Error("Unknown address type");
     }
     const data = Buffer.isBuffer(src) ? src : Buffer.from(src, "base64");
@@ -4515,7 +4515,7 @@ function requireAddress() {
     const hashPart = addr.subarray(2, 34);
     return { isTestOnly, isBounceable, workchain, hashPart };
   }
-  class Address2 {
+  let Address$1 = class Address2 {
     static isAddress(src) {
       return src instanceof Address2;
     }
@@ -4632,14 +4632,14 @@ function requireAddress() {
       }
       return src.hash.equals(this.hash);
     }
-  }
-  Address$1.Address = Address2;
+  };
+  Address.Address = Address$1;
   _a = inspect_1.inspectSymbol;
   function address(src) {
-    return Address2.parse(src);
+    return Address$1.parse(src);
   }
-  Address$1.address = address;
-  return Address$1;
+  Address.address = address;
+  return Address;
 }
 var ExternalAddress = {};
 var hasRequiredExternalAddress;
@@ -7638,7 +7638,7 @@ function requireDescriptor() {
   descriptor.getRepr = getRepr;
   return descriptor;
 }
-var dist$1 = {};
+var dist = {};
 var sha256$1 = {};
 var sha$1 = { exports: {} };
 var sha = sha$1.exports;
@@ -16274,7 +16274,7 @@ function requireNewSecurePassphrase() {
   hasRequiredNewSecurePassphrase = 1;
   Object.defineProperty(newSecurePassphrase, "__esModule", { value: true });
   newSecurePassphrase.newSecurePassphrase = void 0;
-  const __1 = requireDist$2();
+  const __1 = requireDist$1();
   async function newSecurePassphrase$1(size = 6) {
     return (await (0, __1.newSecureWords)(size)).join("-");
   }
@@ -18722,10 +18722,10 @@ function requireMnemonics() {
   mnemonics.deriveMnemonicsPath = deriveMnemonicsPath;
   return mnemonics;
 }
-var hasRequiredDist$2;
-function requireDist$2() {
-  if (hasRequiredDist$2) return dist$1;
-  hasRequiredDist$2 = 1;
+var hasRequiredDist$1;
+function requireDist$1() {
+  if (hasRequiredDist$1) return dist;
+  hasRequiredDist$1 = 1;
   (function(exports$1) {
     Object.defineProperty(exports$1, "__esModule", { value: true });
     exports$1.getMnemonicsMasterKeyFromSeed = exports$1.deriveMnemonicHardenedKey = exports$1.deriveMnemonicsPath = exports$1.deriveSymmetricPath = exports$1.deriveSymmetricHardenedKey = exports$1.getSymmetricMasterKeyFromSeed = exports$1.deriveEd25519Path = exports$1.deriveED25519HardenedKey = exports$1.getED25519MasterKeyFromSeed = exports$1.signVerify = exports$1.sign = exports$1.keyPairFromSecretKey = exports$1.keyPairFromSeed = exports$1.openBox = exports$1.sealBox = exports$1.mnemonicWordList = exports$1.mnemonicToHDSeed = exports$1.mnemonicToSeed = exports$1.mnemonicToWalletKey = exports$1.mnemonicToPrivateKey = exports$1.mnemonicValidate = exports$1.mnemonicNew = exports$1.newSecurePassphrase = exports$1.newSecureWords = exports$1.getSecureRandomNumber = exports$1.getSecureRandomWords = exports$1.getSecureRandomBytes = exports$1.hmac_sha512 = exports$1.pbkdf2_sha512 = exports$1.sha512_sync = exports$1.sha512 = exports$1.sha256_sync = exports$1.sha256 = void 0;
@@ -18842,8 +18842,8 @@ function requireDist$2() {
     Object.defineProperty(exports$1, "getMnemonicsMasterKeyFromSeed", { enumerable: true, get: function() {
       return mnemonics_1.getMnemonicsMasterKeyFromSeed;
     } });
-  })(dist$1);
-  return dist$1;
+  })(dist);
+  return dist;
 }
 var hasRequiredWonderCalculator;
 function requireWonderCalculator() {
@@ -18857,7 +18857,7 @@ function requireWonderCalculator() {
   const exoticPruned_1 = requireExoticPruned();
   const exoticMerkleProof_1 = requireExoticMerkleProof();
   const descriptor_1 = requireDescriptor();
-  const crypto_1 = requireDist$2();
+  const crypto_1 = requireDist$1();
   const exoticMerkleUpdate_1 = requireExoticMerkleUpdate();
   const exoticLibrary_1 = requireExoticLibrary();
   function wonderCalculator$1(type, bits, refs) {
@@ -20654,7 +20654,7 @@ function require_helpers() {
   const Builder_1 = requireBuilder$1();
   const convert_1 = requireConvert();
   const ExtraCurrency_1 = requireExtraCurrency();
-  function internal2(src) {
+  function internal(src) {
     let bounce = true;
     if (src.bounce !== null && src.bounce !== void 0) {
       bounce = src.bounce;
@@ -20700,7 +20700,7 @@ function require_helpers() {
       body
     };
   }
-  _helpers.internal = internal2;
+  _helpers.internal = internal;
   function external(src) {
     let to;
     if (typeof src.to === "string") {
@@ -21510,10 +21510,10 @@ function requireMasterchainStateExtra() {
       cs.loadRef();
     }
     let configAddress = cs.loadUintBig(256);
-    let config2 = Dictionary_1.Dictionary.load(Dictionary_1.Dictionary.Keys.Int(32), Dictionary_1.Dictionary.Values.Cell(), cs);
+    let config = Dictionary_1.Dictionary.load(Dictionary_1.Dictionary.Keys.Int(32), Dictionary_1.Dictionary.Values.Cell(), cs);
     const globalBalance = (0, CurrencyCollection_1.loadCurrencyCollection)(cs);
     return {
-      config: config2,
+      config,
       configAddress,
       globalBalance
     };
@@ -21836,7 +21836,7 @@ function requireSplitMergeInfo() {
   SplitMergeInfo.storeSplitMergeInfo = storeSplitMergeInfo;
   return SplitMergeInfo;
 }
-var Transaction$1 = {};
+var Transaction = {};
 var TransactionDescription = {};
 var TransactionActionPhase = {};
 var hasRequiredTransactionActionPhase;
@@ -22285,10 +22285,10 @@ function requireTransactionDescription() {
 }
 var hasRequiredTransaction;
 function requireTransaction() {
-  if (hasRequiredTransaction) return Transaction$1;
+  if (hasRequiredTransaction) return Transaction;
   hasRequiredTransaction = 1;
-  Object.defineProperty(Transaction$1, "__esModule", { value: true });
-  Transaction$1.storeTransaction = Transaction$1.loadTransaction = void 0;
+  Object.defineProperty(Transaction, "__esModule", { value: true });
+  Transaction.storeTransaction = Transaction.loadTransaction = void 0;
   const Builder_1 = requireBuilder$1();
   const Dictionary_1 = requireDictionary();
   const AccountStatus_1 = requireAccountStatus();
@@ -22335,7 +22335,7 @@ function requireTransaction() {
       hash: () => raw.hash()
     };
   }
-  Transaction$1.loadTransaction = loadTransaction;
+  Transaction.loadTransaction = loadTransaction;
   function storeTransaction(src) {
     return (builder2) => {
       builder2.storeUint(7, 4);
@@ -22361,8 +22361,8 @@ function requireTransaction() {
       builder2.storeRef((0, Builder_1.beginCell)().store((0, TransactionDescription_1.storeTransactionDescription)(src.description)));
     };
   }
-  Transaction$1.storeTransaction = storeTransaction;
-  return Transaction$1;
+  Transaction.storeTransaction = storeTransaction;
+  return Transaction;
 }
 var hasRequired_export;
 function require_export() {
@@ -22999,7 +22999,7 @@ function requireSafeSign() {
   hasRequiredSafeSign = 1;
   Object.defineProperty(safeSign, "__esModule", { value: true });
   safeSign.safeSignVerify = safeSign.safeSign = void 0;
-  const crypto_1 = requireDist$2();
+  const crypto_1 = requireDist$1();
   const MIN_SEED_LENGTH = 8;
   const MAX_SEED_LENGTH = 64;
   function createSafeSignHash(cell, seed) {
@@ -23029,7 +23029,7 @@ function requireDomainSignature() {
   hasRequiredDomainSignature = 1;
   Object.defineProperty(domainSignature, "__esModule", { value: true });
   domainSignature.domainSignVerify = domainSignature.domainSign = domainSignature.signatureDomainPrefix = domainSignature.signatureDomainHash = void 0;
-  const crypto_1 = requireDist$2();
+  const crypto_1 = requireDist$1();
   const SignatureDomain_1 = requireSignatureDomain();
   function signatureDomainHash(domain) {
     switch (domain.type) {
@@ -23076,12 +23076,12 @@ function requireDomainSignature() {
   domainSignature.domainSignVerify = domainSignVerify;
   return domainSignature;
 }
-var hasRequiredDist$1;
-function requireDist$1() {
-  if (hasRequiredDist$1) return dist$2;
-  hasRequiredDist$1 = 1;
+var hasRequiredDist;
+function requireDist() {
+  if (hasRequiredDist) return dist$1;
+  hasRequiredDist = 1;
   (function(exports$1) {
-    var __createBinding = dist$2 && dist$2.__createBinding || (Object.create ? (function(o, m, k2, k22) {
+    var __createBinding = dist$1 && dist$1.__createBinding || (Object.create ? (function(o, m, k2, k22) {
       if (k22 === void 0) k22 = k2;
       var desc = Object.getOwnPropertyDescriptor(m, k2);
       if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -23094,7 +23094,7 @@ function requireDist$1() {
       if (k22 === void 0) k22 = k2;
       o[k22] = m[k2];
     }));
-    var __exportStar = dist$2 && dist$2.__exportStar || function(m, exports$12) {
+    var __exportStar = dist$1 && dist$1.__exportStar || function(m, exports$12) {
       for (var p2 in m) if (p2 !== "default" && !Object.prototype.hasOwnProperty.call(exports$12, p2)) __createBinding(exports$12, m, p2);
     };
     Object.defineProperty(exports$1, "__esModule", { value: true });
@@ -23255,10 +23255,10 @@ function requireDist$1() {
     Object.defineProperty(exports$1, "domainSignVerify", { enumerable: true, get: function() {
       return domainSignature_1.domainSignVerify;
     } });
-  })(dist$2);
-  return dist$2;
+  })(dist$1);
+  return dist$1;
 }
-var distExports$2 = requireDist$1();
+var distExports$1 = requireDist();
 function createProvider(factory) {
   return factory;
 }
@@ -23306,19 +23306,19 @@ function asMaybeAddressFriendly(data) {
   }
 }
 function asAddressFriendly(data) {
-  if (data instanceof distExports$2.Address) {
+  if (data instanceof distExports$1.Address) {
     return data.toString();
   }
   try {
     if (data)
-      return distExports$2.Address.parse(data).toString();
+      return distExports$1.Address.parse(data).toString();
   } catch {
   }
   throw new Error(`Can not convert to AddressFriendly from "${data}"`);
 }
 function formatWalletAddress(address, isTestnet = false) {
   if (typeof address === "string") {
-    return distExports$2.Address.parse(address).toString({ bounceable: false, testOnly: isTestnet });
+    return distExports$1.Address.parse(address).toString({ bounceable: false, testOnly: isTestnet });
   }
   return address.toString({ bounceable: false, testOnly: isTestnet });
 }
@@ -23327,7 +23327,7 @@ function isValidAddress(address) {
     return false;
   }
   try {
-    distExports$2.Address.parse(address);
+    distExports$1.Address.parse(address);
   } catch (_) {
     return false;
   }
@@ -23335,7 +23335,7 @@ function isValidAddress(address) {
 }
 function isFriendlyTonAddress(address) {
   try {
-    distExports$2.Address.parseFriendly(address);
+    distExports$1.Address.parseFriendly(address);
   } catch (_) {
     return false;
   }
@@ -23345,8 +23345,8 @@ function compareAddress(a4, b2) {
   if (!a4 || !b2)
     return false;
   try {
-    const addressA = typeof a4 === "string" ? distExports$2.Address.parse(a4) : a4;
-    const addressB = typeof b2 === "string" ? distExports$2.Address.parse(b2) : b2;
+    const addressA = typeof a4 === "string" ? distExports$1.Address.parse(a4) : a4;
+    const addressB = typeof b2 === "string" ? distExports$1.Address.parse(b2) : b2;
     return addressA.equals(addressB);
   } catch {
     return typeof a4 === "string" && typeof b2 === "string" ? a4.toLowerCase() === b2.toLowerCase() : false;
@@ -23505,17 +23505,6 @@ class StorageError extends WalletKitError {
     this.name = "StorageError";
   }
 }
-function asBase64(data) {
-  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(data)) {
-    throw new Error("Not a valid base64");
-  }
-  try {
-    ParseBase64(data);
-  } catch (_e) {
-    throw new Error("Not a valid base64");
-  }
-  return data;
-}
 function Base64Normalize(data) {
   return data.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
 }
@@ -23637,8 +23626,8 @@ function parseOutgoingTonTransfers(tx, addressBook, status) {
       },
       simplePreview: {
         name: "Ton Transfer",
-        description: `Transferring ${distExports$2.fromNano(String(amount))} TON`,
-        value: `${distExports$2.fromNano(String(amount))} TON`,
+        description: `Transferring ${distExports$1.fromNano(String(amount))} TON`,
+        value: `${distExports$1.fromNano(String(amount))} TON`,
         accounts: [toAccount(sender, addressBook), recipientAccount]
       },
       baseTransactions: [Base64ToHex(tx.hash)]
@@ -23674,8 +23663,8 @@ function parseIncomingTonTransfers(tx, addressBook, status) {
     },
     simplePreview: {
       name: "Ton Transfer",
-      description: `Transferring ${distExports$2.fromNano(String(amount))} TON`,
-      value: `${distExports$2.fromNano(String(amount))} TON`,
+      description: `Transferring ${distExports$1.fromNano(String(amount))} TON`,
+      value: `${distExports$1.fromNano(String(amount))} TON`,
       accounts: [toAccount(sender, addressBook), recipientAccount]
     },
     baseTransactions: [Base64ToHex(tx.hash)]
@@ -23754,7 +23743,7 @@ function parseContractActions(ownerFriendly, transactions, addressBook) {
         simplePreview: {
           name: "Smart Contract Execution",
           description: "Execution of smart contract",
-          value: `${distExports$2.fromNano(String(tonAttached))} TON`,
+          value: `${distExports$1.fromNano(String(tonAttached))} TON`,
           accounts: [toAccount(ownerFriendly, addressBook), toContractAccount$2(contractAddress2, addressBook)]
         },
         baseTransactions: [baseTx]
@@ -24235,15 +24224,15 @@ function collectBaseTransactionsReceived(item, ownerFriendly) {
   const root = getTraceRootId(item);
   const isType = (tx, type) => getTxType(tx) === type;
   const jt = findTx((tx) => isType(tx, "jetton_transfer"));
-  const internal2 = findTx((tx) => isType(tx, "jetton_internal_transfer") && asAddressFriendly(tx.account) !== ownerFriendly);
+  const internal = findTx((tx) => isType(tx, "jetton_internal_transfer") && asAddressFriendly(tx.account) !== ownerFriendly);
   const excess = findTx((tx) => isType(tx, "excess"));
   const out = [];
   if (root)
     out.push(root);
   if (jt)
     out.push(jt);
-  if (internal2)
-    out.push(internal2);
+  if (internal)
+    out.push(internal);
   if (excess)
     out.push(excess);
   return out;
@@ -24715,30 +24704,30 @@ class Logger {
     enableTimestamp: true,
     enableStackTrace: false
   };
-  constructor(config2) {
-    this.parent = config2?.parent;
-    this.config = { ...Logger.defaultConfig, ...config2 };
+  constructor(config) {
+    this.parent = config?.parent;
+    this.config = { ...Logger.defaultConfig, ...config };
     if (this.parent) {
       this.config = {
         ...this.parent.config,
-        ...config2,
+        ...config,
         // Build hierarchical prefix
-        prefix: this.buildHierarchicalPrefix(config2?.prefix)
+        prefix: this.buildHierarchicalPrefix(config?.prefix)
       };
     }
   }
   /**
    * Update logger configuration
    */
-  configure(config2) {
-    this.config = { ...this.config, ...config2 };
+  configure(config) {
+    this.config = { ...this.config, ...config };
   }
   /**
    * Create a child logger with a prefix that inherits from this logger
    */
-  createChild(prefix, config2) {
+  createChild(prefix, config) {
     return new Logger({
-      ...config2,
+      ...config,
       parent: this,
       prefix
     });
@@ -24872,10 +24861,10 @@ class LocalStorageAdapter {
   maxRetries;
   retryDelay;
   localStorage;
-  constructor(config2 = {}, _localStorage) {
-    this.prefix = config2.prefix || "tonwallet:";
-    this.maxRetries = config2.maxRetries || 3;
-    this.retryDelay = config2.retryDelay || 100;
+  constructor(config = {}, _localStorage) {
+    this.prefix = config.prefix || "tonwallet:";
+    this.maxRetries = config.maxRetries || 3;
+    this.retryDelay = config.retryDelay || 100;
     if (_localStorage) {
       this.localStorage = _localStorage;
     } else {
@@ -24923,8 +24912,8 @@ class LocalStorageAdapter {
 class MemoryStorageAdapter {
   store = /* @__PURE__ */ new Map();
   prefix;
-  constructor(config2 = {}) {
-    this.prefix = config2.prefix || "";
+  constructor(config = {}) {
+    this.prefix = config.prefix || "";
   }
   async get(key) {
     const fullKey = this.prefix + key;
@@ -24959,17 +24948,17 @@ class MemoryStorageAdapter {
     return Array.from(this.store.keys());
   }
 }
-const log$t = globalLogger.createChild("StorageAdapter");
-function createStorageAdapter(config2 = {}) {
+const log$q = globalLogger.createChild("StorageAdapter");
+function createStorageAdapter(config = {}) {
   if (typeof localStorage !== "undefined") {
     try {
-      return new LocalStorageAdapter(config2);
+      return new LocalStorageAdapter(config);
     } catch (error2) {
-      log$t.warn("Failed to create LocalStorageAdapter, falling back to memory", { error: error2 });
+      log$q.warn("Failed to create LocalStorageAdapter, falling back to memory", { error: error2 });
     }
   }
-  if (config2.allowMemory) {
-    return new MemoryStorageAdapter(config2);
+  if (config.allowMemory) {
+    return new MemoryStorageAdapter(config);
   } else {
     throw new Error("No storage adapter available");
   }
@@ -24979,10 +24968,10 @@ class ExtensionStorageAdapter {
   maxRetries;
   retryDelay;
   localStorage;
-  constructor(config2 = {}, localStorage2) {
-    this.prefix = config2.prefix || "tonwallet:";
-    this.maxRetries = config2.maxRetries || 3;
-    this.retryDelay = config2.retryDelay || 100;
+  constructor(config = {}, localStorage2) {
+    this.prefix = config.prefix || "tonwallet:";
+    this.maxRetries = config.maxRetries || 3;
+    this.retryDelay = config.retryDelay || 100;
     this.localStorage = localStorage2;
   }
   async get(key) {
@@ -25022,7 +25011,7 @@ class ExtensionStorageAdapter {
     return CallForSuccess(operation, this.maxRetries, this.retryDelay);
   }
 }
-const log$s = globalLogger.createChild("Storage");
+const log$p = globalLogger.createChild("Storage");
 class Storage {
   adapter;
   constructor(adapter) {
@@ -25041,7 +25030,7 @@ class Storage {
       }
       return JSON.parse(value);
     } catch (error2) {
-      log$s.warn("Failed to parse stored value", { key, error: error2 });
+      log$p.warn("Failed to parse stored value", { key, error: error2 });
       return null;
     }
   }
@@ -25055,7 +25044,7 @@ class Storage {
       const serialized = JSON.stringify(value);
       await this.adapter.set(key, serialized);
     } catch (error2) {
-      log$s.error("Failed to serialize value for storage", { key, error: error2 });
+      log$p.error("Failed to serialize value for storage", { key, error: error2 });
       throw error2;
     }
   }
@@ -25223,7 +25212,7 @@ function isValidNanotonAmount(amount) {
 }
 function isValidBOC(bocString) {
   try {
-    distExports$2.Cell.fromBase64(bocString);
+    distExports$1.Cell.fromBase64(bocString);
     return true;
   } catch {
     return false;
@@ -25321,7 +25310,7 @@ class WalletManager {
     return wallet2.getWalletId();
   }
 }
-const log$r = globalLogger.createChild("TONConnectStoredSessionManager");
+const log$o = globalLogger.createChild("TONConnectStoredSessionManager");
 class TONConnectStoredSessionManager {
   sessions = /* @__PURE__ */ new Map();
   storage;
@@ -25383,29 +25372,29 @@ class TONConnectStoredSessionManager {
   async getSession(sessionId) {
     return this.sessions.get(sessionId);
   }
-  async getSessions(filter2) {
+  async getSessions(filter) {
     let sessions = Array.from(this.sessions.values());
-    if (!filter2) {
+    if (!filter) {
       return sessions;
     }
     let domain;
-    if (filter2.domain) {
+    if (filter.domain) {
       try {
-        domain = new URL(filter2.domain).host;
+        domain = new URL(filter.domain).host;
       } catch {
-        domain = filter2.domain;
+        domain = filter.domain;
       }
     }
     return sessions.filter((session) => {
       let isIncluded = true;
-      if (filter2.walletId) {
-        isIncluded = isIncluded && session.walletId === filter2.walletId;
+      if (filter.walletId) {
+        isIncluded = isIncluded && session.walletId === filter.walletId;
       }
-      if (filter2.domain) {
+      if (filter.domain) {
         isIncluded = isIncluded && session.domain === domain;
       }
-      if (filter2.isJsBridge !== void 0) {
-        isIncluded = isIncluded && session.isJsBridge === filter2.isJsBridge;
+      if (filter.isJsBridge !== void 0) {
+        isIncluded = isIncluded && session.isJsBridge === filter.isJsBridge;
       }
       return isIncluded;
     });
@@ -25419,8 +25408,8 @@ class TONConnectStoredSessionManager {
       await this.persistSessions();
     }
   }
-  async removeSessions(filter2) {
-    const sessionsToRemove = await this.getSessions(filter2);
+  async removeSessions(filter) {
+    const sessionsToRemove = await this.getSessions(filter);
     let removedCount = 0;
     for (const session of sessionsToRemove) {
       if (this.sessions.delete(session.sessionId)) {
@@ -25483,16 +25472,16 @@ class TONConnectStoredSessionManager {
             if (wallet2) {
               session.walletAddress = wallet2.getAddress();
             } else {
-              log$r.warn("Session Wallet not found for session", { sessionId: session.sessionId });
+              log$o.warn("Session Wallet not found for session", { sessionId: session.sessionId });
               continue;
             }
           }
           this.sessions.set(session.sessionId, session);
         }
-        log$r.debug("Loaded session metadata", { count: storedSessions.length });
+        log$o.debug("Loaded session metadata", { count: storedSessions.length });
       }
     } catch (error2) {
-      log$r.warn("Failed to load sessions from storage", { error: error2 });
+      log$o.warn("Failed to load sessions from storage", { error: error2 });
     }
   }
   /**
@@ -25503,7 +25492,7 @@ class TONConnectStoredSessionManager {
       const sessionsToStore = Array.from(this.sessions.values());
       await this.storage.set(this.storageKey, sessionsToStore);
     } catch (error2) {
-      log$r.warn("Failed to persist sessions to storage", { error: error2 });
+      log$o.warn("Failed to persist sessions to storage", { error: error2 });
     }
   }
   async migrateSessions() {
@@ -27006,7 +26995,7 @@ const RESTORE_CONNECTION_TIMEOUT = 1e4;
 const TONCONNECT_BRIDGE_RESPONSE = "TONCONNECT_BRIDGE_RESPONSE";
 const TONCONNECT_BRIDGE_EVENT = "TONCONNECT_BRIDGE_EVENT";
 globalLogger.createChild("ExtensionTransport");
-const log$q = globalLogger.createChild("BridgeManager");
+const log$n = globalLogger.createChild("BridgeManager");
 class BridgeManager {
   config;
   bridgeProvider;
@@ -27028,7 +27017,7 @@ class BridgeManager {
   eventEmitter;
   analytics;
   requestProcessingTimeoutId;
-  constructor(walletManifest, config2, sessionManager, storage, eventStore, eventRouter, walletKitConfig, eventEmitter, analyticsManager) {
+  constructor(walletManifest, config, sessionManager, storage, eventStore, eventRouter, walletKitConfig, eventEmitter, analyticsManager) {
     const isManifestJsBridge = walletManifest && "jsBridgeKey" in walletManifest ? true : false;
     const manifestJsBridgeKey = walletManifest && "jsBridgeKey" in walletManifest ? walletManifest.jsBridgeKey : void 0;
     const manifestBridgeUrl = walletManifest && "bridgeUrl" in walletManifest ? walletManifest.bridgeUrl : void 0;
@@ -27041,7 +27030,7 @@ class BridgeManager {
         jsBridgeKey: manifestJsBridgeKey,
         bridgeUrl: manifestBridgeUrl
       },
-      ...config2
+      ...config
     };
     this.sessionManager = sessionManager;
     this.storage = storage;
@@ -27052,8 +27041,8 @@ class BridgeManager {
       bridge_url: this.config.bridgeUrl
     });
     this.walletKitConfig = walletKitConfig;
-    this.jsBridgeTransport = config2?.jsBridgeTransport;
-    if (!this.jsBridgeTransport && config2?.enableJsBridge) {
+    this.jsBridgeTransport = config?.jsBridgeTransport;
+    if (!this.jsBridgeTransport && config?.enableJsBridge) {
       throw new WalletKitError(ERROR_CODES.INVALID_CONFIG, "JS Bridge transport is not configured");
     }
   }
@@ -27062,7 +27051,7 @@ class BridgeManager {
    */
   async start() {
     if (this.bridgeProvider) {
-      log$q.warn("Bridge already initialized");
+      log$n.warn("Bridge already initialized");
       return;
     }
     try {
@@ -27074,7 +27063,7 @@ class BridgeManager {
         this.reconnectAttempts = 0;
       }
     } catch (error2) {
-      log$q.error("Failed to start bridge", { error: error2 });
+      log$n.error("Failed to start bridge", { error: error2 });
       throw error2;
     }
     const requestProcessing = () => {
@@ -27087,7 +27076,7 @@ class BridgeManager {
    * Create new session for a dApp connection
    */
   async createSession(appSessionId) {
-    log$q.info("[BRIDGE] Creating session", { appSessionId });
+    log$n.info("[BRIDGE] Creating session", { appSessionId });
     const session = await this.sessionManager.getSession(appSessionId);
     if (!session) {
       throw new WalletKitError(ERROR_CODES.SESSION_NOT_FOUND, `Session not found`, void 0, {
@@ -27095,7 +27084,7 @@ class BridgeManager {
       });
     }
     if (this.bridgeProvider && this.isConnected) {
-      log$q.info("[BRIDGE] Updating clients");
+      log$n.info("[BRIDGE] Updating clients");
       await this.updateClients();
     }
   }
@@ -27106,7 +27095,7 @@ class BridgeManager {
     if (this.bridgeProvider && this.isConnected) {
       await this.updateClients();
     }
-    log$q.debug("Session removed", { appSessionId });
+    log$n.debug("Session removed", { appSessionId });
   }
   /**
    * Send response to dApp
@@ -27146,9 +27135,9 @@ class BridgeManager {
       await this.bridgeProvider.send(response, sessionCrypto, sessionId, {
         traceId: event?.traceId
       });
-      log$q.debug("Response sent successfully", { sessionId, requestId: event.id });
+      log$n.debug("Response sent successfully", { sessionId, requestId: event.id });
     } catch (error2) {
-      log$q.error("Failed to send response through bridge", {
+      log$n.error("Failed to send response through bridge", {
         sessionId,
         requestId: event.id,
         error: error2
@@ -27231,10 +27220,10 @@ class BridgeManager {
         });
       }
       if (this.analytics) {
-        const client2 = clients[0];
+        const client = clients[0];
         this.analytics.emitBridgeClientConnectStarted({
           trace_id: connectTraceId,
-          client_id: client2?.clientId
+          client_id: client?.clientId
         });
       }
       this.bridgeProvider = await C$1.open({
@@ -27243,7 +27232,7 @@ class BridgeManager {
         listener: this.queueBridgeEvent.bind(this),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         errorListener: (error2) => {
-          log$q.error("Bridge listener error", { error: error2.toString() });
+          log$n.error("Bridge listener error", { error: error2.toString() });
           this.analytics?.emitBridgeClientConnectError({
             error_message: `${error2?.toString() || "Unknown error"}${error2?.errorCode ? ` (Code: ${error2?.errorCode})` : ""}`,
             trace_id: error2?.traceId ?? connectTraceId,
@@ -27257,16 +27246,16 @@ class BridgeManager {
       });
       this.isConnected = true;
       this.reconnectAttempts = 0;
-      log$q.info("Bridge connected successfully");
+      log$n.info("Bridge connected successfully");
       if (this.analytics) {
-        const client2 = clients[0];
+        const client = clients[0];
         this.analytics.emitBridgeClientConnectEstablished({
           trace_id: connectTraceId,
-          client_id: client2?.clientId
+          client_id: client?.clientId
         });
       }
     } catch (error2) {
-      log$q.error("Bridge connection failed", { error: error2?.toString() });
+      log$n.error("Bridge connection failed", { error: error2?.toString() });
       this.analytics?.emitBridgeClientConnectError({
         error_message: `${error2?.toString() || "Unknown error"}${error2?.errorCode ? ` (Code: ${error2?.errorCode})` : ""}`,
         trace_id: error2?.traceId ?? connectTraceId,
@@ -27275,9 +27264,9 @@ class BridgeManager {
       if (!this.config.disableHttpConnection) {
         if (this.reconnectAttempts < (this.config.maxReconnectAttempts || 5)) {
           this.reconnectAttempts++;
-          log$q.info("Bridge reconnection attempt", { attempt: this.reconnectAttempts });
+          log$n.info("Bridge reconnection attempt", { attempt: this.reconnectAttempts });
           setTimeout(() => {
-            this.connectToSSEBridge().catch((error3) => log$q.error("Bridge reconnection failed", { error: error3 }));
+            this.connectToSSEBridge().catch((error3) => log$n.error("Bridge reconnection failed", { error: error3 }));
           }, this.config.reconnectInterval);
         }
       }
@@ -27298,10 +27287,10 @@ class BridgeManager {
    * Add client to existing bridge connection
    */
   async updateClients() {
-    log$q.debug("Updating clients");
+    log$n.debug("Updating clients");
     if (this.bridgeProvider) {
       const clients = await this.getClients();
-      log$q.info("[BRIDGE] Restoring connection", { clients: clients.length });
+      log$n.info("[BRIDGE] Restoring connection", { clients: clients.length });
       await this.bridgeProvider.restoreConnection(clients, {
         lastEventId: this.lastEventId
       });
@@ -27312,14 +27301,14 @@ class BridgeManager {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   queueBridgeEvent(event) {
-    log$q.debug("Bridge event queued", { eventId: event?.id, event });
+    log$n.debug("Bridge event queued", { eventId: event?.id, event });
     this.eventQueue.push(event);
     this.processBridgeEvents().catch((error2) => {
-      log$q.error("Error in background event processing", { error: error2 });
+      log$n.error("Error in background event processing", { error: error2 });
     });
   }
   queueJsBridgeEvent(messageInfo, event) {
-    log$q.debug("JS Bridge event queued", { eventId: messageInfo?.messageId });
+    log$n.debug("JS Bridge event queued", { eventId: messageInfo?.messageId });
     if (!event) {
       return;
     }
@@ -27357,7 +27346,7 @@ class BridgeManager {
       });
     }
     this.processBridgeEvents().catch((error2) => {
-      log$q.error("Error in background event processing", { error: error2 });
+      log$n.error("Error in background event processing", { error: error2 });
     });
   }
   /**
@@ -27369,7 +27358,7 @@ class BridgeManager {
    */
   async processBridgeEvents() {
     if (this.isProcessing) {
-      log$q.debug("Event processing already in progress, skipping");
+      log$n.debug("Event processing already in progress, skipping");
       return;
     }
     this.isProcessing = true;
@@ -27382,7 +27371,7 @@ class BridgeManager {
         }
       }
     } catch (error2) {
-      log$q.error("Error during event processing", { error: error2 });
+      log$n.error("Error during event processing", { error: error2 });
       this.isProcessing = false;
       this.restartConnection();
       return;
@@ -27396,7 +27385,7 @@ class BridgeManager {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async handleBridgeEvent(event) {
     try {
-      log$q.info("Bridge event received", { event });
+      log$n.info("Bridge event received", { event });
       const rawEvent = {
         id: event.id || crypto.randomUUID(),
         method: event.method || "unknown",
@@ -27469,21 +27458,21 @@ class BridgeManager {
         if (this.eventEmitter) {
           this.eventEmitter.emit("bridgeStorageUpdated", {}, "bridge-manager");
         }
-        log$q.info("Event stored durably", { eventId: rawEvent.id, method: rawEvent.method });
+        log$n.info("Event stored durably", { eventId: rawEvent.id, method: rawEvent.method });
       } catch (error2) {
-        log$q.error("Failed to store event durably", {
+        log$n.error("Failed to store event durably", {
           eventId: rawEvent.id,
           error: error2.message
         });
         throw WalletKitError.fromError(ERROR_CODES.EVENT_STORE_OPERATION_FAILED, "Failed to store event durably", error2, { eventId: rawEvent.id, method: rawEvent.method });
       }
-      log$q.info("Bridge event processed", { rawEvent });
+      log$n.info("Bridge event processed", { rawEvent });
       if (event?.lastEventId && event.lastEventId !== this.lastEventId) {
         this.lastEventId = event.lastEventId;
         await this.saveLastEventId();
       }
     } catch (error2) {
-      log$q.error("Error handling bridge event", { error: error2 });
+      log$n.error("Error handling bridge event", { error: error2 });
     }
   }
   /**
@@ -27494,11 +27483,11 @@ class BridgeManager {
       const savedEventId = await this.storage.get(this.storageKey);
       if (savedEventId) {
         this.lastEventId = savedEventId;
-        log$q.debug("Loaded last event ID from storage", { lastEventId: this.lastEventId });
+        log$n.debug("Loaded last event ID from storage", { lastEventId: this.lastEventId });
       }
     } catch (error2) {
       const storageError = WalletKitError.fromError(ERROR_CODES.STORAGE_READ_FAILED, "Failed to load last event ID from storage", error2);
-      log$q.warn("Failed to load last event ID from storage", { error: storageError });
+      log$n.warn("Failed to load last event ID from storage", { error: storageError });
     }
   }
   /**
@@ -27508,11 +27497,11 @@ class BridgeManager {
     try {
       if (this.lastEventId) {
         await this.storage.set(this.storageKey, this.lastEventId);
-        log$q.debug("Saved last event ID to storage", { lastEventId: this.lastEventId });
+        log$n.debug("Saved last event ID to storage", { lastEventId: this.lastEventId });
       }
     } catch (error2) {
       const storageError = WalletKitError.fromError(ERROR_CODES.STORAGE_WRITE_FAILED, "Failed to save last event ID to storage", error2);
-      log$q.warn("Failed to save last event ID to storage", { error: storageError });
+      log$n.warn("Failed to save last event ID to storage", { error: storageError });
     }
   }
 }
@@ -27536,13 +27525,13 @@ function isValidHost(host) {
   const parts = host.split(".");
   return parts.every((part) => part.length > 0);
 }
-const log$p = globalLogger.createChild("ConnectHandler");
+const log$m = globalLogger.createChild("ConnectHandler");
 class ConnectHandler extends BasicHandler {
   config;
   analytics;
-  constructor(notify, config2, analyticsManager) {
+  constructor(notify, config, analyticsManager) {
     super(notify);
-    this.config = config2;
+    this.config = config;
     this.analytics = analyticsManager?.scoped();
   }
   canHandle(event) {
@@ -27558,7 +27547,7 @@ class ConnectHandler extends BasicHandler {
         manifest = result.manifest;
         manifestFetchErrorCode = result.manifestFetchErrorCode;
       } catch (error2) {
-        log$p.warn("Failed to fetch manifest", { error: error2 });
+        log$m.warn("Failed to fetch manifest", { error: error2 });
       }
     }
     const preview = this.createPreview(event, manifestUrl, manifest, manifestFetchErrorCode);
@@ -27627,14 +27616,14 @@ class ConnectHandler extends BasicHandler {
         try {
           const parsedDAppUrl = new URL(dAppUrl);
           if (!isValidHost(parsedDAppUrl.host)) {
-            log$p.warn("Invalid dApp URL in manifest - invalid host format", {
+            log$m.warn("Invalid dApp URL in manifest - invalid host format", {
               dAppUrl,
               host: parsedDAppUrl.host
             });
             finalManifestFetchErrorCode = CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR;
           }
         } catch (_) {
-          log$p.warn("Invalid dApp URL in manifest - failed to parse", { dAppUrl });
+          log$m.warn("Invalid dApp URL in manifest - failed to parse", { dAppUrl });
           finalManifestFetchErrorCode = CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR;
         }
       }
@@ -27697,7 +27686,7 @@ class ConnectHandler extends BasicHandler {
     if (directResult.manifest) {
       return directResult;
     }
-    log$p.info("Direct manifest fetch failed, trying proxy", { manifestUrl });
+    log$m.info("Direct manifest fetch failed, trying proxy", { manifestUrl });
     const proxyUrl = `${ConnectHandler.MANIFEST_PROXY_URL}${manifestUrl}`;
     return this.tryFetchManifest(proxyUrl);
   }
@@ -27705,7 +27694,7 @@ class ConnectHandler extends BasicHandler {
     try {
       const response = await fetch(url);
       if (!response.ok) {
-        log$p.error("Failed to fetch manifest not ok", { url, status: response.status });
+        log$m.error("Failed to fetch manifest not ok", { url, status: response.status });
         return {
           manifest: null,
           manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR
@@ -27717,7 +27706,7 @@ class ConnectHandler extends BasicHandler {
         manifestFetchErrorCode: void 0
       };
     } catch (e) {
-      log$p.error("Failed to fetch manifest catched", { url, error: e });
+      log$m.error("Failed to fetch manifest catched", { url, error: e });
       return {
         manifest: null,
         manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR
@@ -27824,7 +27813,7 @@ function toAddressBookEntry(row) {
   return {
     domain: row.domain ?? void 0,
     address: asAddressFriendly(row.user_friendly),
-    interfaces: row.interfaces ?? []
+    interfaces: row.interfaces
   };
 }
 function toAddressBook(addressBookV3) {
@@ -28171,7 +28160,7 @@ function processToncenterMoneyFlow(emulation) {
     }
     let parsed = null;
     try {
-      parsed = parseJettonTransfer(distExports$2.Cell.fromBase64(t.in_msg.message_content.body).beginParse());
+      parsed = parseJettonTransfer(distExports$1.Cell.fromBase64(t.in_msg.message_content.body).beginParse());
     } catch (_) {
       continue;
     }
@@ -28179,7 +28168,7 @@ function processToncenterMoneyFlow(emulation) {
       continue;
     }
     const from = asMaybeAddressFriendly(t.in_msg.source);
-    const to = parsed.destination instanceof distExports$2.Address ? parsed.destination : null;
+    const to = parsed.destination instanceof distExports$1.Address ? parsed.destination : null;
     if (!to) {
       continue;
     }
@@ -28201,7 +28190,7 @@ function processToncenterMoneyFlow(emulation) {
       assetType: AssetType.jetton
     });
   }
-  const ourAddress = distExports$2.Address.parse(firstTx.account);
+  const ourAddress = distExports$1.Address.parse(firstTx.account);
   const selfTransfers = [];
   const ourJettonTransfersByAddress = jettonTransfers.reduce((acc, transfer) => {
     if (transfer.assetType !== AssetType.jetton) {
@@ -28211,7 +28200,7 @@ function processToncenterMoneyFlow(emulation) {
     if (TON_PROXY_ADDRESSES.includes(jettonKey)) {
       return acc;
     }
-    const rawKey = distExports$2.Address.parse(jettonKey).toRawString().toUpperCase();
+    const rawKey = distExports$1.Address.parse(jettonKey).toRawString().toUpperCase();
     if (!acc[rawKey]) {
       acc[rawKey] = 0n;
     }
@@ -28241,7 +28230,7 @@ function processToncenterMoneyFlow(emulation) {
     ourAddress: asAddressFriendly(ourAddress)
   };
 }
-async function createTransactionPreview(client2, request, wallet2) {
+async function createTransactionPreview(client, request, wallet2) {
   const txData = await wallet2?.getSignedSendTransaction(request, { fakeSignature: true });
   if (!txData) {
     return {
@@ -28254,7 +28243,7 @@ async function createTransactionPreview(client2, request, wallet2) {
   }
   let emulationResult;
   try {
-    const emulatedResult = await CallForSuccess(() => client2.fetchEmulation(txData, true));
+    const emulatedResult = await CallForSuccess(() => client.fetchEmulation(txData, true));
     if (emulatedResult.result === "success") {
       emulationResult = emulatedResult.emulationResult;
     } else {
@@ -28282,16 +28271,16 @@ async function createTransactionPreview(client2, request, wallet2) {
     moneyFlow
   };
 }
-const log$o = globalLogger.createChild("TransactionHandler");
+const log$l = globalLogger.createChild("TransactionHandler");
 class TransactionHandler extends BasicHandler {
   config;
   walletManager;
   sessionManager;
   eventEmitter;
   analytics;
-  constructor(notify, config2, eventEmitter, walletManager, sessionManager, analyticsManager) {
+  constructor(notify, config, eventEmitter, walletManager, sessionManager, analyticsManager) {
     super(notify);
-    this.config = config2;
+    this.config = config;
     this.walletManager = walletManager;
     this.sessionManager = sessionManager;
     this.eventEmitter = eventEmitter;
@@ -28305,7 +28294,7 @@ class TransactionHandler extends BasicHandler {
     const walletId = event.walletId;
     const walletAddress = event.walletAddress;
     if (!walletId && !walletAddress) {
-      log$o.error("Wallet ID not found", { event });
+      log$l.error("Wallet ID not found", { event });
       return {
         error: {
           code: SEND_TRANSACTION_ERROR_CODES.UNKNOWN_APP_ERROR,
@@ -28316,7 +28305,7 @@ class TransactionHandler extends BasicHandler {
     }
     const wallet2 = walletId ? this.walletManager.getWallet(walletId) : void 0;
     if (!wallet2) {
-      log$o.error("Wallet not found", { event, walletId, walletAddress });
+      log$l.error("Wallet not found", { event, walletId, walletAddress });
       return {
         error: {
           code: SEND_TRANSACTION_ERROR_CODES.UNKNOWN_APP_ERROR,
@@ -28327,7 +28316,7 @@ class TransactionHandler extends BasicHandler {
     }
     const requestValidation = this.parseTonConnectTransactionRequest(event, wallet2);
     if (!requestValidation.result || !requestValidation?.validation?.isValid) {
-      log$o.error("Failed to parse transaction request", { event, requestValidation });
+      log$l.error("Failed to parse transaction request", { event, requestValidation });
       this.eventEmitter.emit("eventError", event, "transaction-handler");
       return {
         error: {
@@ -28346,11 +28335,11 @@ class TransactionHandler extends BasicHandler {
           try {
             this.eventEmitter.emit("emulationResult", preview.trace, "transaction-handler");
           } catch (error2) {
-            log$o.warn("Error emitting emulation result event", { error: error2 });
+            log$l.warn("Error emitting emulation result event", { error: error2 });
           }
         }
       } catch (error2) {
-        log$o.error("Failed to create transaction preview", { error: error2 });
+        log$l.error("Failed to create transaction preview", { error: error2 });
         preview = {
           error: {
             code: ERROR_CODES.UNKNOWN_EMULATION_ERROR,
@@ -28423,7 +28412,7 @@ class TransactionHandler extends BasicHandler {
         validation: { isValid: errors.length === 0, errors }
       };
     } catch (error2) {
-      log$o.error("Failed to parse transaction request", { error: error2 });
+      log$l.error("Failed to parse transaction request", { error: error2 });
       errors.push("Failed to parse transaction request");
       return {
         result: void 0,
@@ -28459,8 +28448,8 @@ class TransactionHandler extends BasicHandler {
       errors.push("Invalid from address");
       return { result: "", isValid: errors.length === 0, errors };
     }
-    const fromAddress = distExports$2.Address.parse(from);
-    const walletAddress = distExports$2.Address.parse(wallet2.getAddress());
+    const fromAddress = distExports$1.Address.parse(from);
+    const walletAddress = distExports$1.Address.parse(wallet2.getAddress());
     if (!fromAddress.equals(walletAddress)) {
       errors.push("Invalid from address not equal to wallet address");
       return { result: "", isValid: errors.length === 0, errors };
@@ -28580,7 +28569,7 @@ function validateSignDataPayloadCell(data) {
   }
   return null;
 }
-const log$n = globalLogger.createChild("SignDataHandler");
+const log$k = globalLogger.createChild("SignDataHandler");
 class SignDataHandler extends BasicHandler {
   analytics;
   walletManager;
@@ -28605,14 +28594,14 @@ class SignDataHandler extends BasicHandler {
     const wallet2 = walletId ? this.walletManager.getWallet(walletId) : void 0;
     const payload = this.parseDataToSign(event);
     if (!payload) {
-      log$n.error("No data to sign found in request", { event });
+      log$k.error("No data to sign found in request", { event });
       throw new WalletKitError(ERROR_CODES.INVALID_REQUEST_EVENT, "No data to sign found in request", void 0, {
         eventId: event.id
       });
     }
     const preview = this.createDataPreview(payload.data, event);
     if (!preview) {
-      log$n.error("No preview found for data", { data: payload });
+      log$k.error("No preview found for data", { data: payload });
       throw new WalletKitError(ERROR_CODES.RESPONSE_CREATION_FAILED, "Failed to create preview for sign data request", void 0, { eventId: event.id, data: payload });
     }
     const signEvent = {
@@ -28648,7 +28637,7 @@ class SignDataHandler extends BasicHandler {
       const parsed = JSON.parse(event.params[0]);
       const validationResult = validateSignDataPayload(parsed);
       if (validationResult) {
-        log$n.error("Invalid data to sign found in request", { validationResult });
+        log$k.error("Invalid data to sign found in request", { validationResult });
         return void 0;
       }
       if (parsed === void 0) {
@@ -28686,7 +28675,7 @@ class SignDataHandler extends BasicHandler {
         data: signData
       };
     } catch (error2) {
-      log$n.error("Invalid data to sign found in request", { error: error2 });
+      log$k.error("Invalid data to sign found in request", { error: error2 });
       return void 0;
     }
   }
@@ -28721,7 +28710,7 @@ class SignDataHandler extends BasicHandler {
           }
         };
       } catch (error2) {
-        log$n.error("Error deserializing cell", { error: error2 });
+        log$k.error("Error deserializing cell", { error: error2 });
         return {
           type: "cell",
           value: {
@@ -28777,7 +28766,7 @@ class DisconnectHandler extends BasicHandler {
     return void 0;
   }
 }
-const log$m = globalLogger.createChild("EventRouter");
+const log$j = globalLogger.createChild("EventRouter");
 class EventRouter {
   config;
   eventEmitter;
@@ -28792,8 +28781,8 @@ class EventRouter {
   signDataRequestCallback = void 0;
   disconnectCallback = void 0;
   errorCallback = void 0;
-  constructor(config2, eventEmitter, sessionManager, walletManager, analyticsManager) {
-    this.config = config2;
+  constructor(config, eventEmitter, sessionManager, walletManager, analyticsManager) {
+    this.config = config;
     this.eventEmitter = eventEmitter;
     this.sessionManager = sessionManager;
     this.walletManager = walletManager;
@@ -28809,7 +28798,7 @@ class EventRouter {
   async routeEvent(event) {
     const validation = validateBridgeEvent(event);
     if (!validation.isValid) {
-      log$m.error("Invalid bridge event", { errors: validation.errors });
+      log$j.error("Invalid bridge event", { errors: validation.errors });
       return;
     }
     try {
@@ -28821,7 +28810,7 @@ class EventRouter {
             try {
               await this.bridgeManager.sendResponse(event, result);
             } catch (error2) {
-              log$m.error("Error sending response for error event", { error: error2, event, result });
+              log$j.error("Error sending response for error event", { error: error2, event, result });
             }
             return;
           }
@@ -28830,7 +28819,7 @@ class EventRouter {
         }
       }
     } catch (error2) {
-      log$m.error("Error routing event", { error: error2 });
+      log$j.error("Error routing event", { error: error2 });
       throw error2;
     }
   }
@@ -28941,7 +28930,7 @@ class EventRouter {
     return enabledTypes;
   }
 }
-var distExports$1 = requireDist$2();
+var distExports = requireDist$1();
 const tonProofPrefix = "ton-proof-item-v2/";
 const tonConnectPrefix = "ton-connect";
 async function CreateTonProofMessageBytes(message) {
@@ -28960,9 +28949,9 @@ async function CreateTonProofMessageBytes(message) {
     ts,
     Buffer.from(message.payload)
   ]);
-  const messageHash = distExports$1.sha256_sync(m);
+  const messageHash = distExports.sha256_sync(m);
   const fullMes = Buffer.concat([Buffer.from([255, 255]), Buffer.from(tonConnectPrefix), Buffer.from(messageHash)]);
-  const res = distExports$1.sha256_sync(fullMes);
+  const res = distExports.sha256_sync(fullMes);
   return Buffer.from(res);
 }
 function CreateTonProofMessage({ address, domain, payload, stateInit, timestamp }) {
@@ -29051,19 +29040,19 @@ function createTextBinaryHash(data, parsedAddr, domain, timestamp) {
     payloadLenBuffer,
     payloadBuffer
   ]);
-  return distExports$1.sha256_sync(message);
+  return distExports.sha256_sync(message);
 }
 function createCellHash(payload, parsedAddr, domain, timestamp) {
-  const cell = distExports$2.Cell.fromBase64(payload.content);
+  const cell = distExports$1.Cell.fromBase64(payload.content);
   const schemaHash = buf(Buffer.from(payload.schema, "utf8"), void 0) >>> 0;
   const tep81Domain = domain.split(".").reverse().join("\0") + "\0";
-  const message = distExports$2.beginCell().storeUint(1968607266, 32).storeUint(schemaHash, 32).storeUint(timestamp, 64).storeAddress(parsedAddr).storeStringRefTail(tep81Domain).storeRef(cell).endCell();
+  const message = distExports$1.beginCell().storeUint(1968607266, 32).storeUint(schemaHash, 32).storeUint(timestamp, 64).storeAddress(parsedAddr).storeStringRefTail(tep81Domain).storeRef(cell).endCell();
   return Buffer.from(message.hash());
 }
 function PrepareSignData(data) {
   const { payload, domain, address } = data;
   const timestamp = Math.floor(Date.now() / 1e3);
-  const parsedAddr = distExports$2.Address.parse(address);
+  const parsedAddr = distExports$1.Address.parse(address);
   const finalHash = payload.data?.type === "cell" ? createCellHash(payload.data.value, parsedAddr, domain, timestamp) : createTextBinaryHash(payload.data, parsedAddr, domain, timestamp);
   return {
     address,
@@ -29073,7 +29062,7 @@ function PrepareSignData(data) {
     hash: Uint8ArrayToHex(finalHash)
   };
 }
-const log$l = globalLogger.createChild("RequestProcessor");
+const log$i = globalLogger.createChild("RequestProcessor");
 class RequestProcessor {
   walletKitOptions;
   sessionManager;
@@ -29123,7 +29112,7 @@ class RequestProcessor {
         const error2 = new WalletKitError(ERROR_CODES.WALLET_NOT_FOUND, "Wallet not found for connect request", void 0, { walletId, eventId: event.id });
         throw error2;
       }
-      const newSession = await this.sessionManager.createSession(event.from || (await distExports$1.getSecureRandomBytes(32)).toString("hex"), {
+      const newSession = await this.sessionManager.createSession(event.from || (await distExports.getSecureRandomBytes(32)).toString("hex"), {
         name: event.preview.dAppInfo?.name || "",
         url: event.preview.dAppInfo?.url || "",
         iconUrl: event.preview.dAppInfo?.iconUrl || "",
@@ -29161,7 +29150,7 @@ class RequestProcessor {
       }
       return;
     } catch (error2) {
-      log$l.error("Failed to approve connect request", { error: error2 });
+      log$i.error("Failed to approve connect request", { error: error2 });
       throw error2;
     }
   }
@@ -29170,7 +29159,7 @@ class RequestProcessor {
    */
   async rejectConnectRequest(event, reason, errorCode) {
     try {
-      log$l.info("Connect request rejected", {
+      log$i.info("Connect request rejected", {
         id: event.id,
         dAppName: event.preview.dAppInfo?.name || "",
         reason: reason || "User rejected connection"
@@ -29188,7 +29177,7 @@ class RequestProcessor {
       try {
         await this.bridgeManager.sendResponse(event, response, new SessionCrypto());
       } catch (error2) {
-        log$l.error("Failed to send connect request rejection response", { error: error2 });
+        log$i.error("Failed to send connect request rejection response", { error: error2 });
       }
       if (this.analytics) {
         const sessionData = event.from ? await this.sessionManager.getSession(sessionId) : void 0;
@@ -29217,7 +29206,7 @@ class RequestProcessor {
       }
       return;
     } catch (error2) {
-      log$l.error("Failed to reject connect request", { error: error2 });
+      log$i.error("Failed to reject connect request", { error: error2 });
       throw error2;
     }
   }
@@ -29237,8 +29226,8 @@ class RequestProcessor {
       } else {
         const signedBoc = await this.signTransaction(event);
         if (!this.walletKitOptions.dev?.disableNetworkSend) {
-          const client2 = this.getClientForWallet(event.walletId);
-          await CallForSuccess(() => client2.sendBoc(signedBoc));
+          const client = this.getClientForWallet(event.walletId);
+          await CallForSuccess(() => client.sendBoc(signedBoc));
         }
         const response2 = {
           result: signedBoc,
@@ -29249,7 +29238,7 @@ class RequestProcessor {
         return { signedBoc };
       }
     } catch (error2) {
-      log$l.error("Failed to approve transaction request", { error: error2 });
+      log$i.error("Failed to approve transaction request", { error: error2 });
       if (error2 instanceof WalletKitError) {
         throw error2;
       }
@@ -29304,7 +29293,7 @@ class RequestProcessor {
       }
       return;
     } catch (error2) {
-      log$l.error("Failed to reject transaction request", { error: error2 });
+      log$i.error("Failed to reject transaction request", { error: error2 });
       throw error2;
     }
   }
@@ -29323,7 +29312,7 @@ class RequestProcessor {
           id: event.id || "",
           result: {
             signature: HexToBase64(response.signature),
-            address: distExports$2.Address.parse(wallet2.getAddress()).toRawString(),
+            address: distExports$1.Address.parse(wallet2.getAddress()).toRawString(),
             timestamp: response.timestamp,
             domain: response.domain,
             payload: toTonConnectSignDataPayload(event.payload)
@@ -29378,7 +29367,7 @@ class RequestProcessor {
           id: event.id,
           result: {
             signature: signatureBase64,
-            address: distExports$2.Address.parse(signData.address).toRawString(),
+            address: distExports$1.Address.parse(signData.address).toRawString(),
             timestamp: signData.timestamp,
             domain: signData.domain,
             payload: toTonConnectSignDataPayload(signData.payload)
@@ -29411,7 +29400,7 @@ class RequestProcessor {
         };
       }
     } catch (error2) {
-      log$l.error("Failed to approve sign data request", {
+      log$i.error("Failed to approve sign data request", {
         error: error2?.message?.toString() ?? error2?.toString()
       });
       if (error2 instanceof WalletKitError) {
@@ -29450,7 +29439,7 @@ class RequestProcessor {
       }
       return;
     } catch (error2) {
-      log$l.error("Failed to reject sign data request", { error: error2 });
+      log$i.error("Failed to reject sign data request", { error: error2 });
       throw error2;
     }
   }
@@ -29480,7 +29469,7 @@ class RequestProcessor {
         items: [
           {
             name: "ton_addr",
-            address: distExports$2.Address.parse(address).toRawString(),
+            address: distExports$1.Address.parse(address).toRawString(),
             network: walletNetwork.chainId,
             walletStateInit,
             publicKey
@@ -29543,7 +29532,7 @@ async function signTransactionInternal(wallet2, request) {
   const signedBoc = await wallet2.getSignedSendTransaction(request, {
     fakeSignature: false
   });
-  log$l.debug("Signing transaction", {
+  log$i.debug("Signing transaction", {
     messagesNumber: request.messages.length,
     fromAddress: request.fromAddress,
     validUntil: request.validUntil
@@ -29569,7 +29558,7 @@ async function createTonProofItem(params) {
   const domain = parseDomain(dAppUrl);
   const timestamp = Math.floor(Date.now() / 1e3);
   const signMessage = CreateTonProofMessage({
-    address: distExports$2.Address.parse(address),
+    address: distExports$1.Address.parse(address),
     domain,
     payload: proofPayload,
     stateInit: walletStateInit,
@@ -29598,7 +29587,7 @@ function parseDomain(url) {
       value: parsedUrl.host
     };
   } catch (error2) {
-    log$l.error("Failed to parse domain", { error: error2 });
+    log$i.error("Failed to parse domain", { error: error2 });
     return { lengthBytes: 0, value: "" };
   }
 }
@@ -29630,7 +29619,7 @@ function toTonConnectSignDataPayload(payload) {
 const getEventUUID = () => {
   return crypto.randomUUID();
 };
-const log$k = globalLogger.createChild("EventStore");
+const log$h = globalLogger.createChild("EventStore");
 const MAX_EVENT_SIZE_BYTES = 100 * 1024;
 class StorageEventStore {
   storage;
@@ -29664,7 +29653,7 @@ class StorageEventStore {
       sizeBytes
     };
     await this.saveEvent(storedEvent);
-    log$k.info("Event stored", {
+    log$h.info("Event stored", {
       eventId: storedEvent.id,
       eventType,
       sizeBytes,
@@ -29703,11 +29692,11 @@ class StorageEventStore {
       const allEvents = await this.getAllEventsFromStorage();
       const event = allEvents[eventId];
       if (!event) {
-        log$k.warn("Cannot lock non-existent event", { eventId });
+        log$h.warn("Cannot lock non-existent event", { eventId });
         return void 0;
       }
       if (event.status !== "new") {
-        log$k.debug("Cannot lock event - not in new status", {
+        log$h.debug("Cannot lock event - not in new status", {
           eventId,
           status: event.status,
           lockedBy: event.lockedBy
@@ -29722,7 +29711,7 @@ class StorageEventStore {
       };
       allEvents[eventId] = updatedEvent;
       await this.storage.set(this.storageKey, allEvents);
-      log$k.debug("Event lock acquired", { eventId, walletAddress: walletId });
+      log$h.debug("Event lock acquired", { eventId, walletAddress: walletId });
       return updatedEvent;
     });
   }
@@ -29750,7 +29739,7 @@ class StorageEventStore {
       };
       allEvents[eventId] = updatedEvent;
       await this.storage.set(this.storageKey, allEvents);
-      log$k.debug("Event retry count incremented", {
+      log$h.debug("Event retry count incremented", {
         eventId,
         retryCount: updatedEvent.retryCount,
         error: error2
@@ -29780,7 +29769,7 @@ class StorageEventStore {
       }
       allEvents[eventId] = updatedEvent;
       await this.storage.set(this.storageKey, allEvents);
-      log$k.debug("Event status updated", { eventId, oldStatus, newStatus: status });
+      log$h.debug("Event status updated", { eventId, oldStatus, newStatus: status });
       return updatedEvent;
     });
   }
@@ -29792,7 +29781,7 @@ class StorageEventStore {
       const allEvents = await this.getAllEventsFromStorage();
       return allEvents[eventId] || null;
     } catch (error2) {
-      log$k.warn("Failed to get event", { eventId, error: error2 });
+      log$h.warn("Failed to get event", { eventId, error: error2 });
       return null;
     }
   }
@@ -29812,7 +29801,7 @@ class StorageEventStore {
         };
         await this.saveEvent(recoveredEvent);
         recoveredCount++;
-        log$k.info("Recovered stale event", {
+        log$h.info("Recovered stale event", {
           eventId: event.id,
           lockedBy: event.lockedBy,
           staleMinutes: Math.round((now - event.processingStartedAt) / 6e4),
@@ -29821,7 +29810,7 @@ class StorageEventStore {
       }
     }
     if (recoveredCount > 0) {
-      log$k.info("Event recovery completed", { recoveredCount });
+      log$h.info("Event recovery completed", { recoveredCount });
     }
     return recoveredCount;
   }
@@ -29836,7 +29825,7 @@ class StorageEventStore {
     for (const event of events) {
       if (event.status === "completed" && event.completedAt && event.completedAt < cutoffTime || event.status === "errored" && event.createdAt < cutoffTime) {
         eventsToRemove.push(event.id);
-        log$k.debug("Marked event for cleanup", { eventId: event.id, status: event.status });
+        log$h.debug("Marked event for cleanup", { eventId: event.id, status: event.status });
       }
     }
     if (eventsToRemove.length > 0) {
@@ -29848,7 +29837,7 @@ class StorageEventStore {
         }
         await this.storage.set(this.storageKey, allEvents);
       });
-      log$k.info("Event cleanup completed", { cleanedUpCount });
+      log$h.info("Event cleanup completed", { cleanedUpCount });
     }
     return cleanedUpCount;
   }
@@ -29860,7 +29849,7 @@ class StorageEventStore {
       const allEvents = await this.getAllEventsFromStorage();
       return Object.values(allEvents);
     } catch (error2) {
-      log$k.warn("Failed to get all events", { error: error2 });
+      log$h.warn("Failed to get all events", { error: error2 });
       return [];
     }
   }
@@ -29888,7 +29877,7 @@ class StorageEventStore {
       const eventsData = await this.storage.get(this.storageKey);
       return eventsData || {};
     } catch (error2) {
-      log$k.warn("Failed to get events from storage", { error: error2 });
+      log$h.warn("Failed to get events from storage", { error: error2 });
       return {};
     }
   }
@@ -29923,7 +29912,7 @@ class StorageEventStore {
     }
   }
 }
-const log$j = globalLogger.createChild("EventProcessor");
+const log$g = globalLogger.createChild("EventProcessor");
 class StorageEventProcessor {
   eventStore;
   config;
@@ -29940,10 +29929,10 @@ class StorageEventProcessor {
   recoveryTimeoutId;
   cleanupTimeoutId;
   processorConfig;
-  constructor(processorConfig = {}, eventStore, config2, walletManager, sessionManager, eventRouter, eventEmitter) {
+  constructor(processorConfig = {}, eventStore, config, walletManager, sessionManager, eventRouter, eventEmitter) {
     this.processorConfig = processorConfig;
     this.eventStore = eventStore;
-    this.config = config2;
+    this.config = config;
     this.sessionManager = sessionManager;
     this.eventRouter = eventRouter;
     this.eventEmitter = eventEmitter;
@@ -29964,15 +29953,15 @@ class StorageEventProcessor {
     }
     if (walletId) {
       if (this.registeredWallets.has(walletId)) {
-        log$j.debug("Processing already registered for wallet", { walletId });
+        log$g.debug("Processing already registered for wallet", { walletId });
       } else {
         this.registeredWallets.add(walletId);
-        log$j.info("Registered wallet for event processing", { walletId });
+        log$g.info("Registered wallet for event processing", { walletId });
       }
     }
     if (!this.isProcessing) {
       this.isProcessing = true;
-      log$j.info("Started global event processing loop");
+      log$g.info("Started global event processing loop");
       this.processEventsLoop();
     } else {
       this.triggerProcessing();
@@ -29987,7 +29976,7 @@ class StorageEventProcessor {
     }
     if (walletId) {
       this.registeredWallets.delete(walletId);
-      log$j.info("Unregistered wallet from event processing", { walletId });
+      log$g.info("Unregistered wallet from event processing", { walletId });
     }
     if (this.registeredWallets.size === 0 && this.isProcessing && !walletId) {
       this.isProcessing = false;
@@ -29995,12 +29984,12 @@ class StorageEventProcessor {
         this.wakeUpResolver();
         this.wakeUpResolver = void 0;
       }
-      log$j.info("Stopped global event processing loop (no more wallets)");
+      log$g.info("Stopped global event processing loop (no more wallets)");
     }
   }
   async clearRegisteredWallets() {
     this.registeredWallets.clear();
-    log$j.info("Cleared registered wallets from event processing");
+    log$g.info("Cleared registered wallets from event processing");
   }
   /**
    * Process next available event from any source (wallet or no-wallet)
@@ -30034,7 +30023,7 @@ class StorageEventProcessor {
       const processed = await this.processEvent(eventToUse, walletId);
       return processed;
     } catch (error2) {
-      log$j.error("Error in processNextAvailableEvent", {
+      log$g.error("Error in processNextAvailableEvent", {
         error: error2.message
       });
       return false;
@@ -30046,9 +30035,9 @@ class StorageEventProcessor {
   async completeEvent(eventId) {
     try {
       await this.eventStore.updateEventStatus(eventId, "completed", "processing");
-      log$j.debug("Event marked as completed", { eventId });
+      log$g.debug("Event marked as completed", { eventId });
     } catch (error2) {
-      log$j.error("Failed to mark event as completed", {
+      log$g.error("Failed to mark event as completed", {
         eventId,
         error: error2.message
       });
@@ -30059,7 +30048,7 @@ class StorageEventProcessor {
    */
   startRecoveryLoop() {
     if (this.recoveryTimeoutId) {
-      log$j.debug("Recovery loop already running");
+      log$g.debug("Recovery loop already running");
       return;
     }
     const recoveryLoop = async () => {
@@ -30069,7 +30058,7 @@ class StorageEventProcessor {
           this.triggerProcessing();
         }
       } catch (error2) {
-        log$j.error("Error in recovery loop", { error: error2.message });
+        log$g.error("Error in recovery loop", { error: error2.message });
       }
       if (this.recoveryTimeoutId !== void 0) {
         this.recoveryTimeoutId = setTimeout(recoveryLoop, this.config.recoveryIntervalMs);
@@ -30079,7 +30068,7 @@ class StorageEventProcessor {
       try {
         await this.eventStore.cleanupOldEvents(this.config.retentionMs);
       } catch (error2) {
-        log$j.error("Error in cleanup loop", { error: error2.message });
+        log$g.error("Error in cleanup loop", { error: error2.message });
       }
       if (this.cleanupTimeoutId !== void 0) {
         this.cleanupTimeoutId = setTimeout(cleanupLoop, this.config.cleanupIntervalMs);
@@ -30087,7 +30076,7 @@ class StorageEventProcessor {
     };
     this.recoveryTimeoutId = setTimeout(recoveryLoop, this.config.recoveryIntervalMs);
     this.cleanupTimeoutId = setTimeout(cleanupLoop, this.config.cleanupIntervalMs);
-    log$j.info("Recovery and cleanup loops started");
+    log$g.info("Recovery and cleanup loops started");
   }
   /**
    * Stop the recovery process
@@ -30101,7 +30090,7 @@ class StorageEventProcessor {
       clearTimeout(this.cleanupTimeoutId);
       this.cleanupTimeoutId = void 0;
     }
-    log$j.info("Recovery and cleanup loops stopped");
+    log$g.info("Recovery and cleanup loops stopped");
   }
   // Private helper methods
   /**
@@ -30111,12 +30100,12 @@ class StorageEventProcessor {
   async processEvent(event, walletId) {
     const acquiredEvent = await this.eventStore.acquireLock(event.id, walletId);
     if (!acquiredEvent) {
-      log$j.debug("Failed to acquire lock on event", { eventId: event.id, walletId });
+      log$g.debug("Failed to acquire lock on event", { eventId: event.id, walletId });
       return false;
     }
     const retryCount = event.retryCount || 0;
     if (retryCount >= this.config.maxRetries) {
-      log$j.error("Event exceeded max retries, marking as errored", {
+      log$g.error("Event exceeded max retries, marking as errored", {
         eventId: event.id,
         retryCount,
         maxRetries: this.config.maxRetries
@@ -30124,14 +30113,14 @@ class StorageEventProcessor {
       try {
         await this.eventStore.updateEventStatus(event.id, "errored", "processing");
       } catch (error2) {
-        log$j.error("Failed to mark event as errored", {
+        log$g.error("Failed to mark event as errored", {
           eventId: event.id,
           error: error2.message
         });
       }
       return false;
     }
-    log$j.info("Processing event", {
+    log$g.info("Processing event", {
       eventId: event.id,
       eventType: event.eventType,
       walletId,
@@ -30151,11 +30140,11 @@ class StorageEventProcessor {
         ...walletAddress ? { walletAddress } : {}
       });
       await this.eventStore.updateEventStatus(event.id, "completed", "processing");
-      log$j.info("Event processing completed", { eventId: event.id });
+      log$g.info("Event processing completed", { eventId: event.id });
       return true;
     } catch (error2) {
       const errorMessage = error2.message ?? "Unknown error";
-      log$j.error("Error processing event", {
+      log$g.error("Error processing event", {
         eventId: event.id,
         error: errorMessage,
         retryCount
@@ -30163,7 +30152,7 @@ class StorageEventProcessor {
       try {
         await this.eventStore.releaseLock(event.id, errorMessage);
       } catch (updateError) {
-        log$j.error("Failed to increment retry count", {
+        log$g.error("Failed to increment retry count", {
           eventId: event.id,
           error: updateError.message
         });
@@ -30182,21 +30171,21 @@ class StorageEventProcessor {
           await this.waitForWakeUpOrTimeout(500);
         }
       } catch (error2) {
-        log$j.error("Error in global processing loop", {
+        log$g.error("Error in global processing loop", {
           error: error2.message
         });
         await this.waitForWakeUpOrTimeout(500);
       }
     }
     this.wakeUpResolver = void 0;
-    log$j.debug("Global processing loop ended");
+    log$g.debug("Global processing loop ended");
   }
   /**
    * Trigger the global processing loop
    */
   triggerProcessing() {
     if (this.isProcessing && this.wakeUpResolver) {
-      log$j.debug("Waking up global processing loop");
+      log$g.debug("Waking up global processing loop");
       this.wakeUpResolver();
     }
   }
@@ -30803,8 +30792,8 @@ function mnemonicToSeed(mnemonic2, passphrase = "") {
 async function bip39ToPrivateKey(mnemonic2) {
   const seed = await mnemonicToSeed(mnemonic2.join(" "));
   const TON_DERIVATION_PATH = [44, 607, 0];
-  const seedContainer = await distExports$1.deriveEd25519Path(Buffer.from(seed), TON_DERIVATION_PATH);
-  return distExports$1.keyPairFromSeed(seedContainer.subarray(0, 32));
+  const seedContainer = await distExports.deriveEd25519Path(Buffer.from(seed), TON_DERIVATION_PATH);
+  return distExports.keyPairFromSeed(seedContainer.subarray(0, 32));
 }
 async function MnemonicToKeyPair(mnemonic2, mnemonicType = "ton") {
   const mnemonicArray = Array.isArray(mnemonic2) ? mnemonic2 : mnemonic2.split(" ");
@@ -30812,7 +30801,7 @@ async function MnemonicToKeyPair(mnemonic2, mnemonicType = "ton") {
     throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, `Invalid mnemonic length: expected 12 or 24 words, got ${mnemonicArray.length}`);
   }
   if (mnemonicType === "ton") {
-    const key = await distExports$1.mnemonicToWalletKey(mnemonicArray);
+    const key = await distExports.mnemonicToWalletKey(mnemonicArray);
     return {
       publicKey: new Uint8Array(key.publicKey),
       secretKey: new Uint8Array(key.secretKey)
@@ -30828,24 +30817,24 @@ async function MnemonicToKeyPair(mnemonic2, mnemonicType = "ton") {
   throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, `Invalid mnemonic type: expected "ton" or "bip39", got "${mnemonicType}"`, void 0, { receivedType: mnemonicType, supportedTypes: ["ton", "bip39"] });
 }
 async function CreateTonMnemonic() {
-  return distExports$1.mnemonicNew(24);
+  return distExports.mnemonicNew(24);
 }
 function DefaultSignature(data, privateKey) {
   let fullKey = privateKey;
   if (fullKey.length === 32) {
-    const keyPair = distExports$1.keyPairFromSeed(Buffer.from(fullKey));
+    const keyPair = distExports.keyPairFromSeed(Buffer.from(fullKey));
     fullKey = keyPair.secretKey;
   }
-  return Uint8ArrayToHex(distExports$1.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(fullKey)));
+  return Uint8ArrayToHex(distExports.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(fullKey)));
 }
 function createWalletSigner(privateKey) {
   return async (data) => {
     return DefaultSignature(Uint8Array.from(data), privateKey);
   };
 }
-const fakeKeyPair = distExports$1.keyPairFromSeed(Buffer.alloc(32, 0));
+const fakeKeyPair = distExports.keyPairFromSeed(Buffer.alloc(32, 0));
 function FakeSignature(data) {
-  return Uint8ArrayToHex([...distExports$1.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(fakeKeyPair.secretKey))]);
+  return Uint8ArrayToHex([...distExports.sign(Buffer.from(Uint8Array.from(data)), Buffer.from(fakeKeyPair.secretKey))]);
 }
 class Signer {
   /**
@@ -30869,7 +30858,7 @@ class Signer {
    */
   static async fromPrivateKey(privateKey) {
     const privateKeyBytes = typeof privateKey === "string" ? Uint8Array.from(Buffer.from(privateKey.replace("0x", ""), "hex")) : privateKey;
-    const keyPair = distExports$1.keyPairFromSeed(Buffer.from(privateKeyBytes));
+    const keyPair = distExports.keyPairFromSeed(Buffer.from(privateKeyBytes));
     const signer = createWalletSigner(keyPair.secretKey);
     return {
       sign: signer,
@@ -30891,7 +30880,7 @@ function ParseStackItem(item) {
     case "null":
       return { type: "null" };
     case "cell":
-      return { type: "cell", cell: distExports$2.Cell.fromBoc(Buffer.from(item.value, "base64"))[0] };
+      return { type: "cell", cell: distExports$1.Cell.fromBoc(Buffer.from(item.value, "base64"))[0] };
     case "tuple":
     case "list":
       if (item.value.length === 0) {
@@ -30908,9 +30897,6 @@ function ParseStack(list) {
     stack.push(ParseStackItem(item));
   }
   return stack;
-}
-function ReaderStack(list) {
-  return new distExports$2.TupleReader(ParseStack(list));
 }
 function SerializeStackItem(item) {
   switch (item.type) {
@@ -30942,14 +30928,14 @@ function getEventsSubsystem() {
   return "wallet";
 }
 function createWalletId(network, address) {
-  return distExports$1.sha256_sync(`${network.chainId}:${address}`).toString("base64");
+  return distExports.sha256_sync(`${network.chainId}:${address}`).toString("base64");
 }
-async function getJettonWalletAddressFromClient(client2, jettonAddress, ownerAddress) {
+async function getJettonWalletAddressFromClient(client, jettonAddress, ownerAddress) {
   if (!isValidAddress(jettonAddress)) {
     throw new Error(`Invalid jetton address: ${jettonAddress}`);
   }
   try {
-    const result = await client2.runGetMethod(jettonAddress, "get_wallet_address", SerializeStack([{ type: "slice", cell: distExports$2.beginCell().storeAddress(distExports$2.Address.parse(ownerAddress)).endCell() }]));
+    const result = await client.runGetMethod(jettonAddress, "get_wallet_address", SerializeStack([{ type: "slice", cell: distExports$1.beginCell().storeAddress(distExports$1.Address.parse(ownerAddress)).endCell() }]));
     const parsedStack = ParseStack(result.stack);
     const jettonWalletAddress = parsedStack[0].type === "slice" || parsedStack[0].type === "cell" ? parsedStack[0].cell.asSlice().loadAddress() : null;
     if (!jettonWalletAddress) {
@@ -30960,9 +30946,9 @@ async function getJettonWalletAddressFromClient(client2, jettonAddress, ownerAdd
     throw new Error(`Failed to get jetton wallet address for ${jettonAddress}: ${error2 instanceof Error ? error2.message : "Unknown error"}`);
   }
 }
-async function getJettonBalanceFromClient(client2, jettonWalletAddress) {
+async function getJettonBalanceFromClient(client, jettonWalletAddress) {
   try {
-    const result = await client2.runGetMethod(jettonWalletAddress, "get_wallet_data");
+    const result = await client.runGetMethod(jettonWalletAddress, "get_wallet_data");
     if (result.exitCode !== 0) {
       return "0";
     }
@@ -30973,21 +30959,21 @@ async function getJettonBalanceFromClient(client2, jettonWalletAddress) {
     return "0";
   }
 }
-async function getJettonsFromClient(client2, ownerAddress, params) {
-  return client2.jettonsByOwnerAddress({
+async function getJettonsFromClient(client, ownerAddress, params) {
+  return client.jettonsByOwnerAddress({
     ownerAddress,
     offset: params?.pagination.offset,
     limit: params?.pagination.limit
   });
 }
-async function getNftsFromClient(client2, ownerAddress, params) {
-  return client2.nftItemsByOwner({
+async function getNftsFromClient(client, ownerAddress, params) {
+  return client.nftItemsByOwner({
     ownerAddress,
     pagination: params.pagination
   });
 }
-async function getNftFromClient(client2, address) {
-  const result = await client2.nftItemsByAddress({ address });
+async function getNftFromClient(client, address) {
+  const result = await client.nftItemsByAddress({ address });
   return result.nfts.length > 0 ? result.nfts[0] : null;
 }
 const getTxOpcode = (tx) => {
@@ -31053,10 +31039,10 @@ const isFailedTrace = (tx) => {
   const transactions = trace.transactions ?? {};
   if (Object.keys(transactions).length === 0)
     return false;
-  for (const config2 of KNOWN_TRACE_TYPES) {
-    const isMatch = createTraceTypeDetector(config2.triggerOpcodes)(transactions);
+  for (const config of KNOWN_TRACE_TYPES) {
+    const isMatch = createTraceTypeDetector(config.triggerOpcodes)(transactions);
     if (isMatch) {
-      return createFailureDetector(config2.safeToSkipOpcodes)(transactions);
+      return createFailureDetector(config.safeToSkipOpcodes)(transactions);
     }
   }
   return createFailureDetector(/* @__PURE__ */ new Set())(transactions);
@@ -31084,8 +31070,8 @@ const parseTraceResponse = (response) => {
   };
 };
 function getNormalizedExtMessageHash(boc) {
-  const cell = distExports$2.Cell.fromBase64(boc);
-  const message = distExports$2.loadMessage(cell.beginParse());
+  const cell = distExports$1.Cell.fromBase64(boc);
+  const message = distExports$1.loadMessage(cell.beginParse());
   if (message.info.type !== "external-in") {
     throw new Error(`Message must be "external-in", got ${message.info.type}`);
   }
@@ -31099,26 +31085,26 @@ function getNormalizedExtMessageHash(boc) {
     init: null,
     info: info2
   };
-  const normalizedCell = distExports$2.beginCell().store(distExports$2.storeMessage(normalizedMessage, { forceRef: true })).endCell();
+  const normalizedCell = distExports$1.beginCell().store(distExports$1.storeMessage(normalizedMessage, { forceRef: true })).endCell();
   return {
     hash: `0x${normalizedCell.hash().toString("hex")}`,
     boc: normalizedCell.toBoc().toString("base64")
   };
 }
-async function getTransactionStatus(client2, params) {
+async function getTransactionStatus(client, params) {
   const hashToSearch = params.boc ? getNormalizedExtMessageHash(params.boc).hash : params.normalizedHash;
   if (!hashToSearch) {
     throw new Error("Either boc or normalizedHash must be provided");
   }
   try {
-    const pendingResponse = await client2.getPendingTrace({ externalMessageHash: [hashToSearch] });
+    const pendingResponse = await client.getPendingTrace({ externalMessageHash: [hashToSearch] });
     const pendingStatus = parseTraceResponse(pendingResponse);
     if (pendingStatus)
       return pendingStatus;
   } catch (_e) {
   }
   try {
-    const traceResponse = await client2.getTrace({ traceId: [hashToSearch] });
+    const traceResponse = await client.getTrace({ traceId: [hashToSearch] });
     const completedStatus = parseTraceResponse(traceResponse);
     if (completedStatus)
       return completedStatus;
@@ -31148,11 +31134,11 @@ function storeJettonTransferMessage(src) {
 }
 function createJettonTransferPayload(params) {
   const forwardPayload = params.comment ? createCommentPayload(params.comment) : null;
-  return distExports$2.beginCell().store(storeJettonTransferMessage({
+  return distExports$1.beginCell().store(storeJettonTransferMessage({
     queryId: params.queryId ?? 0n,
     amount: params.amount,
-    destination: distExports$2.Address.parse(params.destination),
-    responseDestination: distExports$2.Address.parse(params.responseDestination),
+    destination: distExports$1.Address.parse(params.destination),
+    responseDestination: distExports$1.Address.parse(params.responseDestination),
     customPayload: params.customPayload ?? null,
     forwardAmount: params.forwardAmount ?? DEFAULT_FORWARD_AMOUNT,
     forwardPayload
@@ -31171,10 +31157,10 @@ function storeNftTransferMessage(message) {
 }
 function createNftTransferPayload(params) {
   const forwardPayload = params.comment ? createCommentPayload(params.comment) : null;
-  return distExports$2.beginCell().store(storeNftTransferMessage({
+  return distExports$1.beginCell().store(storeNftTransferMessage({
     queryId: params.queryId ?? 0n,
-    newOwner: distExports$2.Address.parse(params.newOwner),
-    responseDestination: distExports$2.Address.parse(params.responseDestination),
+    newOwner: distExports$1.Address.parse(params.newOwner),
+    responseDestination: distExports$1.Address.parse(params.responseDestination),
     customPayload: params.customPayload ?? null,
     forwardAmount: params.forwardAmount ?? DEFAULT_FORWARD_AMOUNT,
     forwardPayload
@@ -31183,16 +31169,16 @@ function createNftTransferPayload(params) {
 function createNftTransferRawPayload(params) {
   const transferMessage = {
     queryId: BigInt(params.queryId),
-    newOwner: typeof params.newOwner === "string" ? distExports$2.Address.parse(params.newOwner) : params.newOwner,
-    responseDestination: params.responseDestination ? typeof params.responseDestination === "string" ? distExports$2.Address.parse(params.responseDestination) : params.responseDestination : null,
-    customPayload: params.customPayload ? typeof params.customPayload === "string" ? distExports$2.Cell.fromBase64(params.customPayload) : params.customPayload : null,
+    newOwner: typeof params.newOwner === "string" ? distExports$1.Address.parse(params.newOwner) : params.newOwner,
+    responseDestination: params.responseDestination ? typeof params.responseDestination === "string" ? distExports$1.Address.parse(params.responseDestination) : params.responseDestination : null,
+    customPayload: params.customPayload ? typeof params.customPayload === "string" ? distExports$1.Cell.fromBase64(params.customPayload) : params.customPayload : null,
     forwardAmount: BigInt(params.forwardAmount),
-    forwardPayload: params.forwardPayload ? typeof params.forwardPayload === "string" ? distExports$2.Cell.fromBase64(params.forwardPayload) : params.forwardPayload : null
+    forwardPayload: params.forwardPayload ? typeof params.forwardPayload === "string" ? distExports$1.Cell.fromBase64(params.forwardPayload) : params.forwardPayload : null
   };
-  return distExports$2.beginCell().store(storeNftTransferMessage(transferMessage)).endCell();
+  return distExports$1.beginCell().store(storeNftTransferMessage(transferMessage)).endCell();
 }
 function createCommentPayload(comment) {
-  return distExports$2.beginCell().storeUint(0, 32).storeStringTail(comment).endCell();
+  return distExports$1.beginCell().storeUint(0, 32).storeStringTail(comment).endCell();
 }
 function createCommentPayloadBase64(comment) {
   return createCommentPayload(comment).toBoc().toString("base64");
@@ -31216,7 +31202,7 @@ function createTransferTransaction(params) {
     fromAddress: params.fromAddress
   };
 }
-const log$i = globalLogger.createChild("WalletTonClass");
+const log$f = globalLogger.createChild("WalletTonClass");
 class WalletTonClass {
   async createTransferTonTransaction(param) {
     if (!isValidAddress(param.recipientAddress)) {
@@ -31292,7 +31278,7 @@ class WalletTonClass {
       const { hash: normalizedHash, boc: normalizedBoc } = getNormalizedExtMessageHash(boc);
       return { boc, normalizedBoc, normalizedHash };
     } catch (error2) {
-      log$i.error("Failed to send transaction", { error: error2 });
+      log$f.error("Failed to send transaction", { error: error2 });
       if (error2 instanceof WalletKitError) {
         throw error2;
       }
@@ -31379,14 +31365,14 @@ class WalletNftClass {
     });
   }
 }
-const log$h = globalLogger.createChild("Initializer");
+const log$e = globalLogger.createChild("Initializer");
 class Initializer {
   config;
   networkManager;
   eventEmitter;
   analyticsManager;
-  constructor(config2, eventEmitter, analyticsManager) {
-    this.config = config2;
+  constructor(config, eventEmitter, analyticsManager) {
+    this.config = config;
     this.eventEmitter = eventEmitter;
     this.analyticsManager = analyticsManager;
   }
@@ -31395,12 +31381,12 @@ class Initializer {
    */
   async initialize(options, networkManager) {
     try {
-      log$h.info("Initializing TonWalletKit...");
+      log$e.info("Initializing TonWalletKit...");
       this.networkManager = networkManager;
       const storage = this.initializeStorage(options);
       const { walletManager, sessionManager, bridgeManager, eventRouter, eventProcessor } = await this.initializeManagers(options, storage);
       const { requestProcessor } = this.initializeProcessors(sessionManager, bridgeManager, walletManager);
-      log$h.info("TonWalletKit initialized successfully");
+      log$e.info("TonWalletKit initialized successfully");
       return {
         walletManager,
         sessionManager,
@@ -31411,7 +31397,7 @@ class Initializer {
         eventProcessor
       };
     } catch (error2) {
-      log$h.error("Failed to initialize TonWalletKit", { error: error2 });
+      log$e.error("Failed to initialize TonWalletKit", { error: error2 });
       throw error2;
     }
   }
@@ -31452,9 +31438,9 @@ class Initializer {
     const bridgeManager = new BridgeManager(options?.walletManifest, options?.bridge, sessionManager, storage, eventStore, eventRouter, options, this.eventEmitter, this.analyticsManager);
     eventRouter.setBridgeManager(bridgeManager);
     bridgeManager.start().then(() => {
-      log$h.info("Bridge manager started successfully");
+      log$e.info("Bridge manager started successfully");
     }).catch((e) => {
-      log$h.error("Could not start bridge manager", { error: e?.toString?.() });
+      log$e.error("Could not start bridge manager", { error: e?.toString?.() });
     });
     const eventProcessor = new StorageEventProcessor(options?.eventProcessor, eventStore, DEFAULT_DURABLE_EVENTS_CONFIG, walletManager, sessionManager, eventRouter, this.eventEmitter);
     return {
@@ -31479,7 +31465,7 @@ class Initializer {
    */
   async cleanup(components) {
     try {
-      log$h.info("Cleaning up TonWalletKit components...");
+      log$e.info("Cleaning up TonWalletKit components...");
       if (components.eventProcessor) {
         components.eventProcessor.stopRecoveryLoop();
         await components.eventProcessor.clearRegisteredWallets();
@@ -31491,9 +31477,9 @@ class Initializer {
       if (components.eventRouter) {
         components.eventRouter.clearCallbacks();
       }
-      log$h.info("TonWalletKit cleanup completed");
+      log$e.info("TonWalletKit cleanup completed");
     } catch (error2) {
-      log$h.error("Error during cleanup", { error: error2 });
+      log$e.error("Error during cleanup", { error: error2 });
     }
   }
 }
@@ -32046,7 +32032,7 @@ var G = (a4) => !I.has(a4), y = (a4) => a4 && a4 === Math.floor(a4) && a4 > 0 &&
     }
   }
 };
-const log$g = globalLogger.createChild("JettonsManager");
+const log$d = globalLogger.createChild("JettonsManager");
 function createCacheKey(network, address) {
   return `${network.chainId}:${address}`;
 }
@@ -32067,7 +32053,7 @@ class JettonsManager {
     for (const network of this.networkManager.getConfiguredNetworks()) {
       this.addTonToCache(network);
     }
-    log$g.info("JettonsManager initialized", { cacheSize });
+    log$d.info("JettonsManager initialized", { cacheSize });
   }
   /**
    * Add TON native token to cache for a specific network
@@ -32099,13 +32085,13 @@ class JettonsManager {
       const cacheKey = this.normalizedCacheKey(targetNetwork, jettonAddress);
       const cachedInfo = this.cache.get(cacheKey);
       if (cachedInfo) {
-        log$g.debug("Jetton info found in cache", { jettonAddress, network: targetNetwork });
+        log$d.debug("Jetton info found in cache", { jettonAddress, network: targetNetwork });
         return cachedInfo;
       }
-      log$g.debug("Jetton info not found in cache", { jettonAddress, network: targetNetwork });
+      log$d.debug("Jetton info not found in cache", { jettonAddress, network: targetNetwork });
       const address = asMaybeAddressFriendly(jettonAddress);
       if (!address) {
-        log$g.error("Invalid jetton address format", { jettonAddress, network: targetNetwork });
+        log$d.error("Invalid jetton address format", { jettonAddress, network: targetNetwork });
         return null;
       }
       const apiClient = this.networkManager.getClient(targetNetwork);
@@ -32139,7 +32125,7 @@ class JettonsManager {
       }
       return null;
     } catch (error2) {
-      log$g.error("Error getting jetton info", { error: error2, jettonAddress, network: targetNetwork });
+      log$d.error("Error getting jetton info", { error: error2, jettonAddress, network: targetNetwork });
       return null;
     }
   }
@@ -32154,7 +32140,7 @@ class JettonsManager {
     const targetNetwork = network;
     try {
       const apiClient = this.networkManager.getClient(targetNetwork);
-      log$g.debug("Getting address jettons", {
+      log$d.debug("Getting address jettons", {
         userAddress,
         network: targetNetwork,
         offset,
@@ -32172,10 +32158,10 @@ class JettonsManager {
       for (const item of response.jettons) {
         addressJettons.push(item);
       }
-      log$g.debug("Retrieved address jettons", { count: addressJettons.length, network: targetNetwork });
+      log$d.debug("Retrieved address jettons", { count: addressJettons.length, network: targetNetwork });
       return addressJettons;
     } catch (error2) {
-      log$g.error("Failed to get address jettons", { error: error2, userAddress, network: targetNetwork });
+      log$d.error("Failed to get address jettons", { error: error2, userAddress, network: targetNetwork });
       throw new JettonError(`Failed to get jettons for address: ${error2 instanceof Error ? error2.message : "Unknown error"}`, JettonErrorCode.NETWORK_ERROR, error2);
     }
   }
@@ -32195,14 +32181,14 @@ class JettonsManager {
         uri: emulationInfo.extra.uri
       };
       this.cache.set(cacheKey, jettonInfo);
-      log$g.debug("Added jetton info from emulation to cache", {
+      log$d.debug("Added jetton info from emulation to cache", {
         jettonAddress,
         network,
         name: jettonInfo.name,
         symbol: jettonInfo.symbol
       });
     } catch (error2) {
-      log$g.error("Error adding jetton from emulation", { error: error2, jettonAddress, network });
+      log$d.error("Error adding jetton from emulation", { error: error2, jettonAddress, network });
     }
   }
   /**
@@ -32217,16 +32203,16 @@ class JettonsManager {
         }
         const jettonMasterInfo = addressMetadata.token_info.find((info2) => typeof info2 === "object" && info2 !== null && "type" in info2 && info2.type === "jetton_masters");
         if (jettonMasterInfo) {
-          log$g.debug("Adding jetton from emulation metadata", { jettonAddress, network });
+          log$d.debug("Adding jetton from emulation metadata", { jettonAddress, network });
           this.addJettonFromEmulation(network, jettonAddress, jettonMasterInfo);
           addedCount++;
         }
       }
       if (addedCount > 0) {
-        log$g.info("Added jettons from emulation metadata", { addedCount, network });
+        log$d.info("Added jettons from emulation metadata", { addedCount, network });
       }
     } catch (error2) {
-      log$g.error("Error adding jettons from emulation metadata", { error: error2, network });
+      log$d.error("Error adding jettons from emulation metadata", { error: error2, network });
     }
   }
   /**
@@ -32236,7 +32222,7 @@ class JettonsManager {
     if (address === "TON") {
       return createCacheKey(network, address);
     }
-    return createCacheKey(network, distExports$2.Address.parse(address).toString());
+    return createCacheKey(network, distExports$1.Address.parse(address).toString());
   }
   /**
    * Get cache statistics
@@ -32255,7 +32241,7 @@ class JettonsManager {
       if (address === "TON") {
         return true;
       }
-      distExports$2.Address.parse(address);
+      distExports$1.Address.parse(address);
       return true;
     } catch {
       return false;
@@ -32272,13 +32258,13 @@ class JettonsManager {
         }
       }
       this.addTonToCache(network);
-      log$g.info("Jetton cache cleared for network", { network });
+      log$d.info("Jetton cache cleared for network", { network });
     } else {
       this.cache.clear();
       for (const net of this.networkManager.getConfiguredNetworks()) {
         this.addTonToCache(net);
       }
-      log$g.info("Jetton cache cleared for all networks");
+      log$d.info("Jetton cache cleared for all networks");
     }
   }
 }
@@ -32382,7 +32368,7 @@ class DefiManager {
     return this.providers.has(providerId);
   }
 }
-const log$f = globalLogger.createChild("SwapManager");
+const log$c = globalLogger.createChild("SwapManager");
 class SwapManager extends DefiManager {
   constructor(createFactoryContext) {
     super(createFactoryContext);
@@ -32394,7 +32380,7 @@ class SwapManager extends DefiManager {
    * @returns Promise resolving to swap quote
    */
   async getQuote(params, providerId) {
-    log$f.debug("Getting swap quote", {
+    log$c.debug("Getting swap quote", {
       fromToken: params.from,
       toToken: params.to,
       amount: params.amount,
@@ -32403,14 +32389,14 @@ class SwapManager extends DefiManager {
     });
     try {
       const quote = await this.getProvider(providerId || this.defaultProviderId).getQuote(params);
-      log$f.debug("Received swap quote", {
+      log$c.debug("Received swap quote", {
         fromAmount: quote.fromAmount,
         toAmount: quote.toAmount,
         priceImpact: quote.priceImpact
       });
       return quote;
     } catch (error2) {
-      log$f.error("Failed to get swap quote", { error: error2, params });
+      log$c.error("Failed to get swap quote", { error: error2, params });
       throw error2;
     }
   }
@@ -32421,16 +32407,16 @@ class SwapManager extends DefiManager {
    */
   async buildSwapTransaction(params) {
     const providerId = params.quote.providerId || this.defaultProviderId;
-    log$f.debug("Building swap transaction", {
+    log$c.debug("Building swap transaction", {
       providerId,
       userAddress: params.userAddress
     });
     try {
       const transaction = await this.getProvider(providerId).buildSwapTransaction(params);
-      log$f.debug("Built swap transaction", params.quote);
+      log$c.debug("Built swap transaction", params.quote);
       return transaction;
     } catch (error2) {
-      log$f.error("Failed to build swap transaction", { error: error2, params });
+      log$c.error("Failed to build swap transaction", { error: error2, params });
       throw error2;
     }
   }
@@ -32458,7 +32444,7 @@ class StakingError extends DefiManagerError {
     this.code = code;
   }
 }
-const log$e = globalLogger.createChild("StakingManager");
+const log$b = globalLogger.createChild("StakingManager");
 class StakingManager extends DefiManager {
   constructor(createFactoryContext) {
     super(createFactoryContext);
@@ -32469,10 +32455,10 @@ class StakingManager extends DefiManager {
    * @param providerId - Optional provider id to use
    */
   async getQuote(params, providerId) {
-    log$e.debug("Getting staking quote", params);
+    log$b.debug("Getting staking quote", params);
     try {
       const quote = await this.getProvider(providerId).getQuote(params);
-      log$e.debug("Received staking quote", quote);
+      log$b.debug("Received staking quote", quote);
       return quote;
     } catch (error2) {
       throw this.createError("Failed to get staking quote", StakingErrorCode.InvalidParams, { error: error2, params });
@@ -32484,7 +32470,7 @@ class StakingManager extends DefiManager {
    * @param providerId - Optional provider id to use
    */
   async buildStakeTransaction(params, providerId) {
-    log$e.debug("Building staking transaction", params);
+    log$b.debug("Building staking transaction", params);
     try {
       return await this.getProvider(providerId).buildStakeTransaction(params);
     } catch (error2) {
@@ -32501,7 +32487,7 @@ class StakingManager extends DefiManager {
    * @param providerId - Optional provider id to use
    */
   async getStakedBalance(userAddress, network, providerId) {
-    log$e.debug("Getting staking balance", {
+    log$b.debug("Getting staking balance", {
       userAddress,
       network,
       provider: providerId || this.defaultProviderId
@@ -32522,7 +32508,7 @@ class StakingManager extends DefiManager {
    * @param providerId - Optional provider id to use
    */
   async getStakingProviderInfo(network, providerId) {
-    log$e.debug("Getting staking info", {
+    log$b.debug("Getting staking info", {
       network,
       provider: providerId || this.defaultProviderId
     });
@@ -32542,11 +32528,11 @@ class StakingManager extends DefiManager {
   }
   createError(message, code, details) {
     const errorCode = Object.values(StakingErrorCode).includes(code) ? code : StakingErrorCode.InvalidParams;
-    log$e.error(message, { code, details });
+    log$b.error(message, { code, details });
     return new StakingError(message, errorCode, details);
   }
 }
-const log$d = globalLogger.createChild("EventEmitter");
+const log$a = globalLogger.createChild("EventEmitter");
 class EventEmitter {
   listeners = {};
   /**
@@ -32560,7 +32546,7 @@ class EventEmitter {
     } else {
       eventListeners2.add(listener);
     }
-    log$d.debug("Event listener added", {
+    log$a.debug("Event listener added", {
       eventName: String(eventName),
       totalListeners: this.listeners[eventName]?.size
     });
@@ -32606,10 +32592,10 @@ class EventEmitter {
   removeAllListeners(eventName) {
     if (eventName) {
       delete this.listeners[eventName];
-      log$d.debug("All listeners removed for event", { eventName: String(eventName) });
+      log$a.debug("All listeners removed for event", { eventName: String(eventName) });
     } else {
       this.listeners = {};
-      log$d.debug("All event listeners cleared");
+      log$a.debug("All event listeners cleared");
     }
   }
   /**
@@ -32625,7 +32611,7 @@ class EventEmitter {
     return Object.keys(this.listeners);
   }
 }
-const log$c = globalLogger.createChild("StreamingManager");
+const log$9 = globalLogger.createChild("StreamingManager");
 class StreamingManager {
   createFactoryContext;
   providers = /* @__PURE__ */ new Map();
@@ -32641,7 +32627,7 @@ class StreamingManager {
     const provider = resolveProvider(input, this.createFactoryContext());
     const networkId = String(provider.network.chainId);
     if (this.providers.has(networkId)) {
-      log$c.warn(`Provider for network ${networkId} is already registered. Overriding.`);
+      log$9.warn(`Provider for network ${networkId} is already registered. Overriding.`);
       this.providerConnectionUnsubs.get(networkId)?.();
       this.providers.get(networkId)?.disconnect();
     }
@@ -32889,7 +32875,7 @@ class Api extends HttpClient {
 function pascalToKebab(value) {
   return value.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 }
-const log$b = globalLogger.createChild("AnalyticsManager");
+const log$8 = globalLogger.createChild("AnalyticsManager");
 class AnalyticsManager {
   api;
   baseEvent;
@@ -32965,12 +32951,12 @@ class AnalyticsManager {
     if (this.appInfo?.getCurrentUserId) {
       enhancedEvent.user_id = this.appInfo.getCurrentUserId();
     }
-    log$b.debug("Analytics event emitted", { event: enhancedEvent });
+    log$8.debug("Analytics event emitted", { event: enhancedEvent });
     this.events.push(enhancedEvent);
     if (this.events.length > this.maxQueueSize) {
       const removed = this.events.length - this.maxQueueSize;
       this.events = this.events.slice(removed);
-      log$b.warn("Analytics queue overflow, dropped oldest events", { count: removed });
+      log$8.warn("Analytics queue overflow, dropped oldest events", { count: removed });
     }
     if (this.events.length >= this.maxBatchSize) {
       void this.flush();
@@ -32995,10 +32981,10 @@ class AnalyticsManager {
     const eventsToSend = this.extractEventsToSend();
     try {
       await this.processEventsBatch(eventsToSend);
-      log$b.debug("Analytics events sent successfully");
+      log$8.debug("Analytics events sent successfully");
     } catch (error2) {
       this.restoreEvents(eventsToSend);
-      log$b.error("Failed to send analytics events", { error: error2 });
+      log$8.error("Failed to send analytics events", { error: error2 });
     } finally {
       this.isProcessing = false;
       this.scheduleNextFlushIfNeeded();
@@ -33016,7 +33002,7 @@ class AnalyticsManager {
     return eventsToSend;
   }
   async processEventsBatch(eventsToSend) {
-    log$b.debug("Sending analytics events", { count: eventsToSend.length });
+    log$8.debug("Sending analytics events", { count: eventsToSend.length });
     try {
       const response = await this.sendEvents(eventsToSend);
       this.handleResponse(response);
@@ -33039,7 +33025,7 @@ class AnalyticsManager {
     if (this.events.length > this.maxQueueSize) {
       const removed = this.events.length - this.maxQueueSize;
       this.events = this.events.slice(0, this.maxQueueSize);
-      log$b.warn("Analytics queue overflow after restore, dropped oldest events", { count: removed });
+      log$8.warn("Analytics queue overflow after restore, dropped oldest events", { count: removed });
     }
   }
   scheduleNextFlushIfNeeded() {
@@ -33060,7 +33046,7 @@ class AnalyticsManager {
     return status === AnalyticsManager.HTTP_STATUS.TOO_MANY_REQUESTS;
   }
   handleClientError(status, statusText) {
-    log$b.error("Analytics API client error", { status, statusText });
+    log$8.error("Analytics API client error", { status, statusText });
   }
   handleUnknownError(error2) {
     if (this.backoff < AnalyticsManager.MAX_BACKOFF_ATTEMPTS) {
@@ -33290,13 +33276,13 @@ class BaseApiClient {
   fetchApi;
   network;
   disableNetworkSend;
-  constructor(config2, defaultEndpoint) {
-    this.network = config2.network;
-    this.endpoint = config2.endpoint ?? defaultEndpoint;
-    this.apiKey = config2.apiKey;
-    this.timeout = config2.timeout ?? 3e4;
-    this.fetchApi = config2.fetchApi ?? fetch;
-    this.disableNetworkSend = config2.disableNetworkSend ?? false;
+  constructor(config, defaultEndpoint) {
+    this.network = config.network;
+    this.endpoint = config.endpoint ?? defaultEndpoint;
+    this.apiKey = config.apiKey;
+    this.timeout = config.timeout ?? 3e4;
+    this.fetchApi = config.fetchApi ?? fetch;
+    this.disableNetworkSend = config.disableNetworkSend ?? false;
   }
   async fetch(url, props = {}) {
     const headers = new Headers(props.headers);
@@ -33372,7 +33358,7 @@ const padBase64 = (data) => {
   return data.padEnd(data.length + (4 - data.length % 4), "=");
 };
 const prepareAddress = (address) => {
-  if (address instanceof distExports$2.Address) {
+  if (address instanceof distExports$1.Address) {
     address = address.toString();
   }
   return address;
@@ -33386,11 +33372,11 @@ const parseInternalTransactionId = (data) => {
   }
   return null;
 };
-const log$a = globalLogger.createChild("ApiClientToncenter");
+const log$7 = globalLogger.createChild("ApiClientToncenter");
 class ApiClientToncenter extends BaseApiClient {
-  constructor(config2 = {}) {
-    const defaultEndpoint = config2.network?.chainId === Network.mainnet().chainId ? "https://toncenter.com" : "https://testnet.toncenter.com";
-    super(config2, defaultEndpoint);
+  constructor(config = {}) {
+    const defaultEndpoint = config.network?.chainId === Network.mainnet().chainId ? "https://toncenter.com" : "https://testnet.toncenter.com";
+    super(config, defaultEndpoint);
   }
   appendAuthHeaders(headers) {
     if (this.apiKey)
@@ -33546,7 +33532,7 @@ class ApiClientToncenter extends BaseApiClient {
     }
     results.forEach((result) => {
       if (result.status === "rejected") {
-        log$a.error("Error fetching trace", { error: result.reason });
+        log$7.error("Error fetching trace", { error: result.reason });
       }
     });
     throw new Error("Failed to fetch trace");
@@ -33568,7 +33554,7 @@ class ApiClientToncenter extends BaseApiClient {
         return response;
       }
     } catch (error2) {
-      log$a.error("Error fetching pending trace", { error: error2 });
+      log$7.error("Error fetching pending trace", { error: error2 });
     }
     throw new Error("Failed to fetch pending trace");
   }
@@ -33584,7 +33570,7 @@ class ApiClientToncenter extends BaseApiClient {
     return null;
   }
   async backResolveDnsWallet(wallet2) {
-    if (wallet2 instanceof distExports$2.Address) {
+    if (wallet2 instanceof distExports$1.Address) {
       wallet2 = wallet2.toString();
     }
     const response = toDnsRecords(await this.getJson("/api/v3/dns/records", {
@@ -33677,7 +33663,7 @@ class ApiClientToncenter extends BaseApiClient {
     };
   }
   async getEvents(request) {
-    const account = request.account instanceof distExports$2.Address ? request.account.toString() : request.account;
+    const account = request.account instanceof distExports$1.Address ? request.account.toString() : request.account;
     const limit = request.limit ?? 20;
     const offset = request.offset ?? 0;
     const query = {
@@ -33704,7 +33690,7 @@ class ApiClientToncenter extends BaseApiClient {
     };
   }
 }
-const log$9 = globalLogger.createChild("NetworkManager");
+const log$6 = globalLogger.createChild("NetworkManager");
 class KitNetworkManager {
   clients = /* @__PURE__ */ new Map();
   constructor(options) {
@@ -33720,16 +33706,16 @@ class KitNetworkManager {
   initializeClients(options) {
     const networks = options.networks;
     if (!networks) {
-      log$9.warn("No networks configured in TonWalletKitOptions");
+      log$6.warn("No networks configured in TonWalletKitOptions");
       return;
     }
     for (const [chainId, networkConfig] of Object.entries(networks)) {
       const network = Network.custom(chainId);
       if (!networkConfig)
         continue;
-      const client2 = this.createClient(network, networkConfig.apiClient, options);
-      this.clients.set(network.chainId, client2);
-      log$9.info("Initialized network client", { chainId });
+      const client = this.createClient(network, networkConfig.apiClient, options);
+      this.clients.set(network.chainId, client);
+      log$6.info("Initialized network client", { chainId });
     }
   }
   /**
@@ -33768,14 +33754,14 @@ class KitNetworkManager {
    * @throws WalletKitError if no client is configured for the network
    */
   getClient(network) {
-    const client2 = this.clients.get(network.chainId);
-    if (!client2) {
+    const client = this.clients.get(network.chainId);
+    if (!client) {
       throw new WalletKitError(ERROR_CODES.NETWORK_NOT_CONFIGURED, `No API client configured for network ${network.chainId}`, void 0, {
         network,
         configuredNetworks: Array.from(this.clients.keys())
       });
     }
-    return client2;
+    return client;
   }
   /**
    * Check if a network is configured
@@ -33792,12 +33778,12 @@ class KitNetworkManager {
   /**
    * Add or update a network client dynamically
    */
-  setClient(network, client2) {
-    this.clients.set(network.chainId, client2);
-    log$9.info("Added/updated network client", { network });
+  setClient(network, client) {
+    this.clients.set(network.chainId, client);
+    log$6.info("Added/updated network client", { network });
   }
 }
-const log$8 = globalLogger.createChild("TonWalletKit");
+const log$5 = globalLogger.createChild("TonWalletKit");
 class TonWalletKit {
   // Component references
   walletManager;
@@ -33842,7 +33828,7 @@ class TonWalletKit {
     this.stakingManager = new StakingManager(() => this.createFactoryContext());
     this.eventEmitter.on("restoreConnection", async ({ payload: event }) => {
       if (!event.domain) {
-        log$8.error("Domain is required for restore connection");
+        log$5.error("Domain is required for restore connection");
         return this.sendErrorConnectResponse(event);
       }
       const sessions = await this.sessionManager.getSessions({
@@ -33852,12 +33838,12 @@ class TonWalletKit {
       });
       const session = sessions.length > 0 ? sessions[0] : void 0;
       if (!session) {
-        log$8.error("Session not found for domain", { domain: event.domain });
+        log$5.error("Session not found for domain", { domain: event.domain });
         return this.sendErrorConnectResponse(event);
       }
       const wallet2 = session.walletId ? this.walletManager?.getWallet(session.walletId) : void 0;
       if (!wallet2) {
-        log$8.error("Wallet not found for session", { walletId: session.walletId });
+        log$5.error("Wallet not found for session", { walletId: session.walletId });
         return this.sendErrorConnectResponse(event);
       }
       const walletAddress = wallet2.getAddress();
@@ -33872,7 +33858,7 @@ class TonWalletKit {
           items: [
             {
               name: "ton_addr",
-              address: distExports$2.Address.parse(walletAddress).toRawString(),
+              address: distExports$1.Address.parse(walletAddress).toRawString(),
               // TODO: Support multiple networks
               network: wallet2.getNetwork().chainId,
               walletStateInit,
@@ -33917,7 +33903,7 @@ class TonWalletKit {
       await this.eventProcessor.startProcessing();
       this.isInitialized = true;
     } catch (error2) {
-      log$8.error("TonWalletKit initialization failed", { error: error2?.toString() });
+      log$5.error("TonWalletKit initialization failed", { error: error2?.toString() });
       throw error2;
     }
   }
@@ -33948,7 +33934,7 @@ class TonWalletKit {
         const walletId = wallet2.getWalletId();
         await this.eventProcessor.startProcessing(walletId);
       } catch (error2) {
-        log$8.error("Failed to start event processing for wallet", {
+        log$5.error("Failed to start event processing for wallet", {
           walletAddress: wallet2.getAddress(),
           error: error2
         });
@@ -33972,7 +33958,7 @@ class TonWalletKit {
   // === Wallet Management API (Delegated) ===
   getWallets() {
     if (!this.isInitialized) {
-      log$8.warn("TonWalletKit not yet initialized, returning empty array");
+      log$5.warn("TonWalletKit not yet initialized, returning empty array");
       return [];
     }
     return this.walletManager.getWallets();
@@ -33982,7 +33968,7 @@ class TonWalletKit {
    */
   getWallet(walletId) {
     if (!this.isInitialized) {
-      log$8.warn("TonWalletKit not yet initialized, returning undefined");
+      log$5.warn("TonWalletKit not yet initialized, returning undefined");
       return void 0;
     }
     return this.walletManager.getWallet(walletId);
@@ -34049,7 +34035,7 @@ class TonWalletKit {
             payload: {}
           }, sessionCrypto), 10, 100);
         } catch (error2) {
-          log$8.error("Failed to send disconnect to bridge", { sessionId: sessionId2, error: error2 });
+          log$5.error("Failed to send disconnect to bridge", { sessionId: sessionId2, error: error2 });
         }
       }
       await this.sessionManager.removeSession(sessionId2);
@@ -34058,7 +34044,7 @@ class TonWalletKit {
       try {
         await removeSession(sessionId);
       } catch (error2) {
-        log$8.error("Failed to remove session", { sessionId, error: error2 });
+        log$5.error("Failed to remove session", { sessionId, error: error2 });
       }
     } else {
       const sessions = await this.sessionManager.getSessions();
@@ -34067,7 +34053,7 @@ class TonWalletKit {
           try {
             await removeSession(session.sessionId);
           } catch (error2) {
-            log$8.error("Failed to remove session", { sessionId: session.sessionId, error: error2 });
+            log$5.error("Failed to remove session", { sessionId: session.sessionId, error: error2 });
           }
         }
       }
@@ -34150,7 +34136,7 @@ class TonWalletKit {
       }, this.config, this.analyticsManager);
       return await handler.handle(bridgeEvent);
     } catch (error2) {
-      log$8.error("Failed to create connection event from URL", { error: error2, url });
+      log$5.error("Failed to create connection event from URL", { error: error2, url });
       throw error2;
     }
   }
@@ -34165,7 +34151,7 @@ class TonWalletKit {
       const bridgeEvent = this.parseBridgeConnectEventFromUrl(url);
       await this.eventRouter.routeEvent(bridgeEvent);
     } catch (error2) {
-      log$8.error("Failed to handle TON Connect URL", { error: error2, url });
+      log$5.error("Failed to handle TON Connect URL", { error: error2, url });
       throw error2;
     }
   }
@@ -34214,7 +34200,7 @@ class TonWalletKit {
         params[key] = value;
       }
       if (!params.v || !params.id || !params.r) {
-        log$8.warn("Missing required TON Connect URL parameters");
+        log$5.warn("Missing required TON Connect URL parameters");
         return null;
       }
       return {
@@ -34226,7 +34212,7 @@ class TonWalletKit {
         ...params
       };
     } catch (error2) {
-      log$8.error("Failed to parse TON Connect URL", { error: error2, url });
+      log$5.error("Failed to parse TON Connect URL", { error: error2, url });
       return null;
     }
   }
@@ -34425,7 +34411,7 @@ function mapAccountState(raw) {
   return out;
 }
 function toRaw(address) {
-  return distExports$2.Address.parse(address).toRawString();
+  return distExports$1.Address.parse(address).toRawString();
 }
 function mapJettonMasters(jettonInfo) {
   const addressBook = {};
@@ -35011,9 +34997,9 @@ function mapMasterchainInfo(rawResponse) {
   };
 }
 class ApiClientTonApi extends BaseApiClient {
-  constructor(config2 = {}) {
+  constructor(config = {}) {
     let defaultEndpoint;
-    switch (config2.network?.chainId) {
+    switch (config.network?.chainId) {
       case Network.mainnet().chainId:
         defaultEndpoint = "https://tonapi.io";
         break;
@@ -35024,7 +35010,7 @@ class ApiClientTonApi extends BaseApiClient {
         defaultEndpoint = "https://testnet.tonapi.io";
         break;
     }
-    super(config2, defaultEndpoint);
+    super(config, defaultEndpoint);
   }
   async getAccountState(address, _seqno) {
     try {
@@ -35243,17 +35229,17 @@ class ApiClientTonApi extends BaseApiClient {
   }
   normalizeAddress(address) {
     try {
-      if (address instanceof distExports$2.Address) {
+      if (address instanceof distExports$1.Address) {
         return address.toString();
       }
-      return distExports$2.Address.parse(address).toString();
+      return distExports$1.Address.parse(address).toString();
     } catch {
       return address.toString();
     }
   }
 }
 const WalletV5R1CodeBoc = "b5ee9c7201021401000281000114ff00f4a413f4bcf2c80b01020120020302014804050102f20e02dcd020d749c120915b8f6320d70b1f2082106578746ebd21821073696e74bdb0925f03e082106578746eba8eb48020d72101d074d721fa4030fa44f828fa443058bd915be0ed44d0810141d721f4058307f40e6fa1319130e18040d721707fdb3ce03120d749810280b99130e070e2100f020120060702012008090019be5f0f6a2684080a0eb90fa02c02016e0a0b0201480c0d0019adce76a2684020eb90eb85ffc00019af1df6a2684010eb90eb858fc00017b325fb51341c75c875c2c7e00011b262fb513435c28020011e20d70b1f82107369676ebaf2e08a7f0f01e68ef0eda2edfb218308d722028308d723208020d721d31fd31fd31fed44d0d200d31f20d31fd3ffd70a000af90140ccf9109a28945f0adb31e1f2c087df02b35007b0f2d0845125baf2e0855036baf2e086f823bbf2d0882292f800de01a47fc8ca00cb1f01cf16c9ed542092f80fde70db3cd81003f6eda2edfb02f404216e926c218e4c0221d73930709421c700b38e2d01d72820761e436c20d749c008f2e09320d74ac002f2e09320d71d06c712c2005230b0f2d089d74cd7393001a4e86c128407bbf2e093d74ac000f2e093ed55e2d20001c000915be0ebd72c08142091709601d72c081c12e25210b1e30f20d74a111213009601fa4001fa44f828fa443058baf2e091ed44d0810141d718f405049d7fc8ca0040048307f453f2e08b8e14038307f45bf2e08c22d70a00216e01b3b0f2d090e2c85003cf1612f400c9ed54007230d72c08248e2d21f2e092d200ed44d0d2005113baf2d08f54503091319c01810140d721d70a00f2e08ee2c8ca0058cf16c9ed5493f2c08de20010935bdb31e1d74cd0";
-const WalletV5R1CodeCell = distExports$2.Cell.fromBoc(Buffer.from(WalletV5R1CodeBoc, "hex"))[0];
+const WalletV5R1CodeCell = distExports$1.Cell.fromBoc(Buffer.from(WalletV5R1CodeBoc, "hex"))[0];
 class ActionSendMsg {
   mode;
   outMsg;
@@ -35264,7 +35250,7 @@ class ActionSendMsg {
     this.outMsg = outMsg;
   }
   serialize() {
-    return distExports$2.beginCell().storeUint(this.tag, 32).storeUint(this.mode | distExports$2.SendMode.IGNORE_ERRORS, 8).storeRef(distExports$2.beginCell().store(distExports$2.storeMessageRelaxed(this.outMsg)).endCell()).endCell();
+    return distExports$1.beginCell().storeUint(this.tag, 32).storeUint(this.mode | distExports$1.SendMode.IGNORE_ERRORS, 8).storeRef(distExports$1.beginCell().store(distExports$1.storeMessageRelaxed(this.outMsg)).endCell()).endCell();
   }
 }
 class ActionAddExtension {
@@ -35275,7 +35261,7 @@ class ActionAddExtension {
     this.address = address;
   }
   serialize() {
-    return distExports$2.beginCell().storeUint(this.tag, 8).storeAddress(this.address).endCell();
+    return distExports$1.beginCell().storeUint(this.tag, 8).storeAddress(this.address).endCell();
   }
 }
 class ActionRemoveExtension {
@@ -35286,7 +35272,7 @@ class ActionRemoveExtension {
     this.address = address;
   }
   serialize() {
-    return distExports$2.beginCell().storeUint(this.tag, 8).storeAddress(this.address).endCell();
+    return distExports$1.beginCell().storeUint(this.tag, 8).storeAddress(this.address).endCell();
   }
 }
 class ActionSetSignatureAuthAllowed {
@@ -35297,7 +35283,7 @@ class ActionSetSignatureAuthAllowed {
     this.allowed = allowed;
   }
   serialize() {
-    return distExports$2.beginCell().storeUint(this.tag, 8).storeUint(this.allowed ? 1 : 0, 1).endCell();
+    return distExports$1.beginCell().storeUint(this.tag, 8).storeUint(this.allowed ? 1 : 0, 1).endCell();
   }
 }
 function isExtendedAction(action) {
@@ -35305,18 +35291,18 @@ function isExtendedAction(action) {
 }
 function packActionsListOut(actions) {
   if (actions.length === 0) {
-    return distExports$2.beginCell().endCell();
+    return distExports$1.beginCell().endCell();
   }
   const [action, ...rest] = actions;
   if (isExtendedAction(action)) {
     throw new Error("Actions bust be in an order: all extended actions, all out actions");
   }
-  return distExports$2.beginCell().storeRef(packActionsListOut(rest)).storeSlice(action.serialize().beginParse()).endCell();
+  return distExports$1.beginCell().storeRef(packActionsListOut(rest)).storeSlice(action.serialize().beginParse()).endCell();
 }
 function packExtendedActions(extendedActions) {
   const first = extendedActions[0];
   const rest = extendedActions.slice(1);
-  let builder2 = distExports$2.beginCell().storeSlice(first.serialize().beginParse());
+  let builder2 = distExports$1.beginCell().storeSlice(first.serialize().beginParse());
   if (rest.length > 0) {
     builder2 = builder2.storeRef(packExtendedActions(extendedActions.slice(1)));
   }
@@ -35332,7 +35318,7 @@ function packActionsListExtended(actions) {
       outActions.push(action);
     }
   });
-  let builder2 = distExports$2.beginCell();
+  let builder2 = distExports$1.beginCell();
   if (outActions.length === 0) {
     builder2 = builder2.storeUint(0, 1);
   } else {
@@ -35353,7 +35339,7 @@ function packActionsListExtended(actions) {
 function packActionsList(actions) {
   return packActionsListExtended(actions);
 }
-const log$7 = globalLogger.createChild("WalletV5R1Adapter");
+const log$4 = globalLogger.createChild("WalletV5R1Adapter");
 const defaultWalletIdV5R1 = 2147483409;
 class WalletV5R1Adapter {
   // private keyPair: { publicKey: Uint8Array; secretKey: Uint8Array };
@@ -35380,21 +35366,21 @@ class WalletV5R1Adapter {
       domain: options.domain
     });
   }
-  constructor(config2) {
-    this.config = config2;
-    this.client = config2.tonClient;
-    this.signer = config2.signer;
-    this.domain = config2.domain;
+  constructor(config) {
+    this.config = config;
+    this.client = config.tonClient;
+    this.signer = config.signer;
+    this.domain = config.domain;
     this.publicKey = this.config.publicKey;
     this.walletContract = WalletV5.createFromConfig({
       publicKey: HexToBigInt(this.publicKey),
       seqno: 0,
       signatureAllowed: true,
-      walletId: typeof config2.walletId === "bigint" ? Number(config2.walletId) : config2.walletId ?? defaultWalletIdV5R1,
-      extensions: distExports$2.Dictionary.empty()
+      walletId: typeof config.walletId === "bigint" ? Number(config.walletId) : config.walletId ?? defaultWalletIdV5R1,
+      extensions: distExports$1.Dictionary.empty()
     }, {
       code: WalletV5R1CodeCell,
-      workchain: config2.workchain ?? 0,
+      workchain: config.workchain ?? 0,
       client: this.client
     });
   }
@@ -35425,11 +35411,11 @@ class WalletV5R1Adapter {
   async getSignedSendTransaction(input, options) {
     const actions = packActionsList(input.messages.map((m) => {
       let bounce = true;
-      const parsedAddress = distExports$2.Address.parseFriendly(m.address);
+      const parsedAddress = distExports$1.Address.parseFriendly(m.address);
       if (parsedAddress.isBounceable === false) {
         bounce = false;
       }
-      const msg = distExports$2.internal({
+      const msg = distExports$1.internal({
         to: m.address,
         value: BigInt(m.amount),
         bounce,
@@ -35437,21 +35423,21 @@ class WalletV5R1Adapter {
       });
       if (m.payload) {
         try {
-          msg.body = distExports$2.Cell.fromBase64(m.payload);
+          msg.body = distExports$1.Cell.fromBase64(m.payload);
         } catch (error2) {
-          log$7.warn("Failed to load payload", { error: error2 });
+          log$4.warn("Failed to load payload", { error: error2 });
           throw WalletKitError.fromError(ERROR_CODES.CONTRACT_VALIDATION_FAILED, "Failed to parse transaction payload", error2);
         }
       }
       if (m.stateInit) {
         try {
-          msg.init = distExports$2.loadStateInit(distExports$2.Cell.fromBase64(m.stateInit).asSlice());
+          msg.init = distExports$1.loadStateInit(distExports$1.Cell.fromBase64(m.stateInit).asSlice());
         } catch (error2) {
-          log$7.warn("Failed to load state init", { error: error2 });
+          log$4.warn("Failed to load state init", { error: error2 });
           throw WalletKitError.fromError(ERROR_CODES.CONTRACT_VALIDATION_FAILED, "Failed to parse state init", error2);
         }
       }
-      return new ActionSendMsg(distExports$2.SendMode.PAY_GAS_SEPARATELY + distExports$2.SendMode.IGNORE_ERRORS, msg);
+      return new ActionSendMsg(distExports$1.SendMode.PAY_GAS_SEPARATELY + distExports$1.SendMode.IGNORE_ERRORS, msg);
     }));
     const createBodyOptions = {
       ...options,
@@ -35478,12 +35464,12 @@ class WalletV5R1Adapter {
       throw new Error("Failed to get seqno or walletId");
     }
     const transfer = await this.createBodyV5(seqno, walletId, actions, createBodyOptions);
-    const ext = distExports$2.external({
+    const ext = distExports$1.external({
       to: this.walletContract.address,
       init: this.walletContract.init,
       body: transfer
     });
-    return distExports$2.beginCell().store(distExports$2.storeMessage(ext)).endCell().toBoc().toString("base64");
+    return distExports$1.beginCell().store(distExports$1.storeMessage(ext)).endCell().toBoc().toString("base64");
   }
   /**
    * Get state init for wallet deployment
@@ -35492,7 +35478,7 @@ class WalletV5R1Adapter {
     if (!this.walletContract.init) {
       throw new Error("Wallet contract not properly initialized");
     }
-    const stateInit = distExports$2.beginCell().store(distExports$2.storeStateInit(this.walletContract.init)).endCell();
+    const stateInit = distExports$1.beginCell().store(distExports$1.storeStateInit(this.walletContract.init)).endCell();
     return stateInit.toBoc().toString("base64");
   }
   /**
@@ -35508,7 +35494,7 @@ class WalletV5R1Adapter {
     try {
       return await this.walletContract.seqno;
     } catch (error2) {
-      log$7.warn("Failed to get seqno", { error: error2 });
+      log$4.warn("Failed to get seqno", { error: error2 });
       throw error2;
     }
   }
@@ -35519,7 +35505,7 @@ class WalletV5R1Adapter {
     try {
       return this.walletContract.walletId;
     } catch (error2) {
-      log$7.warn("Failed to get wallet ID", { error: error2 });
+      log$4.warn("Failed to get wallet ID", { error: error2 });
       const walletId = this.config.walletId;
       const subwalletNumber = typeof walletId === "bigint" ? Number(walletId) : walletId || 0;
       return new WalletV5R1Id({ subwalletNumber });
@@ -35533,7 +35519,7 @@ class WalletV5R1Adapter {
       const state = await this.client.getAccountState(asAddressFriendly(this.walletContract.address));
       return state.status === "active";
     } catch (error2) {
-      log$7.warn("Failed to check deployment status", { error: error2 });
+      log$4.warn("Failed to check deployment status", { error: error2 });
       return false;
     }
   }
@@ -35542,11 +35528,11 @@ class WalletV5R1Adapter {
       auth_signed: 1936287598
     };
     const expireAt = options.validUntil ?? Math.floor(Date.now() / 1e3) + 300;
-    const payload = distExports$2.beginCell().storeUint(Opcodes2.auth_signed, 32).storeUint(walletId, 32).storeUint(expireAt, 32).storeUint(seqno, 32).storeSlice(actionsList.beginParse()).endCell();
-    const domainPrefix = this.domain ? distExports$2.signatureDomainPrefix(this.domain) : null;
+    const payload = distExports$1.beginCell().storeUint(Opcodes2.auth_signed, 32).storeUint(walletId, 32).storeUint(expireAt, 32).storeUint(seqno, 32).storeSlice(actionsList.beginParse()).endCell();
+    const domainPrefix = this.domain ? distExports$1.signatureDomainPrefix(this.domain) : null;
     const signingData = domainPrefix ? Buffer.concat([domainPrefix, payload.hash()]) : payload.hash();
     const signature = options.fakeSignature ? FakeSignature(signingData) : await this.sign(signingData);
-    return distExports$2.beginCell().storeSlice(payload.beginParse()).storeBuffer(Buffer.from(HexToUint8Array(signature))).endCell();
+    return distExports$1.beginCell().storeSlice(payload.beginParse()).storeBuffer(Buffer.from(HexToUint8Array(signature))).endCell();
   }
   async getSignedSignData(input) {
     const signature = await this.sign(HexToUint8Array(input.hash));
@@ -35570,9 +35556,9 @@ class WalletV5R1Adapter {
     ];
   }
 }
-const log$6 = globalLogger.createChild("WalletV5R1");
-function walletV5ConfigToCell(config2) {
-  return distExports$2.beginCell().storeBit(config2.signatureAllowed).storeUint(config2.seqno, 32).storeUint(config2.walletId, 32).storeUint(config2.publicKey, 256).storeDict(config2.extensions, distExports$2.Dictionary.Keys.BigUint(256), distExports$2.Dictionary.Values.BigInt(1)).endCell();
+const log$3 = globalLogger.createChild("WalletV5R1");
+function walletV5ConfigToCell(config) {
+  return distExports$1.beginCell().storeBit(config.signatureAllowed).storeUint(config.seqno, 32).storeUint(config.walletId, 32).storeUint(config.publicKey, 256).storeDict(config.extensions, distExports$1.Dictionary.Keys.BigUint(256), distExports$1.Dictionary.Values.BigInt(1)).endCell();
 }
 const Opcodes = {
   action_send_msg: 247711853,
@@ -35603,40 +35589,40 @@ class WalletV5 {
   address;
   init;
   subwalletId;
-  constructor(client2, address, init2) {
-    this.client = client2;
+  constructor(client, address, init2) {
+    this.client = client;
     this.address = address;
     this.init = init2;
   }
-  static createFromAddress(client2, address) {
-    return new WalletV5(client2, address);
+  static createFromAddress(client, address) {
+    return new WalletV5(client, address);
   }
-  static createFromConfig(config2, options) {
-    const data = walletV5ConfigToCell(config2);
+  static createFromConfig(config, options) {
+    const data = walletV5ConfigToCell(config);
     const init2 = { code: options.code, data };
-    const wallet2 = new WalletV5(options.client, distExports$2.contractAddress(options.workchain, init2), init2);
-    wallet2.subwalletId = config2.walletId;
+    const wallet2 = new WalletV5(options.client, distExports$1.contractAddress(options.workchain, init2), init2);
+    wallet2.subwalletId = config.walletId;
     return wallet2;
   }
   async sendDeploy(provider, via, value) {
     await provider.internal(via, {
       value,
-      sendMode: distExports$2.SendMode.PAY_GAS_SEPARATELY,
-      body: distExports$2.beginCell().endCell()
+      sendMode: distExports$1.SendMode.PAY_GAS_SEPARATELY,
+      body: distExports$1.beginCell().endCell()
     });
   }
   async sendInternalSignedMessage(provider, via, opts) {
     await provider.internal(via, {
       value: opts.value,
-      sendMode: distExports$2.SendMode.PAY_GAS_SEPARATELY,
-      body: distExports$2.beginCell().storeSlice(opts.body.beginParse()).endCell()
+      sendMode: distExports$1.SendMode.PAY_GAS_SEPARATELY,
+      body: distExports$1.beginCell().storeSlice(opts.body.beginParse()).endCell()
     });
   }
   async sendInternalMessageFromExtension(provider, via, opts) {
     await provider.internal(via, {
       value: opts.value,
-      sendMode: distExports$2.SendMode.PAY_GAS_SEPARATELY,
-      body: distExports$2.beginCell().storeUint(Opcodes.auth_extension, 32).storeUint(0, 64).storeSlice(opts.body.beginParse()).endCell()
+      sendMode: distExports$1.SendMode.PAY_GAS_SEPARATELY,
+      body: distExports$1.beginCell().storeUint(Opcodes.auth_extension, 32).storeUint(0, 64).storeSlice(opts.body.beginParse()).endCell()
     });
   }
   async sendInternal(provider, via, opts) {
@@ -35673,13 +35659,13 @@ class WalletV5 {
         return 0;
       }
       try {
-        const dataCell = distExports$2.Cell.fromBase64(state.data);
+        const dataCell = distExports$1.Cell.fromBase64(state.data);
         if (dataCell.bits.length < 33) {
           return 0;
         }
         return dataCell.asSlice().skip(1).loadUint(32);
       } catch (error2) {
-        log$6.error("Failed to get seqno", { error: error2 });
+        log$3.error("Failed to get seqno", { error: error2 });
         return 0;
       }
     });
@@ -35742,10 +35728,10 @@ class WalletV4R2 {
       this.publicKey = 0n;
     }
   }
-  static createFromConfig(config2, options) {
-    const data = distExports$2.beginCell().storeUint(config2.seqno, 32).storeUint(config2.subwalletId, 32).storeUint(config2.publicKey, 256).storeBit(0).endCell();
+  static createFromConfig(config, options) {
+    const data = distExports$1.beginCell().storeUint(config.seqno, 32).storeUint(config.subwalletId, 32).storeUint(config.publicKey, 256).storeBit(0).endCell();
     const init2 = { code: options.code, data };
-    const address = distExports$2.contractAddress(options.workchain, init2);
+    const address = distExports$1.contractAddress(options.workchain, init2);
     return new WalletV4R2(address, init2, options);
   }
   static createFromAddress(address, options) {
@@ -35754,8 +35740,8 @@ class WalletV4R2 {
   async sendDeploy(provider, via, value) {
     await provider.internal(via, {
       value,
-      sendMode: distExports$2.SendMode.PAY_GAS_SEPARATELY,
-      body: distExports$2.beginCell().endCell()
+      sendMode: distExports$1.SendMode.PAY_GAS_SEPARATELY,
+      body: distExports$1.beginCell().endCell()
     });
   }
   /**
@@ -35807,9 +35793,9 @@ class WalletV4R2 {
    */
   createTransfer(args) {
     const timeout = args.timeout ?? Math.floor(Date.now() / 1e3) + 60;
-    let body = distExports$2.beginCell().storeUint(this.subwalletId, 32).storeUint(timeout, 32).storeUint(args.seqno, 32).storeUint(0, 8).storeUint(args.sendMode, 8);
+    let body = distExports$1.beginCell().storeUint(this.subwalletId, 32).storeUint(timeout, 32).storeUint(args.seqno, 32).storeUint(0, 8).storeUint(args.sendMode, 8);
     for (const message of args.messages) {
-      body = body.storeRef(distExports$2.beginCell().store(distExports$2.storeMessageRelaxed(message)));
+      body = body.storeRef(distExports$1.beginCell().store(distExports$1.storeMessageRelaxed(message)));
     }
     return body.endCell();
   }
@@ -35819,15 +35805,15 @@ class WalletV4R2 {
   async sendTransfer(provider, via, args) {
     const transfer = this.createTransfer(args);
     await provider.internal(via, {
-      sendMode: distExports$2.SendMode.PAY_GAS_SEPARATELY,
+      sendMode: distExports$1.SendMode.PAY_GAS_SEPARATELY,
       body: transfer,
       value: 0n
     });
   }
 }
-const WalletV4R2CodeCell = distExports$2.Cell.fromBoc(Buffer.from("te6ccgECFAEAAtQAART/APSkE/S88sgLAQIBIAIDAgFIBAUE+PKDCNcYINMf0x/THwL4I7vyZO1E0NMf0x/T//QE0VFDuvKhUVG68qIF+QFUEGT5EPKj+AAkpMjLH1JAyx9SMMv/UhD0AMntVPgPAdMHIcAAn2xRkyDXSpbTB9QC+wDoMOAhwAHjACHAAuMAAcADkTDjDQOkyMsfEssfy/8QERITAubQAdDTAyFxsJJfBOAi10nBIJJfBOAC0x8hghBwbHVnvSKCEGRzdHK9sJJfBeAD+kAwIPpEAcjKB8v/ydDtRNCBAUDXIfQEMFyBAQj0Cm+hMbOSXwfgBdM/yCWCEHBsdWe6kjgw4w0DghBkc3RyupJfBuMNBgcCASAICQB4AfoA9AQw+CdvIjBQCqEhvvLgUIIQcGx1Z4MesXCAGFAEywUmzxZY+gIZ9ADLaRfLH1Jgyz8gyYBA+wAGAIpQBIEBCPRZMO1E0IEBQNcgyAHPFvQAye1UAXKwjiOCEGRzdHKDHrFwgBhQBcsFUAPPFiP6AhPLassfyz/JgED7AJJfA+ICASAKCwBZvSQrb2omhAgKBrkPoCGEcNQICEekk30pkQzmkD6f+YN4EoAbeBAUiYcVnzGEAgFYDA0AEbjJftRNDXCx+AA9sp37UTQgQFA1yH0BDACyMoHy//J0AGBAQj0Cm+hMYAIBIA4PABmtznaiaEAga5Drhf/AABmvHfaiaEAQa5DrhY/AAG7SB/oA1NQi+QAFyMoHFcv/ydB3dIAYyMsFywIizxZQBfoCFMtrEszMyXP7AMhAFIEBCPRR8qcCAHCBAQjXGPoA0z/IVCBHgQEI9FHyp4IQbm90ZXB0gBjIywXLAlAGzxZQBPoCFMtqEssfyz/Jc/sAAgBsgQEI1xj6ANM/MFIkgQEI9Fnyp4IQZHN0cnB0gBjIywXLAlAFzxZQA/oCE8tqyx8Syz/Jc/sAAAr0AMntVA==", "base64"))[0];
+const WalletV4R2CodeCell = distExports$1.Cell.fromBoc(Buffer.from("te6ccgECFAEAAtQAART/APSkE/S88sgLAQIBIAIDAgFIBAUE+PKDCNcYINMf0x/THwL4I7vyZO1E0NMf0x/T//QE0VFDuvKhUVG68qIF+QFUEGT5EPKj+AAkpMjLH1JAyx9SMMv/UhD0AMntVPgPAdMHIcAAn2xRkyDXSpbTB9QC+wDoMOAhwAHjACHAAuMAAcADkTDjDQOkyMsfEssfy/8QERITAubQAdDTAyFxsJJfBOAi10nBIJJfBOAC0x8hghBwbHVnvSKCEGRzdHK9sJJfBeAD+kAwIPpEAcjKB8v/ydDtRNCBAUDXIfQEMFyBAQj0Cm+hMbOSXwfgBdM/yCWCEHBsdWe6kjgw4w0DghBkc3RyupJfBuMNBgcCASAICQB4AfoA9AQw+CdvIjBQCqEhvvLgUIIQcGx1Z4MesXCAGFAEywUmzxZY+gIZ9ADLaRfLH1Jgyz8gyYBA+wAGAIpQBIEBCPRZMO1E0IEBQNcgyAHPFvQAye1UAXKwjiOCEGRzdHKDHrFwgBhQBcsFUAPPFiP6AhPLassfyz/JgED7AJJfA+ICASAKCwBZvSQrb2omhAgKBrkPoCGEcNQICEekk30pkQzmkD6f+YN4EoAbeBAUiYcVnzGEAgFYDA0AEbjJftRNDXCx+AA9sp37UTQgQFA1yH0BDACyMoHy//J0AGBAQj0Cm+hMYAIBIA4PABmtznaiaEAga5Drhf/AABmvHfaiaEAQa5DrhY/AAG7SB/oA1NQi+QAFyMoHFcv/ydB3dIAYyMsFywIizxZQBfoCFMtrEszMyXP7AMhAFIEBCPRR8qcCAHCBAQjXGPoA0z/IVCBHgQEI9FHyp4IQbm90ZXB0gBjIywXLAlAGzxZQBPoCFMtqEssfyz/Jc/sAAgBsgQEI1xj6ANM/MFIkgQEI9Fnyp4IQZHN0cnB0gBjIywXLAlAFzxZQA/oCE8tqyx8Syz/Jc/sAAAr0AMntVA==", "base64"))[0];
 const defaultWalletIdV4R2 = 698983191;
-const log$5 = globalLogger.createChild("WalletV4R2Adapter");
+const log$2 = globalLogger.createChild("WalletV4R2Adapter");
 class WalletV4R2Adapter {
   signer;
   config;
@@ -35852,21 +35838,21 @@ class WalletV4R2Adapter {
       domain: options.domain
     });
   }
-  constructor(config2) {
-    this.config = config2;
-    this.client = config2.tonClient;
-    this.signer = config2.signer;
-    this.domain = config2.domain;
+  constructor(config) {
+    this.config = config;
+    this.client = config.tonClient;
+    this.signer = config.signer;
+    this.domain = config.domain;
     this.publicKey = this.config.publicKey;
     const walletConfig = {
       publicKey: HexToBigInt(this.publicKey),
-      workchain: config2.workchain ?? 0,
+      workchain: config.workchain ?? 0,
       seqno: 0,
-      subwalletId: config2.walletId ?? defaultWalletIdV4R2
+      subwalletId: config.walletId ?? defaultWalletIdV4R2
     };
     this.walletContract = WalletV4R2.createFromConfig(walletConfig, {
       code: WalletV4R2CodeCell,
-      workchain: config2.workchain ?? 0,
+      workchain: config.workchain ?? 0,
       client: this.client
     });
   }
@@ -35910,37 +35896,37 @@ class WalletV4R2Adapter {
     try {
       const messages = input.messages.map((m) => {
         let bounce = true;
-        const parsedAddress = distExports$2.Address.parseFriendly(m.address);
+        const parsedAddress = distExports$1.Address.parseFriendly(m.address);
         if (parsedAddress.isBounceable === false) {
           bounce = false;
         }
-        return distExports$2.internal({
-          to: distExports$2.Address.parse(m.address),
+        return distExports$1.internal({
+          to: distExports$1.Address.parse(m.address),
           value: BigInt(m.amount),
           bounce,
           extracurrency: m.extraCurrency ? Object.fromEntries(Object.entries(m.extraCurrency).map(([k2, v2]) => [Number(k2), BigInt(v2)])) : void 0,
-          body: m.payload ? distExports$2.Cell.fromBase64(m.payload) : void 0,
-          init: m.stateInit ? distExports$2.loadStateInit(distExports$2.Cell.fromBase64(m.stateInit).asSlice()) : void 0
+          body: m.payload ? distExports$1.Cell.fromBase64(m.payload) : void 0,
+          init: m.stateInit ? distExports$1.loadStateInit(distExports$1.Cell.fromBase64(m.stateInit).asSlice()) : void 0
         });
       });
       const data = this.walletContract.createTransfer({
         seqno,
-        sendMode: distExports$2.SendMode.PAY_GAS_SEPARATELY + distExports$2.SendMode.IGNORE_ERRORS,
+        sendMode: distExports$1.SendMode.PAY_GAS_SEPARATELY + distExports$1.SendMode.IGNORE_ERRORS,
         messages,
         timeout
       });
-      const domainPrefix = this.domain ? distExports$2.signatureDomainPrefix(this.domain) : null;
+      const domainPrefix = this.domain ? distExports$1.signatureDomainPrefix(this.domain) : null;
       const signingData = domainPrefix ? Buffer.concat([domainPrefix, data.hash()]) : data.hash();
       const signature = await this.sign(Uint8Array.from(signingData));
-      const signedCell = distExports$2.beginCell().storeBuffer(Buffer.from(HexToUint8Array(signature))).storeSlice(data.asSlice()).endCell();
-      const ext = distExports$2.external({
+      const signedCell = distExports$1.beginCell().storeBuffer(Buffer.from(HexToUint8Array(signature))).storeSlice(data.asSlice()).endCell();
+      const ext = distExports$1.external({
         to: this.walletContract.address,
         init: this.walletContract.init,
         body: signedCell
       });
-      return distExports$2.beginCell().store(distExports$2.storeMessage(ext)).endCell().toBoc().toString("base64");
+      return distExports$1.beginCell().store(distExports$1.storeMessage(ext)).endCell().toBoc().toString("base64");
     } catch (error2) {
-      log$5.warn("Failed to get signed send transaction", { error: error2 });
+      log$2.warn("Failed to get signed send transaction", { error: error2 });
       throw error2;
     }
   }
@@ -35951,7 +35937,7 @@ class WalletV4R2Adapter {
     if (!this.walletContract.init) {
       throw new Error("Wallet contract not properly initialized");
     }
-    const stateInit = distExports$2.beginCell().store(distExports$2.storeStateInit(this.walletContract.init)).endCell();
+    const stateInit = distExports$1.beginCell().store(distExports$1.storeStateInit(this.walletContract.init)).endCell();
     return stateInit.toBoc().toString("base64");
   }
   /**
@@ -35967,7 +35953,7 @@ class WalletV4R2Adapter {
     try {
       return await this.walletContract.getSeqno();
     } catch (error2) {
-      log$5.warn("Failed to get seqno", { error: error2 });
+      log$2.warn("Failed to get seqno", { error: error2 });
       throw error2;
     }
   }
@@ -35978,7 +35964,7 @@ class WalletV4R2Adapter {
     try {
       return await this.walletContract.getSubwalletId();
     } catch (error2) {
-      log$5.warn("Failed to get subwallet ID", { error: error2 });
+      log$2.warn("Failed to get subwallet ID", { error: error2 });
       return this.config.walletId ?? defaultWalletIdV4R2;
     }
   }
@@ -35990,7 +35976,7 @@ class WalletV4R2Adapter {
       const state = await this.client.getAccountState(asAddressFriendly(this.walletContract.address));
       return state.status === "active";
     } catch (error2) {
-      log$5.warn("Failed to check deployment status", { error: error2 });
+      log$2.warn("Failed to check deployment status", { error: error2 });
       return false;
     }
   }
@@ -36245,7 +36231,7 @@ const mapJettons = (notification) => {
     status: notification.finality
   };
 };
-const log$4 = globalLogger.createChild("WebsocketStreamingProvider");
+const log$1 = globalLogger.createChild("WebsocketStreamingProvider");
 class WebsocketStreamingProvider {
   type = "streaming";
   ws = null;
@@ -36293,12 +36279,12 @@ class WebsocketStreamingProvider {
   emitJettons(ownerAddress, update) {
     this.jettonCallbacks.get(ownerAddress)?.forEach((cb) => cb(update));
   }
-  addCallback(map2, address, callback, watchType) {
-    let set = map2.get(address);
+  addCallback(map, address, callback, watchType) {
+    let set = map.get(address);
     const isFirst = !set || set.size === 0;
     if (!set) {
       set = /* @__PURE__ */ new Set();
-      map2.set(address, set);
+      map.set(address, set);
     }
     set.add(callback);
     if (isFirst) {
@@ -36308,7 +36294,7 @@ class WebsocketStreamingProvider {
     return () => {
       set.delete(callback);
       if (set.size === 0) {
-        map2.delete(address);
+        map.delete(address);
         this.onUnwatch(watchType, address);
         this.checkClose();
       }
@@ -36341,7 +36327,7 @@ class WebsocketStreamingProvider {
     if (wasConnected) {
       this.emitConnectionChange(false);
     }
-    log$4.info("WebsocketStreamingProvider disconnected");
+    log$1.info("WebsocketStreamingProvider disconnected");
   }
   checkClose() {
     if (this.closeCheckTimeout) {
@@ -36375,16 +36361,16 @@ class WebsocketStreamingProvider {
   openConnection() {
     this.stopReconnect();
     const url = this.getUrl();
-    log$4.info("Connecting to WebSocket", { url: url.replace(/api_key=[^&]+/, "api_key=***") });
+    log$1.info("Connecting to WebSocket", { url: url.replace(/api_key=[^&]+/, "api_key=***") });
     try {
       this.ws = new WebSocket(url);
     } catch (error2) {
-      log$4.error("WebSocket creation failed", { error: error2 });
+      log$1.error("WebSocket creation failed", { error: error2 });
       this.scheduleReconnect();
       return;
     }
     this.ws.onopen = () => {
-      log$4.info("WebSocket connected");
+      log$1.info("WebSocket connected");
       this.isConnected = true;
       this.reconnectAttempts = 0;
       this.fullResync();
@@ -36393,10 +36379,10 @@ class WebsocketStreamingProvider {
     };
     this.ws.onmessage = this.onMessage.bind(this);
     this.ws.onerror = (error2) => {
-      log$4.error("WebSocket error", { readyState: this.ws?.readyState, error: error2 });
+      log$1.error("WebSocket error", { readyState: this.ws?.readyState, error: error2 });
     };
     this.ws.onclose = () => {
-      log$4.info("WebSocket closed");
+      log$1.info("WebSocket closed");
       this.isConnected = false;
       this.stopPing();
       this.ws = null;
@@ -36438,7 +36424,7 @@ class WebsocketStreamingProvider {
     this.reconnectAttempts++;
     const delays = WebsocketStreamingProvider.RECONNECT_DELAYS;
     const delayMs = delays[Math.min(this.reconnectAttempts - 1, delays.length - 1)];
-    log$4.info(`Scheduling reconnect in ${delayMs}ms (attempt ${this.reconnectAttempts})`);
+    log$1.info(`Scheduling reconnect in ${delayMs}ms (attempt ${this.reconnectAttempts})`);
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
       this.openConnection();
@@ -36458,7 +36444,7 @@ class WebsocketStreamingProvider {
     return null;
   }
 }
-const log$3 = globalLogger.createChild("TonStreamingV2");
+const log = globalLogger.createChild("TonStreamingV2");
 const STREAMING_V2_WS_PATH = "/api/streaming/v2/ws";
 class TonStreamingV2BaseProvider extends WebsocketStreamingProvider {
   providerId;
@@ -36497,11 +36483,11 @@ class TonStreamingV2BaseProvider extends WebsocketStreamingProvider {
     return { operation: "ping", id: `ping-${Date.now()}` };
   }
   onWatch(type, id) {
-    log$3.info("onWatch triggered", { type, id, isConnected: this.isConnected, readyState: this.ws?.readyState });
+    log.info("onWatch triggered", { type, id, isConnected: this.isConnected, readyState: this.ws?.readyState });
     this.requestSync();
   }
   onUnwatch(type, id) {
-    log$3.info("onUnwatch triggered", { type, id, isConnected: this.isConnected, readyState: this.ws?.readyState });
+    log.info("onUnwatch triggered", { type, id, isConnected: this.isConnected, readyState: this.ws?.readyState });
     this.requestSync();
   }
   fullResync() {
@@ -36509,7 +36495,7 @@ class TonStreamingV2BaseProvider extends WebsocketStreamingProvider {
       clearTimeout(this.syncTimer);
       this.syncTimer = null;
     }
-    log$3.info("fullResync triggered", { isConnected: this.isConnected, readyState: this.ws?.readyState });
+    log.info("fullResync triggered", { isConnected: this.isConnected, readyState: this.ws?.readyState });
     if (!this.isConnected || this.ws?.readyState !== WebSocket.OPEN) {
       return;
     }
@@ -36532,7 +36518,7 @@ class TonStreamingV2BaseProvider extends WebsocketStreamingProvider {
           addresses: Array.from(this.lastAddresses)
         });
         this.lastAddresses.clear();
-        log$3.info("Cleared all subscriptions", { msgId: msgId2 });
+        log.info("Cleared all subscriptions", { msgId: msgId2 });
       }
       return;
     }
@@ -36549,7 +36535,7 @@ class TonStreamingV2BaseProvider extends WebsocketStreamingProvider {
       ...request
     });
     this.lastAddresses = addresses;
-    log$3.info("Sent monolithic subscription", {
+    log.info("Sent monolithic subscription", {
       msgId,
       types: Array.from(types),
       addressCount: addresses.size
@@ -36559,7 +36545,7 @@ class TonStreamingV2BaseProvider extends WebsocketStreamingProvider {
     try {
       const msg = JSON.parse(event.data);
       const m = msg;
-      log$3.debug("Streaming v2 WS received message:", m);
+      log.debug("Streaming v2 WS received message:", m);
       if (m.status === "subscribed" || m.status === "pong") {
         return;
       }
@@ -36571,7 +36557,7 @@ class TonStreamingV2BaseProvider extends WebsocketStreamingProvider {
         return;
       }
       if (isTraceInvalidatedNotification(msg)) {
-        log$3.debug("Trace invalidated", { hash: msg.trace_external_hash_norm });
+        log.debug("Trace invalidated", { hash: msg.trace_external_hash_norm });
         const entry = this.traceCache.get(msg.trace_external_hash_norm);
         if (entry) {
           entry.accounts.forEach((account) => {
@@ -36594,7 +36580,7 @@ class TonStreamingV2BaseProvider extends WebsocketStreamingProvider {
         const finalityScore = this.getFinalityScore(msg.finality);
         const entry = this.traceCache.get(msg.trace_external_hash_norm);
         if (entry && finalityScore < entry.score) {
-          log$3.debug("Ignoring transactions notification due to lower finality", {
+          log.debug("Ignoring transactions notification due to lower finality", {
             hash: msg.trace_external_hash_norm,
             msgFinality: msg.finality,
             cachedScore: entry.score
@@ -36627,7 +36613,7 @@ class TonStreamingV2BaseProvider extends WebsocketStreamingProvider {
         return;
       }
     } catch (err) {
-      log$3.warn("Failed to parse WebSocket message", { error: err });
+      log.warn("Failed to parse WebSocket message", { error: err });
     }
   }
   requestSync() {
@@ -36666,20 +36652,20 @@ class TonStreamingV2BaseProvider extends WebsocketStreamingProvider {
 }
 class TonCenterStreamingProvider extends TonStreamingV2BaseProvider {
   network;
-  constructor(_ctx, config2) {
-    const base = config2.endpoint ?? (config2.network.chainId === Network.mainnet().chainId ? "wss://toncenter.com" : "wss://testnet.toncenter.com");
+  constructor(_ctx, config) {
+    const base = config.endpoint ?? (config.network.chainId === Network.mainnet().chainId ? "wss://toncenter.com" : "wss://testnet.toncenter.com");
     const baseUrl = base.replace(/\/$/, "").replace(/^https?/, "wss") + STREAMING_V2_WS_PATH;
     super(_ctx, {
-      providerId: `toncenter-${config2.network.chainId}`,
+      providerId: `toncenter-${config.network.chainId}`,
       baseUrl,
       authQueryParam: "api_key",
-      authSecret: config2.apiKey
+      authSecret: config.apiKey
     });
-    this.network = config2.network;
+    this.network = config.network;
   }
 }
-const createTonCenterStreamingProvider$1 = (config2) => (ctx) => {
-  return new TonCenterStreamingProvider(ctx, config2);
+const createTonCenterStreamingProvider = (config) => (ctx) => {
+  return new TonCenterStreamingProvider(ctx, config);
 };
 const TONAPI_STREAMING_V2_WS_PATH = "/streaming/v2/ws";
 function defaultTonApiWsOrigin(network) {
@@ -36694,20 +36680,20 @@ function defaultTonApiWsOrigin(network) {
 }
 class TonApiStreamingProvider extends TonStreamingV2BaseProvider {
   network;
-  constructor(_ctx, config2) {
+  constructor(_ctx, config) {
     const normalized = (url) => url.replace(/\/$/, "").replace(/^https?/, "wss");
-    const baseUrl = config2.endpoint ? normalized(config2.endpoint) : normalized(defaultTonApiWsOrigin(config2.network)) + TONAPI_STREAMING_V2_WS_PATH;
+    const baseUrl = config.endpoint ? normalized(config.endpoint) : normalized(defaultTonApiWsOrigin(config.network)) + TONAPI_STREAMING_V2_WS_PATH;
     super(_ctx, {
-      providerId: `tonapi-${config2.network.chainId}`,
+      providerId: `tonapi-${config.network.chainId}`,
       baseUrl,
       authQueryParam: "token",
-      authSecret: config2.apiKey
+      authSecret: config.apiKey
     });
-    this.network = config2.network;
+    this.network = config.network;
   }
 }
-const createTonApiStreamingProvider$1 = (config2) => (ctx) => {
-  return new TonApiStreamingProvider(ctx, config2);
+const createTonApiStreamingProvider = (config) => (ctx) => {
+  return new TonApiStreamingProvider(ctx, config);
 };
 const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
@@ -36817,8 +36803,8 @@ const index = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.definePropert
   createNftTransferPayload,
   createNftTransferRawPayload,
   createProvider,
-  createTonApiStreamingProvider: createTonApiStreamingProvider$1,
-  createTonCenterStreamingProvider: createTonCenterStreamingProvider$1,
+  createTonApiStreamingProvider,
+  createTonCenterStreamingProvider,
   createTransferTransaction,
   createWalletId,
   createWalletManifest,
@@ -36861,7 +36847,7 @@ function ensureInternalBrowserResolverMap() {
   }
   return internalBrowserGlobal.__internalBrowserResponseResolvers;
 }
-var __async$e = (__this, __arguments, generator) => {
+var __async$b = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -36896,11 +36882,11 @@ class AndroidTONConnectSessionsManager {
     this.bridge = win.WalletKitNative;
   }
   initialize() {
-    return __async$e(this, null, function* () {
+    return __async$b(this, null, function* () {
     });
   }
   createSession(sessionId, dAppInfo, wallet2, isJsBridge) {
-    return __async$e(this, null, function* () {
+    return __async$b(this, null, function* () {
       var _a, _b, _c, _d;
       try {
         const walletId = (_b = (_a = wallet2.getWalletId) == null ? void 0 : _a.call(wallet2)) != null ? _b : "";
@@ -36921,7 +36907,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   getSession(sessionId) {
-    return __async$e(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         const resultJson = this.bridge.sessionGet(sessionId);
         if (!resultJson) {
@@ -36935,7 +36921,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   getSessions(parameters) {
-    return __async$e(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         const filterJson = JSON.stringify(parameters != null ? parameters : {});
         const resultJson = this.bridge.sessionGetFiltered(filterJson);
@@ -36947,7 +36933,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   removeSession(sessionId) {
-    return __async$e(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         this.bridge.sessionRemove(sessionId);
       } catch (err) {
@@ -36957,7 +36943,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   removeSessions(parameters) {
-    return __async$e(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         const filterJson = JSON.stringify(parameters != null ? parameters : {});
         this.bridge.sessionRemoveFiltered(filterJson);
@@ -36968,7 +36954,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
   clearSessions() {
-    return __async$e(this, null, function* () {
+    return __async$b(this, null, function* () {
       try {
         this.bridge.sessionClear();
       } catch (err) {
@@ -36978,7 +36964,7 @@ class AndroidTONConnectSessionsManager {
     });
   }
 }
-var __async$d = (__this, __arguments, generator) => {
+var __async$a = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -37033,7 +37019,7 @@ class AndroidAPIClientAdapter {
     }
   }
   sendBoc(boc) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       try {
         const networkJson = JSON.stringify(this.network);
         const result = this.androidBridge.apiSendBoc(networkJson, boc);
@@ -37045,7 +37031,7 @@ class AndroidAPIClientAdapter {
     });
   }
   runGetMethod(address, method, stack, seqno) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       try {
         const networkJson = JSON.stringify(this.network);
         const stackJson = stack ? JSON.stringify(stack) : null;
@@ -37062,27 +37048,27 @@ class AndroidAPIClientAdapter {
   // Methods not implemented - will throw if called
   // These are optional for mobile usage
   nftItemsByAddress(_request) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("nftItemsByAddress is not implemented yet");
     });
   }
   nftItemsByOwner(_request) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("nftItemsByOwner is not implemented yet");
     });
   }
   fetchEmulation(_messageBoc, _ignoreSignature) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("fetchEmulation is not implemented yet");
     });
   }
   getAccountState(_address, _seqno) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getAccountState is not implemented yet");
     });
   }
   getBalance(address, seqno) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       try {
         const networkJson = JSON.stringify(this.network);
         const seqnoArg = seqno != null ? seqno : -1;
@@ -37095,57 +37081,57 @@ class AndroidAPIClientAdapter {
     });
   }
   getAccountTransactions(_request) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getAccountTransactions is not implemented yet");
     });
   }
   getTransactionsByHash(_request) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getTransactionsByHash is not implemented yet");
     });
   }
   getPendingTransactions(_request) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getPendingTransactions is not implemented yet");
     });
   }
   getTrace(_request) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getTrace is not implemented yet");
     });
   }
   getPendingTrace(_request) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getPendingTrace is not implemented yet");
     });
   }
   resolveDnsWallet(_domain) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("resolveDnsWallet is not implemented yet");
     });
   }
   backResolveDnsWallet(_address) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("backResolveDnsWallet is not implemented yet");
     });
   }
   jettonsByAddress(_request) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("jettonsByAddress is not implemented yet");
     });
   }
   jettonsByOwnerAddress(_request) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("jettonsByOwnerAddress is not implemented yet");
     });
   }
   getEvents(_request) {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       throw new Error("getEvents is not implemented yet");
     });
   }
   getMasterchainInfo() {
-    return __async$d(this, null, function* () {
+    return __async$a(this, null, function* () {
       try {
         const networkJson = JSON.stringify(this.network);
         const resultJson = this.androidBridge.apiGetMasterchainInfo(networkJson);
@@ -37157,7 +37143,7 @@ class AndroidAPIClientAdapter {
     });
   }
 }
-var __async$c = (__this, __arguments, generator) => {
+var __async$9 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -37177,16 +37163,16 @@ var __async$c = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
-function initTonWalletKit(config2, deps) {
-  return __async$c(this, null, function* () {
+function initTonWalletKit(config, deps) {
+  return __async$9(this, null, function* () {
     var _a, _b, _c, _d, _e, _f, _g;
     if (walletKit) {
       return { ok: true };
     }
     yield ensureWalletKitLoaded();
     const networksConfig = {};
-    if ((config2 == null ? void 0 : config2.networkConfigurations) && Array.isArray(config2.networkConfigurations)) {
-      for (const netConfig of config2.networkConfigurations) {
+    if ((config == null ? void 0 : config.networkConfigurations) && Array.isArray(config.networkConfigurations)) {
+      for (const netConfig of config.networkConfigurations) {
         const type = netConfig.apiClientType;
         let apiClient;
         if (type === "tonapi") {
@@ -37218,41 +37204,41 @@ function initTonWalletKit(config2, deps) {
       networks: networksConfig
     };
     const devOptions = {};
-    if (config2 == null ? void 0 : config2.disableNetworkSend) {
+    if (config == null ? void 0 : config.disableNetworkSend) {
       devOptions.disableNetworkSend = true;
     }
     if (Object.keys(devOptions).length > 0) {
       kitOptions.dev = devOptions;
     }
-    if ((config2 == null ? void 0 : config2.disableTransactionEmulation) !== void 0) {
+    if ((config == null ? void 0 : config.disableTransactionEmulation) !== void 0) {
       kitOptions.eventProcessor = {
-        disableTransactionEmulation: config2.disableTransactionEmulation
+        disableTransactionEmulation: config.disableTransactionEmulation
       };
     }
-    if (config2 == null ? void 0 : config2.deviceInfo) {
-      kitOptions.deviceInfo = config2.deviceInfo;
+    if (config == null ? void 0 : config.deviceInfo) {
+      kitOptions.deviceInfo = config.deviceInfo;
     }
-    if (config2 == null ? void 0 : config2.walletManifest) {
-      kitOptions.walletManifest = config2.walletManifest;
+    if (config == null ? void 0 : config.walletManifest) {
+      kitOptions.walletManifest = config.walletManifest;
     }
-    if (config2 == null ? void 0 : config2.bridgeUrl) {
+    if (config == null ? void 0 : config.bridgeUrl) {
       kitOptions.bridge = {
-        bridgeUrl: config2.bridgeUrl,
-        jsBridgeTransport: (sessionId, message) => __async$c(null, null, function* () {
+        bridgeUrl: config.bridgeUrl,
+        jsBridgeTransport: (sessionId, message) => __async$9(null, null, function* () {
           var _a2;
           const typedMessage = message;
           let bridgeMessage = typedMessage;
           const DISCONNECT_EVENT = "disconnect";
           if (bridgeMessage.type === TONCONNECT_BRIDGE_RESPONSE) {
             const responseMsg = bridgeMessage;
-            const disconnectPayload = responseMsg.payload;
-            if ((disconnectPayload == null ? void 0 : disconnectPayload.event) === DISCONNECT_EVENT && !responseMsg.messageId) {
+            const result = responseMsg.result;
+            if ((result == null ? void 0 : result.event) === DISCONNECT_EVENT && !responseMsg.messageId) {
               bridgeMessage = {
                 type: TONCONNECT_BRIDGE_EVENT,
                 source: responseMsg.source,
                 event: {
                   event: "disconnect",
-                  id: (_a2 = disconnectPayload.id) != null ? _a2 : 0,
+                  id: (_a2 = result.id) != null ? _a2 : 0,
                   payload: {}
                 }
               };
@@ -37282,7 +37268,7 @@ function initTonWalletKit(config2, deps) {
     }
     if (window.WalletKitNative) {
       kitOptions.storage = new deps.AndroidStorageAdapter();
-    } else if (config2 == null ? void 0 : config2.allowMemoryStorage) {
+    } else if (config == null ? void 0 : config.allowMemoryStorage) {
       info("[walletkitBridge] Using memory storage (sessions will not persist)");
       kitOptions.storage = {
         allowMemory: true
@@ -37304,7 +37290,7 @@ function initTonWalletKit(config2, deps) {
     return { ok: true };
   });
 }
-var __async$b = (__this, __arguments, generator) => {
+var __async$8 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -37325,7 +37311,7 @@ var __async$b = (__this, __arguments, generator) => {
   });
 };
 function ensureReady() {
-  return __async$b(this, null, function* () {
+  return __async$8(this, null, function* () {
     var _a, _b;
     if (!walletKit) {
       throw new Error("WalletKit not initialized");
@@ -37342,7 +37328,7 @@ function getWalletOrThrow(kit2, walletId) {
   return wallet2;
 }
 function kit(method, ...args) {
-  return __async$b(this, null, function* () {
+  return __async$8(this, null, function* () {
     const instance = yield ensureReady();
     const fn = instance[method];
     if (typeof fn !== "function") {
@@ -37352,7 +37338,7 @@ function kit(method, ...args) {
   });
 }
 function wallet(walletId, method, ...args) {
-  return __async$b(this, null, function* () {
+  return __async$8(this, null, function* () {
     const instance = yield ensureReady();
     const w2 = getWalletOrThrow(instance, walletId);
     const fn = w2[method];
@@ -37363,18 +37349,18 @@ function wallet(walletId, method, ...args) {
   });
 }
 function getKit() {
-  return __async$b(this, null, function* () {
+  return __async$8(this, null, function* () {
     return ensureReady();
   });
 }
 function getWallet(walletId) {
-  return __async$b(this, null, function* () {
+  return __async$8(this, null, function* () {
     const instance = yield ensureReady();
     return getWalletOrThrow(instance, walletId);
   });
 }
 function walletCall(method, args) {
-  return __async$b(this, null, function* () {
+  return __async$8(this, null, function* () {
     const instance = yield ensureReady();
     const w2 = getWalletOrThrow(instance, args.walletId);
     const fn = w2[method];
@@ -37385,7 +37371,7 @@ function walletCall(method, args) {
   });
 }
 function clientCall(method, args) {
-  return __async$b(this, null, function* () {
+  return __async$8(this, null, function* () {
     const instance = yield ensureReady();
     const w2 = getWalletOrThrow(instance, args.walletId);
     const apiClient = w2.getClient();
@@ -37497,7 +37483,7 @@ function postToNative(payload) {
   }
   warn("[walletkitBridge] postToNative: no native handler", payload);
 }
-var __async$a = (__this, __arguments, generator) => {
+var __async$7 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -37529,7 +37515,7 @@ function setBridgeApi(api2) {
   apiRef = api2;
 }
 function invokeApiMethod(api2, method, params, context) {
-  return __async$a(this, null, function* () {
+  return __async$7(this, null, function* () {
     const fn = api2[method];
     if (typeof fn !== "function") {
       throw new Error(`Unknown method ${String(method)}`);
@@ -37543,7 +37529,7 @@ function invokeApiMethod(api2, method, params, context) {
   });
 }
 function handleCall(id, method, params) {
-  return __async$a(this, null, function* () {
+  return __async$7(this, null, function* () {
     if (!apiRef) {
       throw new Error("Bridge API not registered");
     }
@@ -37579,7 +37565,7 @@ const eventListeners = {
   onDisconnectListener: null,
   onErrorListener: null
 };
-var __async$9 = (__this, __arguments, generator) => {
+var __async$6 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -37608,7 +37594,7 @@ class AndroidStorageAdapter {
     this.androidBridge = androidWindow.WalletKitNative;
   }
   get(key) {
-    return __async$9(this, null, function* () {
+    return __async$6(this, null, function* () {
       try {
         const value = this.androidBridge.storageGet(key);
         if (!value) {
@@ -37622,7 +37608,7 @@ class AndroidStorageAdapter {
     });
   }
   set(key, value) {
-    return __async$9(this, null, function* () {
+    return __async$6(this, null, function* () {
       try {
         const serialized = JSON.stringify(value);
         this.androidBridge.storageSet(key, serialized);
@@ -37632,7 +37618,7 @@ class AndroidStorageAdapter {
     });
   }
   remove(key) {
-    return __async$9(this, null, function* () {
+    return __async$6(this, null, function* () {
       try {
         this.androidBridge.storageRemove(key);
       } catch (err) {
@@ -37641,7 +37627,7 @@ class AndroidStorageAdapter {
     });
   }
   clear() {
-    return __async$9(this, null, function* () {
+    return __async$6(this, null, function* () {
       try {
         this.androidBridge.storageClear();
       } catch (err) {
@@ -37650,7 +37636,7 @@ class AndroidStorageAdapter {
     });
   }
 }
-var __async$8 = (__this, __arguments, generator) => {
+var __async$5 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -37670,10 +37656,10 @@ var __async$8 = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
-function init(config2) {
-  return __async$8(this, null, function* () {
+function init(config) {
+  return __async$5(this, null, function* () {
     yield ensureWalletKitLoaded();
-    return yield initTonWalletKit(config2, {
+    return yield initTonWalletKit(config, {
       emit,
       postToNative,
       AndroidStorageAdapter
@@ -37681,7 +37667,7 @@ function init(config2) {
   });
 }
 function setEventsListeners(args) {
-  return __async$8(this, null, function* () {
+  return __async$5(this, null, function* () {
     var _a;
     const kit2 = yield getKit();
     const callback = (_a = args == null ? void 0 : args.callback) != null ? _a : ((type, event) => {
@@ -37726,7 +37712,7 @@ function setEventsListeners(args) {
   });
 }
 function removeEventListeners() {
-  return __async$8(this, null, function* () {
+  return __async$5(this, null, function* () {
     const kit2 = yield getKit();
     if (eventListeners.onConnectListener) {
       kit2.removeConnectRequestCallback();
@@ -37751,7 +37737,7 @@ function removeEventListeners() {
     return { ok: true };
   });
 }
-var __async$7 = (__this, __arguments, generator) => {
+var __async$4 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -37772,7 +37758,7 @@ var __async$7 = (__this, __arguments, generator) => {
   });
 };
 function mnemonicToKeyPair(args) {
-  return __async$7(this, null, function* () {
+  return __async$4(this, null, function* () {
     var _a;
     if (!MnemonicToKeyPair$1) {
       throw new Error("MnemonicToKeyPair module not loaded");
@@ -37781,7 +37767,7 @@ function mnemonicToKeyPair(args) {
   });
 }
 function sign(args) {
-  return __async$7(this, null, function* () {
+  return __async$4(this, null, function* () {
     if (!DefaultSignature$1) {
       throw new Error("DefaultSignature module not loaded");
     }
@@ -37789,7 +37775,7 @@ function sign(args) {
   });
 }
 function createTonMnemonic() {
-  return __async$7(this, null, function* () {
+  return __async$4(this, null, function* () {
     if (!CreateTonMnemonic$1) {
       throw new Error("CreateTonMnemonic module not loaded");
     }
@@ -37812,7 +37798,7 @@ function get(id) {
 function release(id) {
   return store.delete(id);
 }
-var __async$6 = (__this, __arguments, generator) => {
+var __async$3 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -37855,14 +37841,14 @@ class ProxyWalletAdapter {
     return bridgeRequestSync("getWalletId", { adapterId: this.adapterId });
   }
   getStateInit() {
-    return __async$6(this, null, function* () {
+    return __async$3(this, null, function* () {
       const result = yield bridgeRequest("adapterGetStateInit", { adapterId: this.adapterId });
       if (!result) throw new Error("adapterGetStateInit: no result from native");
       return result;
     });
   }
   getSignedSendTransaction(input, options) {
-    return __async$6(this, null, function* () {
+    return __async$3(this, null, function* () {
       var _a;
       const result = yield bridgeRequest("adapterSignTransaction", {
         adapterId: this.adapterId,
@@ -37874,7 +37860,7 @@ class ProxyWalletAdapter {
     });
   }
   getSignedSignData(input, options) {
-    return __async$6(this, null, function* () {
+    return __async$3(this, null, function* () {
       var _a;
       const result = yield bridgeRequest("adapterSignData", {
         adapterId: this.adapterId,
@@ -37886,7 +37872,7 @@ class ProxyWalletAdapter {
     });
   }
   getSignedTonProof(input, options) {
-    return __async$6(this, null, function* () {
+    return __async$3(this, null, function* () {
       var _a;
       const result = yield bridgeRequest("adapterSignTonProof", {
         adapterId: this.adapterId,
@@ -37908,7 +37894,7 @@ class ProxyWalletAdapter {
   }
 }
 function getWallets() {
-  return __async$6(this, null, function* () {
+  return __async$3(this, null, function* () {
     const wallets = yield kit("getWallets");
     return wallets.map((w2) => {
       var _a;
@@ -37917,7 +37903,7 @@ function getWallets() {
   });
 }
 function getWalletById(args) {
-  return __async$6(this, null, function* () {
+  return __async$3(this, null, function* () {
     var _a;
     const w2 = yield kit("getWallet", args.walletId);
     if (!w2) return null;
@@ -37925,43 +37911,43 @@ function getWalletById(args) {
   });
 }
 function getWalletAddress(args) {
-  return __async$6(this, null, function* () {
+  return __async$3(this, null, function* () {
     return wallet(args.walletId, "getAddress");
   });
 }
 function removeWallet(args) {
-  return __async$6(this, null, function* () {
+  return __async$3(this, null, function* () {
     return kit("removeWallet", args.walletId);
   });
 }
 function getBalance(args) {
-  return __async$6(this, null, function* () {
+  return __async$3(this, null, function* () {
     return wallet(args.walletId, "getBalance");
   });
 }
 function createSignerFromMnemonic(args) {
-  return __async$6(this, null, function* () {
+  return __async$3(this, null, function* () {
     var _a;
     if (!Signer$1) throw new Error("Signer module not loaded");
-    const signer = yield Signer$1.fromMnemonic(args.mnemonic, { type: (_a = args.mnemonicType) != null ? _a : "ton" });
+    const signer = yield Signer$1.fromMnemonic(args.mnemonic, { type: (_a = args.mnemonicType) != null ? _a : "ton" }, args.domain);
     const signerId = retain("signer", signer);
     return { signerId, publicKey: signer.publicKey };
   });
 }
 function createSignerFromPrivateKey(args) {
-  return __async$6(this, null, function* () {
+  return __async$3(this, null, function* () {
     if (!Signer$1) throw new Error("Signer module not loaded");
-    const signer = yield Signer$1.fromPrivateKey(args.secretKey);
+    const signer = yield Signer$1.fromPrivateKey(args.secretKey, args.domain);
     const signerId = retain("signer", signer);
     return { signerId, publicKey: signer.publicKey };
   });
 }
 function createSignerFromCustom(args) {
-  return __async$6(this, null, function* () {
+  return __async$3(this, null, function* () {
     const { signerId, publicKey } = args;
     const proxySigner = {
       publicKey,
-      sign: (bytes) => __async$6(null, null, function* () {
+      sign: (bytes) => __async$3(null, null, function* () {
         const result = yield bridgeRequest("signWithCustomSigner", {
           signerId,
           data: Array.from(bytes)
@@ -37975,7 +37961,7 @@ function createSignerFromCustom(args) {
   });
 }
 function createV5R1WalletAdapter(args) {
-  return __async$6(this, null, function* () {
+  return __async$3(this, null, function* () {
     var _a;
     const instance = yield getKit();
     const signer = get(args.signerId);
@@ -37986,15 +37972,14 @@ function createV5R1WalletAdapter(args) {
       client: instance.getApiClient(network),
       network,
       workchain: (_a = args.workchain) != null ? _a : 0,
-      walletId: args.walletId,
-      domain: args.domain
+      walletId: args.walletId
     });
     const adapterId = retain("adapter", adapter);
     return { adapterId, address: adapter.getAddress() };
   });
 }
 function createV4R2WalletAdapter(args) {
-  return __async$6(this, null, function* () {
+  return __async$3(this, null, function* () {
     var _a;
     const instance = yield getKit();
     const signer = get(args.signerId);
@@ -38005,15 +37990,14 @@ function createV4R2WalletAdapter(args) {
       client: instance.getApiClient(network),
       network,
       workchain: (_a = args.workchain) != null ? _a : 0,
-      walletId: args.walletId,
-      domain: args.domain
+      walletId: args.walletId
     });
     const adapterId = retain("adapter", adapter);
     return { adapterId, address: adapter.getAddress() };
   });
 }
 function addWallet(args) {
-  return __async$6(this, null, function* () {
+  return __async$3(this, null, function* () {
     var _a, _b;
     const instance = yield getKit();
     const existingAdapter = get(args.adapterId);
@@ -38032,7 +38016,7 @@ function releaseRef(args) {
   release(args.id);
   return { ok: true };
 }
-var __async$5 = (__this, __arguments, generator) => {
+var __async$2 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -38054,17 +38038,17 @@ var __async$5 = (__this, __arguments, generator) => {
 };
 const createTransferTonTransaction = (args) => walletCall("createTransferTonTransaction", args);
 const createTransferMultiTonTransaction = (args) => walletCall("createTransferMultiTonTransaction", args);
-const getTransactionPreview = (args) => wallet(args.walletId, "getTransactionPreview", args.transactionContent);
-const sendTransaction = (args) => wallet(args.walletId, "sendTransaction", args.transactionContent);
+const getTransactionPreview = (args) => walletCall("getTransactionPreview", args);
+const sendTransaction = (args) => walletCall("sendTransaction", args);
 const getRecentTransactions = (args) => clientCall("getAccountTransactions", args);
 function handleNewTransaction(args) {
-  return __async$5(this, null, function* () {
+  return __async$2(this, null, function* () {
     const k2 = yield getKit();
-    const w2 = yield getWallet(args.walletId);
-    return k2.handleNewTransaction(w2, args.transactionContent);
+    const w2 = yield getWallet(args[0]);
+    return k2.handleNewTransaction(w2, args[1]);
   });
 }
-var __async$4 = (__this, __arguments, generator) => {
+var __async$1 = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -38085,36 +38069,36 @@ var __async$4 = (__this, __arguments, generator) => {
   });
 };
 function approveConnectRequest(args) {
-  return __async$4(this, null, function* () {
+  return __async$1(this, null, function* () {
     return kit("approveConnectRequest", ...args);
   });
 }
 function rejectConnectRequest(args) {
-  return __async$4(this, null, function* () {
+  return __async$1(this, null, function* () {
     return kit("rejectConnectRequest", ...args);
   });
 }
 function approveTransactionRequest(args) {
-  return __async$4(this, null, function* () {
+  return __async$1(this, null, function* () {
     return kit("approveTransactionRequest", ...args);
   });
 }
 function rejectTransactionRequest(args) {
-  return __async$4(this, null, function* () {
+  return __async$1(this, null, function* () {
     return kit("rejectTransactionRequest", ...args);
   });
 }
 function approveSignDataRequest(args) {
-  return __async$4(this, null, function* () {
+  return __async$1(this, null, function* () {
     return kit("approveSignDataRequest", ...args);
   });
 }
 function rejectSignDataRequest(args) {
-  return __async$4(this, null, function* () {
+  return __async$1(this, null, function* () {
     return kit("rejectSignDataRequest", ...args);
   });
 }
-var __async$3 = (__this, __arguments, generator) => {
+var __async = (__this, __arguments, generator) => {
   return new Promise((resolve, reject) => {
     var fulfilled = (value) => {
       try {
@@ -38135,27 +38119,27 @@ var __async$3 = (__this, __arguments, generator) => {
   });
 };
 function handleTonConnectUrl(args) {
-  return __async$3(this, null, function* () {
+  return __async(this, null, function* () {
     return kit("handleTonConnectUrl", args);
   });
 }
 function connectionEventFromUrl(args) {
-  return __async$3(this, null, function* () {
+  return __async(this, null, function* () {
     return kit("connectionEventFromUrl", args);
   });
 }
 function listSessions() {
-  return __async$3(this, null, function* () {
+  return __async(this, null, function* () {
     return kit("listSessions");
   });
 }
 function disconnectSession(args) {
-  return __async$3(this, null, function* () {
+  return __async(this, null, function* () {
     return kit("disconnect", args);
   });
 }
 function processInternalBrowserRequest(args) {
-  return __async$3(this, null, function* () {
+  return __async(this, null, function* () {
     const messageInfo = args[0];
     const messageId = messageInfo == null ? void 0 : messageInfo.messageId;
     if (!messageId) {
@@ -38199,526 +38183,6 @@ const getJettons = (args) => walletCall("getJettons", args);
 const createTransferJettonTransaction = (args) => walletCall("createTransferJettonTransaction", args);
 const getJettonBalance = (args) => walletCall("getJettonBalance", args);
 const getJettonWalletAddress = (args) => walletCall("getJettonWalletAddress", args);
-const CACHE_TIMEOUT = 3e4;
-const STAKING_CONTRACT_ADDRESS = {
-  // https://github.com/ton-blockchain/liquid-staking-contract/tree/35d676f6ac6e35e755ea3c4d7d7cf577627b1cf0
-  [Network.mainnet().chainId]: "EQCkWxfyhAkim3g2DjKQQg8T5P4g-Q1-K_jErGcDJZ4i-vqR",
-  // https://github.com/ton-blockchain/liquid-staking-contract/tree/77f13c850890517a6b490ef5f109c31b4fa783e7
-  [Network.testnet().chainId]: "kQANFsYyYn-GSZ4oajUJmboDURZU-udMHf9JxzO4vYM_hFP3"
-};
-const CONTRACT = {
-  PARTNER_CODE: 70457412335,
-  PAYLOAD_UNSTAKE: 1499400124,
-  PAYLOAD_STAKE: 1205158801,
-  STAKE_FEE_RES: parseUnits("1", 9),
-  UNSTAKE_FEE_RES: parseUnits("1.05", 9),
-  RECOMMENDED_FEE_RESERVE: parseUnits("1.1", 9)
-};
-class PoolContract {
-  address;
-  client;
-  constructor(address, client2) {
-    this.address = asAddressFriendly(address);
-    this.client = client2;
-  }
-  async getJettonMinter() {
-    const data = await this.client.runGetMethod(this.address, "get_pool_full_data");
-    const stack = ReaderStack(data.stack);
-    stack.skip(12);
-    return asAddressFriendly(stack.readAddress());
-  }
-  async getJettonWalletAddress(userAddress) {
-    const jettonMinter = await this.getJettonMinter();
-    const data = await this.client.runGetMethod(jettonMinter, "get_wallet_address", SerializeStack([{ type: "slice", cell: distExports$2.beginCell().storeAddress(distExports$2.Address.parse(userAddress)).endCell() }]));
-    const stack = ReaderStack(data.stack);
-    return asAddressFriendly(stack.readAddress());
-  }
-  async getStakedBalance(userAddress) {
-    const jettonWalletAddress = await this.getJettonWalletAddress(userAddress);
-    const data = await this.client.runGetMethod(jettonWalletAddress, "get_wallet_data");
-    const stack = ReaderStack(data.stack);
-    return stack.readBigNumber().toString();
-  }
-  /**
-   * Build stake message payload.
-   * TL‑B: deposit#47d54391 query_id:uint64 = InternalMsgBody;
-   */
-  buildStakePayload(queryId = 0n) {
-    const cell = distExports$2.beginCell().storeUint(CONTRACT.PAYLOAD_STAKE, 32).storeUint(queryId, 64).storeUint(CONTRACT.PARTNER_CODE, 64).endCell();
-    return cell.toBoc().toString("base64");
-  }
-  /**
-   * Build unstake message payload to be sent to user's tsTON jetton wallet.
-   *
-   * Internal body:
-   *  - op: burn#595f07bc (see TonstakersBurnPayload specification)
-   *  - query_id: uint64
-   *  - amount: Coins
-   *  - response_destination: MsgAddress (user address)
-   *  - custom_payload: Maybe ^Cell (TonstakersBurnPayload)
-   */
-  buildUnstakePayload(params) {
-    const { amount, userAddress, waitTillRoundEnd, fillOrKill, queryId = 0n } = params;
-    const burnPayloadCell = distExports$2.beginCell().storeBit(waitTillRoundEnd ? 1 : 0).storeBit(fillOrKill ? 1 : 0).endCell();
-    const cell = distExports$2.beginCell().storeUint(CONTRACT.PAYLOAD_UNSTAKE, 32).storeUint(queryId, 64).storeCoins(amount).storeAddress(distExports$2.Address.parse(userAddress)).storeMaybeRef(burnPayloadCell).endCell();
-    return cell.toBoc().toString("base64");
-  }
-  /**
-   * Helper to construct a TransactionRequestMessage for unstake flow.
-   * Note: fee amount is not applied here and should be added by caller.
-   */
-  async buildUnstakeMessage(params) {
-    const { amount, userAddress, waitTillRoundEnd, fillOrKill } = params;
-    const jettonWalletAddress = await this.getJettonWalletAddress(userAddress);
-    const payload = this.buildUnstakePayload({
-      amount,
-      userAddress,
-      waitTillRoundEnd,
-      fillOrKill
-    });
-    return {
-      address: jettonWalletAddress,
-      amount: CONTRACT.UNSTAKE_FEE_RES.toString(),
-      payload
-    };
-  }
-  /**
-   * Get staking contract balance (instant liquidity available).
-   */
-  async getPoolBalance() {
-    const balance = await this.client.getBalance(this.address);
-    return BigInt(balance);
-  }
-  /**
-   * Get current and projected exchange rates for tsTON/TON.
-   */
-  async getRates() {
-    const data = await this.client.runGetMethod(this.address, "get_pool_full_data");
-    const stack = ReaderStack(data.stack);
-    stack.skip(2);
-    const totalBalance = Number(formatUnits(stack.readBigNumber(), 9));
-    stack.skip(10);
-    const supply = Number(formatUnits(stack.readBigNumber(), 9));
-    stack.skip(14);
-    const projectedBalance = Number(formatUnits(stack.readBigNumber(), 9));
-    const projectedSupply = Number(formatUnits(stack.readBigNumber(), 9));
-    const tsTONTON = supply > 0 ? totalBalance / supply : 1;
-    const tsTONTONProjected = projectedSupply > 0 ? projectedBalance / projectedSupply : 1;
-    return {
-      tsTONTON,
-      tsTONTONProjected
-    };
-  }
-}
-class StakingCache {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  cache;
-  defaultTtl;
-  constructor(maxSize = 100, defaultTtl = CACHE_TIMEOUT) {
-    this.defaultTtl = defaultTtl;
-    this.cache = new L({
-      max: maxSize
-    });
-  }
-  async get(key, fetcher, ttl = this.defaultTtl) {
-    const cached = this.cache.get(key);
-    if (cached !== void 0) {
-      return cached;
-    }
-    const value = await fetcher();
-    this.cache.set(key, value, { ttl });
-    return value;
-  }
-  clear() {
-    this.cache.clear();
-  }
-  invalidate(key) {
-    this.cache.delete(key);
-  }
-}
-const log$2 = globalLogger.createChild("TonStakersStakingProvider");
-class TonStakersStakingProvider extends StakingProvider {
-  networkManager;
-  chainConfig;
-  cache;
-  /**
-   * @internal Use {@link createTonstakersProvider} (AppKit) or {@link TonStakersStakingProvider.createFromContext}.
-   */
-  constructor(networkManager, chainConfig) {
-    super("tonstakers");
-    this.networkManager = networkManager;
-    this.chainConfig = chainConfig;
-    this.cache = new StakingCache();
-    log$2.info("TonStakersStakingProvider initialized");
-  }
-  /**
-   * Resolves API clients from {@link ProviderFactoryContext.networkManager} on each call.
-   * Only networks with a known Tonstakers pool (or `contractAddress` in {@link TonStakersProviderConfig}) are registered.
-   */
-  static createFromContext(ctx, config2 = {}) {
-    const chainConfig = {};
-    for (const network of ctx.networkManager.getConfiguredNetworks()) {
-      const chainId = network.chainId;
-      const perChain = config2[chainId] ?? {};
-      const defaultContract = STAKING_CONTRACT_ADDRESS[chainId];
-      if (!defaultContract && !perChain.contractAddress) {
-        continue;
-      }
-      const contractAddress2 = perChain.contractAddress ?? defaultContract;
-      chainConfig[chainId] = {
-        contractAddress: contractAddress2,
-        ...perChain.tonApiToken !== void 0 ? { tonApiToken: perChain.tonApiToken } : {}
-      };
-    }
-    if (Object.keys(chainConfig).length === 0) {
-      throw new Error("createTonstakersProvider: no eligible networks (add mainnet/testnet or pass contractAddress in overrides)");
-    }
-    return new TonStakersStakingProvider(ctx.networkManager, chainConfig);
-  }
-  /**
-   * Get a quote for staking or unstaking operations.
-   *
-   * @param params - Quote parameters including direction, amount, and optional unstake mode
-   * @returns Quote with expected amounts and current APY (for stake direction)
-   */
-  async getQuote(params) {
-    log$2.debug("TonStakers quote requested", {
-      direction: params.direction,
-      amount: params.amount,
-      userAddress: params.userAddress
-    });
-    const stakingInfo = await this.getStakingProviderInfo(params.network);
-    const contract = this.getContract(params.network);
-    const rates = await contract.getRates();
-    const rawAmountIn = parseUnits(params.amount, 9).toString();
-    if (params.direction === "stake") {
-      const amountInTokens = Number(params.amount);
-      const amountOutTokens = amountInTokens / rates.tsTONTONProjected;
-      const rawAmountOut = parseUnits(amountOutTokens.toFixed(9), 9).toString();
-      const amountOut = formatUnits(rawAmountOut, 9).toString();
-      const quote = {
-        direction: "stake",
-        rawAmountIn,
-        rawAmountOut,
-        amountIn: params.amount,
-        amountOut,
-        network: params.network || Network.mainnet(),
-        providerId: "tonstakers",
-        apy: stakingInfo.apy
-      };
-      return quote;
-    } else {
-      const amountInTokens = Number(params.amount);
-      const amountOutTokens = params.unstakeMode === UnstakeMode.INSTANT || params.unstakeMode === UnstakeMode.WHEN_AVAILABLE ? amountInTokens * rates.tsTONTON : amountInTokens * rates.tsTONTONProjected;
-      const rawAmountOut = parseUnits(amountOutTokens.toFixed(9), 9).toString();
-      const amountOut = formatUnits(rawAmountOut, 9).toString();
-      const quote = {
-        direction: "unstake",
-        rawAmountIn,
-        rawAmountOut,
-        amountIn: params.amount,
-        amountOut,
-        network: params.network || Network.mainnet(),
-        providerId: "tonstakers",
-        unstakeMode: params.unstakeMode ?? UnstakeMode.INSTANT
-      };
-      return quote;
-    }
-  }
-  /**
-   * Build a transaction for staking TON.
-   *
-   * The stake operation sends TON to the Tonstakers pool contract
-   * and receives tsTON liquid staking tokens in return.
-   * A fee reserve of 1 TON is automatically added to the amount.
-   *
-   * @param params - Stake parameters including quote and user address
-   * @returns Transaction request ready to be signed and sent
-   */
-  async buildStakeTransaction(params) {
-    if (params.quote.direction === "stake") {
-      return this.buildStakeTonTransaction(params);
-    } else {
-      return this.buildUnstakeTonTransaction(params);
-    }
-  }
-  async buildStakeTonTransaction(params) {
-    log$2.debug("TonStakers stake requested", { params });
-    if (params.quote.direction !== "stake") {
-      throw new StakingError("Invalid quote direction", StakingErrorCode.InvalidParams, {
-        quote: params.quote
-      });
-    }
-    const network = params.quote.network;
-    const contractAddress2 = this.getStakingContractAddress(network);
-    const amount = BigInt(params.quote.rawAmountIn);
-    const totalAmount = amount + CONTRACT.STAKE_FEE_RES;
-    const contract = this.getContract(network);
-    const payload = contract.buildStakePayload(1n);
-    const message = {
-      address: contractAddress2,
-      amount: totalAmount.toString(),
-      payload
-    };
-    return {
-      messages: [message],
-      fromAddress: params.userAddress,
-      network
-    };
-  }
-  /**
-   * Build a transaction for unstaking tsTON.
-   *
-   * Mode mapping matches {@link getQuote} / {@link StakingQuote.unstakeMode} using {@link UnstakeMode}.
-   *
-   * @param params - Unstake parameters including quote and user address
-   * @returns Transaction request ready to be signed and sent
-   */
-  async buildUnstakeTonTransaction(params) {
-    log$2.debug("TonStakers unstake requested", { amount: params.quote.amountIn, userAddress: params.userAddress });
-    if (params.quote.direction !== "unstake") {
-      throw new StakingError("Invalid quote direction", StakingErrorCode.InvalidParams, {
-        quote: params.quote
-      });
-    }
-    const network = params.quote.network;
-    const amount = BigInt(params.quote.rawAmountIn);
-    const unstakeMode = params.quote.unstakeMode ?? UnstakeMode.INSTANT;
-    let waitTillRoundEnd = false;
-    let fillOrKill = false;
-    switch (unstakeMode) {
-      case UnstakeMode.INSTANT:
-        waitTillRoundEnd = false;
-        fillOrKill = true;
-        break;
-      case UnstakeMode.ROUND_END:
-        waitTillRoundEnd = true;
-        fillOrKill = false;
-        break;
-      case UnstakeMode.WHEN_AVAILABLE:
-      default:
-        waitTillRoundEnd = false;
-        fillOrKill = false;
-        break;
-    }
-    const contract = this.getContract(network);
-    const message = await contract.buildUnstakeMessage({
-      amount,
-      userAddress: params.userAddress,
-      waitTillRoundEnd,
-      fillOrKill
-    });
-    return {
-      messages: [message],
-      fromAddress: params.userAddress,
-      network
-    };
-  }
-  /**
-   * Get staking balance information for a user.
-   *
-   * Returns {@link StakingBalance}: `stakedBalance` (tsTON), `instantUnstakeAvailable` (pool TON liquidity
-   * for instant unstake), and `providerId`.
-   *
-   * @param userAddress - User wallet address
-   * @param network - Network to query (defaults to mainnet)
-   */
-  async getStakedBalance(userAddress, network) {
-    log$2.debug("TonStakers balance requested", { userAddress, network });
-    try {
-      const targetNetwork = network ?? Network.mainnet();
-      let stakedBalance = "0";
-      let instantUnstakeAvailable = 0n;
-      const contract = this.getContract(targetNetwork);
-      try {
-        stakedBalance = await contract.getStakedBalance(userAddress);
-      } catch (error2) {
-        log$2.warn("Failed to get staked balance", { error: error2 });
-      }
-      try {
-        instantUnstakeAvailable = await contract.getPoolBalance();
-      } catch (error2) {
-        log$2.warn("Failed to get instant unstake liquidity", { error: error2 });
-      }
-      return {
-        rawStakedBalance: stakedBalance,
-        stakedBalance: formatUnits(stakedBalance, 9),
-        // in tsTON tokens
-        rawInstantUnstakeAvailable: instantUnstakeAvailable.toString(),
-        instantUnstakeAvailable: formatUnits(instantUnstakeAvailable, 9),
-        providerId: "tonstakers"
-      };
-    } catch (error2) {
-      log$2.error("Failed to get balance", { error: error2, userAddress, network });
-      throw new StakingError("Failed to get staking balance", StakingErrorCode.InvalidParams, {
-        error: error2,
-        userAddress,
-        network
-      });
-    }
-  }
-  /**
-   * Get staking pool information including APY and liquidity.
-   * APY is fetched from TonAPI.
-   * Results are cached for 30 seconds to reduce API calls.
-   *
-   * @param network - Network to query (defaults to mainnet)
-   * @returns Staking info with APY and available instant liquidity
-   */
-  async getStakingProviderInfo(network) {
-    log$2.debug("TonStakers info requested", { network });
-    const targetNetwork = network ?? Network.mainnet();
-    const cacheKey = `staking-info:${targetNetwork.chainId}`;
-    return await this.cache.get(cacheKey, async () => {
-      const contract = this.getContract(targetNetwork);
-      const instantLiquidity = await contract.getPoolBalance();
-      const apy = await this.getApyFromTonApi(targetNetwork);
-      return {
-        apy,
-        rawInstantUnstakeAvailable: instantLiquidity.toString(),
-        instantUnstakeAvailable: formatUnits(instantLiquidity, 9),
-        providerId: "tonstakers"
-      };
-    });
-  }
-  /**
-   * Get supported unstake modes
-   * @returns An array of supported unstake modes
-   */
-  getSupportedUnstakeModes() {
-    return [UnstakeMode.INSTANT, UnstakeMode.WHEN_AVAILABLE, UnstakeMode.ROUND_END];
-  }
-  /**
-   * Clear all cached data.
-   * Use this to force fresh data retrieval on next call.
-   */
-  clearCache() {
-    this.cache.clear();
-  }
-  getStakingContractAddress(network) {
-    const targetNetwork = network ?? Network.mainnet();
-    const entry = this.chainConfig[targetNetwork.chainId];
-    if (!entry?.contractAddress) {
-      throw new StakingError("Staking contract address is not configured for the selected network", StakingErrorCode.InvalidParams, { network: targetNetwork });
-    }
-    return entry.contractAddress;
-  }
-  getContract(network) {
-    const targetNetwork = network ?? Network.mainnet();
-    const apiClient = this.getApiClient(targetNetwork);
-    const contractAddress2 = this.getStakingContractAddress(targetNetwork);
-    return new PoolContract(contractAddress2, apiClient);
-  }
-  getApiClient(network) {
-    const targetNetwork = network ?? Network.mainnet();
-    if (!this.chainConfig[targetNetwork.chainId]) {
-      throw new StakingError("Tonstakers is not available on this network", StakingErrorCode.InvalidParams, {
-        network: targetNetwork
-      });
-    }
-    return this.networkManager.getClient(targetNetwork);
-  }
-  async getApyFromTonApi(network) {
-    const token = this.chainConfig[network.chainId]?.tonApiToken;
-    const address = this.getStakingContractAddress(network);
-    const client2 = new ApiClientTonApi({ network, apiKey: token });
-    const poolInfo = await client2.getJson(`/v2/staking/pool/${address}`);
-    if (!poolInfo?.pool?.apy) {
-      throw new Error("Invalid APY data from TonAPI");
-    }
-    return Number(poolInfo.pool.apy);
-  }
-}
-var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __propIsEnum = Object.prototype.propertyIsEnumerable;
-var __objRest = (source, exclude) => {
-  var target = {};
-  for (var prop in source)
-    if (__hasOwnProp.call(source, prop) && exclude.indexOf(prop) < 0)
-      target[prop] = source[prop];
-  if (source != null && __getOwnPropSymbols)
-    for (var prop of __getOwnPropSymbols(source)) {
-      if (exclude.indexOf(prop) < 0 && __propIsEnum.call(source, prop))
-        target[prop] = source[prop];
-    }
-  return target;
-};
-var __async$2 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-function createTonStakersStakingProvider(args) {
-  return __async$2(this, null, function* () {
-    var _a;
-    const instance = yield getKit();
-    const provider = TonStakersStakingProvider.createFromContext(instance.createFactoryContext(), (_a = args == null ? void 0 : args.config) != null ? _a : {});
-    const providerId = retain("stakingProvider", provider);
-    return { providerId };
-  });
-}
-function registerStakingProvider(args) {
-  return __async$2(this, null, function* () {
-    const provider = get(args.providerId);
-    if (!provider) throw new Error(`Staking provider not found: ${args.providerId}`);
-    const instance = yield getKit();
-    instance.staking.registerProvider(provider);
-  });
-}
-function setDefaultStakingProvider(args) {
-  return __async$2(this, null, function* () {
-    const instance = yield getKit();
-    instance.staking.setDefaultProvider(args.providerId);
-  });
-}
-function getStakingQuote(args) {
-  return __async$2(this, null, function* () {
-    const _a = args, { providerId } = _a, params = __objRest(_a, ["providerId"]);
-    const instance = yield getKit();
-    return instance.staking.getQuote(params, providerId);
-  });
-}
-function buildStakeTransaction(args) {
-  return __async$2(this, null, function* () {
-    const _a = args, { providerId } = _a, params = __objRest(_a, ["providerId"]);
-    const instance = yield getKit();
-    return instance.staking.buildStakeTransaction(params, providerId);
-  });
-}
-function getStakedBalance(args) {
-  return __async$2(this, null, function* () {
-    const instance = yield getKit();
-    return instance.staking.getStakedBalance(args.userAddress, args.network, args.providerId);
-  });
-}
-function getStakingProviderInfo(args) {
-  return __async$2(this, null, function* () {
-    const instance = yield getKit();
-    return instance.staking.getStakingProviderInfo(args.network, args.providerId);
-  });
-}
-function getSupportedUnstakeModes(args) {
-  return __async$2(this, null, function* () {
-    const instance = yield getKit();
-    return instance.staking.getSupportedUnstakeModes(args.providerId);
-  });
-}
 function emitBrowserPageStarted(args) {
   emit("browserPageStarted", args);
   return { success: true };
@@ -38735,4455 +38199,22 @@ function emitBrowserBridgeRequest(args) {
   emit("browserBridgeRequest", args);
   return { success: true };
 }
-var __async$1 = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-const kotlinSubCallbacks = /* @__PURE__ */ new Map();
-const kotlinProviderSubs = /* @__PURE__ */ new Map();
-function trackKotlinSub(providerId, subId) {
-  let subs = kotlinProviderSubs.get(providerId);
-  if (!subs) {
-    subs = /* @__PURE__ */ new Set();
-    kotlinProviderSubs.set(providerId, subs);
-  }
-  subs.add(subId);
-}
-function forgetKotlinSub(providerId, subId) {
-  const subs = kotlinProviderSubs.get(providerId);
-  if (!subs) return;
-  subs.delete(subId);
-  if (subs.size === 0) {
-    kotlinProviderSubs.delete(providerId);
-  }
-}
-function cleanupReplacedKotlinProvider(instance, nextProviderId, network) {
-  var _a;
-  const manager = instance.streaming;
-  const networkId = String(network.chainId);
-  const previousProvider = manager.providers.get(networkId);
-  if (!(previousProvider instanceof ProxyStreamingProvider)) {
-    return;
-  }
-  (_a = manager.providerConnectionUnsubs.get(networkId)) == null ? void 0 : _a();
-  manager.providerConnectionUnsubs.delete(networkId);
-  manager.providers.delete(networkId);
-  previousProvider.dispose();
-  if (previousProvider.providerId !== nextProviderId) {
-    void bridgeRequest("kotlinProviderRelease", { providerId: previousProvider.providerId });
-  }
-  release(previousProvider.providerId);
-}
-class ProxyStreamingProvider {
-  constructor(providerId, network) {
-    this.providerId = providerId;
-    this.type = "streaming";
-    this.network = network;
-  }
-  watch(type, address, onChange) {
-    const subId = v7();
-    kotlinSubCallbacks.set(subId, onChange);
-    trackKotlinSub(this.providerId, subId);
-    void bridgeRequest("kotlinProviderWatch", { providerId: this.providerId, subId, type, address });
-    return () => {
-      kotlinSubCallbacks.delete(subId);
-      forgetKotlinSub(this.providerId, subId);
-      void bridgeRequest("kotlinProviderUnwatch", { subId });
-    };
-  }
-  watchBalance(address, onChange) {
-    return this.watch("balance", address, onChange);
-  }
-  watchTransactions(address, onChange) {
-    return this.watch("transactions", address, onChange);
-  }
-  watchJettons(address, onChange) {
-    return this.watch("jettons", address, onChange);
-  }
-  onConnectionChange(callback) {
-    return this.watch("connectionChange", null, callback);
-  }
-  connect() {
-    void bridgeRequest("kotlinProviderConnect", { providerId: this.providerId });
-  }
-  disconnect() {
-    void bridgeRequest("kotlinProviderDisconnect", { providerId: this.providerId });
-  }
-  dispose() {
-    const subs = kotlinProviderSubs.get(this.providerId);
-    if (!subs) return;
-    for (const subId of subs) {
-      kotlinSubCallbacks.delete(subId);
-      void bridgeRequest("kotlinProviderUnwatch", { subId });
-    }
-    kotlinProviderSubs.delete(this.providerId);
-  }
-}
-function createTonCenterStreamingProvider(args) {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    const provider = new TonCenterStreamingProvider(instance.createFactoryContext(), args.config);
-    return { providerId: retain("streamingProvider", provider) };
-  });
-}
-function createTonApiStreamingProvider(args) {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    const provider = new TonApiStreamingProvider(instance.createFactoryContext(), args.config);
-    return { providerId: retain("streamingProvider", provider) };
-  });
-}
-function registerStreamingProvider(args) {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    const provider = get(args.providerId);
-    if (!provider) throw new Error(`Streaming provider not found: ${args.providerId}`);
-    instance.streaming.registerProvider(() => provider);
-  });
-}
-function streamingHasProvider(args) {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    return { hasProvider: instance.streaming.hasProvider(args.network) };
-  });
-}
-function streamingWatch(args) {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    let subscriptionId;
-    const unwatch = instance.streaming.watch(
-      args.network,
-      args.address,
-      args.types,
-      (_type, update) => {
-        emit("streamingUpdate", { subscriptionId, update });
-      }
-    );
-    subscriptionId = retain("streamingSub", unwatch);
-    return { subscriptionId };
-  });
-}
-function streamingUnwatch(args) {
-  return __async$1(this, null, function* () {
-    const unwatch = get(args.subscriptionId);
-    if (unwatch) {
-      unwatch();
-      release(args.subscriptionId);
-    }
-  });
-}
-function streamingConnect() {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    instance.streaming.connect();
-  });
-}
-function streamingDisconnect() {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    instance.streaming.disconnect();
-  });
-}
-function streamingWatchConnectionChange(args) {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    let subscriptionId;
-    const unwatch = instance.streaming.onConnectionChange(args.network, (connected) => {
-      emit("streamingConnectionChange", { subscriptionId, connected });
-    });
-    subscriptionId = retain("streamingSub", unwatch);
-    return { subscriptionId };
-  });
-}
-function streamingWatchBalance(args) {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    let subscriptionId;
-    const unwatch = instance.streaming.watchBalance(args.network, args.address, (update) => {
-      emit("streamingBalanceUpdate", { subscriptionId, update });
-    });
-    subscriptionId = retain("streamingSub", unwatch);
-    return { subscriptionId };
-  });
-}
-function streamingWatchTransactions(args) {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    let subscriptionId;
-    const unwatch = instance.streaming.watchTransactions(args.network, args.address, (update) => {
-      emit("streamingTransactionsUpdate", { subscriptionId, update });
-    });
-    subscriptionId = retain("streamingSub", unwatch);
-    return { subscriptionId };
-  });
-}
-function streamingWatchJettons(args) {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    let subscriptionId;
-    const unwatch = instance.streaming.watchJettons(args.network, args.address, (update) => {
-      emit("streamingJettonsUpdate", { subscriptionId, update });
-    });
-    subscriptionId = retain("streamingSub", unwatch);
-    return { subscriptionId };
-  });
-}
-function registerKotlinStreamingProvider(args) {
-  return __async$1(this, null, function* () {
-    const instance = yield getKit();
-    cleanupReplacedKotlinProvider(instance, args.providerId, args.network);
-    const provider = new ProxyStreamingProvider(args.providerId, args.network);
-    retainWithId(args.providerId, provider);
-    instance.streaming.registerProvider(() => provider);
-  });
-}
-function kotlinProviderDispatch(args) {
-  return __async$1(this, null, function* () {
-    const callback = kotlinSubCallbacks.get(args.subId);
-    if (callback) {
-      try {
-        callback(JSON.parse(args.updateJson));
-      } catch (e) {
-      }
-    }
-  });
-}
-var extendStatics = function(d, b2) {
-  extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b3) {
-    d2.__proto__ = b3;
-  } || function(d2, b3) {
-    for (var p2 in b3) if (Object.prototype.hasOwnProperty.call(b3, p2)) d2[p2] = b3[p2];
-  };
-  return extendStatics(d, b2);
-};
-function __extends(d, b2) {
-  if (typeof b2 !== "function" && b2 !== null)
-    throw new TypeError("Class extends value " + String(b2) + " is not a constructor or null");
-  extendStatics(d, b2);
-  function __() {
-    this.constructor = d;
-  }
-  d.prototype = b2 === null ? Object.create(b2) : (__.prototype = b2.prototype, new __());
-}
-function __values(o) {
-  var s2 = typeof Symbol === "function" && Symbol.iterator, m = s2 && o[s2], i4 = 0;
-  if (m) return m.call(o);
-  if (o && typeof o.length === "number") return {
-    next: function() {
-      if (o && i4 >= o.length) o = void 0;
-      return { value: o && o[i4++], done: !o };
-    }
-  };
-  throw new TypeError(s2 ? "Object is not iterable." : "Symbol.iterator is not defined.");
-}
-function __read(o, n) {
-  var m = typeof Symbol === "function" && o[Symbol.iterator];
-  if (!m) return o;
-  var i4 = m.call(o), r, ar = [], e;
-  try {
-    while ((n === void 0 || n-- > 0) && !(r = i4.next()).done) ar.push(r.value);
-  } catch (error2) {
-    e = { error: error2 };
-  } finally {
-    try {
-      if (r && !r.done && (m = i4["return"])) m.call(i4);
-    } finally {
-      if (e) throw e.error;
-    }
-  }
-  return ar;
-}
-function __spreadArray(to, from, pack) {
-  if (pack || arguments.length === 2) for (var i4 = 0, l = from.length, ar; i4 < l; i4++) {
-    if (ar || !(i4 in from)) {
-      if (!ar) ar = Array.prototype.slice.call(from, 0, i4);
-      ar[i4] = from[i4];
-    }
-  }
-  return to.concat(ar || Array.prototype.slice.call(from));
-}
-typeof SuppressedError === "function" ? SuppressedError : function(error2, suppressed, message) {
-  var e = new Error(message);
-  return e.name = "SuppressedError", e.error = error2, e.suppressed = suppressed, e;
-};
-function isFunction(value) {
-  return typeof value === "function";
-}
-function createErrorClass(createImpl) {
-  var _super = function(instance) {
-    Error.call(instance);
-    instance.stack = new Error().stack;
-  };
-  var ctorFunc = createImpl(_super);
-  ctorFunc.prototype = Object.create(Error.prototype);
-  ctorFunc.prototype.constructor = ctorFunc;
-  return ctorFunc;
-}
-var UnsubscriptionError = createErrorClass(function(_super) {
-  return function UnsubscriptionErrorImpl(errors) {
-    _super(this);
-    this.message = errors ? errors.length + " errors occurred during unsubscription:\n" + errors.map(function(err, i4) {
-      return i4 + 1 + ") " + err.toString();
-    }).join("\n  ") : "";
-    this.name = "UnsubscriptionError";
-    this.errors = errors;
-  };
-});
-function arrRemove(arr, item) {
-  if (arr) {
-    var index2 = arr.indexOf(item);
-    0 <= index2 && arr.splice(index2, 1);
-  }
-}
-var Subscription = (function() {
-  function Subscription2(initialTeardown) {
-    this.initialTeardown = initialTeardown;
-    this.closed = false;
-    this._parentage = null;
-    this._finalizers = null;
-  }
-  Subscription2.prototype.unsubscribe = function() {
-    var e_1, _a, e_2, _b;
-    var errors;
-    if (!this.closed) {
-      this.closed = true;
-      var _parentage = this._parentage;
-      if (_parentage) {
-        this._parentage = null;
-        if (Array.isArray(_parentage)) {
-          try {
-            for (var _parentage_1 = __values(_parentage), _parentage_1_1 = _parentage_1.next(); !_parentage_1_1.done; _parentage_1_1 = _parentage_1.next()) {
-              var parent_1 = _parentage_1_1.value;
-              parent_1.remove(this);
-            }
-          } catch (e_1_1) {
-            e_1 = { error: e_1_1 };
-          } finally {
-            try {
-              if (_parentage_1_1 && !_parentage_1_1.done && (_a = _parentage_1.return)) _a.call(_parentage_1);
-            } finally {
-              if (e_1) throw e_1.error;
-            }
-          }
-        } else {
-          _parentage.remove(this);
-        }
-      }
-      var initialFinalizer = this.initialTeardown;
-      if (isFunction(initialFinalizer)) {
-        try {
-          initialFinalizer();
-        } catch (e) {
-          errors = e instanceof UnsubscriptionError ? e.errors : [e];
-        }
-      }
-      var _finalizers = this._finalizers;
-      if (_finalizers) {
-        this._finalizers = null;
-        try {
-          for (var _finalizers_1 = __values(_finalizers), _finalizers_1_1 = _finalizers_1.next(); !_finalizers_1_1.done; _finalizers_1_1 = _finalizers_1.next()) {
-            var finalizer = _finalizers_1_1.value;
-            try {
-              execFinalizer(finalizer);
-            } catch (err) {
-              errors = errors !== null && errors !== void 0 ? errors : [];
-              if (err instanceof UnsubscriptionError) {
-                errors = __spreadArray(__spreadArray([], __read(errors)), __read(err.errors));
-              } else {
-                errors.push(err);
-              }
-            }
-          }
-        } catch (e_2_1) {
-          e_2 = { error: e_2_1 };
-        } finally {
-          try {
-            if (_finalizers_1_1 && !_finalizers_1_1.done && (_b = _finalizers_1.return)) _b.call(_finalizers_1);
-          } finally {
-            if (e_2) throw e_2.error;
-          }
-        }
-      }
-      if (errors) {
-        throw new UnsubscriptionError(errors);
-      }
-    }
-  };
-  Subscription2.prototype.add = function(teardown) {
-    var _a;
-    if (teardown && teardown !== this) {
-      if (this.closed) {
-        execFinalizer(teardown);
-      } else {
-        if (teardown instanceof Subscription2) {
-          if (teardown.closed || teardown._hasParent(this)) {
-            return;
-          }
-          teardown._addParent(this);
-        }
-        (this._finalizers = (_a = this._finalizers) !== null && _a !== void 0 ? _a : []).push(teardown);
-      }
-    }
-  };
-  Subscription2.prototype._hasParent = function(parent) {
-    var _parentage = this._parentage;
-    return _parentage === parent || Array.isArray(_parentage) && _parentage.includes(parent);
-  };
-  Subscription2.prototype._addParent = function(parent) {
-    var _parentage = this._parentage;
-    this._parentage = Array.isArray(_parentage) ? (_parentage.push(parent), _parentage) : _parentage ? [_parentage, parent] : parent;
-  };
-  Subscription2.prototype._removeParent = function(parent) {
-    var _parentage = this._parentage;
-    if (_parentage === parent) {
-      this._parentage = null;
-    } else if (Array.isArray(_parentage)) {
-      arrRemove(_parentage, parent);
-    }
-  };
-  Subscription2.prototype.remove = function(teardown) {
-    var _finalizers = this._finalizers;
-    _finalizers && arrRemove(_finalizers, teardown);
-    if (teardown instanceof Subscription2) {
-      teardown._removeParent(this);
-    }
-  };
-  Subscription2.EMPTY = (function() {
-    var empty = new Subscription2();
-    empty.closed = true;
-    return empty;
-  })();
-  return Subscription2;
-})();
-var EMPTY_SUBSCRIPTION = Subscription.EMPTY;
-function isSubscription(value) {
-  return value instanceof Subscription || value && "closed" in value && isFunction(value.remove) && isFunction(value.add) && isFunction(value.unsubscribe);
-}
-function execFinalizer(finalizer) {
-  if (isFunction(finalizer)) {
-    finalizer();
-  } else {
-    finalizer.unsubscribe();
-  }
-}
-var config = {
-  Promise: void 0
-};
-var timeoutProvider = {
-  setTimeout: function(handler, timeout) {
-    var args = [];
-    for (var _i = 2; _i < arguments.length; _i++) {
-      args[_i - 2] = arguments[_i];
-    }
-    return setTimeout.apply(void 0, __spreadArray([handler, timeout], __read(args)));
-  },
-  clearTimeout: function(handle) {
-    return clearTimeout(handle);
-  },
-  delegate: void 0
-};
-function reportUnhandledError(err) {
-  timeoutProvider.setTimeout(function() {
-    {
-      throw err;
-    }
-  });
-}
-function noop() {
-}
-function errorContext(cb) {
-  {
-    cb();
-  }
-}
-var Subscriber = (function(_super) {
-  __extends(Subscriber2, _super);
-  function Subscriber2(destination) {
-    var _this = _super.call(this) || this;
-    _this.isStopped = false;
-    if (destination) {
-      _this.destination = destination;
-      if (isSubscription(destination)) {
-        destination.add(_this);
-      }
-    } else {
-      _this.destination = EMPTY_OBSERVER;
-    }
-    return _this;
-  }
-  Subscriber2.create = function(next, error2, complete) {
-    return new SafeSubscriber(next, error2, complete);
-  };
-  Subscriber2.prototype.next = function(value) {
-    if (this.isStopped) ;
-    else {
-      this._next(value);
-    }
-  };
-  Subscriber2.prototype.error = function(err) {
-    if (this.isStopped) ;
-    else {
-      this.isStopped = true;
-      this._error(err);
-    }
-  };
-  Subscriber2.prototype.complete = function() {
-    if (this.isStopped) ;
-    else {
-      this.isStopped = true;
-      this._complete();
-    }
-  };
-  Subscriber2.prototype.unsubscribe = function() {
-    if (!this.closed) {
-      this.isStopped = true;
-      _super.prototype.unsubscribe.call(this);
-      this.destination = null;
-    }
-  };
-  Subscriber2.prototype._next = function(value) {
-    this.destination.next(value);
-  };
-  Subscriber2.prototype._error = function(err) {
-    try {
-      this.destination.error(err);
-    } finally {
-      this.unsubscribe();
-    }
-  };
-  Subscriber2.prototype._complete = function() {
-    try {
-      this.destination.complete();
-    } finally {
-      this.unsubscribe();
-    }
-  };
-  return Subscriber2;
-})(Subscription);
-var ConsumerObserver = (function() {
-  function ConsumerObserver2(partialObserver) {
-    this.partialObserver = partialObserver;
-  }
-  ConsumerObserver2.prototype.next = function(value) {
-    var partialObserver = this.partialObserver;
-    if (partialObserver.next) {
-      try {
-        partialObserver.next(value);
-      } catch (error2) {
-        handleUnhandledError(error2);
-      }
-    }
-  };
-  ConsumerObserver2.prototype.error = function(err) {
-    var partialObserver = this.partialObserver;
-    if (partialObserver.error) {
-      try {
-        partialObserver.error(err);
-      } catch (error2) {
-        handleUnhandledError(error2);
-      }
-    } else {
-      handleUnhandledError(err);
-    }
-  };
-  ConsumerObserver2.prototype.complete = function() {
-    var partialObserver = this.partialObserver;
-    if (partialObserver.complete) {
-      try {
-        partialObserver.complete();
-      } catch (error2) {
-        handleUnhandledError(error2);
-      }
-    }
-  };
-  return ConsumerObserver2;
-})();
-var SafeSubscriber = (function(_super) {
-  __extends(SafeSubscriber2, _super);
-  function SafeSubscriber2(observerOrNext, error2, complete) {
-    var _this = _super.call(this) || this;
-    var partialObserver;
-    if (isFunction(observerOrNext) || !observerOrNext) {
-      partialObserver = {
-        next: observerOrNext !== null && observerOrNext !== void 0 ? observerOrNext : void 0,
-        error: error2 !== null && error2 !== void 0 ? error2 : void 0,
-        complete: complete !== null && complete !== void 0 ? complete : void 0
-      };
-    } else {
-      {
-        partialObserver = observerOrNext;
-      }
-    }
-    _this.destination = new ConsumerObserver(partialObserver);
-    return _this;
-  }
-  return SafeSubscriber2;
-})(Subscriber);
-function handleUnhandledError(error2) {
-  {
-    reportUnhandledError(error2);
-  }
-}
-function defaultErrorHandler(err) {
-  throw err;
-}
-var EMPTY_OBSERVER = {
-  closed: true,
-  next: noop,
-  error: defaultErrorHandler,
-  complete: noop
-};
-var observable = (function() {
-  return typeof Symbol === "function" && Symbol.observable || "@@observable";
-})();
-function identity(x2) {
-  return x2;
-}
-function pipeFromArray(fns) {
-  if (fns.length === 0) {
-    return identity;
-  }
-  if (fns.length === 1) {
-    return fns[0];
-  }
-  return function piped(input) {
-    return fns.reduce(function(prev, fn) {
-      return fn(prev);
-    }, input);
-  };
-}
-var Observable = (function() {
-  function Observable2(subscribe) {
-    if (subscribe) {
-      this._subscribe = subscribe;
-    }
-  }
-  Observable2.prototype.lift = function(operator) {
-    var observable2 = new Observable2();
-    observable2.source = this;
-    observable2.operator = operator;
-    return observable2;
-  };
-  Observable2.prototype.subscribe = function(observerOrNext, error2, complete) {
-    var _this = this;
-    var subscriber = isSubscriber(observerOrNext) ? observerOrNext : new SafeSubscriber(observerOrNext, error2, complete);
-    errorContext(function() {
-      var _a = _this, operator = _a.operator, source = _a.source;
-      subscriber.add(operator ? operator.call(subscriber, source) : source ? _this._subscribe(subscriber) : _this._trySubscribe(subscriber));
-    });
-    return subscriber;
-  };
-  Observable2.prototype._trySubscribe = function(sink) {
-    try {
-      return this._subscribe(sink);
-    } catch (err) {
-      sink.error(err);
-    }
-  };
-  Observable2.prototype.forEach = function(next, promiseCtor) {
-    var _this = this;
-    promiseCtor = getPromiseCtor(promiseCtor);
-    return new promiseCtor(function(resolve, reject) {
-      var subscriber = new SafeSubscriber({
-        next: function(value) {
-          try {
-            next(value);
-          } catch (err) {
-            reject(err);
-            subscriber.unsubscribe();
-          }
-        },
-        error: reject,
-        complete: resolve
-      });
-      _this.subscribe(subscriber);
-    });
-  };
-  Observable2.prototype._subscribe = function(subscriber) {
-    var _a;
-    return (_a = this.source) === null || _a === void 0 ? void 0 : _a.subscribe(subscriber);
-  };
-  Observable2.prototype[observable] = function() {
-    return this;
-  };
-  Observable2.prototype.pipe = function() {
-    var operations = [];
-    for (var _i = 0; _i < arguments.length; _i++) {
-      operations[_i] = arguments[_i];
-    }
-    return pipeFromArray(operations)(this);
-  };
-  Observable2.prototype.toPromise = function(promiseCtor) {
-    var _this = this;
-    promiseCtor = getPromiseCtor(promiseCtor);
-    return new promiseCtor(function(resolve, reject) {
-      var value;
-      _this.subscribe(function(x2) {
-        return value = x2;
-      }, function(err) {
-        return reject(err);
-      }, function() {
-        return resolve(value);
-      });
-    });
-  };
-  Observable2.create = function(subscribe) {
-    return new Observable2(subscribe);
-  };
-  return Observable2;
-})();
-function getPromiseCtor(promiseCtor) {
-  var _a;
-  return (_a = promiseCtor !== null && promiseCtor !== void 0 ? promiseCtor : config.Promise) !== null && _a !== void 0 ? _a : Promise;
-}
-function isObserver(value) {
-  return value && isFunction(value.next) && isFunction(value.error) && isFunction(value.complete);
-}
-function isSubscriber(value) {
-  return value && value instanceof Subscriber || isObserver(value) && isSubscription(value);
-}
-function hasLift(source) {
-  return isFunction(source === null || source === void 0 ? void 0 : source.lift);
-}
-function operate(init2) {
-  return function(source) {
-    if (hasLift(source)) {
-      return source.lift(function(liftedSource) {
-        try {
-          return init2(liftedSource, this);
-        } catch (err) {
-          this.error(err);
-        }
-      });
-    }
-    throw new TypeError("Unable to lift unknown Observable type");
-  };
-}
-function createOperatorSubscriber(destination, onNext, onComplete, onError, onFinalize) {
-  return new OperatorSubscriber(destination, onNext, onComplete, onError, onFinalize);
-}
-var OperatorSubscriber = (function(_super) {
-  __extends(OperatorSubscriber2, _super);
-  function OperatorSubscriber2(destination, onNext, onComplete, onError, onFinalize, shouldUnsubscribe) {
-    var _this = _super.call(this, destination) || this;
-    _this.onFinalize = onFinalize;
-    _this.shouldUnsubscribe = shouldUnsubscribe;
-    _this._next = onNext ? function(value) {
-      try {
-        onNext(value);
-      } catch (err) {
-        destination.error(err);
-      }
-    } : _super.prototype._next;
-    _this._error = onError ? function(err) {
-      try {
-        onError(err);
-      } catch (err2) {
-        destination.error(err2);
-      } finally {
-        this.unsubscribe();
-      }
-    } : _super.prototype._error;
-    _this._complete = onComplete ? function() {
-      try {
-        onComplete();
-      } catch (err) {
-        destination.error(err);
-      } finally {
-        this.unsubscribe();
-      }
-    } : _super.prototype._complete;
-    return _this;
-  }
-  OperatorSubscriber2.prototype.unsubscribe = function() {
-    var _a;
-    if (!this.shouldUnsubscribe || this.shouldUnsubscribe()) {
-      var closed_1 = this.closed;
-      _super.prototype.unsubscribe.call(this);
-      !closed_1 && ((_a = this.onFinalize) === null || _a === void 0 ? void 0 : _a.call(this));
-    }
-  };
-  return OperatorSubscriber2;
-})(Subscriber);
-var ObjectUnsubscribedError = createErrorClass(function(_super) {
-  return function ObjectUnsubscribedErrorImpl() {
-    _super(this);
-    this.name = "ObjectUnsubscribedError";
-    this.message = "object unsubscribed";
-  };
-});
-var Subject = (function(_super) {
-  __extends(Subject2, _super);
-  function Subject2() {
-    var _this = _super.call(this) || this;
-    _this.closed = false;
-    _this.currentObservers = null;
-    _this.observers = [];
-    _this.isStopped = false;
-    _this.hasError = false;
-    _this.thrownError = null;
-    return _this;
-  }
-  Subject2.prototype.lift = function(operator) {
-    var subject = new AnonymousSubject(this, this);
-    subject.operator = operator;
-    return subject;
-  };
-  Subject2.prototype._throwIfClosed = function() {
-    if (this.closed) {
-      throw new ObjectUnsubscribedError();
-    }
-  };
-  Subject2.prototype.next = function(value) {
-    var _this = this;
-    errorContext(function() {
-      var e_1, _a;
-      _this._throwIfClosed();
-      if (!_this.isStopped) {
-        if (!_this.currentObservers) {
-          _this.currentObservers = Array.from(_this.observers);
-        }
-        try {
-          for (var _b = __values(_this.currentObservers), _c = _b.next(); !_c.done; _c = _b.next()) {
-            var observer = _c.value;
-            observer.next(value);
-          }
-        } catch (e_1_1) {
-          e_1 = { error: e_1_1 };
-        } finally {
-          try {
-            if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-          } finally {
-            if (e_1) throw e_1.error;
-          }
-        }
-      }
-    });
-  };
-  Subject2.prototype.error = function(err) {
-    var _this = this;
-    errorContext(function() {
-      _this._throwIfClosed();
-      if (!_this.isStopped) {
-        _this.hasError = _this.isStopped = true;
-        _this.thrownError = err;
-        var observers = _this.observers;
-        while (observers.length) {
-          observers.shift().error(err);
-        }
-      }
-    });
-  };
-  Subject2.prototype.complete = function() {
-    var _this = this;
-    errorContext(function() {
-      _this._throwIfClosed();
-      if (!_this.isStopped) {
-        _this.isStopped = true;
-        var observers = _this.observers;
-        while (observers.length) {
-          observers.shift().complete();
-        }
-      }
-    });
-  };
-  Subject2.prototype.unsubscribe = function() {
-    this.isStopped = this.closed = true;
-    this.observers = this.currentObservers = null;
-  };
-  Object.defineProperty(Subject2.prototype, "observed", {
-    get: function() {
-      var _a;
-      return ((_a = this.observers) === null || _a === void 0 ? void 0 : _a.length) > 0;
-    },
-    enumerable: false,
-    configurable: true
-  });
-  Subject2.prototype._trySubscribe = function(subscriber) {
-    this._throwIfClosed();
-    return _super.prototype._trySubscribe.call(this, subscriber);
-  };
-  Subject2.prototype._subscribe = function(subscriber) {
-    this._throwIfClosed();
-    this._checkFinalizedStatuses(subscriber);
-    return this._innerSubscribe(subscriber);
-  };
-  Subject2.prototype._innerSubscribe = function(subscriber) {
-    var _this = this;
-    var _a = this, hasError = _a.hasError, isStopped = _a.isStopped, observers = _a.observers;
-    if (hasError || isStopped) {
-      return EMPTY_SUBSCRIPTION;
-    }
-    this.currentObservers = null;
-    observers.push(subscriber);
-    return new Subscription(function() {
-      _this.currentObservers = null;
-      arrRemove(observers, subscriber);
-    });
-  };
-  Subject2.prototype._checkFinalizedStatuses = function(subscriber) {
-    var _a = this, hasError = _a.hasError, thrownError = _a.thrownError, isStopped = _a.isStopped;
-    if (hasError) {
-      subscriber.error(thrownError);
-    } else if (isStopped) {
-      subscriber.complete();
-    }
-  };
-  Subject2.prototype.asObservable = function() {
-    var observable2 = new Observable();
-    observable2.source = this;
-    return observable2;
-  };
-  Subject2.create = function(destination, source) {
-    return new AnonymousSubject(destination, source);
-  };
-  return Subject2;
-})(Observable);
-var AnonymousSubject = (function(_super) {
-  __extends(AnonymousSubject2, _super);
-  function AnonymousSubject2(destination, source) {
-    var _this = _super.call(this) || this;
-    _this.destination = destination;
-    _this.source = source;
-    return _this;
-  }
-  AnonymousSubject2.prototype.next = function(value) {
-    var _a, _b;
-    (_b = (_a = this.destination) === null || _a === void 0 ? void 0 : _a.next) === null || _b === void 0 ? void 0 : _b.call(_a, value);
-  };
-  AnonymousSubject2.prototype.error = function(err) {
-    var _a, _b;
-    (_b = (_a = this.destination) === null || _a === void 0 ? void 0 : _a.error) === null || _b === void 0 ? void 0 : _b.call(_a, err);
-  };
-  AnonymousSubject2.prototype.complete = function() {
-    var _a, _b;
-    (_b = (_a = this.destination) === null || _a === void 0 ? void 0 : _a.complete) === null || _b === void 0 ? void 0 : _b.call(_a);
-  };
-  AnonymousSubject2.prototype._subscribe = function(subscriber) {
-    var _a, _b;
-    return (_b = (_a = this.source) === null || _a === void 0 ? void 0 : _a.subscribe(subscriber)) !== null && _b !== void 0 ? _b : EMPTY_SUBSCRIPTION;
-  };
-  return AnonymousSubject2;
-})(Subject);
-function map(project, thisArg) {
-  return operate(function(source, subscriber) {
-    var index2 = 0;
-    source.subscribe(createOperatorSubscriber(subscriber, function(value) {
-      subscriber.next(project.call(thisArg, value, index2++));
-    }));
-  });
-}
-function filter(predicate, thisArg) {
-  return operate(function(source, subscriber) {
-    var index2 = 0;
-    source.subscribe(createOperatorSubscriber(subscriber, function(value) {
-      return predicate.call(thisArg, value, index2++) && subscriber.next(value);
-    }));
-  });
-}
-function finalize(callback) {
-  return operate(function(source, subscriber) {
-    try {
-      source.subscribe(subscriber);
-    } finally {
-      subscriber.add(callback);
-    }
-  });
-}
-function tap(observerOrNext, error2, complete) {
-  var tapObserver = isFunction(observerOrNext) || error2 || complete ? { next: observerOrNext, error: error2, complete } : observerOrNext;
-  return tapObserver ? operate(function(source, subscriber) {
-    var _a;
-    (_a = tapObserver.subscribe) === null || _a === void 0 ? void 0 : _a.call(tapObserver);
-    var isUnsub = true;
-    source.subscribe(createOperatorSubscriber(subscriber, function(value) {
-      var _a2;
-      (_a2 = tapObserver.next) === null || _a2 === void 0 ? void 0 : _a2.call(tapObserver, value);
-      subscriber.next(value);
-    }, function() {
-      var _a2;
-      isUnsub = false;
-      (_a2 = tapObserver.complete) === null || _a2 === void 0 ? void 0 : _a2.call(tapObserver);
-      subscriber.complete();
-    }, function(err) {
-      var _a2;
-      isUnsub = false;
-      (_a2 = tapObserver.error) === null || _a2 === void 0 ? void 0 : _a2.call(tapObserver, err);
-      subscriber.error(err);
-    }, function() {
-      var _a2, _b;
-      if (isUnsub) {
-        (_a2 = tapObserver.unsubscribe) === null || _a2 === void 0 ? void 0 : _a2.call(tapObserver);
-      }
-      (_b = tapObserver.finalize) === null || _b === void 0 ? void 0 : _b.call(tapObserver);
-    }));
-  }) : identity;
-}
-var ws = null;
-if (typeof WebSocket !== "undefined") {
-  ws = WebSocket;
-} else if (typeof MozWebSocket !== "undefined") {
-  ws = MozWebSocket;
-} else if (typeof global !== "undefined") {
-  ws = global.WebSocket || global.MozWebSocket;
-} else if (typeof window !== "undefined") {
-  ws = window.WebSocket || window.MozWebSocket;
-} else if (typeof self !== "undefined") {
-  ws = self.WebSocket || self.MozWebSocket;
-}
-var dist = {};
-var client = {};
-var models = {};
-var hasRequiredModels;
-function requireModels() {
-  if (hasRequiredModels) return models;
-  hasRequiredModels = 1;
-  (function(exports$1) {
-    var __extends2 = models && models.__extends || /* @__PURE__ */ (function() {
-      var extendStatics2 = function(d, b2) {
-        extendStatics2 = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b3) {
-          d2.__proto__ = b3;
-        } || function(d2, b3) {
-          for (var p2 in b3) if (Object.prototype.hasOwnProperty.call(b3, p2)) d2[p2] = b3[p2];
-        };
-        return extendStatics2(d, b2);
-      };
-      return function(d, b2) {
-        if (typeof b2 !== "function" && b2 !== null)
-          throw new TypeError("Class extends value " + String(b2) + " is not a constructor or null");
-        extendStatics2(d, b2);
-        function __() {
-          this.constructor = d;
-        }
-        d.prototype = b2 === null ? Object.create(b2) : (__.prototype = b2.prototype, new __());
-      };
-    })();
-    Object.defineProperty(exports$1, "__esModule", { value: true });
-    exports$1.createJSONRPCNotification = exports$1.createJSONRPCRequest = exports$1.createJSONRPCSuccessResponse = exports$1.createJSONRPCErrorResponse = exports$1.JSONRPCErrorCode = exports$1.JSONRPCErrorException = exports$1.isJSONRPCResponses = exports$1.isJSONRPCResponse = exports$1.isJSONRPCRequests = exports$1.isJSONRPCRequest = exports$1.isJSONRPCID = exports$1.JSONRPC = void 0;
-    exports$1.JSONRPC = "2.0";
-    var isJSONRPCID = function(id) {
-      return typeof id === "string" || typeof id === "number" || id === null;
-    };
-    exports$1.isJSONRPCID = isJSONRPCID;
-    var isJSONRPCRequest = function(payload) {
-      return payload.jsonrpc === exports$1.JSONRPC && payload.method !== void 0 && payload.result === void 0 && payload.error === void 0;
-    };
-    exports$1.isJSONRPCRequest = isJSONRPCRequest;
-    var isJSONRPCRequests = function(payload) {
-      return Array.isArray(payload) && payload.every(exports$1.isJSONRPCRequest);
-    };
-    exports$1.isJSONRPCRequests = isJSONRPCRequests;
-    var isJSONRPCResponse = function(payload) {
-      return payload.jsonrpc === exports$1.JSONRPC && payload.id !== void 0 && (payload.result !== void 0 || payload.error !== void 0);
-    };
-    exports$1.isJSONRPCResponse = isJSONRPCResponse;
-    var isJSONRPCResponses = function(payload) {
-      return Array.isArray(payload) && payload.every(exports$1.isJSONRPCResponse);
-    };
-    exports$1.isJSONRPCResponses = isJSONRPCResponses;
-    var createJSONRPCError = function(code, message, data) {
-      var error2 = { code, message };
-      if (data != null) {
-        error2.data = data;
-      }
-      return error2;
-    };
-    var JSONRPCErrorException = (
-      /** @class */
-      (function(_super) {
-        __extends2(JSONRPCErrorException2, _super);
-        function JSONRPCErrorException2(message, code, data) {
-          var _this = _super.call(this, message) || this;
-          Object.setPrototypeOf(_this, JSONRPCErrorException2.prototype);
-          _this.code = code;
-          _this.data = data;
-          return _this;
-        }
-        JSONRPCErrorException2.prototype.toObject = function() {
-          return createJSONRPCError(this.code, this.message, this.data);
-        };
-        return JSONRPCErrorException2;
-      })(Error)
-    );
-    exports$1.JSONRPCErrorException = JSONRPCErrorException;
-    (function(JSONRPCErrorCode) {
-      JSONRPCErrorCode[JSONRPCErrorCode["ParseError"] = -32700] = "ParseError";
-      JSONRPCErrorCode[JSONRPCErrorCode["InvalidRequest"] = -32600] = "InvalidRequest";
-      JSONRPCErrorCode[JSONRPCErrorCode["MethodNotFound"] = -32601] = "MethodNotFound";
-      JSONRPCErrorCode[JSONRPCErrorCode["InvalidParams"] = -32602] = "InvalidParams";
-      JSONRPCErrorCode[JSONRPCErrorCode["InternalError"] = -32603] = "InternalError";
-    })(exports$1.JSONRPCErrorCode || (exports$1.JSONRPCErrorCode = {}));
-    var createJSONRPCErrorResponse = function(id, code, message, data) {
-      return {
-        jsonrpc: exports$1.JSONRPC,
-        id,
-        error: createJSONRPCError(code, message, data)
-      };
-    };
-    exports$1.createJSONRPCErrorResponse = createJSONRPCErrorResponse;
-    var createJSONRPCSuccessResponse = function(id, result) {
-      return {
-        jsonrpc: exports$1.JSONRPC,
-        id,
-        result: result !== null && result !== void 0 ? result : null
-      };
-    };
-    exports$1.createJSONRPCSuccessResponse = createJSONRPCSuccessResponse;
-    var createJSONRPCRequest = function(id, method, params) {
-      return {
-        jsonrpc: exports$1.JSONRPC,
-        id,
-        method,
-        params
-      };
-    };
-    exports$1.createJSONRPCRequest = createJSONRPCRequest;
-    var createJSONRPCNotification = function(method, params) {
-      return {
-        jsonrpc: exports$1.JSONRPC,
-        method,
-        params
-      };
-    };
-    exports$1.createJSONRPCNotification = createJSONRPCNotification;
-  })(models);
-  return models;
-}
-var internal = {};
-var hasRequiredInternal;
-function requireInternal() {
-  if (hasRequiredInternal) return internal;
-  hasRequiredInternal = 1;
-  Object.defineProperty(internal, "__esModule", { value: true });
-  internal.DefaultErrorCode = void 0;
-  internal.DefaultErrorCode = 0;
-  return internal;
-}
-var hasRequiredClient;
-function requireClient() {
-  if (hasRequiredClient) return client;
-  hasRequiredClient = 1;
-  var __awaiter = client && client.__awaiter || function(thisArg, _arguments, P2, generator) {
-    function adopt(value) {
-      return value instanceof P2 ? value : new P2(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P2 || (P2 = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
-  var __generator = client && client.__generator || function(thisArg, body) {
-    var _ = { label: 0, sent: function() {
-      if (t[0] & 1) throw t[1];
-      return t[1];
-    }, trys: [], ops: [] }, f2, y2, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() {
-      return this;
-    }), g;
-    function verb(n) {
-      return function(v2) {
-        return step([n, v2]);
-      };
-    }
-    function step(op) {
-      if (f2) throw new TypeError("Generator is already executing.");
-      while (g && (g = 0, op[0] && (_ = 0)), _) try {
-        if (f2 = 1, y2 && (t = op[0] & 2 ? y2["return"] : op[0] ? y2["throw"] || ((t = y2["return"]) && t.call(y2), 0) : y2.next) && !(t = t.call(y2, op[1])).done) return t;
-        if (y2 = 0, t) op = [op[0] & 2, t.value];
-        switch (op[0]) {
-          case 0:
-          case 1:
-            t = op;
-            break;
-          case 4:
-            _.label++;
-            return { value: op[1], done: false };
-          case 5:
-            _.label++;
-            y2 = op[1];
-            op = [0];
-            continue;
-          case 7:
-            op = _.ops.pop();
-            _.trys.pop();
-            continue;
-          default:
-            if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
-              _ = 0;
-              continue;
-            }
-            if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
-              _.label = op[1];
-              break;
-            }
-            if (op[0] === 6 && _.label < t[1]) {
-              _.label = t[1];
-              t = op;
-              break;
-            }
-            if (t && _.label < t[2]) {
-              _.label = t[2];
-              _.ops.push(op);
-              break;
-            }
-            if (t[2]) _.ops.pop();
-            _.trys.pop();
-            continue;
-        }
-        op = body.call(thisArg, _);
-      } catch (e) {
-        op = [6, e];
-        y2 = 0;
-      } finally {
-        f2 = t = 0;
-      }
-      if (op[0] & 5) throw op[1];
-      return { value: op[0] ? op[1] : void 0, done: true };
-    }
-  };
-  Object.defineProperty(client, "__esModule", { value: true });
-  client.JSONRPCClient = void 0;
-  var models_1 = requireModels();
-  var internal_1 = requireInternal();
-  var JSONRPCClient = (
-    /** @class */
-    (function() {
-      function JSONRPCClient2(_send, createID) {
-        this._send = _send;
-        this.createID = createID;
-        this.idToResolveMap = /* @__PURE__ */ new Map();
-        this.id = 0;
-      }
-      JSONRPCClient2.prototype._createID = function() {
-        if (this.createID) {
-          return this.createID();
-        } else {
-          return ++this.id;
-        }
-      };
-      JSONRPCClient2.prototype.timeout = function(delay2, overrideCreateJSONRPCErrorResponse) {
-        var _this = this;
-        if (overrideCreateJSONRPCErrorResponse === void 0) {
-          overrideCreateJSONRPCErrorResponse = function(id) {
-            return (0, models_1.createJSONRPCErrorResponse)(id, internal_1.DefaultErrorCode, "Request timeout");
-          };
-        }
-        var timeoutRequest = function(ids, request) {
-          var timeoutID = setTimeout(function() {
-            ids.forEach(function(id) {
-              var resolve = _this.idToResolveMap.get(id);
-              if (resolve) {
-                _this.idToResolveMap.delete(id);
-                resolve(overrideCreateJSONRPCErrorResponse(id));
-              }
-            });
-          }, delay2);
-          return request().then(function(result) {
-            clearTimeout(timeoutID);
-            return result;
-          }, function(error2) {
-            clearTimeout(timeoutID);
-            return Promise.reject(error2);
-          });
-        };
-        var requestAdvanced = function(request, clientParams) {
-          var ids = (!Array.isArray(request) ? [request] : request).map(function(request2) {
-            return request2.id;
-          }).filter(isDefinedAndNonNull);
-          return timeoutRequest(ids, function() {
-            return _this.requestAdvanced(request, clientParams);
-          });
-        };
-        return {
-          request: function(method, params, clientParams) {
-            var id = _this._createID();
-            return timeoutRequest([id], function() {
-              return _this.requestWithID(method, params, clientParams, id);
-            });
-          },
-          requestAdvanced: function(request, clientParams) {
-            return requestAdvanced(request, clientParams);
-          }
-        };
-      };
-      JSONRPCClient2.prototype.request = function(method, params, clientParams) {
-        return this.requestWithID(method, params, clientParams, this._createID());
-      };
-      JSONRPCClient2.prototype.requestWithID = function(method, params, clientParams, id) {
-        return __awaiter(this, void 0, void 0, function() {
-          var request, response;
-          return __generator(this, function(_a) {
-            switch (_a.label) {
-              case 0:
-                request = (0, models_1.createJSONRPCRequest)(id, method, params);
-                return [4, this.requestAdvanced(request, clientParams)];
-              case 1:
-                response = _a.sent();
-                if (response.result !== void 0 && !response.error) {
-                  return [2, response.result];
-                } else if (response.result === void 0 && response.error) {
-                  return [2, Promise.reject(new models_1.JSONRPCErrorException(response.error.message, response.error.code, response.error.data))];
-                } else {
-                  return [2, Promise.reject(new Error("An unexpected error occurred"))];
-                }
-            }
-          });
-        });
-      };
-      JSONRPCClient2.prototype.requestAdvanced = function(requests, clientParams) {
-        var _this = this;
-        var areRequestsOriginallyArray = Array.isArray(requests);
-        if (!Array.isArray(requests)) {
-          requests = [requests];
-        }
-        var requestsWithID = requests.filter(function(request) {
-          return isDefinedAndNonNull(request.id);
-        });
-        var promises = requestsWithID.map(function(request) {
-          return new Promise(function(resolve) {
-            return _this.idToResolveMap.set(request.id, resolve);
-          });
-        });
-        var promise = Promise.all(promises).then(function(responses) {
-          if (areRequestsOriginallyArray || !responses.length) {
-            return responses;
-          } else {
-            return responses[0];
-          }
-        });
-        return this.send(areRequestsOriginallyArray ? requests : requests[0], clientParams).then(function() {
-          return promise;
-        }, function(error2) {
-          requestsWithID.forEach(function(request) {
-            _this.receive((0, models_1.createJSONRPCErrorResponse)(request.id, internal_1.DefaultErrorCode, error2 && error2.message || "Failed to send a request"));
-          });
-          return promise;
-        });
-      };
-      JSONRPCClient2.prototype.notify = function(method, params, clientParams) {
-        var request = (0, models_1.createJSONRPCNotification)(method, params);
-        this.send(request, clientParams).then(void 0, function() {
-          return void 0;
-        });
-      };
-      JSONRPCClient2.prototype.send = function(payload, clientParams) {
-        return __awaiter(this, void 0, void 0, function() {
-          return __generator(this, function(_a) {
-            return [2, this._send(payload, clientParams)];
-          });
-        });
-      };
-      JSONRPCClient2.prototype.rejectAllPendingRequests = function(message) {
-        this.idToResolveMap.forEach(function(resolve, id) {
-          return resolve((0, models_1.createJSONRPCErrorResponse)(id, internal_1.DefaultErrorCode, message));
-        });
-        this.idToResolveMap.clear();
-      };
-      JSONRPCClient2.prototype.receive = function(responses) {
-        var _this = this;
-        if (!Array.isArray(responses)) {
-          responses = [responses];
-        }
-        responses.forEach(function(response) {
-          var resolve = _this.idToResolveMap.get(response.id);
-          if (resolve) {
-            _this.idToResolveMap.delete(response.id);
-            resolve(response);
-          }
-        });
-      };
-      return JSONRPCClient2;
-    })()
-  );
-  client.JSONRPCClient = JSONRPCClient;
-  var isDefinedAndNonNull = function(value) {
-    return value !== void 0 && value !== null;
-  };
-  return client;
-}
-var interfaces = {};
-var hasRequiredInterfaces;
-function requireInterfaces() {
-  if (hasRequiredInterfaces) return interfaces;
-  hasRequiredInterfaces = 1;
-  Object.defineProperty(interfaces, "__esModule", { value: true });
-  return interfaces;
-}
-var server = {};
-var hasRequiredServer;
-function requireServer() {
-  if (hasRequiredServer) return server;
-  hasRequiredServer = 1;
-  var __assign = server && server.__assign || function() {
-    __assign = Object.assign || function(t) {
-      for (var s2, i4 = 1, n = arguments.length; i4 < n; i4++) {
-        s2 = arguments[i4];
-        for (var p2 in s2) if (Object.prototype.hasOwnProperty.call(s2, p2))
-          t[p2] = s2[p2];
-      }
-      return t;
-    };
-    return __assign.apply(this, arguments);
-  };
-  var __awaiter = server && server.__awaiter || function(thisArg, _arguments, P2, generator) {
-    function adopt(value) {
-      return value instanceof P2 ? value : new P2(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P2 || (P2 = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
-  var __generator = server && server.__generator || function(thisArg, body) {
-    var _ = { label: 0, sent: function() {
-      if (t[0] & 1) throw t[1];
-      return t[1];
-    }, trys: [], ops: [] }, f2, y2, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() {
-      return this;
-    }), g;
-    function verb(n) {
-      return function(v2) {
-        return step([n, v2]);
-      };
-    }
-    function step(op) {
-      if (f2) throw new TypeError("Generator is already executing.");
-      while (g && (g = 0, op[0] && (_ = 0)), _) try {
-        if (f2 = 1, y2 && (t = op[0] & 2 ? y2["return"] : op[0] ? y2["throw"] || ((t = y2["return"]) && t.call(y2), 0) : y2.next) && !(t = t.call(y2, op[1])).done) return t;
-        if (y2 = 0, t) op = [op[0] & 2, t.value];
-        switch (op[0]) {
-          case 0:
-          case 1:
-            t = op;
-            break;
-          case 4:
-            _.label++;
-            return { value: op[1], done: false };
-          case 5:
-            _.label++;
-            y2 = op[1];
-            op = [0];
-            continue;
-          case 7:
-            op = _.ops.pop();
-            _.trys.pop();
-            continue;
-          default:
-            if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
-              _ = 0;
-              continue;
-            }
-            if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
-              _.label = op[1];
-              break;
-            }
-            if (op[0] === 6 && _.label < t[1]) {
-              _.label = t[1];
-              t = op;
-              break;
-            }
-            if (t && _.label < t[2]) {
-              _.label = t[2];
-              _.ops.push(op);
-              break;
-            }
-            if (t[2]) _.ops.pop();
-            _.trys.pop();
-            continue;
-        }
-        op = body.call(thisArg, _);
-      } catch (e) {
-        op = [6, e];
-        y2 = 0;
-      } finally {
-        f2 = t = 0;
-      }
-      if (op[0] & 5) throw op[1];
-      return { value: op[0] ? op[1] : void 0, done: true };
-    }
-  };
-  var __spreadArray2 = server && server.__spreadArray || function(to, from, pack) {
-    if (pack || arguments.length === 2) for (var i4 = 0, l = from.length, ar; i4 < l; i4++) {
-      if (ar || !(i4 in from)) {
-        if (!ar) ar = Array.prototype.slice.call(from, 0, i4);
-        ar[i4] = from[i4];
-      }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-  };
-  Object.defineProperty(server, "__esModule", { value: true });
-  server.JSONRPCServer = void 0;
-  var models_1 = requireModels();
-  var internal_1 = requireInternal();
-  var createParseErrorResponse = function() {
-    return (0, models_1.createJSONRPCErrorResponse)(null, models_1.JSONRPCErrorCode.ParseError, "Parse error");
-  };
-  var createInvalidRequestResponse = function(request) {
-    return (0, models_1.createJSONRPCErrorResponse)((0, models_1.isJSONRPCID)(request.id) ? request.id : null, models_1.JSONRPCErrorCode.InvalidRequest, "Invalid Request");
-  };
-  var createMethodNotFoundResponse = function(id) {
-    return (0, models_1.createJSONRPCErrorResponse)(id, models_1.JSONRPCErrorCode.MethodNotFound, "Method not found");
-  };
-  var JSONRPCServer = (
-    /** @class */
-    (function() {
-      function JSONRPCServer2(options) {
-        if (options === void 0) {
-          options = {};
-        }
-        var _a;
-        this.mapErrorToJSONRPCErrorResponse = defaultMapErrorToJSONRPCErrorResponse;
-        this.nameToMethodDictionary = {};
-        this.middleware = null;
-        this.errorListener = (_a = options.errorListener) !== null && _a !== void 0 ? _a : console.warn;
-      }
-      JSONRPCServer2.prototype.hasMethod = function(name) {
-        return !!this.nameToMethodDictionary[name];
-      };
-      JSONRPCServer2.prototype.addMethod = function(name, method) {
-        this.addMethodAdvanced(name, this.toJSONRPCMethod(method));
-      };
-      JSONRPCServer2.prototype.removeMethod = function(name) {
-        delete this.nameToMethodDictionary[name];
-      };
-      JSONRPCServer2.prototype.toJSONRPCMethod = function(method) {
-        return function(request, serverParams) {
-          var response = method(request.params, serverParams);
-          return Promise.resolve(response).then(function(result) {
-            return mapResultToJSONRPCResponse(request.id, result);
-          });
-        };
-      };
-      JSONRPCServer2.prototype.addMethodAdvanced = function(name, method) {
-        var _a;
-        this.nameToMethodDictionary = __assign(__assign({}, this.nameToMethodDictionary), (_a = {}, _a[name] = method, _a));
-      };
-      JSONRPCServer2.prototype.receiveJSON = function(json, serverParams) {
-        var request = this.tryParseRequestJSON(json);
-        if (request) {
-          return this.receive(request, serverParams);
-        } else {
-          return Promise.resolve(createParseErrorResponse());
-        }
-      };
-      JSONRPCServer2.prototype.tryParseRequestJSON = function(json) {
-        try {
-          return JSON.parse(json);
-        } catch (_a) {
-          return null;
-        }
-      };
-      JSONRPCServer2.prototype.receive = function(request, serverParams) {
-        if (Array.isArray(request)) {
-          return this.receiveMultiple(request, serverParams);
-        } else {
-          return this.receiveSingle(request, serverParams);
-        }
-      };
-      JSONRPCServer2.prototype.receiveMultiple = function(requests, serverParams) {
-        return __awaiter(this, void 0, void 0, function() {
-          var responses;
-          var _this = this;
-          return __generator(this, function(_a) {
-            switch (_a.label) {
-              case 0:
-                return [4, Promise.all(requests.map(function(request) {
-                  return _this.receiveSingle(request, serverParams);
-                }))];
-              case 1:
-                responses = _a.sent().filter(isNonNull);
-                if (responses.length === 1) {
-                  return [2, responses[0]];
-                } else if (responses.length) {
-                  return [2, responses];
-                } else {
-                  return [2, null];
-                }
-            }
-          });
-        });
-      };
-      JSONRPCServer2.prototype.receiveSingle = function(request, serverParams) {
-        return __awaiter(this, void 0, void 0, function() {
-          var method, response;
-          return __generator(this, function(_a) {
-            switch (_a.label) {
-              case 0:
-                method = this.nameToMethodDictionary[request.method];
-                if (!!(0, models_1.isJSONRPCRequest)(request)) return [3, 1];
-                return [2, createInvalidRequestResponse(request)];
-              case 1:
-                return [4, this.callMethod(method, request, serverParams)];
-              case 2:
-                response = _a.sent();
-                return [2, mapResponse(request, response)];
-            }
-          });
-        });
-      };
-      JSONRPCServer2.prototype.applyMiddleware = function() {
-        var middlewares = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-          middlewares[_i] = arguments[_i];
-        }
-        if (this.middleware) {
-          this.middleware = this.combineMiddlewares(__spreadArray2([
-            this.middleware
-          ], middlewares, true));
-        } else {
-          this.middleware = this.combineMiddlewares(middlewares);
-        }
-      };
-      JSONRPCServer2.prototype.combineMiddlewares = function(middlewares) {
-        if (!middlewares.length) {
-          return null;
-        } else {
-          return middlewares.reduce(this.middlewareReducer);
-        }
-      };
-      JSONRPCServer2.prototype.middlewareReducer = function(prevMiddleware, nextMiddleware) {
-        return function(next, request, serverParams) {
-          return prevMiddleware(function(request2, serverParams2) {
-            return nextMiddleware(next, request2, serverParams2);
-          }, request, serverParams);
-        };
-      };
-      JSONRPCServer2.prototype.callMethod = function(method, request, serverParams) {
-        var _this = this;
-        var callMethod = function(request2, serverParams2) {
-          if (method) {
-            return method(request2, serverParams2);
-          } else if (request2.id !== void 0) {
-            return Promise.resolve(createMethodNotFoundResponse(request2.id));
-          } else {
-            return Promise.resolve(null);
-          }
-        };
-        var onError = function(error2) {
-          _this.errorListener('An unexpected error occurred while executing "'.concat(request.method, '" JSON-RPC method:'), error2);
-          return Promise.resolve(_this.mapErrorToJSONRPCErrorResponseIfNecessary(request.id, error2));
-        };
-        try {
-          return (this.middleware || noopMiddleware)(callMethod, request, serverParams).then(void 0, onError);
-        } catch (error2) {
-          return onError(error2);
-        }
-      };
-      JSONRPCServer2.prototype.mapErrorToJSONRPCErrorResponseIfNecessary = function(id, error2) {
-        if (id !== void 0) {
-          return this.mapErrorToJSONRPCErrorResponse(id, error2);
-        } else {
-          return null;
-        }
-      };
-      return JSONRPCServer2;
-    })()
-  );
-  server.JSONRPCServer = JSONRPCServer;
-  var isNonNull = function(value) {
-    return value !== null;
-  };
-  var noopMiddleware = function(next, request, serverParams) {
-    return next(request, serverParams);
-  };
-  var mapResultToJSONRPCResponse = function(id, result) {
-    if (id !== void 0) {
-      return (0, models_1.createJSONRPCSuccessResponse)(id, result);
-    } else {
-      return null;
-    }
-  };
-  var defaultMapErrorToJSONRPCErrorResponse = function(id, error2) {
-    var _a;
-    var message = (_a = error2 === null || error2 === void 0 ? void 0 : error2.message) !== null && _a !== void 0 ? _a : "An unexpected error occurred";
-    var code = internal_1.DefaultErrorCode;
-    var data;
-    if (error2 instanceof models_1.JSONRPCErrorException) {
-      code = error2.code;
-      data = error2.data;
-    }
-    return (0, models_1.createJSONRPCErrorResponse)(id, code, message, data);
-  };
-  var mapResponse = function(request, response) {
-    if (response) {
-      return response;
-    } else if (request.id !== void 0) {
-      return (0, models_1.createJSONRPCErrorResponse)(request.id, models_1.JSONRPCErrorCode.InternalError, "Internal error");
-    } else {
-      return null;
-    }
-  };
-  return server;
-}
-var serverAndClient = {};
-var hasRequiredServerAndClient;
-function requireServerAndClient() {
-  if (hasRequiredServerAndClient) return serverAndClient;
-  hasRequiredServerAndClient = 1;
-  var __awaiter = serverAndClient && serverAndClient.__awaiter || function(thisArg, _arguments, P2, generator) {
-    function adopt(value) {
-      return value instanceof P2 ? value : new P2(function(resolve) {
-        resolve(value);
-      });
-    }
-    return new (P2 || (P2 = Promise))(function(resolve, reject) {
-      function fulfilled(value) {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function rejected(value) {
-        try {
-          step(generator["throw"](value));
-        } catch (e) {
-          reject(e);
-        }
-      }
-      function step(result) {
-        result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-      }
-      step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-  };
-  var __generator = serverAndClient && serverAndClient.__generator || function(thisArg, body) {
-    var _ = { label: 0, sent: function() {
-      if (t[0] & 1) throw t[1];
-      return t[1];
-    }, trys: [], ops: [] }, f2, y2, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() {
-      return this;
-    }), g;
-    function verb(n) {
-      return function(v2) {
-        return step([n, v2]);
-      };
-    }
-    function step(op) {
-      if (f2) throw new TypeError("Generator is already executing.");
-      while (g && (g = 0, op[0] && (_ = 0)), _) try {
-        if (f2 = 1, y2 && (t = op[0] & 2 ? y2["return"] : op[0] ? y2["throw"] || ((t = y2["return"]) && t.call(y2), 0) : y2.next) && !(t = t.call(y2, op[1])).done) return t;
-        if (y2 = 0, t) op = [op[0] & 2, t.value];
-        switch (op[0]) {
-          case 0:
-          case 1:
-            t = op;
-            break;
-          case 4:
-            _.label++;
-            return { value: op[1], done: false };
-          case 5:
-            _.label++;
-            y2 = op[1];
-            op = [0];
-            continue;
-          case 7:
-            op = _.ops.pop();
-            _.trys.pop();
-            continue;
-          default:
-            if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
-              _ = 0;
-              continue;
-            }
-            if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
-              _.label = op[1];
-              break;
-            }
-            if (op[0] === 6 && _.label < t[1]) {
-              _.label = t[1];
-              t = op;
-              break;
-            }
-            if (t && _.label < t[2]) {
-              _.label = t[2];
-              _.ops.push(op);
-              break;
-            }
-            if (t[2]) _.ops.pop();
-            _.trys.pop();
-            continue;
-        }
-        op = body.call(thisArg, _);
-      } catch (e) {
-        op = [6, e];
-        y2 = 0;
-      } finally {
-        f2 = t = 0;
-      }
-      if (op[0] & 5) throw op[1];
-      return { value: op[0] ? op[1] : void 0, done: true };
-    }
-  };
-  Object.defineProperty(serverAndClient, "__esModule", { value: true });
-  serverAndClient.JSONRPCServerAndClient = void 0;
-  var models_1 = requireModels();
-  var JSONRPCServerAndClient = (
-    /** @class */
-    (function() {
-      function JSONRPCServerAndClient2(server2, client2, options) {
-        if (options === void 0) {
-          options = {};
-        }
-        var _a;
-        this.server = server2;
-        this.client = client2;
-        this.errorListener = (_a = options.errorListener) !== null && _a !== void 0 ? _a : console.warn;
-      }
-      JSONRPCServerAndClient2.prototype.applyServerMiddleware = function() {
-        var _a;
-        var middlewares = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-          middlewares[_i] = arguments[_i];
-        }
-        (_a = this.server).applyMiddleware.apply(_a, middlewares);
-      };
-      JSONRPCServerAndClient2.prototype.hasMethod = function(name) {
-        return this.server.hasMethod(name);
-      };
-      JSONRPCServerAndClient2.prototype.addMethod = function(name, method) {
-        this.server.addMethod(name, method);
-      };
-      JSONRPCServerAndClient2.prototype.addMethodAdvanced = function(name, method) {
-        this.server.addMethodAdvanced(name, method);
-      };
-      JSONRPCServerAndClient2.prototype.removeMethod = function(name) {
-        this.server.removeMethod(name);
-      };
-      JSONRPCServerAndClient2.prototype.timeout = function(delay2) {
-        return this.client.timeout(delay2);
-      };
-      JSONRPCServerAndClient2.prototype.request = function(method, params, clientParams) {
-        return this.client.request(method, params, clientParams);
-      };
-      JSONRPCServerAndClient2.prototype.requestAdvanced = function(jsonRPCRequest, clientParams) {
-        return this.client.requestAdvanced(jsonRPCRequest, clientParams);
-      };
-      JSONRPCServerAndClient2.prototype.notify = function(method, params, clientParams) {
-        this.client.notify(method, params, clientParams);
-      };
-      JSONRPCServerAndClient2.prototype.rejectAllPendingRequests = function(message) {
-        this.client.rejectAllPendingRequests(message);
-      };
-      JSONRPCServerAndClient2.prototype.receiveAndSend = function(payload, serverParams, clientParams) {
-        return __awaiter(this, void 0, void 0, function() {
-          var response, message;
-          return __generator(this, function(_a) {
-            switch (_a.label) {
-              case 0:
-                if (!((0, models_1.isJSONRPCResponse)(payload) || (0, models_1.isJSONRPCResponses)(payload))) return [3, 1];
-                this.client.receive(payload);
-                return [3, 4];
-              case 1:
-                if (!((0, models_1.isJSONRPCRequest)(payload) || (0, models_1.isJSONRPCRequests)(payload))) return [3, 3];
-                return [4, this.server.receive(payload, serverParams)];
-              case 2:
-                response = _a.sent();
-                if (response) {
-                  return [2, this.client.send(response, clientParams)];
-                }
-                return [3, 4];
-              case 3:
-                message = "Received an invalid JSON-RPC message";
-                this.errorListener(message, payload);
-                return [2, Promise.reject(new Error(message))];
-              case 4:
-                return [
-                  2
-                  /*return*/
-                ];
-            }
-          });
-        });
-      };
-      return JSONRPCServerAndClient2;
-    })()
-  );
-  serverAndClient.JSONRPCServerAndClient = JSONRPCServerAndClient;
-  return serverAndClient;
-}
-var hasRequiredDist;
-function requireDist() {
-  if (hasRequiredDist) return dist;
-  hasRequiredDist = 1;
-  (function(exports$1) {
-    var __createBinding = dist && dist.__createBinding || (Object.create ? (function(o, m, k2, k22) {
-      if (k22 === void 0) k22 = k2;
-      var desc = Object.getOwnPropertyDescriptor(m, k2);
-      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-        desc = { enumerable: true, get: function() {
-          return m[k2];
-        } };
-      }
-      Object.defineProperty(o, k22, desc);
-    }) : (function(o, m, k2, k22) {
-      if (k22 === void 0) k22 = k2;
-      o[k22] = m[k2];
-    }));
-    var __exportStar = dist && dist.__exportStar || function(m, exports$12) {
-      for (var p2 in m) if (p2 !== "default" && !Object.prototype.hasOwnProperty.call(exports$12, p2)) __createBinding(exports$12, m, p2);
-    };
-    Object.defineProperty(exports$1, "__esModule", { value: true });
-    __exportStar(requireClient(), exports$1);
-    __exportStar(requireInterfaces(), exports$1);
-    __exportStar(requireModels(), exports$1);
-    __exportStar(requireServer(), exports$1);
-    __exportStar(requireServerAndClient(), exports$1);
-  })(dist);
-  return dist;
-}
-var distExports = requireDist();
-var Timer = class {
-  setTimeout(fn, timeoutMs) {
-    return setTimeout(fn, timeoutMs);
-  }
-  clearTimeout(timeout) {
-    clearTimeout(timeout);
-  }
-};
-const DEFAULT_MAX_RETRIES = 5;
-const DEFAULT_RECONNECT_DELAY_MS = 1e3;
-var AutoReconnectTransport = class {
-  options;
-  reconnectingProcess = null;
-  _connectionStatusEvents = new Subject();
-  constructor(options) {
-    this.options = options;
-    this.options.transport.connectionStatusEvents.subscribe((event) => this.handleStatusEvent(event));
-  }
-  async connect() {
-    this.reconnectingProcess?.abort();
-    this.reconnectingProcess = null;
-    try {
-      return await this.options.transport.connect();
-    } catch {
-    }
-  }
-  get connectionStatusEvents() {
-    return this._connectionStatusEvents;
-  }
-  get messages() {
-    return this.options.transport.messages;
-  }
-  close() {
-    this.reconnectingProcess?.abort();
-    this.options.transport.close();
-  }
-  async send(message) {
-    await this.waitForReconnection();
-    return this.options.transport.send(message);
-  }
-  async waitForReconnection() {
-    if (this.reconnectingProcess) await this.reconnectingProcess.waitForReconnection();
-  }
-  handleStatusEvent(event) {
-    if (event.status === "error") {
-      if (!this.reconnectingProcess) {
-        this.reconnectingProcess = new ReconnectingProcess(this.options);
-        this.reconnectingProcess.waitForReconnection().then(() => {
-          this.reconnectingProcess = null;
-        }, (error2) => {
-          this.options.logger?.error(`${error2}`);
-        });
-      }
-      const isReconnecting = this.reconnectingProcess.signalError(event);
-      this._connectionStatusEvents.next({
-        ...event,
-        isReconnecting
-      });
-    } else this._connectionStatusEvents.next(event);
-  }
-};
-var ReconnectingProcess = class {
-  transport;
-  timer;
-  logger;
-  maxRetries;
-  reconnectDelayMs;
-  result;
-  resolve;
-  reject;
-  attempt = 0;
-  isWaiting = false;
-  isDone = false;
-  constructor(options) {
-    this.transport = options.transport;
-    this.timer = options.timer ?? new Timer();
-    this.logger = options.logger;
-    this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
-    this.reconnectDelayMs = options.reconnectDelayMs ?? DEFAULT_RECONNECT_DELAY_MS;
-    this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
-    this.result = new Promise((resolve, reject) => {
-      this.resolve = resolve;
-      this.reject = reject;
-    });
-  }
-  signalError(errorEvent) {
-    const retriesLeft = this.maxRetries - this.attempt;
-    const reconnectAfter = this.getReconnectDelayMs(this.attempt + 1);
-    const messageParts = [];
-    messageParts.push(`Connection error: ${errorEvent.errorMessage}.`);
-    messageParts.push(`Retries left: ${retriesLeft}.`);
-    if (retriesLeft > 0 && !this.isDone) messageParts.push(`Will reconnect after ${reconnectAfter} ms.`);
-    this.logger?.warn(messageParts.join(" "));
-    this.tryToReconnect(errorEvent.errorMessage);
-    return retriesLeft > 0 && !this.isDone;
-  }
-  waitForReconnection() {
-    return this.result;
-  }
-  abort() {
-    this.isDone = true;
-    this.reject?.(/* @__PURE__ */ new Error("Cancelled by client"));
-  }
-  async tryToReconnect(lastError) {
-    if (this.isWaiting || this.isDone) return;
-    this.attempt += 1;
-    if (this.attempt > this.maxRetries) {
-      this.isDone = true;
-      this.reject?.(/* @__PURE__ */ new Error(`Unable to reconnect after ${this.maxRetries} attempts. Last error: ${lastError}`));
-      return;
-    }
-    await this.waitBeforeReconnecting();
-    if (this.isDone) return;
-    try {
-      await this.transport.connect();
-      this.isDone = true;
-      this.resolve?.();
-    } catch {
-    }
-  }
-  getReconnectDelayMs(attempt) {
-    return this.reconnectDelayMs * 2 ** (attempt - 1);
-  }
-  async waitBeforeReconnecting() {
-    this.isWaiting = true;
-    const delay2 = this.getReconnectDelayMs(this.attempt);
-    await new Promise((resolve) => {
-      this.timer.setTimeout(resolve, delay2);
-    });
-    this.isWaiting = false;
-  }
-};
-const READY_STATE_CONNECTING = 0;
-const READY_STATE_OPEN = 1;
-var WebSocketTransport = class {
-  webSocket;
-  isClosing = false;
-  connectionStatusEvents = new Subject();
-  messages = new Subject();
-  /**
-  * @param url WebSocket server URL
-  */
-  constructor(url) {
-    this.url = url;
-  }
-  connect() {
-    return new Promise((resolve, reject) => {
-      this.webSocket?.close();
-      this.isClosing = false;
-      const ws$1 = new ws(this.url);
-      this.webSocket = ws$1;
-      this.connectionStatusEvents.next({ status: "connecting" });
-      ws$1.addEventListener("open", () => {
-        resolve();
-        this.connectionStatusEvents.next({ status: "connected" });
-      });
-      ws$1.addEventListener("message", (event) => {
-        this.messages.next(event.data.toString());
-      });
-      ws$1.addEventListener("close", (event) => {
-        if (this.isClosing) {
-          this.isClosing = false;
-          reject(/* @__PURE__ */ new Error("Closed by client"));
-          this.connectionStatusEvents.next({ status: "closed" });
-        } else {
-          const error2 = new Error(event.reason);
-          reject(error2);
-          this.connectionStatusEvents.next({
-            status: "error",
-            errorMessage: error2.message
-          });
-        }
-      });
-    });
-  }
-  send(message) {
-    if (this.webSocket?.readyState !== READY_STATE_OPEN) return Promise.reject(/* @__PURE__ */ new Error("WebSocket is not ready"));
-    try {
-      this.webSocket.send(message);
-      return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(err);
-    }
-  }
-  close() {
-    this.isClosing = true;
-    const readyState = this.webSocket?.readyState;
-    if (readyState === READY_STATE_CONNECTING || readyState === READY_STATE_OPEN) this.connectionStatusEvents.next({ status: "closing" });
-    this.webSocket?.close();
-  }
-};
-const SettlementMethod = {
-  SETTLEMENT_METHOD_SWAP: "SETTLEMENT_METHOD_SWAP",
-  SETTLEMENT_METHOD_ESCROW: "SETTLEMENT_METHOD_ESCROW",
-  SETTLEMENT_METHOD_HTLC: "SETTLEMENT_METHOD_HTLC",
-  UNRECOGNIZED: "UNRECOGNIZED"
-};
-function settlementMethodFromJSON(object) {
-  switch (object) {
-    case 0:
-    case "SETTLEMENT_METHOD_SWAP":
-      return SettlementMethod.SETTLEMENT_METHOD_SWAP;
-    case 1:
-    case "SETTLEMENT_METHOD_ESCROW":
-      return SettlementMethod.SETTLEMENT_METHOD_ESCROW;
-    case 2:
-    case "SETTLEMENT_METHOD_HTLC":
-      return SettlementMethod.SETTLEMENT_METHOD_HTLC;
-    case -1:
-    case "UNRECOGNIZED":
-    default:
-      return SettlementMethod.UNRECOGNIZED;
-  }
-}
-function settlementMethodToJSON(object) {
-  switch (object) {
-    case SettlementMethod.SETTLEMENT_METHOD_SWAP:
-      return 0;
-    case SettlementMethod.SETTLEMENT_METHOD_ESCROW:
-      return 1;
-    case SettlementMethod.SETTLEMENT_METHOD_HTLC:
-      return 2;
-    case SettlementMethod.UNRECOGNIZED:
-    default:
-      return -1;
-  }
-}
-function createBaseAddress() {
-  return {
-    blockchain: 0,
-    address: ""
-  };
-}
-const Address = {
-  fromJSON(object) {
-    return {
-      blockchain: isSet$7(object.blockchain) ? globalThis.Number(object.blockchain) : 0,
-      address: isSet$7(object.address) ? globalThis.String(object.address) : ""
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.blockchain !== void 0) obj.blockchain = Math.round(message.blockchain);
-    if (message.address !== void 0) obj.address = message.address;
-    return obj;
-  },
-  create(base) {
-    return Address.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseAddress();
-    message.blockchain = object.blockchain ?? 0;
-    message.address = object.address ?? "";
-    return message;
-  }
-};
-function createBaseKeepAlive() {
-  return {};
-}
-const KeepAlive = {
-  fromJSON(_) {
-    return {};
-  },
-  toJSON(_) {
-    return {};
-  },
-  create(base) {
-    return KeepAlive.fromPartial(base ?? {});
-  },
-  fromPartial(_) {
-    return createBaseKeepAlive();
-  }
-};
-function createBaseUnsubscribed() {
-  return {};
-}
-const Unsubscribed = {
-  fromJSON(_) {
-    return {};
-  },
-  toJSON(_) {
-    return {};
-  },
-  create(base) {
-    return Unsubscribed.fromPartial(base ?? {});
-  },
-  fromPartial(_) {
-    return createBaseUnsubscribed();
-  }
-};
-function isSet$7(value) {
-  return value !== null && value !== void 0;
-}
-function createBaseSwapRoute() {
-  return { steps: [] };
-}
-const SwapRoute = {
-  fromJSON(object) {
-    return { steps: globalThis.Array.isArray(object?.steps) ? object.steps.map((e) => SwapStep.fromJSON(e)) : [] };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.steps?.length) obj.steps = message.steps.map((e) => SwapStep.toJSON(e));
-    return obj;
-  },
-  create(base) {
-    return SwapRoute.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseSwapRoute();
-    message.steps = object.steps?.map((e) => SwapStep.fromPartial(e)) || [];
-    return message;
-  }
-};
-function createBaseSwapStep() {
-  return {
-    bidAssetAddress: void 0,
-    askAssetAddress: void 0,
-    chunks: []
-  };
-}
-const SwapStep = {
-  fromJSON(object) {
-    return {
-      bidAssetAddress: isSet$6(object.bid_asset_address) ? Address.fromJSON(object.bid_asset_address) : void 0,
-      askAssetAddress: isSet$6(object.ask_asset_address) ? Address.fromJSON(object.ask_asset_address) : void 0,
-      chunks: globalThis.Array.isArray(object?.chunks) ? object.chunks.map((e) => SwapChunk.fromJSON(e)) : []
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.bidAssetAddress !== void 0) obj.bid_asset_address = Address.toJSON(message.bidAssetAddress);
-    if (message.askAssetAddress !== void 0) obj.ask_asset_address = Address.toJSON(message.askAssetAddress);
-    if (message.chunks?.length) obj.chunks = message.chunks.map((e) => SwapChunk.toJSON(e));
-    return obj;
-  },
-  create(base) {
-    return SwapStep.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseSwapStep();
-    message.bidAssetAddress = object.bidAssetAddress !== void 0 && object.bidAssetAddress !== null ? Address.fromPartial(object.bidAssetAddress) : void 0;
-    message.askAssetAddress = object.askAssetAddress !== void 0 && object.askAssetAddress !== null ? Address.fromPartial(object.askAssetAddress) : void 0;
-    message.chunks = object.chunks?.map((e) => SwapChunk.fromPartial(e)) || [];
-    return message;
-  }
-};
-function createBaseSwapChunk() {
-  return {
-    protocol: "",
-    bidAmount: "",
-    askAmount: "",
-    extraVersion: 0,
-    extra: []
-  };
-}
-const SwapChunk = {
-  fromJSON(object) {
-    return {
-      protocol: isSet$6(object.protocol) ? globalThis.String(object.protocol) : "",
-      bidAmount: isSet$6(object.bid_amount) ? globalThis.String(object.bid_amount) : "",
-      askAmount: isSet$6(object.ask_amount) ? globalThis.String(object.ask_amount) : "",
-      extraVersion: isSet$6(object.extra_version) ? globalThis.Number(object.extra_version) : 0,
-      extra: globalThis.Array.isArray(object?.extra) ? object.extra.map((e) => globalThis.Number(e)) : []
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.protocol !== void 0) obj.protocol = message.protocol;
-    if (message.bidAmount !== void 0) obj.bid_amount = message.bidAmount;
-    if (message.askAmount !== void 0) obj.ask_amount = message.askAmount;
-    if (message.extraVersion !== void 0) obj.extra_version = Math.round(message.extraVersion);
-    if (message.extra?.length) obj.extra = message.extra.map((e) => Math.round(e));
-    return obj;
-  },
-  create(base) {
-    return SwapChunk.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseSwapChunk();
-    message.protocol = object.protocol ?? "";
-    message.bidAmount = object.bidAmount ?? "";
-    message.askAmount = object.askAmount ?? "";
-    message.extraVersion = object.extraVersion ?? 0;
-    message.extra = object.extra?.map((e) => e) || [];
-    return message;
-  }
-};
-function isSet$6(value) {
-  return value !== null && value !== void 0;
-}
-const GaslessSettlement = {
-  GASLESS_SETTLEMENT_PROHIBITED: "GASLESS_SETTLEMENT_PROHIBITED",
-  GASLESS_SETTLEMENT_POSSIBLE: "GASLESS_SETTLEMENT_POSSIBLE",
-  GASLESS_SETTLEMENT_REQUIRED: "GASLESS_SETTLEMENT_REQUIRED",
-  UNRECOGNIZED: "UNRECOGNIZED"
-};
-function gaslessSettlementFromJSON(object) {
-  switch (object) {
-    case 0:
-    case "GASLESS_SETTLEMENT_PROHIBITED":
-      return GaslessSettlement.GASLESS_SETTLEMENT_PROHIBITED;
-    case 1:
-    case "GASLESS_SETTLEMENT_POSSIBLE":
-      return GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE;
-    case 2:
-    case "GASLESS_SETTLEMENT_REQUIRED":
-      return GaslessSettlement.GASLESS_SETTLEMENT_REQUIRED;
-    case -1:
-    case "UNRECOGNIZED":
-    default:
-      return GaslessSettlement.UNRECOGNIZED;
-  }
-}
-function gaslessSettlementToJSON(object) {
-  switch (object) {
-    case GaslessSettlement.GASLESS_SETTLEMENT_PROHIBITED:
-      return 0;
-    case GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE:
-      return 1;
-    case GaslessSettlement.GASLESS_SETTLEMENT_REQUIRED:
-      return 2;
-    case GaslessSettlement.UNRECOGNIZED:
-    default:
-      return -1;
-  }
-}
-function createBaseRequestSettlementParams() {
-  return {
-    maxPriceSlippageBps: 0,
-    maxOutgoingMessages: 0,
-    gaslessSettlement: GaslessSettlement.GASLESS_SETTLEMENT_PROHIBITED,
-    flexibleReferrerFee: void 0
-  };
-}
-const RequestSettlementParams = {
-  fromJSON(object) {
-    return {
-      maxPriceSlippageBps: isSet$5(object.max_price_slippage_bps) ? globalThis.Number(object.max_price_slippage_bps) : 0,
-      maxOutgoingMessages: isSet$5(object.max_outgoing_messages) ? globalThis.Number(object.max_outgoing_messages) : 0,
-      gaslessSettlement: isSet$5(object.gasless_settlement) ? gaslessSettlementFromJSON(object.gasless_settlement) : GaslessSettlement.GASLESS_SETTLEMENT_PROHIBITED,
-      flexibleReferrerFee: isSet$5(object.flexible_referrer_fee) ? globalThis.Boolean(object.flexible_referrer_fee) : void 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.maxPriceSlippageBps !== void 0) obj.max_price_slippage_bps = Math.round(message.maxPriceSlippageBps);
-    if (message.maxOutgoingMessages !== void 0) obj.max_outgoing_messages = Math.round(message.maxOutgoingMessages);
-    if (message.gaslessSettlement !== void 0) obj.gasless_settlement = gaslessSettlementToJSON(message.gaslessSettlement);
-    if (message.flexibleReferrerFee !== void 0) obj.flexible_referrer_fee = message.flexibleReferrerFee;
-    return obj;
-  },
-  create(base) {
-    return RequestSettlementParams.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseRequestSettlementParams();
-    message.maxPriceSlippageBps = object.maxPriceSlippageBps ?? 0;
-    message.maxOutgoingMessages = object.maxOutgoingMessages ?? 0;
-    message.gaslessSettlement = object.gaslessSettlement ?? GaslessSettlement.GASLESS_SETTLEMENT_PROHIBITED;
-    message.flexibleReferrerFee = object.flexibleReferrerFee ?? void 0;
-    return message;
-  }
-};
-function createBaseSwapSettlementParams() {
-  return {
-    routes: [],
-    minAskAmount: "",
-    recommendedMinAskAmount: "",
-    recommendedSlippageBps: 0
-  };
-}
-const SwapSettlementParams = {
-  fromJSON(object) {
-    return {
-      routes: globalThis.Array.isArray(object?.routes) ? object.routes.map((e) => SwapRoute.fromJSON(e)) : [],
-      minAskAmount: isSet$5(object.min_ask_amount) ? globalThis.String(object.min_ask_amount) : "",
-      recommendedMinAskAmount: isSet$5(object.recommended_min_ask_amount) ? globalThis.String(object.recommended_min_ask_amount) : "",
-      recommendedSlippageBps: isSet$5(object.recommended_slippage_bps) ? globalThis.Number(object.recommended_slippage_bps) : 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.routes?.length) obj.routes = message.routes.map((e) => SwapRoute.toJSON(e));
-    if (message.minAskAmount !== void 0) obj.min_ask_amount = message.minAskAmount;
-    if (message.recommendedMinAskAmount !== void 0) obj.recommended_min_ask_amount = message.recommendedMinAskAmount;
-    if (message.recommendedSlippageBps !== void 0) obj.recommended_slippage_bps = Math.round(message.recommendedSlippageBps);
-    return obj;
-  },
-  create(base) {
-    return SwapSettlementParams.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseSwapSettlementParams();
-    message.routes = object.routes?.map((e) => SwapRoute.fromPartial(e)) || [];
-    message.minAskAmount = object.minAskAmount ?? "";
-    message.recommendedMinAskAmount = object.recommendedMinAskAmount ?? "";
-    message.recommendedSlippageBps = object.recommendedSlippageBps ?? 0;
-    return message;
-  }
-};
-function createBaseEscrowSettlementParams() {
-  return {
-    contractAddress: void 0,
-    resolverAddress: void 0,
-    resolveTimeout: 0,
-    gasless: false
-  };
-}
-const EscrowSettlementParams = {
-  fromJSON(object) {
-    return {
-      contractAddress: isSet$5(object.contract_address) ? Address.fromJSON(object.contract_address) : void 0,
-      resolverAddress: isSet$5(object.resolver_address) ? Address.fromJSON(object.resolver_address) : void 0,
-      resolveTimeout: isSet$5(object.resolve_timeout) ? globalThis.Number(object.resolve_timeout) : 0,
-      gasless: isSet$5(object.gasless) ? globalThis.Boolean(object.gasless) : false
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.contractAddress !== void 0) obj.contract_address = Address.toJSON(message.contractAddress);
-    if (message.resolverAddress !== void 0) obj.resolver_address = Address.toJSON(message.resolverAddress);
-    if (message.resolveTimeout !== void 0) obj.resolve_timeout = Math.round(message.resolveTimeout);
-    if (message.gasless !== void 0) obj.gasless = message.gasless;
-    return obj;
-  },
-  create(base) {
-    return EscrowSettlementParams.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseEscrowSettlementParams();
-    message.contractAddress = object.contractAddress !== void 0 && object.contractAddress !== null ? Address.fromPartial(object.contractAddress) : void 0;
-    message.resolverAddress = object.resolverAddress !== void 0 && object.resolverAddress !== null ? Address.fromPartial(object.resolverAddress) : void 0;
-    message.resolveTimeout = object.resolveTimeout ?? 0;
-    message.gasless = object.gasless ?? false;
-    return message;
-  }
-};
-function createBaseHtlcSettlementParams() {
-  return {
-    contractAddress: void 0,
-    resolverAddress: void 0,
-    resolveTimeout: 0
-  };
-}
-const HtlcSettlementParams = {
-  fromJSON(object) {
-    return {
-      contractAddress: isSet$5(object.contract_address) ? Address.fromJSON(object.contract_address) : void 0,
-      resolverAddress: isSet$5(object.resolver_address) ? Address.fromJSON(object.resolver_address) : void 0,
-      resolveTimeout: isSet$5(object.resolve_timeout) ? globalThis.Number(object.resolve_timeout) : 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.contractAddress !== void 0) obj.contract_address = Address.toJSON(message.contractAddress);
-    if (message.resolverAddress !== void 0) obj.resolver_address = Address.toJSON(message.resolverAddress);
-    if (message.resolveTimeout !== void 0) obj.resolve_timeout = Math.round(message.resolveTimeout);
-    return obj;
-  },
-  create(base) {
-    return HtlcSettlementParams.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseHtlcSettlementParams();
-    message.contractAddress = object.contractAddress !== void 0 && object.contractAddress !== null ? Address.fromPartial(object.contractAddress) : void 0;
-    message.resolverAddress = object.resolverAddress !== void 0 && object.resolverAddress !== null ? Address.fromPartial(object.resolverAddress) : void 0;
-    message.resolveTimeout = object.resolveTimeout ?? 0;
-    return message;
-  }
-};
-function createBaseQuoteRequest() {
-  return {
-    bidAssetAddress: void 0,
-    askAssetAddress: void 0,
-    amount: void 0,
-    referrerAddress: void 0,
-    referrerFeeBps: 0,
-    settlementMethods: [],
-    settlementParams: void 0
-  };
-}
-const QuoteRequest$1 = {
-  fromJSON(object) {
-    return {
-      bidAssetAddress: isSet$5(object.bid_asset_address) ? Address.fromJSON(object.bid_asset_address) : void 0,
-      askAssetAddress: isSet$5(object.ask_asset_address) ? Address.fromJSON(object.ask_asset_address) : void 0,
-      amount: isSet$5(object.amount) ? QuoteRequest_AmountOneOf.fromJSON(object.amount) : void 0,
-      referrerAddress: isSet$5(object.referrer_address) ? Address.fromJSON(object.referrer_address) : void 0,
-      referrerFeeBps: isSet$5(object.referrer_fee_bps) ? globalThis.Number(object.referrer_fee_bps) : 0,
-      settlementMethods: globalThis.Array.isArray(object?.settlement_methods) ? object.settlement_methods.map((e) => settlementMethodFromJSON(e)) : [],
-      settlementParams: isSet$5(object.settlement_params) ? RequestSettlementParams.fromJSON(object.settlement_params) : void 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.bidAssetAddress !== void 0) obj.bid_asset_address = Address.toJSON(message.bidAssetAddress);
-    if (message.askAssetAddress !== void 0) obj.ask_asset_address = Address.toJSON(message.askAssetAddress);
-    if (message.amount !== void 0) obj.amount = QuoteRequest_AmountOneOf.toJSON(message.amount);
-    if (message.referrerAddress !== void 0) obj.referrer_address = Address.toJSON(message.referrerAddress);
-    if (message.referrerFeeBps !== void 0) obj.referrer_fee_bps = Math.round(message.referrerFeeBps);
-    if (message.settlementMethods?.length) obj.settlement_methods = message.settlementMethods.map((e) => settlementMethodToJSON(e));
-    if (message.settlementParams !== void 0) obj.settlement_params = RequestSettlementParams.toJSON(message.settlementParams);
-    return obj;
-  },
-  create(base) {
-    return QuoteRequest$1.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseQuoteRequest();
-    message.bidAssetAddress = object.bidAssetAddress !== void 0 && object.bidAssetAddress !== null ? Address.fromPartial(object.bidAssetAddress) : void 0;
-    message.askAssetAddress = object.askAssetAddress !== void 0 && object.askAssetAddress !== null ? Address.fromPartial(object.askAssetAddress) : void 0;
-    message.amount = object.amount !== void 0 && object.amount !== null ? QuoteRequest_AmountOneOf.fromPartial(object.amount) : void 0;
-    message.referrerAddress = object.referrerAddress !== void 0 && object.referrerAddress !== null ? Address.fromPartial(object.referrerAddress) : void 0;
-    message.referrerFeeBps = object.referrerFeeBps ?? 0;
-    message.settlementMethods = object.settlementMethods?.map((e) => e) || [];
-    message.settlementParams = object.settlementParams !== void 0 && object.settlementParams !== null ? RequestSettlementParams.fromPartial(object.settlementParams) : void 0;
-    return message;
-  }
-};
-function createBaseQuoteRequest_AmountOneOf() {
-  return {
-    bidUnits: void 0,
-    askUnits: void 0
-  };
-}
-const QuoteRequest_AmountOneOf = {
-  fromJSON(object) {
-    return {
-      bidUnits: isSet$5(object.bid_units) ? globalThis.String(object.bid_units) : void 0,
-      askUnits: isSet$5(object.ask_units) ? globalThis.String(object.ask_units) : void 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.bidUnits !== void 0) obj.bid_units = message.bidUnits;
-    if (message.askUnits !== void 0) obj.ask_units = message.askUnits;
-    return obj;
-  },
-  create(base) {
-    return QuoteRequest_AmountOneOf.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseQuoteRequest_AmountOneOf();
-    message.bidUnits = object.bidUnits ?? void 0;
-    message.askUnits = object.askUnits ?? void 0;
-    return message;
-  }
-};
-function createBaseQuote() {
-  return {
-    quoteId: "",
-    resolverId: "",
-    resolverName: "",
-    bidAssetAddress: void 0,
-    askAssetAddress: void 0,
-    bidUnits: "",
-    askUnits: "",
-    referrerAddress: void 0,
-    referrerFeeAsset: void 0,
-    referrerFeeUnits: "",
-    protocolFeeAsset: void 0,
-    protocolFeeUnits: "",
-    quoteTimestamp: 0,
-    tradeStartDeadline: 0,
-    params: void 0,
-    gasBudget: "",
-    estimatedGasConsumption: ""
-  };
-}
-const Quote = {
-  fromJSON(object) {
-    return {
-      quoteId: isSet$5(object.quote_id) ? globalThis.String(object.quote_id) : "",
-      resolverId: isSet$5(object.resolver_id) ? globalThis.String(object.resolver_id) : "",
-      resolverName: isSet$5(object.resolver_name) ? globalThis.String(object.resolver_name) : "",
-      bidAssetAddress: isSet$5(object.bid_asset_address) ? Address.fromJSON(object.bid_asset_address) : void 0,
-      askAssetAddress: isSet$5(object.ask_asset_address) ? Address.fromJSON(object.ask_asset_address) : void 0,
-      bidUnits: isSet$5(object.bid_units) ? globalThis.String(object.bid_units) : "",
-      askUnits: isSet$5(object.ask_units) ? globalThis.String(object.ask_units) : "",
-      referrerAddress: isSet$5(object.referrer_address) ? Address.fromJSON(object.referrer_address) : void 0,
-      referrerFeeAsset: isSet$5(object.referrer_fee_asset) ? Address.fromJSON(object.referrer_fee_asset) : void 0,
-      referrerFeeUnits: isSet$5(object.referrer_fee_units) ? globalThis.String(object.referrer_fee_units) : "",
-      protocolFeeAsset: isSet$5(object.protocol_fee_asset) ? Address.fromJSON(object.protocol_fee_asset) : void 0,
-      protocolFeeUnits: isSet$5(object.protocol_fee_units) ? globalThis.String(object.protocol_fee_units) : "",
-      quoteTimestamp: isSet$5(object.quote_timestamp) ? globalThis.Number(object.quote_timestamp) : 0,
-      tradeStartDeadline: isSet$5(object.trade_start_deadline) ? globalThis.Number(object.trade_start_deadline) : 0,
-      params: isSet$5(object.params) ? Quote_ParamsOneOf.fromJSON(object.params) : void 0,
-      gasBudget: isSet$5(object.gas_budget) ? globalThis.String(object.gas_budget) : "",
-      estimatedGasConsumption: isSet$5(object.estimated_gas_consumption) ? globalThis.String(object.estimated_gas_consumption) : ""
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.quoteId !== void 0) obj.quote_id = message.quoteId;
-    if (message.resolverId !== void 0) obj.resolver_id = message.resolverId;
-    if (message.resolverName !== void 0) obj.resolver_name = message.resolverName;
-    if (message.bidAssetAddress !== void 0) obj.bid_asset_address = Address.toJSON(message.bidAssetAddress);
-    if (message.askAssetAddress !== void 0) obj.ask_asset_address = Address.toJSON(message.askAssetAddress);
-    if (message.bidUnits !== void 0) obj.bid_units = message.bidUnits;
-    if (message.askUnits !== void 0) obj.ask_units = message.askUnits;
-    if (message.referrerAddress !== void 0) obj.referrer_address = Address.toJSON(message.referrerAddress);
-    if (message.referrerFeeAsset !== void 0) obj.referrer_fee_asset = Address.toJSON(message.referrerFeeAsset);
-    if (message.referrerFeeUnits !== void 0) obj.referrer_fee_units = message.referrerFeeUnits;
-    if (message.protocolFeeAsset !== void 0) obj.protocol_fee_asset = Address.toJSON(message.protocolFeeAsset);
-    if (message.protocolFeeUnits !== void 0) obj.protocol_fee_units = message.protocolFeeUnits;
-    if (message.quoteTimestamp !== void 0) obj.quote_timestamp = Math.round(message.quoteTimestamp);
-    if (message.tradeStartDeadline !== void 0) obj.trade_start_deadline = Math.round(message.tradeStartDeadline);
-    if (message.params !== void 0) obj.params = Quote_ParamsOneOf.toJSON(message.params);
-    if (message.gasBudget !== void 0) obj.gas_budget = message.gasBudget;
-    if (message.estimatedGasConsumption !== void 0) obj.estimated_gas_consumption = message.estimatedGasConsumption;
-    return obj;
-  },
-  create(base) {
-    return Quote.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseQuote();
-    message.quoteId = object.quoteId ?? "";
-    message.resolverId = object.resolverId ?? "";
-    message.resolverName = object.resolverName ?? "";
-    message.bidAssetAddress = object.bidAssetAddress !== void 0 && object.bidAssetAddress !== null ? Address.fromPartial(object.bidAssetAddress) : void 0;
-    message.askAssetAddress = object.askAssetAddress !== void 0 && object.askAssetAddress !== null ? Address.fromPartial(object.askAssetAddress) : void 0;
-    message.bidUnits = object.bidUnits ?? "";
-    message.askUnits = object.askUnits ?? "";
-    message.referrerAddress = object.referrerAddress !== void 0 && object.referrerAddress !== null ? Address.fromPartial(object.referrerAddress) : void 0;
-    message.referrerFeeAsset = object.referrerFeeAsset !== void 0 && object.referrerFeeAsset !== null ? Address.fromPartial(object.referrerFeeAsset) : void 0;
-    message.referrerFeeUnits = object.referrerFeeUnits ?? "";
-    message.protocolFeeAsset = object.protocolFeeAsset !== void 0 && object.protocolFeeAsset !== null ? Address.fromPartial(object.protocolFeeAsset) : void 0;
-    message.protocolFeeUnits = object.protocolFeeUnits ?? "";
-    message.quoteTimestamp = object.quoteTimestamp ?? 0;
-    message.tradeStartDeadline = object.tradeStartDeadline ?? 0;
-    message.params = object.params !== void 0 && object.params !== null ? Quote_ParamsOneOf.fromPartial(object.params) : void 0;
-    message.gasBudget = object.gasBudget ?? "";
-    message.estimatedGasConsumption = object.estimatedGasConsumption ?? "";
-    return message;
-  }
-};
-function createBaseQuote_ParamsOneOf() {
-  return {
-    swap: void 0,
-    escrow: void 0,
-    htlc: void 0
-  };
-}
-const Quote_ParamsOneOf = {
-  fromJSON(object) {
-    return {
-      swap: isSet$5(object.swap) ? SwapSettlementParams.fromJSON(object.swap) : void 0,
-      escrow: isSet$5(object.escrow) ? EscrowSettlementParams.fromJSON(object.escrow) : void 0,
-      htlc: isSet$5(object.htlc) ? HtlcSettlementParams.fromJSON(object.htlc) : void 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.swap !== void 0) obj.swap = SwapSettlementParams.toJSON(message.swap);
-    if (message.escrow !== void 0) obj.escrow = EscrowSettlementParams.toJSON(message.escrow);
-    if (message.htlc !== void 0) obj.htlc = HtlcSettlementParams.toJSON(message.htlc);
-    return obj;
-  },
-  create(base) {
-    return Quote_ParamsOneOf.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseQuote_ParamsOneOf();
-    message.swap = object.swap !== void 0 && object.swap !== null ? SwapSettlementParams.fromPartial(object.swap) : void 0;
-    message.escrow = object.escrow !== void 0 && object.escrow !== null ? EscrowSettlementParams.fromPartial(object.escrow) : void 0;
-    message.htlc = object.htlc !== void 0 && object.htlc !== null ? HtlcSettlementParams.fromPartial(object.htlc) : void 0;
-    return message;
-  }
-};
-function isSet$5(value) {
-  return value !== null && value !== void 0;
-}
-let ErrorCode = /* @__PURE__ */ (function(ErrorCode$1) {
-  ErrorCode$1[ErrorCode$1["UNKNOWN"] = -1] = "UNKNOWN";
-  return ErrorCode$1;
-})({});
-function createBaseEscrowOrderListRequest() {
-  return { traderWalletAddress: void 0 };
-}
-const EscrowOrderListRequest$1 = {
-  fromJSON(object) {
-    return { traderWalletAddress: isSet$4(object.trader_wallet_address) ? Address.fromJSON(object.trader_wallet_address) : void 0 };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.traderWalletAddress !== void 0) obj.trader_wallet_address = Address.toJSON(message.traderWalletAddress);
-    return obj;
-  },
-  create(base) {
-    return EscrowOrderListRequest$1.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseEscrowOrderListRequest();
-    message.traderWalletAddress = object.traderWalletAddress !== void 0 && object.traderWalletAddress !== null ? Address.fromPartial(object.traderWalletAddress) : void 0;
-    return message;
-  }
-};
-function createBaseEscrowOrderList() {
-  return { orders: [] };
-}
-const EscrowOrderList = {
-  fromJSON(object) {
-    return { orders: globalThis.Array.isArray(object?.orders) ? object.orders.map((e) => EscrowOrderData$1.fromJSON(e)) : [] };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.orders?.length) obj.orders = message.orders.map((e) => EscrowOrderData$1.toJSON(e));
-    return obj;
-  },
-  create(base) {
-    return EscrowOrderList.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseEscrowOrderList();
-    message.orders = object.orders?.map((e) => EscrowOrderData$1.fromPartial(e)) || [];
-    return message;
-  }
-};
-function createBaseEscrowOrderData() {
-  return {
-    quote: void 0,
-    escrowItemAddress: void 0,
-    outgoingTxHash: ""
-  };
-}
-const EscrowOrderData$1 = {
-  fromJSON(object) {
-    return {
-      quote: isSet$4(object.quote) ? Quote.fromJSON(object.quote) : void 0,
-      escrowItemAddress: isSet$4(object.escrow_item_address) ? Address.fromJSON(object.escrow_item_address) : void 0,
-      outgoingTxHash: isSet$4(object.outgoing_tx_hash) ? globalThis.String(object.outgoing_tx_hash) : ""
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.quote !== void 0) obj.quote = Quote.toJSON(message.quote);
-    if (message.escrowItemAddress !== void 0) obj.escrow_item_address = Address.toJSON(message.escrowItemAddress);
-    if (message.outgoingTxHash !== void 0) obj.outgoing_tx_hash = message.outgoingTxHash;
-    return obj;
-  },
-  create(base) {
-    return EscrowOrderData$1.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseEscrowOrderData();
-    message.quote = object.quote !== void 0 && object.quote !== null ? Quote.fromPartial(object.quote) : void 0;
-    message.escrowItemAddress = object.escrowItemAddress !== void 0 && object.escrowItemAddress !== null ? Address.fromPartial(object.escrowItemAddress) : void 0;
-    message.outgoingTxHash = object.outgoingTxHash ?? "";
-    return message;
-  }
-};
-function isSet$4(value) {
-  return value !== null && value !== void 0;
-}
-const EscrowOrderListRequest = EscrowOrderListRequest$1;
-const EscrowOrderListResponse = EscrowOrderList;
-function isJSONRPCError(data) {
-  return Boolean(data && typeof data === "object" && "code" in data && "message" in data);
-}
-var ApiClient = class {
-  serverAndClient;
-  transport;
-  logger;
-  connection;
-  streamConsumers = /* @__PURE__ */ new Map();
-  isClosed = false;
-  _lastConnectionStatusEvent = null;
-  connectionStatusEvents = new Subject();
-  constructor(options) {
-    this.transport = options.transport;
-    this.logger = options.logger;
-    this.serverAndClient = new distExports.JSONRPCServerAndClient(new distExports.JSONRPCServer(), new distExports.JSONRPCClient((request) => this.transport.send(JSON.stringify(request))));
-    this.transport.messages.subscribe((message) => {
-      this.logger?.debug(`Received: ${message}`);
-      this.serverAndClient.receiveAndSend(JSON.parse(message));
-    });
-    this.transport.connectionStatusEvents.subscribe((statusEvent) => {
-      this._lastConnectionStatusEvent = statusEvent;
-      this.handleConnectionEvent(statusEvent);
-      this.connectionStatusEvents.next(statusEvent);
-    });
-  }
-  get connectionStatus() {
-    return this._lastConnectionStatusEvent?.status ?? "ready";
-  }
-  /**
-  * Ensures that the client is connected to the API server.
-  * Rejects if the underlying connection is closed or is in an invalid state.
-  * Rejects if close() method was called.
-  */
-  ensureConnection() {
-    if (this.isClosed) return Promise.reject(/* @__PURE__ */ new Error("ApiClient is closed"));
-    if (!this.connection || this._lastConnectionStatusEvent?.status === "error" && !this._lastConnectionStatusEvent.isReconnecting) this.connection = this.transport.connect();
-    return this.connection;
-  }
-  /**
-  * Calls a method on the API, returning the result as JSON.
-  * @param method Method name
-  * @param payload Method parameters as JSON
-  */
-  async send(method, payload) {
-    await this.ensureConnection();
-    this.logger?.debug(`Sending: method=${method} payload=${JSON.stringify(payload)}`);
-    return this.serverAndClient.request(method, payload);
-  }
-  /**
-  * Returns a stream of notifications from the server.
-  * @param method Event name (passed as 'method' in JSON RPC)
-  * @param subscriptionId An unique id, assigned by the server
-  * @returns JSON-encoded notifications
-  */
-  readStream(method, subscriptionId) {
-    return new Observable((subscriber) => {
-      this.getStreamConsumerMap(method).set(subscriptionId, (err, data) => {
-        if (err) {
-          subscriber.error(err);
-          return;
-        }
-        subscriber.next(data);
-      });
-      return () => {
-        this.streamConsumers.get(method)?.delete(subscriptionId);
-      };
-    });
-  }
-  /**
-  * Unsubscribes from a stream of notifications, notifying the server that no further updates is needed.
-  * @param method Notification method name
-  * @param subscriptionId An unique id, assigned by the server
-  */
-  async unsubscribeFromStream(method, subscriptionId) {
-    if (this.connectionStatus !== "connected") return true;
-    return await this.send(method, [subscriptionId]);
-  }
-  /**
-  * Closes the connection and rejects all pending requests. Further requests will throw an error.
-  */
-  close() {
-    this.transport.close();
-    this.isClosed = true;
-  }
-  getStreamConsumerMap(method) {
-    let result = this.streamConsumers.get(method);
-    if (result) return result;
-    result = /* @__PURE__ */ new Map();
-    this.streamConsumers.set(method, result);
-    this.serverAndClient.addMethod(method, (payload) => {
-      const consumer = result.get(payload.subscription);
-      if ("error" in payload) {
-        const payloadError = payload.error;
-        const serverError = isJSONRPCError(payloadError) ? new distExports.JSONRPCErrorException(payloadError.message, payloadError.code, payloadError.data) : /* @__PURE__ */ new Error(`Server error: ${JSON.stringify(payloadError)}`);
-        consumer?.(serverError, void 0);
-      } else consumer?.(void 0, payload.result);
-    });
-    return result;
-  }
-  handleConnectionEvent(event) {
-    if (event.status === "closed" || event.status === "error") {
-      const consumers = [...this.streamConsumers.values()].flatMap((consumerMap) => [...consumerMap.values()]);
-      for (const consumer of consumers) consumer(new OmnistonError(ErrorCode.UNKNOWN, "Connection is closed"), void 0);
-    }
-  }
-};
-function createBaseNoQuoteEvent() {
-  return {};
-}
-const NoQuoteEvent = {
-  fromJSON(_) {
-    return {};
-  },
-  toJSON(_) {
-    return {};
-  },
-  create(base) {
-    return NoQuoteEvent.fromPartial(base ?? {});
-  },
-  fromPartial(_) {
-    return createBaseNoQuoteEvent();
-  }
-};
-function createBaseQuoteRequestAck() {
-  return { rfqId: "" };
-}
-const QuoteRequestAck = {
-  fromJSON(object) {
-    return { rfqId: isSet$3(object.rfq_id) ? globalThis.String(object.rfq_id) : "" };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.rfqId !== void 0) obj.rfq_id = message.rfqId;
-    return obj;
-  },
-  create(base) {
-    return QuoteRequestAck.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseQuoteRequestAck();
-    message.rfqId = object.rfqId ?? "";
-    return message;
-  }
-};
-const QuoteEvent$1 = {
-  fromJSON(object) {
-    return { event: isSet$3(object.event) ? QuoteEvent_EventOneOf.fromJSON(object.event) : void 0 };
-  }
-};
-function createBaseQuoteEvent_EventOneOf() {
-  return {
-    quoteUpdated: void 0,
-    noQuote: void 0,
-    ack: void 0,
-    keepAlive: void 0,
-    unsubscribed: void 0
-  };
-}
-const QuoteEvent_EventOneOf = {
-  fromJSON(object) {
-    return {
-      quoteUpdated: isSet$3(object.quote_updated) ? Quote.fromJSON(object.quote_updated) : void 0,
-      noQuote: isSet$3(object.no_quote) ? NoQuoteEvent.fromJSON(object.no_quote) : void 0,
-      ack: isSet$3(object.ack) ? QuoteRequestAck.fromJSON(object.ack) : void 0,
-      keepAlive: isSet$3(object.keep_alive) ? KeepAlive.fromJSON(object.keep_alive) : void 0,
-      unsubscribed: isSet$3(object.unsubscribed) ? Unsubscribed.fromJSON(object.unsubscribed) : void 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.quoteUpdated !== void 0) obj.quote_updated = Quote.toJSON(message.quoteUpdated);
-    if (message.noQuote !== void 0) obj.no_quote = NoQuoteEvent.toJSON(message.noQuote);
-    if (message.ack !== void 0) obj.ack = QuoteRequestAck.toJSON(message.ack);
-    if (message.keepAlive !== void 0) obj.keep_alive = KeepAlive.toJSON(message.keepAlive);
-    if (message.unsubscribed !== void 0) obj.unsubscribed = Unsubscribed.toJSON(message.unsubscribed);
-    return obj;
-  },
-  create(base) {
-    return QuoteEvent_EventOneOf.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseQuoteEvent_EventOneOf();
-    message.quoteUpdated = object.quoteUpdated !== void 0 && object.quoteUpdated !== null ? Quote.fromPartial(object.quoteUpdated) : void 0;
-    message.noQuote = object.noQuote !== void 0 && object.noQuote !== null ? NoQuoteEvent.fromPartial(object.noQuote) : void 0;
-    message.ack = object.ack !== void 0 && object.ack !== null ? QuoteRequestAck.fromPartial(object.ack) : void 0;
-    message.keepAlive = object.keepAlive !== void 0 && object.keepAlive !== null ? KeepAlive.fromPartial(object.keepAlive) : void 0;
-    message.unsubscribed = object.unsubscribed !== void 0 && object.unsubscribed !== null ? Unsubscribed.fromPartial(object.unsubscribed) : void 0;
-    return message;
-  }
-};
-function isSet$3(value) {
-  return value !== null && value !== void 0;
-}
-const QuoteEvent = QuoteEvent$1;
-const QuoteRequest = {
-  fromJSON(object) {
-    return QuoteRequest$1.fromJSON(object);
-  },
-  toJSON(quoteRequest) {
-    return QuoteRequest$1.toJSON(QuoteRequest$1.fromPartial(quoteRequest));
-  }
-};
-const SwapChunkResult = {
-  SWAP_CHUNK_RESULT_PROCESSING: "SWAP_CHUNK_RESULT_PROCESSING",
-  SWAP_CHUNK_RESULT_FILLED: "SWAP_CHUNK_RESULT_FILLED",
-  SWAP_CHUNK_RESULT_ABORTED: "SWAP_CHUNK_RESULT_ABORTED",
-  UNRECOGNIZED: "UNRECOGNIZED"
-};
-function swapChunkResultFromJSON(object) {
-  switch (object) {
-    case 0:
-    case "SWAP_CHUNK_RESULT_PROCESSING":
-      return SwapChunkResult.SWAP_CHUNK_RESULT_PROCESSING;
-    case 1:
-    case "SWAP_CHUNK_RESULT_FILLED":
-      return SwapChunkResult.SWAP_CHUNK_RESULT_FILLED;
-    case 2:
-    case "SWAP_CHUNK_RESULT_ABORTED":
-      return SwapChunkResult.SWAP_CHUNK_RESULT_ABORTED;
-    case -1:
-    case "UNRECOGNIZED":
-    default:
-      return SwapChunkResult.UNRECOGNIZED;
-  }
-}
-function swapChunkResultToJSON(object) {
-  switch (object) {
-    case SwapChunkResult.SWAP_CHUNK_RESULT_PROCESSING:
-      return 0;
-    case SwapChunkResult.SWAP_CHUNK_RESULT_FILLED:
-      return 1;
-    case SwapChunkResult.SWAP_CHUNK_RESULT_ABORTED:
-      return 2;
-    case SwapChunkResult.UNRECOGNIZED:
-    default:
-      return -1;
-  }
-}
-const TradeResult = {
-  TRADE_RESULT_UNKNOWN: "TRADE_RESULT_UNKNOWN",
-  TRADE_RESULT_FULLY_FILLED: "TRADE_RESULT_FULLY_FILLED",
-  TRADE_RESULT_PARTIALLY_FILLED: "TRADE_RESULT_PARTIALLY_FILLED",
-  TRADE_RESULT_ABORTED: "TRADE_RESULT_ABORTED",
-  UNRECOGNIZED: "UNRECOGNIZED"
-};
-function tradeResultFromJSON(object) {
-  switch (object) {
-    case 0:
-    case "TRADE_RESULT_UNKNOWN":
-      return TradeResult.TRADE_RESULT_UNKNOWN;
-    case 1:
-    case "TRADE_RESULT_FULLY_FILLED":
-      return TradeResult.TRADE_RESULT_FULLY_FILLED;
-    case 2:
-    case "TRADE_RESULT_PARTIALLY_FILLED":
-      return TradeResult.TRADE_RESULT_PARTIALLY_FILLED;
-    case 3:
-    case "TRADE_RESULT_ABORTED":
-      return TradeResult.TRADE_RESULT_ABORTED;
-    case -1:
-    case "UNRECOGNIZED":
-    default:
-      return TradeResult.UNRECOGNIZED;
-  }
-}
-function tradeResultToJSON(object) {
-  switch (object) {
-    case TradeResult.TRADE_RESULT_UNKNOWN:
-      return 0;
-    case TradeResult.TRADE_RESULT_FULLY_FILLED:
-      return 1;
-    case TradeResult.TRADE_RESULT_PARTIALLY_FILLED:
-      return 2;
-    case TradeResult.TRADE_RESULT_ABORTED:
-      return 3;
-    case TradeResult.UNRECOGNIZED:
-    default:
-      return -1;
-  }
-}
-function createBaseSwapChunkStatus() {
-  return {
-    protocol: "",
-    targetAddress: void 0,
-    bidUnits: "",
-    expectedAskUnits: "",
-    actualAskUnits: "",
-    result: SwapChunkResult.SWAP_CHUNK_RESULT_PROCESSING,
-    txHash: ""
-  };
-}
-const SwapChunkStatus = {
-  fromJSON(object) {
-    return {
-      protocol: isSet$2(object.protocol) ? globalThis.String(object.protocol) : "",
-      targetAddress: isSet$2(object.target_address) ? Address.fromJSON(object.target_address) : void 0,
-      bidUnits: isSet$2(object.bid_units) ? globalThis.String(object.bid_units) : "",
-      expectedAskUnits: isSet$2(object.expected_ask_units) ? globalThis.String(object.expected_ask_units) : "",
-      actualAskUnits: isSet$2(object.actual_ask_units) ? globalThis.String(object.actual_ask_units) : "",
-      result: isSet$2(object.result) ? swapChunkResultFromJSON(object.result) : SwapChunkResult.SWAP_CHUNK_RESULT_PROCESSING,
-      txHash: isSet$2(object.tx_hash) ? globalThis.String(object.tx_hash) : ""
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.protocol !== void 0) obj.protocol = message.protocol;
-    if (message.targetAddress !== void 0) obj.target_address = Address.toJSON(message.targetAddress);
-    if (message.bidUnits !== void 0) obj.bid_units = message.bidUnits;
-    if (message.expectedAskUnits !== void 0) obj.expected_ask_units = message.expectedAskUnits;
-    if (message.actualAskUnits !== void 0) obj.actual_ask_units = message.actualAskUnits;
-    if (message.result !== void 0) obj.result = swapChunkResultToJSON(message.result);
-    if (message.txHash !== void 0) obj.tx_hash = message.txHash;
-    return obj;
-  },
-  create(base) {
-    return SwapChunkStatus.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseSwapChunkStatus();
-    message.protocol = object.protocol ?? "";
-    message.targetAddress = object.targetAddress !== void 0 && object.targetAddress !== null ? Address.fromPartial(object.targetAddress) : void 0;
-    message.bidUnits = object.bidUnits ?? "";
-    message.expectedAskUnits = object.expectedAskUnits ?? "";
-    message.actualAskUnits = object.actualAskUnits ?? "";
-    message.result = object.result ?? SwapChunkResult.SWAP_CHUNK_RESULT_PROCESSING;
-    message.txHash = object.txHash ?? "";
-    return message;
-  }
-};
-function createBaseSwapStepStatus() {
-  return { chunks: [] };
-}
-const SwapStepStatus = {
-  fromJSON(object) {
-    return { chunks: globalThis.Array.isArray(object?.chunks) ? object.chunks.map((e) => SwapChunkStatus.fromJSON(e)) : [] };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.chunks?.length) obj.chunks = message.chunks.map((e) => SwapChunkStatus.toJSON(e));
-    return obj;
-  },
-  create(base) {
-    return SwapStepStatus.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseSwapStepStatus();
-    message.chunks = object.chunks?.map((e) => SwapChunkStatus.fromPartial(e)) || [];
-    return message;
-  }
-};
-function createBaseSwapRouteStatus() {
-  return { steps: [] };
-}
-const SwapRouteStatus = {
-  fromJSON(object) {
-    return { steps: globalThis.Array.isArray(object?.steps) ? object.steps.map((e) => SwapStepStatus.fromJSON(e)) : [] };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.steps?.length) obj.steps = message.steps.map((e) => SwapStepStatus.toJSON(e));
-    return obj;
-  },
-  create(base) {
-    return SwapRouteStatus.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseSwapRouteStatus();
-    message.steps = object.steps?.map((e) => SwapStepStatus.fromPartial(e)) || [];
-    return message;
-  }
-};
-function createBaseEscrowOrderStatus() {
-  return {
-    targetAddress: void 0,
-    askUnits: "",
-    txHash: ""
-  };
-}
-const EscrowOrderStatus = {
-  fromJSON(object) {
-    return {
-      targetAddress: isSet$2(object.target_address) ? Address.fromJSON(object.target_address) : void 0,
-      askUnits: isSet$2(object.ask_units) ? globalThis.String(object.ask_units) : "",
-      txHash: isSet$2(object.tx_hash) ? globalThis.String(object.tx_hash) : ""
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.targetAddress !== void 0) obj.target_address = Address.toJSON(message.targetAddress);
-    if (message.askUnits !== void 0) obj.ask_units = message.askUnits;
-    if (message.txHash !== void 0) obj.tx_hash = message.txHash;
-    return obj;
-  },
-  create(base) {
-    return EscrowOrderStatus.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseEscrowOrderStatus();
-    message.targetAddress = object.targetAddress !== void 0 && object.targetAddress !== null ? Address.fromPartial(object.targetAddress) : void 0;
-    message.askUnits = object.askUnits ?? "";
-    message.txHash = object.txHash ?? "";
-    return message;
-  }
-};
-function createBaseTrackTradeRequest() {
-  return {
-    quoteId: "",
-    traderWalletAddress: void 0,
-    outgoingTxHash: ""
-  };
-}
-const TrackTradeRequest$1 = {
-  fromJSON(object) {
-    return {
-      quoteId: isSet$2(object.quote_id) ? globalThis.String(object.quote_id) : "",
-      traderWalletAddress: isSet$2(object.trader_wallet_address) ? Address.fromJSON(object.trader_wallet_address) : void 0,
-      outgoingTxHash: isSet$2(object.outgoing_tx_hash) ? globalThis.String(object.outgoing_tx_hash) : ""
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.quoteId !== void 0) obj.quote_id = message.quoteId;
-    if (message.traderWalletAddress !== void 0) obj.trader_wallet_address = Address.toJSON(message.traderWalletAddress);
-    if (message.outgoingTxHash !== void 0) obj.outgoing_tx_hash = message.outgoingTxHash;
-    return obj;
-  },
-  create(base) {
-    return TrackTradeRequest$1.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseTrackTradeRequest();
-    message.quoteId = object.quoteId ?? "";
-    message.traderWalletAddress = object.traderWalletAddress !== void 0 && object.traderWalletAddress !== null ? Address.fromPartial(object.traderWalletAddress) : void 0;
-    message.outgoingTxHash = object.outgoingTxHash ?? "";
-    return message;
-  }
-};
-function createBaseAwaitingTransfer() {
-  return {};
-}
-const AwaitingTransfer = {
-  fromJSON(_) {
-    return {};
-  },
-  toJSON(_) {
-    return {};
-  },
-  create(base) {
-    return AwaitingTransfer.fromPartial(base ?? {});
-  },
-  fromPartial(_) {
-    return createBaseAwaitingTransfer();
-  }
-};
-function createBaseTransferring() {
-  return {};
-}
-const Transferring = {
-  fromJSON(_) {
-    return {};
-  },
-  toJSON(_) {
-    return {};
-  },
-  create(base) {
-    return Transferring.fromPartial(base ?? {});
-  },
-  fromPartial(_) {
-    return createBaseTransferring();
-  }
-};
-function createBaseSwapping() {
-  return { routes: [] };
-}
-const Swapping = {
-  fromJSON(object) {
-    return { routes: globalThis.Array.isArray(object?.routes) ? object.routes.map((e) => SwapRouteStatus.fromJSON(e)) : [] };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.routes?.length) obj.routes = message.routes.map((e) => SwapRouteStatus.toJSON(e));
-    return obj;
-  },
-  create(base) {
-    return Swapping.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseSwapping();
-    message.routes = object.routes?.map((e) => SwapRouteStatus.fromPartial(e)) || [];
-    return message;
-  }
-};
-function createBaseAwaitingFill() {
-  return {};
-}
-const AwaitingFill = {
-  fromJSON(_) {
-    return {};
-  },
-  toJSON(_) {
-    return {};
-  },
-  create(base) {
-    return AwaitingFill.fromPartial(base ?? {});
-  },
-  fromPartial(_) {
-    return createBaseAwaitingFill();
-  }
-};
-function createBaseClaimAvailable() {
-  return {
-    contractAddress: void 0,
-    depositIndex: 0
-  };
-}
-const ClaimAvailable = {
-  fromJSON(object) {
-    return {
-      contractAddress: isSet$2(object.contract_address) ? Address.fromJSON(object.contract_address) : void 0,
-      depositIndex: isSet$2(object.deposit_index) ? globalThis.Number(object.deposit_index) : 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.contractAddress !== void 0) obj.contract_address = Address.toJSON(message.contractAddress);
-    if (message.depositIndex !== void 0) obj.deposit_index = Math.round(message.depositIndex);
-    return obj;
-  },
-  create(base) {
-    return ClaimAvailable.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseClaimAvailable();
-    message.contractAddress = object.contractAddress !== void 0 && object.contractAddress !== null ? Address.fromPartial(object.contractAddress) : void 0;
-    message.depositIndex = object.depositIndex ?? 0;
-    return message;
-  }
-};
-function createBaseRefundAvailable() {
-  return { contractAddress: void 0 };
-}
-const RefundAvailable = {
-  fromJSON(object) {
-    return { contractAddress: isSet$2(object.contract_address) ? Address.fromJSON(object.contract_address) : void 0 };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.contractAddress !== void 0) obj.contract_address = Address.toJSON(message.contractAddress);
-    return obj;
-  },
-  create(base) {
-    return RefundAvailable.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseRefundAvailable();
-    message.contractAddress = object.contractAddress !== void 0 && object.contractAddress !== null ? Address.fromPartial(object.contractAddress) : void 0;
-    return message;
-  }
-};
-function createBaseReceivingFunds() {
-  return { routes: [] };
-}
-const ReceivingFunds = {
-  fromJSON(object) {
-    return { routes: globalThis.Array.isArray(object?.routes) ? object.routes.map((e) => SwapRouteStatus.fromJSON(e)) : [] };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.routes?.length) obj.routes = message.routes.map((e) => SwapRouteStatus.toJSON(e));
-    return obj;
-  },
-  create(base) {
-    return ReceivingFunds.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseReceivingFunds();
-    message.routes = object.routes?.map((e) => SwapRouteStatus.fromPartial(e)) || [];
-    return message;
-  }
-};
-function createBaseTradeSettled() {
-  return {
-    result: TradeResult.TRADE_RESULT_UNKNOWN,
-    routes: [],
-    escrowOrderStatus: void 0
-  };
-}
-const TradeSettled = {
-  fromJSON(object) {
-    return {
-      result: isSet$2(object.result) ? tradeResultFromJSON(object.result) : TradeResult.TRADE_RESULT_UNKNOWN,
-      routes: globalThis.Array.isArray(object?.routes) ? object.routes.map((e) => SwapRouteStatus.fromJSON(e)) : [],
-      escrowOrderStatus: isSet$2(object.escrow_order_status) ? EscrowOrderStatus.fromJSON(object.escrow_order_status) : void 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.result !== void 0) obj.result = tradeResultToJSON(message.result);
-    if (message.routes?.length) obj.routes = message.routes.map((e) => SwapRouteStatus.toJSON(e));
-    if (message.escrowOrderStatus !== void 0) obj.escrow_order_status = EscrowOrderStatus.toJSON(message.escrowOrderStatus);
-    return obj;
-  },
-  create(base) {
-    return TradeSettled.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseTradeSettled();
-    message.result = object.result ?? TradeResult.TRADE_RESULT_UNKNOWN;
-    message.routes = object.routes?.map((e) => SwapRouteStatus.fromPartial(e)) || [];
-    message.escrowOrderStatus = object.escrowOrderStatus !== void 0 && object.escrowOrderStatus !== null ? EscrowOrderStatus.fromPartial(object.escrowOrderStatus) : void 0;
-    return message;
-  }
-};
-function createBaseTradeStatus() {
-  return {
-    status: void 0,
-    transferTimestamp: 0,
-    estimatedFinishTimestamp: 0
-  };
-}
-const TradeStatus = {
-  fromJSON(object) {
-    return {
-      status: isSet$2(object.status) ? TradeStatus_StatusOneOf.fromJSON(object.status) : void 0,
-      transferTimestamp: isSet$2(object.transfer_timestamp) ? globalThis.Number(object.transfer_timestamp) : 0,
-      estimatedFinishTimestamp: isSet$2(object.estimated_finish_timestamp) ? globalThis.Number(object.estimated_finish_timestamp) : 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.status !== void 0) obj.status = TradeStatus_StatusOneOf.toJSON(message.status);
-    if (message.transferTimestamp !== void 0) obj.transfer_timestamp = Math.round(message.transferTimestamp);
-    if (message.estimatedFinishTimestamp !== void 0) obj.estimated_finish_timestamp = Math.round(message.estimatedFinishTimestamp);
-    return obj;
-  },
-  create(base) {
-    return TradeStatus.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseTradeStatus();
-    message.status = object.status !== void 0 && object.status !== null ? TradeStatus_StatusOneOf.fromPartial(object.status) : void 0;
-    message.transferTimestamp = object.transferTimestamp ?? 0;
-    message.estimatedFinishTimestamp = object.estimatedFinishTimestamp ?? 0;
-    return message;
-  }
-};
-function createBaseTradeStatus_StatusOneOf() {
-  return {
-    awaitingTransfer: void 0,
-    transferring: void 0,
-    swapping: void 0,
-    awaitingFill: void 0,
-    claimAvailable: void 0,
-    refundAvailable: void 0,
-    receivingFunds: void 0,
-    tradeSettled: void 0,
-    keepAlive: void 0,
-    unsubscribed: void 0
-  };
-}
-const TradeStatus_StatusOneOf = {
-  fromJSON(object) {
-    return {
-      awaitingTransfer: isSet$2(object.awaiting_transfer) ? AwaitingTransfer.fromJSON(object.awaiting_transfer) : void 0,
-      transferring: isSet$2(object.transferring) ? Transferring.fromJSON(object.transferring) : void 0,
-      swapping: isSet$2(object.swapping) ? Swapping.fromJSON(object.swapping) : void 0,
-      awaitingFill: isSet$2(object.awaiting_fill) ? AwaitingFill.fromJSON(object.awaiting_fill) : void 0,
-      claimAvailable: isSet$2(object.claim_available) ? ClaimAvailable.fromJSON(object.claim_available) : void 0,
-      refundAvailable: isSet$2(object.refund_available) ? RefundAvailable.fromJSON(object.refund_available) : void 0,
-      receivingFunds: isSet$2(object.receiving_funds) ? ReceivingFunds.fromJSON(object.receiving_funds) : void 0,
-      tradeSettled: isSet$2(object.trade_settled) ? TradeSettled.fromJSON(object.trade_settled) : void 0,
-      keepAlive: isSet$2(object.keep_alive) ? KeepAlive.fromJSON(object.keep_alive) : void 0,
-      unsubscribed: isSet$2(object.unsubscribed) ? Unsubscribed.fromJSON(object.unsubscribed) : void 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.awaitingTransfer !== void 0) obj.awaiting_transfer = AwaitingTransfer.toJSON(message.awaitingTransfer);
-    if (message.transferring !== void 0) obj.transferring = Transferring.toJSON(message.transferring);
-    if (message.swapping !== void 0) obj.swapping = Swapping.toJSON(message.swapping);
-    if (message.awaitingFill !== void 0) obj.awaiting_fill = AwaitingFill.toJSON(message.awaitingFill);
-    if (message.claimAvailable !== void 0) obj.claim_available = ClaimAvailable.toJSON(message.claimAvailable);
-    if (message.refundAvailable !== void 0) obj.refund_available = RefundAvailable.toJSON(message.refundAvailable);
-    if (message.receivingFunds !== void 0) obj.receiving_funds = ReceivingFunds.toJSON(message.receivingFunds);
-    if (message.tradeSettled !== void 0) obj.trade_settled = TradeSettled.toJSON(message.tradeSettled);
-    if (message.keepAlive !== void 0) obj.keep_alive = KeepAlive.toJSON(message.keepAlive);
-    if (message.unsubscribed !== void 0) obj.unsubscribed = Unsubscribed.toJSON(message.unsubscribed);
-    return obj;
-  },
-  create(base) {
-    return TradeStatus_StatusOneOf.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseTradeStatus_StatusOneOf();
-    message.awaitingTransfer = object.awaitingTransfer !== void 0 && object.awaitingTransfer !== null ? AwaitingTransfer.fromPartial(object.awaitingTransfer) : void 0;
-    message.transferring = object.transferring !== void 0 && object.transferring !== null ? Transferring.fromPartial(object.transferring) : void 0;
-    message.swapping = object.swapping !== void 0 && object.swapping !== null ? Swapping.fromPartial(object.swapping) : void 0;
-    message.awaitingFill = object.awaitingFill !== void 0 && object.awaitingFill !== null ? AwaitingFill.fromPartial(object.awaitingFill) : void 0;
-    message.claimAvailable = object.claimAvailable !== void 0 && object.claimAvailable !== null ? ClaimAvailable.fromPartial(object.claimAvailable) : void 0;
-    message.refundAvailable = object.refundAvailable !== void 0 && object.refundAvailable !== null ? RefundAvailable.fromPartial(object.refundAvailable) : void 0;
-    message.receivingFunds = object.receivingFunds !== void 0 && object.receivingFunds !== null ? ReceivingFunds.fromPartial(object.receivingFunds) : void 0;
-    message.tradeSettled = object.tradeSettled !== void 0 && object.tradeSettled !== null ? TradeSettled.fromPartial(object.tradeSettled) : void 0;
-    message.keepAlive = object.keepAlive !== void 0 && object.keepAlive !== null ? KeepAlive.fromPartial(object.keepAlive) : void 0;
-    message.unsubscribed = object.unsubscribed !== void 0 && object.unsubscribed !== null ? Unsubscribed.fromPartial(object.unsubscribed) : void 0;
-    return message;
-  }
-};
-function isSet$2(value) {
-  return value !== null && value !== void 0;
-}
-const TrackTradeRequest = TrackTradeRequest$1;
-function createBaseBuildTransferRequest() {
-  return {
-    sourceAddress: void 0,
-    destinationAddress: void 0,
-    gasExcessAddress: void 0,
-    refundAddress: void 0,
-    quote: void 0,
-    useRecommendedSlippage: false
-  };
-}
-const BuildTransferRequest$1 = {
-  fromJSON(object) {
-    return {
-      sourceAddress: isSet$1(object.source_address) ? Address.fromJSON(object.source_address) : void 0,
-      destinationAddress: isSet$1(object.destination_address) ? Address.fromJSON(object.destination_address) : void 0,
-      gasExcessAddress: isSet$1(object.gas_excess_address) ? Address.fromJSON(object.gas_excess_address) : void 0,
-      refundAddress: isSet$1(object.refund_address) ? Address.fromJSON(object.refund_address) : void 0,
-      quote: isSet$1(object.quote) ? Quote.fromJSON(object.quote) : void 0,
-      useRecommendedSlippage: isSet$1(object.use_recommended_slippage) ? globalThis.Boolean(object.use_recommended_slippage) : false
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.sourceAddress !== void 0) obj.source_address = Address.toJSON(message.sourceAddress);
-    if (message.destinationAddress !== void 0) obj.destination_address = Address.toJSON(message.destinationAddress);
-    if (message.gasExcessAddress !== void 0) obj.gas_excess_address = Address.toJSON(message.gasExcessAddress);
-    if (message.refundAddress !== void 0) obj.refund_address = Address.toJSON(message.refundAddress);
-    if (message.quote !== void 0) obj.quote = Quote.toJSON(message.quote);
-    if (message.useRecommendedSlippage !== void 0) obj.use_recommended_slippage = message.useRecommendedSlippage;
-    return obj;
-  },
-  create(base) {
-    return BuildTransferRequest$1.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseBuildTransferRequest();
-    message.sourceAddress = object.sourceAddress !== void 0 && object.sourceAddress !== null ? Address.fromPartial(object.sourceAddress) : void 0;
-    message.destinationAddress = object.destinationAddress !== void 0 && object.destinationAddress !== null ? Address.fromPartial(object.destinationAddress) : void 0;
-    message.gasExcessAddress = object.gasExcessAddress !== void 0 && object.gasExcessAddress !== null ? Address.fromPartial(object.gasExcessAddress) : void 0;
-    message.refundAddress = object.refundAddress !== void 0 && object.refundAddress !== null ? Address.fromPartial(object.refundAddress) : void 0;
-    message.quote = object.quote !== void 0 && object.quote !== null ? Quote.fromPartial(object.quote) : void 0;
-    message.useRecommendedSlippage = object.useRecommendedSlippage ?? false;
-    return message;
-  }
-};
-function createBaseBuildWithdrawalRequest() {
-  return {
-    sourceAddress: void 0,
-    quoteId: "",
-    gasExcessAddress: void 0
-  };
-}
-const BuildWithdrawalRequest$1 = {
-  fromJSON(object) {
-    return {
-      sourceAddress: isSet$1(object.source_address) ? Address.fromJSON(object.source_address) : void 0,
-      quoteId: isSet$1(object.quote_id) ? globalThis.String(object.quote_id) : "",
-      gasExcessAddress: isSet$1(object.gas_excess_address) ? Address.fromJSON(object.gas_excess_address) : void 0
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.sourceAddress !== void 0) obj.source_address = Address.toJSON(message.sourceAddress);
-    if (message.quoteId !== void 0) obj.quote_id = message.quoteId;
-    if (message.gasExcessAddress !== void 0) obj.gas_excess_address = Address.toJSON(message.gasExcessAddress);
-    return obj;
-  },
-  create(base) {
-    return BuildWithdrawalRequest$1.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseBuildWithdrawalRequest();
-    message.sourceAddress = object.sourceAddress !== void 0 && object.sourceAddress !== null ? Address.fromPartial(object.sourceAddress) : void 0;
-    message.quoteId = object.quoteId ?? "";
-    message.gasExcessAddress = object.gasExcessAddress !== void 0 && object.gasExcessAddress !== null ? Address.fromPartial(object.gasExcessAddress) : void 0;
-    return message;
-  }
-};
-function isSet$1(value) {
-  return value !== null && value !== void 0;
-}
-const BuildTransferRequest = BuildTransferRequest$1;
-const BuildWithdrawalRequest = BuildWithdrawalRequest$1;
-function createBaseTonMessage() {
-  return {
-    targetAddress: "",
-    sendAmount: "",
-    payload: "",
-    jettonWalletStateInit: ""
-  };
-}
-const TonMessage = {
-  fromJSON(object) {
-    return {
-      targetAddress: isSet(object.target_address) ? globalThis.String(object.target_address) : "",
-      sendAmount: isSet(object.send_amount) ? globalThis.String(object.send_amount) : "",
-      payload: isSet(object.payload) ? globalThis.String(object.payload) : "",
-      jettonWalletStateInit: isSet(object.jetton_wallet_state_init) ? globalThis.String(object.jetton_wallet_state_init) : ""
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.targetAddress !== void 0) obj.target_address = message.targetAddress;
-    if (message.sendAmount !== void 0) obj.send_amount = message.sendAmount;
-    if (message.payload !== void 0) obj.payload = message.payload;
-    if (message.jettonWalletStateInit !== void 0) obj.jetton_wallet_state_init = message.jettonWalletStateInit;
-    return obj;
-  },
-  create(base) {
-    return TonMessage.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseTonMessage();
-    message.targetAddress = object.targetAddress ?? "";
-    message.sendAmount = object.sendAmount ?? "";
-    message.payload = object.payload ?? "";
-    message.jettonWalletStateInit = object.jettonWalletStateInit ?? "";
-    return message;
-  }
-};
-function createBaseTonTransaction() {
-  return { messages: [] };
-}
-const TonTransaction = {
-  fromJSON(object) {
-    return { messages: globalThis.Array.isArray(object?.messages) ? object.messages.map((e) => TonMessage.fromJSON(e)) : [] };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.messages?.length) obj.messages = message.messages.map((e) => TonMessage.toJSON(e));
-    return obj;
-  },
-  create(base) {
-    return TonTransaction.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseTonTransaction();
-    message.messages = object.messages?.map((e) => TonMessage.fromPartial(e)) || [];
-    return message;
-  }
-};
-function createBaseTransaction() {
-  return { ton: void 0 };
-}
-const Transaction = {
-  fromJSON(object) {
-    return { ton: isSet(object.ton) ? TonTransaction.fromJSON(object.ton) : void 0 };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.ton !== void 0) obj.ton = TonTransaction.toJSON(message.ton);
-    return obj;
-  },
-  create(base) {
-    return Transaction.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseTransaction();
-    message.ton = object.ton !== void 0 && object.ton !== null ? TonTransaction.fromPartial(object.ton) : void 0;
-    return message;
-  }
-};
-function isSet(value) {
-  return value !== null && value !== void 0;
-}
-const TransactionResponse = {
-  fromJSON(object) {
-    const result = Transaction.fromJSON(object);
-    for (const message of result.ton?.messages ?? []) {
-      message.payload = Buffer.from(message.payload, "hex").toString("base64");
-      message.jettonWalletStateInit = message.jettonWalletStateInit ? Buffer.from(message.jettonWalletStateInit, "hex").toString("base64") : void 0;
-    }
-    return result;
-  },
-  toJSON(transactionResponse) {
-    return Transaction.toJSON(transactionResponse);
-  }
-};
-var OmnistonError = class OmnistonError2 extends Error {
-  code;
-  details;
-  constructor(code, message, options) {
-    super(message, options);
-    this.code = code;
-    this.details = options?.details;
-    Object.setPrototypeOf(this, OmnistonError2.prototype);
-  }
-};
-function wrapError(error2) {
-  if (error2 instanceof OmnistonError) return error2;
-  if (error2 instanceof distExports.JSONRPCErrorException) return new OmnistonError(error2.code, error2.message, {
-    cause: error2,
-    details: error2.data
-  });
-  if (error2 instanceof Error) return new OmnistonError(ErrorCode.UNKNOWN, error2.message, { cause: error2 });
-  return new OmnistonError(ErrorCode.UNKNOWN, String(error2));
-}
-async function wrapErrorsAsync(fn) {
-  try {
-    return await fn();
-  } catch (error2) {
-    throw wrapError(error2);
-  }
-}
-function wrapErrorsSync(fn) {
-  try {
-    return fn();
-  } catch (error2) {
-    throw wrapError(error2);
-  }
-}
-const METHOD_QUOTE = "v1beta7.quote";
-const METHOD_QUOTE_EVENT = "event";
-const METHOD_QUOTE_UNSUBSCRIBE = "v1beta7.quote.unsubscribe";
-const METHOD_BUILD_TRANSFER = "v1beta7.transaction.build_transfer";
-const METHOD_BUILD_WITHDRAWAL = "v1beta7.transaction.build_withdrawal";
-const METHOD_TRACK_TRADE = "v1beta7.trade.track";
-const METHOD_TRACK_TRADE_EVENT = "status";
-const METHOD_TRACK_TRADE_UNSUBSCRIBE = "v1beta7.trade.track.unsubscribe";
-const METHOD_ESCROW_LIST = "v1beta7.escrow.list";
-var QuoteResponseController = class {
-  _isServerUnsubscribed = false;
-  rfqId = null;
-  quote;
-  get isServerUnsubscribed() {
-    return this._isServerUnsubscribed;
-  }
-  constructor(options) {
-    this.quote = options.quoteEvents.pipe(filter((event) => !!event.event.quoteUpdated || !!event.event.noQuote || !!event.event.unsubscribed || !!event.event.ack), map(this.processQuoteEvent), tap((event) => {
-      if (event.type === "unsubscribed") this._isServerUnsubscribed = true;
-    }));
-  }
-  getRfqIdOrThrow(eventType) {
-    if (!this.rfqId) throw new OmnistonError(ErrorCode.UNKNOWN, `Received "${eventType}" event without ack event`);
-    return this.rfqId;
-  }
-  processQuoteEvent = (event) => {
-    if (event.event.quoteUpdated) return {
-      type: "quoteUpdated",
-      quote: event.event.quoteUpdated,
-      rfqId: this.getRfqIdOrThrow("quoteUpdated")
-    };
-    if (event.event.noQuote) return {
-      type: "noQuote",
-      rfqId: this.getRfqIdOrThrow("noQuote")
-    };
-    if (event.event.unsubscribed) return {
-      type: "unsubscribed",
-      rfqId: this.getRfqIdOrThrow("unsubscribed")
-    };
-    if (event.event.ack) {
-      this.rfqId = event.event.ack.rfqId;
-      return {
-        type: "ack",
-        rfqId: event.event.ack.rfqId
-      };
-    }
-    throw new Error(`Unexpected event type: ${JSON.stringify(event)}`);
-  };
-};
-var Omniston = class {
-  apiClient;
-  logger;
-  timer = new Timer();
-  /**
-  * Constructor.
-  * @param dependencies {@see IOmnistonDependencies}
-  */
-  constructor(dependencies) {
-    const apiUrl = dependencies.apiUrl;
-    this.logger = dependencies.logger;
-    const transport = dependencies.transport ?? new AutoReconnectTransport({
-      transport: new WebSocketTransport(apiUrl),
-      timer: this.timer,
-      logger: this.logger
-    });
-    this.apiClient = dependencies.client ?? new ApiClient({
-      transport,
-      logger: this.logger
-    });
-  }
-  /**
-  * Current connection status.
-  *
-  * @see ConnectionStatus
-  */
-  get connectionStatus() {
-    return this.apiClient.connectionStatus;
-  }
-  /**
-  * A stream of connection status changes.
-  *
-  * @see ConnectionStatusEvent
-  */
-  get connectionStatusEvents() {
-    return this.apiClient.connectionStatusEvents;
-  }
-  /**
-  * Request for quote.
-  *
-  * The server sends the stream of quotes in response, so that each next quote overrides previous one.
-  * This may occur either because the newer quote has better terms or because the older has expired.
-  *
-  * If there are no resolvers providing quotes after an old quote has expired, {@constant null} is sent to the Observable.
-  *
-  * @param request Request for quote. {@see QuoteRequest}
-  * @returns Observable representing the stream of quote updates.
-  * The request to the API server is made after subscribing to the Observable.
-  * The client is responsible for unsubscribing from the Observable when not interested in further updates
-  * (either after starting the trade or when cancelling the request).
-  */
-  requestForQuote = unwrapObservable(this._requestForQuote);
-  async _requestForQuote(request) {
-    const subscriptionId = await this.apiClient.send(METHOD_QUOTE, QuoteRequest.toJSON(request));
-    const quoteController = new QuoteResponseController({ quoteEvents: this.apiClient.readStream(METHOD_QUOTE_EVENT, subscriptionId).pipe(map(QuoteEvent.fromJSON)) });
-    return quoteController.quote.pipe(finalize(() => {
-      if (!quoteController.isServerUnsubscribed) this.unsubscribeFromStream(METHOD_QUOTE_UNSUBSCRIBE, subscriptionId);
-    }));
-  }
-  /**
-  * A request to generate unsigned transfer to initiate the trade.
-  *
-  * @param request {@see BuildTransferRequest}
-  * @returns {@see TransactionResponse}
-  */
-  buildTransfer(request) {
-    return wrapErrorsAsync(async () => {
-      const response = await this.apiClient.send(METHOD_BUILD_TRANSFER, BuildTransferRequest.toJSON(request));
-      return TransactionResponse.fromJSON(response);
-    });
-  }
-  /**
-  * A request to generate unsigned withdrawal to withdraw funds from escrow.
-  *
-  * @param request {@see BuildWithdrawalRequest}
-  * @returns {@see TransactionResponse}
-  */
-  buildWithdrawal(request) {
-    return wrapErrorsAsync(async () => {
-      const response = await this.apiClient.send(METHOD_BUILD_WITHDRAWAL, BuildWithdrawalRequest.toJSON(request));
-      return TransactionResponse.fromJSON(response);
-    });
-  }
-  /**
-  * Request to track settling of the trade.
-  *
-  * The server immediately sends current status in response and then all updates to the status.
-  *
-  * The server only closes the stream in case of errors. If the stream is interrupted or closed by the server,
-  * the client might reconnect to get further updates.
-  *
-  * @param request Status tracking request. {@see TrackTradeRequest}
-  * @returns Observable representing the stream of trade status updates.
-  * The request to the API server is made after subscribing to the Observable.
-  * The client is responsible for unsubscribing from the Observable when not interested in further updates.
-  */
-  trackTrade = unwrapObservable(this._trackTrade);
-  async _trackTrade(request) {
-    const subscriptionId = await this.apiClient.send(METHOD_TRACK_TRADE, TrackTradeRequest.toJSON(request));
-    return this.apiClient.readStream(METHOD_TRACK_TRADE_EVENT, subscriptionId).pipe(map((status) => TradeStatus.fromJSON(status)), filter(({ status }) => !status?.keepAlive), finalize(() => this.unsubscribeFromStream(METHOD_TRACK_TRADE_UNSUBSCRIBE, subscriptionId)));
-  }
-  /**
-  * Request to list escrow orders for the given trader wallet address.
-  *
-  * @param request {@see EscrowOrderListRequest}
-  * @returns {@see EscrowOrderListResponse}
-  */
-  escrowList(request) {
-    return wrapErrorsAsync(async () => {
-      const response = await this.apiClient.send(METHOD_ESCROW_LIST, EscrowOrderListRequest.toJSON(request));
-      return EscrowOrderListResponse.fromJSON(response);
-    });
-  }
-  /**
-  * Closes the underlying connection, no longer accepting requests.
-  */
-  close() {
-    return wrapErrorsSync(() => {
-      this.apiClient.close();
-    });
-  }
-  async unsubscribeFromStream(method, subscriptionId) {
-    const result = await this.apiClient.unsubscribeFromStream(method, subscriptionId);
-    if (result !== true) this.logger?.warn(`Failed to unsubscribe with method ${method} and subscription ID ${subscriptionId}. Server returned ${result}`);
-  }
-};
-function unwrapObservable(originalMethod) {
-  return function(...args) {
-    const observable2 = new Observable((subscriber) => {
-      const result = originalMethod.apply(this, args);
-      let unsubscribed = false;
-      let innerSubscription;
-      result.then((inner) => {
-        innerSubscription = inner.subscribe({
-          next: subscriber.next.bind(subscriber),
-          error: (err) => subscriber.error(wrapError(err)),
-          complete: subscriber.complete.bind(subscriber)
-        });
-        if (unsubscribed) innerSubscription.unsubscribe();
-      }, (err) => {
-        subscriber.error(wrapError(err));
-      });
-      return () => {
-        unsubscribed = true;
-        innerSubscription?.unsubscribe();
-      };
-    });
-    return { subscribe(cb) {
-      const subscription = observable2.subscribe(cb);
-      return { unsubscribe: subscription.unsubscribe.bind(subscription) };
-    } };
-  };
-}
-const tokenToAddress = (token) => {
-  if (token.address === "ton") {
-    return "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
-  }
-  return distExports$2.Address.parse(token.address).toRawString();
-};
-const toOmnistonAddress = (address, network) => {
-  let formattedAddress;
-  try {
-    formattedAddress = distExports$2.Address.parse(address).toString({ bounceable: true });
-  } catch {
-    formattedAddress = address;
-  }
-  return {
-    address: formattedAddress,
-    blockchain: mapNetworkToBlockchainId(network)
-  };
-};
-const mapNetworkToBlockchainId = (network) => {
-  switch (network.chainId) {
-    case Network.mainnet().chainId: {
-      return 607;
-    }
-    default: {
-      throw new Error(`Unsupported network: ${network.chainId}`);
-    }
-  }
-};
-const isOmnistonQuoteMetadata = (metadata) => {
-  if (!metadata || typeof metadata !== "object") {
-    return false;
-  }
-  const meta = metadata;
-  return typeof meta.omnistonQuote === "object" && meta.omnistonQuote !== null;
-};
-const log$1 = globalLogger.createChild("OmnistonSwapProvider");
-class OmnistonSwapProvider extends SwapProvider {
-  apiUrl;
-  defaultSlippageBps;
-  quoteTimeoutMs;
-  referrerAddress;
-  referrerFeeBps;
-  flexibleReferrerFee;
-  omniston$;
-  providerId;
-  constructor(config2) {
-    super();
-    this.providerId = config2?.providerId ?? "omniston";
-    this.apiUrl = config2?.apiUrl ?? "wss://omni-ws.ston.fi";
-    this.defaultSlippageBps = config2?.defaultSlippageBps ?? 100;
-    this.quoteTimeoutMs = config2?.quoteTimeoutMs ?? 1e4;
-    this.referrerAddress = config2?.referrerAddress ? distExports$2.Address.parse(config2?.referrerAddress).toString({ bounceable: true }) : void 0;
-    this.referrerFeeBps = config2?.referrerFeeBps;
-    this.flexibleReferrerFee = config2?.flexibleReferrerFee ?? false;
-    log$1.info("OmnistonSwapProvider initialized", {
-      defaultSlippageBps: this.defaultSlippageBps,
-      hasReferrer: !!this.referrerAddress
-    });
-  }
-  get omniston() {
-    if (!this.omniston$) {
-      this.omniston$ = new Omniston({ apiUrl: this.apiUrl });
-    }
-    return this.omniston$;
-  }
-  async getQuote(params) {
-    log$1.debug("Getting Omniston quote", {
-      fromToken: params.from,
-      toToken: params.to,
-      amount: params.amount,
-      isReverseSwap: params.isReverseSwap
-    });
-    try {
-      const bidAssetAddress = tokenToAddress(params.from);
-      const askAssetAddress = tokenToAddress(params.to);
-      const slippageBps = params.slippageBps ?? this.defaultSlippageBps;
-      const referrerAddress = params.providerOptions?.referrerAddress ?? this.referrerAddress;
-      const referrerFeeBps = params.providerOptions?.referrerFeeBps ?? this.referrerFeeBps;
-      const flexibleReferrerFee = params.providerOptions?.flexibleReferrerFee ?? this.flexibleReferrerFee;
-      const amount = params.isReverseSwap ? { askUnits: parseUnits(params.amount, params.to.decimals).toString() } : { bidUnits: parseUnits(params.amount, params.from.decimals).toString() };
-      const quoteRequest = {
-        amount,
-        settlementMethods: params.providerOptions?.settlementMethods ?? [
-          SettlementMethod.SETTLEMENT_METHOD_SWAP
-        ],
-        bidAssetAddress: toOmnistonAddress(bidAssetAddress, params.network),
-        askAssetAddress: toOmnistonAddress(askAssetAddress, params.network),
-        referrerAddress: referrerAddress ? toOmnistonAddress(distExports$2.Address.parse(referrerAddress).toString({ bounceable: true }), params.network) : void 0,
-        referrerFeeBps,
-        settlementParams: {
-          gaslessSettlement: GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
-          maxPriceSlippageBps: slippageBps,
-          maxOutgoingMessages: params.maxOutgoingMessages ?? 1,
-          flexibleReferrerFee
-        }
-      };
-      const quoteEvent = await new Promise((resolve, reject) => {
-        let isSettled = false;
-        log$1.debug("Requesting quote", { quoteRequest });
-        const timeoutId = setTimeout(() => {
-          log$1.debug("Timeout reached");
-          if (!isSettled) {
-            isSettled = true;
-            reject(new SwapError("Quote request timed out", SwapError.NETWORK_ERROR));
-          }
-          unsubscribe.unsubscribe();
-        }, this.quoteTimeoutMs);
-        const unsubscribe = this.omniston.requestForQuote(quoteRequest).subscribe({
-          next: (event) => {
-            log$1.debug("Received quote event", event);
-            if (isSettled)
-              return;
-            if (event.type === "noQuote") {
-              isSettled = true;
-              clearTimeout(timeoutId);
-              unsubscribe.unsubscribe();
-              reject(new SwapError("No quote available for this swap", SwapError.INSUFFICIENT_LIQUIDITY));
-              return;
-            }
-            if (event.type === "quoteUpdated") {
-              isSettled = true;
-              clearTimeout(timeoutId);
-              unsubscribe.unsubscribe();
-              resolve(event);
-            }
-          },
-          error: (error2) => {
-            if (!isSettled) {
-              isSettled = true;
-              clearTimeout(timeoutId);
-              unsubscribe.unsubscribe();
-              reject(error2);
-            }
-          }
-        });
-      });
-      if (quoteEvent.type !== "quoteUpdated") {
-        throw new SwapError("Quote data is missing", SwapError.INVALID_QUOTE);
-      }
-      const quote = quoteEvent.quote;
-      const swapQuote = this.mapOmnistonQuoteToSwapQuote(quote, params);
-      log$1.debug("Received Omniston quote", {
-        quoteId: quote.quoteId,
-        bidUnits: quote.bidUnits,
-        askUnits: quote.askUnits
-      });
-      return swapQuote;
-    } catch (error2) {
-      log$1.error("Failed to get Omniston quote", { error: error2, params });
-      if (error2 instanceof SwapError) {
-        throw error2;
-      }
-      throw new SwapError(`Omniston quote request failed: ${error2 instanceof Error ? error2.message : "Unknown error"}`, SwapError.NETWORK_ERROR, error2);
-    }
-  }
-  async buildSwapTransaction(params) {
-    log$1.debug("Building Omniston swap transaction", params);
-    const metadata = params.quote.metadata;
-    if (!metadata || !isOmnistonQuoteMetadata(metadata)) {
-      throw new SwapError("Invalid quote: missing Omniston quote data", SwapError.INVALID_QUOTE);
-    }
-    try {
-      const omnistonQuote = metadata.omnistonQuote;
-      const now = getUnixtime();
-      if (omnistonQuote.tradeStartDeadline && omnistonQuote.tradeStartDeadline < now) {
-        throw new SwapError("Quote has expired, please request a new one", SwapError.QUOTE_EXPIRED);
-      }
-      const userAddress = distExports$2.Address.parse(params.userAddress).toRawString();
-      const omnistonUserAddress = toOmnistonAddress(userAddress, params.quote.network);
-      const destinationAddressRaw = params.destinationAddress ? distExports$2.Address.parse(params.destinationAddress).toRawString() : userAddress;
-      const omnistonDestinationAddress = toOmnistonAddress(destinationAddressRaw, params.quote.network);
-      const transactionRequest = {
-        quote: omnistonQuote,
-        sourceAddress: omnistonUserAddress,
-        destinationAddress: omnistonDestinationAddress,
-        gasExcessAddress: omnistonUserAddress,
-        refundAddress: omnistonUserAddress,
-        useRecommendedSlippage: true
-      };
-      const buildResult = await this.omniston.buildTransfer(transactionRequest);
-      const messages = buildResult?.ton?.messages;
-      if (!messages || messages.length === 0) {
-        throw new SwapError("Failed to build transaction: no messages returned", SwapError.BUILD_TX_FAILED);
-      }
-      const transaction = {
-        fromAddress: params.userAddress,
-        messages: messages.map((message) => ({
-          address: message.targetAddress,
-          amount: message.sendAmount,
-          payload: asBase64(message.payload),
-          stateInit: message.jettonWalletStateInit ? asBase64(message.jettonWalletStateInit) : void 0
-        })),
-        network: params.quote.network
-      };
-      log$1.debug("Built Omniston swap transaction", {
-        quoteId: metadata.omnistonQuote.quoteId,
-        transaction
-      });
-      return transaction;
-    } catch (error2) {
-      log$1.error("Failed to build Omniston swap transaction", { error: error2, params });
-      if (error2 instanceof SwapError) {
-        throw error2;
-      }
-      throw new SwapError(`Failed to build Omniston transaction: ${error2 instanceof Error ? error2.message : "Unknown error"}`, SwapError.NETWORK_ERROR, error2);
-    }
-  }
-  mapOmnistonQuoteToSwapQuote(quote, params) {
-    const metadata = {
-      omnistonQuote: quote
-    };
-    const fee = [];
-    return {
-      rawFromAmount: quote.bidUnits,
-      rawToAmount: quote.askUnits,
-      rawMinReceived: quote.askUnits,
-      fromAmount: formatUnits(quote.bidUnits, params.from.decimals),
-      toAmount: formatUnits(quote.askUnits, params.to.decimals),
-      minReceived: formatUnits(quote.askUnits, params.to.decimals),
-      metadata,
-      providerId: this.providerId,
-      fromToken: params.from,
-      toToken: params.to,
-      network: params.network,
-      expiresAt: quote.tradeStartDeadline ? quote.tradeStartDeadline : void 0,
-      fee: fee?.length ? fee : void 0
-    };
-  }
-}
-const NATIVE_TON_MINTER = "native";
-const tokenToMinter = (token) => {
-  if (token.address === "ton") {
-    return NATIVE_TON_MINTER;
-  }
-  return distExports$2.Address.parse(token.address).toString({ bounceable: true, urlSafe: true });
-};
-const validateNetwork = (network) => {
-  if (network.chainId !== Network.mainnet().chainId) {
-    throw new Error(`DeDust only supports mainnet. Got chainId: ${network.chainId}`);
-  }
-};
-const isDeDustQuoteMetadata = (metadata) => {
-  if (!metadata || typeof metadata !== "object") {
-    return false;
-  }
-  const meta = metadata;
-  return typeof meta.quoteResponse === "object" && meta.quoteResponse !== null;
-};
-const log = globalLogger.createChild("DeDustSwapProvider");
-const DEFAULT_API_URL = "https://api-mainnet.dedust.io";
-const DEFAULT_PROTOCOLS = [
-  "dedust",
-  "dedust_v3",
-  // 'dedust_v3_memepad',
-  "stonfi_v1",
-  "stonfi_v2",
-  "tonco"
-  // 'memeslab',
-  // 'tonfun',
-];
-class DeDustSwapProvider extends SwapProvider {
-  apiUrl;
-  defaultSlippageBps;
-  referralAddress;
-  referralFeeBps;
-  onlyVerifiedPools;
-  maxSplits;
-  maxLength;
-  minPoolUsdTvl;
-  providerId;
-  constructor(config2) {
-    super();
-    this.providerId = config2?.providerId ?? "dedust";
-    this.apiUrl = config2?.apiUrl ?? DEFAULT_API_URL;
-    this.defaultSlippageBps = config2?.defaultSlippageBps ?? 100;
-    this.referralAddress = config2?.referralAddress;
-    this.referralFeeBps = config2?.referralFeeBps;
-    this.onlyVerifiedPools = config2?.onlyVerifiedPools ?? true;
-    this.maxSplits = config2?.maxSplits ?? 4;
-    this.maxLength = config2?.maxLength ?? 3;
-    this.minPoolUsdTvl = config2?.minPoolUsdTvl ?? "5000";
-    log.info("DeDustSwapProvider initialized", {
-      apiUrl: this.apiUrl,
-      defaultSlippageBps: this.defaultSlippageBps,
-      hasReferral: !!this.referralAddress
-    });
-  }
-  async getQuote(params) {
-    log.debug("Getting DeDust quote", {
-      fromToken: params.from,
-      toToken: params.to,
-      amount: params.amount,
-      isReverseSwap: params.isReverseSwap
-    });
-    validateNetwork(params.network);
-    const slippageBps = params.slippageBps ?? this.defaultSlippageBps;
-    const swapMode = params.isReverseSwap ? "exact_out" : "exact_in";
-    const amount = params.isReverseSwap ? parseUnits(params.amount, params.to.decimals).toString() : parseUnits(params.amount, params.from.decimals).toString();
-    try {
-      const inMinter = tokenToMinter(params.from);
-      const outMinter = tokenToMinter(params.to);
-      const requestBody = {
-        in_minter: inMinter,
-        out_minter: outMinter,
-        amount,
-        swap_mode: swapMode,
-        slippage_bps: slippageBps,
-        protocols: params.providerOptions?.protocols ?? DEFAULT_PROTOCOLS,
-        exclude_protocols: params.providerOptions?.excludeProtocols,
-        only_verified_pools: params.providerOptions?.onlyVerifiedPools ?? this.onlyVerifiedPools,
-        max_splits: params.providerOptions?.maxSplits ?? this.maxSplits,
-        max_length: params.providerOptions?.maxLength ?? this.maxLength,
-        min_pool_usd_tvl: this.minPoolUsdTvl,
-        exclude_volatile_pools: params.providerOptions?.excludeVolatilePools
-      };
-      const response = await fetch(`${this.apiUrl}/v1/router/quote`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
-        body: JSON.stringify(requestBody)
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        log.error("DeDust quote API error", { status: response.status, error: errorText });
-        if (response.status === 400) {
-          throw new SwapError(`No route found for swap: ${errorText}`, SwapError.INSUFFICIENT_LIQUIDITY);
-        }
-        throw new SwapError(`DeDust API error: ${response.status} ${errorText}`, SwapError.NETWORK_ERROR);
-      }
-      const quoteResponse = await response.json();
-      if (!quoteResponse.swap_is_possible) {
-        throw new SwapError("Swap is not possible for this pair", SwapError.INSUFFICIENT_LIQUIDITY);
-      }
-      if (!quoteResponse.swap_data?.routes || quoteResponse.swap_data.routes.length === 0) {
-        throw new SwapError("No routes found for this swap", SwapError.INSUFFICIENT_LIQUIDITY);
-      }
-      const outAmount = BigInt(quoteResponse.out_amount);
-      const minReceived = outAmount * BigInt(1e4 - slippageBps) / BigInt(1e4);
-      const metadata = {
-        quoteResponse,
-        slippageBps
-      };
-      const swapQuote = {
-        metadata,
-        providerId: this.providerId,
-        fromToken: params.from,
-        toToken: params.to,
-        rawFromAmount: quoteResponse.in_amount,
-        rawToAmount: quoteResponse.out_amount,
-        rawMinReceived: minReceived.toString(),
-        fromAmount: formatUnits(quoteResponse.in_amount, params.from.decimals),
-        toAmount: formatUnits(quoteResponse.out_amount, params.to.decimals),
-        minReceived: formatUnits(minReceived.toString(), params.to.decimals),
-        network: params.network,
-        priceImpact: quoteResponse.price_impact ? Math.round(quoteResponse.price_impact * 100) : void 0
-      };
-      log.debug("Received DeDust quote", {
-        inAmount: quoteResponse.in_amount,
-        outAmount: quoteResponse.out_amount,
-        minReceived: minReceived.toString(),
-        routeCount: quoteResponse.swap_data.routes.length
-      });
-      return swapQuote;
-    } catch (error2) {
-      log.error("Failed to get DeDust quote", { error: error2, params });
-      if (error2 instanceof SwapError) {
-        throw error2;
-      }
-      throw new SwapError(`DeDust quote request failed: ${error2 instanceof Error ? error2.message : "Unknown error"}`, SwapError.NETWORK_ERROR, error2);
-    }
-  }
-  async buildSwapTransaction(params) {
-    log.debug("Building DeDust swap transaction", params);
-    const metadata = params.quote.metadata;
-    if (!metadata || !isDeDustQuoteMetadata(metadata)) {
-      throw new SwapError("Invalid quote: missing DeDust quote data", SwapError.INVALID_QUOTE);
-    }
-    try {
-      const userAddress = distExports$2.Address.parse(params.userAddress).toRawString();
-      const referralAddress = params.providerOptions?.referralAddress ?? this.referralAddress;
-      const referralFeeBps = params.providerOptions?.referralFeeBps ?? this.referralFeeBps;
-      const requestBody = {
-        sender_address: userAddress,
-        swap_data: metadata.quoteResponse.swap_data,
-        referral_address: referralAddress ? distExports$2.Address.parse(referralAddress).toRawString() : void 0,
-        referral_fee: referralFeeBps
-      };
-      const response = await fetch(`${this.apiUrl}/v1/router/swap`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
-        body: JSON.stringify(requestBody)
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        log.error("DeDust swap API error", { status: response.status, error: errorText });
-        throw new SwapError(`DeDust swap API error: ${response.status} ${errorText}`, SwapError.BUILD_TX_FAILED);
-      }
-      const swapResponse = await response.json();
-      if (!swapResponse.transactions || swapResponse.transactions.length === 0) {
-        throw new SwapError("No transactions returned from swap API", SwapError.BUILD_TX_FAILED);
-      }
-      const transaction = {
-        fromAddress: params.userAddress,
-        messages: swapResponse.transactions.map((tx) => ({
-          address: distExports$2.Address.parse(tx.address).toString(),
-          amount: tx.amount,
-          payload: asBase64(tx.payload),
-          stateInit: tx.state_init ? asBase64(tx.state_init) : void 0
-        })),
-        network: params.quote.network
-      };
-      log.debug("Built DeDust swap transaction", {
-        messageCount: transaction.messages.length
-      });
-      return transaction;
-    } catch (error2) {
-      log.error("Failed to build DeDust swap transaction", { error: error2, params });
-      if (error2 instanceof SwapError) {
-        throw error2;
-      }
-      throw new SwapError(`Failed to build DeDust transaction: ${error2 instanceof Error ? error2.message : "Unknown error"}`, SwapError.BUILD_TX_FAILED, error2);
-    }
-  }
-}
-var __async = (__this, __arguments, generator) => {
-  return new Promise((resolve, reject) => {
-    var fulfilled = (value) => {
-      try {
-        step(generator.next(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var rejected = (value) => {
-      try {
-        step(generator.throw(value));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    var step = (x2) => x2.done ? resolve(x2.value) : Promise.resolve(x2.value).then(fulfilled, rejected);
-    step((generator = generator.apply(__this, __arguments)).next());
-  });
-};
-function getSwap() {
-  return __async(this, null, function* () {
-    const instance = yield getKit();
-    if (!instance.swap) throw new Error("Swap is not configured");
-    return instance.swap;
-  });
-}
-function createOmnistonSwapProvider(args) {
-  return __async(this, null, function* () {
-    const provider = new OmnistonSwapProvider(args.config);
-    retainWithId(provider.providerId, provider);
-    return { providerId: provider.providerId };
-  });
-}
-function createDeDustSwapProvider(args) {
-  return __async(this, null, function* () {
-    const provider = new DeDustSwapProvider(args.config);
-    retainWithId(provider.providerId, provider);
-    return { providerId: provider.providerId };
-  });
-}
-function registerSwapProvider(args) {
-  return __async(this, null, function* () {
-    (yield getSwap()).registerProvider(get(args.providerId));
-  });
-}
-function setDefaultSwapProvider(args) {
-  return __async(this, null, function* () {
-    (yield getSwap()).setDefaultProvider(args.providerId);
-  });
-}
-function getRegisteredSwapProviders() {
-  return __async(this, null, function* () {
-    const providerIds = (yield getSwap()).getRegisteredProviders();
-    return { providerIds };
-  });
-}
-function hasSwapProvider(args) {
-  return __async(this, null, function* () {
-    const result = (yield getSwap()).hasProvider(args.providerId);
-    return { result };
-  });
-}
-function getSwapQuote(args) {
-  return __async(this, null, function* () {
-    return (yield getSwap()).getQuote(args.params, args.providerId);
-  });
-}
-function buildSwapTransaction(args) {
-  return __async(this, null, function* () {
-    return (yield getSwap()).buildSwapTransaction(args.params);
-  });
-}
 const api = {
+  // Initialization
   init,
   setEventsListeners,
   removeEventListeners,
+  // Cryptography
   mnemonicToKeyPair,
   sign,
   createTonMnemonic,
+  // Wallets — 3-step factory
   createSignerFromMnemonic,
   createSignerFromPrivateKey,
   createSignerFromCustom,
   createV5R1WalletAdapter,
   createV4R2WalletAdapter,
+  // Wallets — unified addWallet (registry path + proxy adapter path)
   addWallet,
   releaseRef,
   getWallets,
@@ -43191,65 +38222,41 @@ const api = {
   getWalletAddress,
   removeWallet,
   getBalance,
+  // Transactions
   getRecentTransactions,
   createTransferTonTransaction,
   createTransferMultiTonTransaction,
   getTransactionPreview,
   handleNewTransaction,
   sendTransaction,
+  // Requests
   approveConnectRequest,
   rejectConnectRequest,
   approveTransactionRequest,
   rejectTransactionRequest,
   approveSignDataRequest,
   rejectSignDataRequest,
+  // TonConnect & sessions
   handleTonConnectUrl,
   connectionEventFromUrl,
   listSessions,
   disconnectSession,
   processInternalBrowserRequest,
+  // NFTs
   getNfts,
   getNft,
   createTransferNftTransaction,
   createTransferNftRawTransaction,
+  // Jettons
   getJettons,
   createTransferJettonTransaction,
   getJettonBalance,
   getJettonWalletAddress,
+  // Browser events
   emitBrowserPageStarted,
   emitBrowserPageFinished,
   emitBrowserError,
-  emitBrowserBridgeRequest,
-  createTonCenterStreamingProvider,
-  createTonApiStreamingProvider,
-  registerStreamingProvider,
-  streamingHasProvider,
-  streamingWatch,
-  streamingUnwatch,
-  streamingConnect,
-  streamingDisconnect,
-  streamingWatchConnectionChange,
-  streamingWatchBalance,
-  streamingWatchTransactions,
-  streamingWatchJettons,
-  registerKotlinStreamingProvider,
-  kotlinProviderDispatch,
-  createTonStakersStakingProvider,
-  registerStakingProvider,
-  setDefaultStakingProvider,
-  getStakingQuote,
-  buildStakeTransaction,
-  getStakedBalance,
-  getStakingProviderInfo,
-  getSupportedUnstakeModes,
-  createOmnistonSwapProvider,
-  createDeDustSwapProvider,
-  registerSwapProvider,
-  setDefaultSwapProvider,
-  getRegisteredSwapProviders,
-  hasSwapProvider,
-  getSwapQuote,
-  buildSwapTransaction
+  emitBrowserBridgeRequest
 };
 setBridgeApi(api);
 registerNativeCallHandler();
