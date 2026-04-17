@@ -330,6 +330,7 @@ object TONWalletKitHelper {
                     aboutUrl = DEFAULT_MANIFEST_ABOUT_URL,
                     universalLink = DEFAULT_MANIFEST_UNIVERSAL_LINK,
                     bridgeUrl = DEFAULT_BRIDGE_URL,
+                    jsBridgeKey = DEFAULT_JS_BRIDGE_KEY,
                 ),
                 bridge = TONWalletKitConfiguration.Bridge(
                     bridgeUrl = DEFAULT_BRIDGE_URL,
@@ -364,6 +365,10 @@ object TONWalletKitHelper {
 
     private const val DEFAULT_MANIFEST_NAME = "Wallet"
     private const val DEFAULT_APP_NAME = "Wallet"
+
+    // "tonkeeper" matches the jsBridgeKey in the official TonConnect wallet list, so dApps
+    // using @tonconnect/ui-react will discover our injected bridge via window["tonkeeper"].tonconnect.
+    private const val DEFAULT_JS_BRIDGE_KEY = "tonkeeper"
     private const val DEFAULT_MANIFEST_IMAGE_URL = "https://wallet.ton.org/icon.png"
     private const val DEFAULT_MANIFEST_ABOUT_URL = "https://wallet.ton.org"
     private const val DEFAULT_MANIFEST_UNIVERSAL_LINK = "https://wallet.ton.org/tc"
