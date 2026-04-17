@@ -68,6 +68,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -168,6 +170,10 @@ internal class QuickJsWalletKitEngine(
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
+    }
+    private val paramsEncoder = Json {
+        encodeDefaults = false
+        explicitNulls = false
     }
 
     @Volatile private var quickJsInstance: QuickJs? = null
@@ -272,21 +278,20 @@ internal class QuickJsWalletKitEngine(
         apiBaseUrl = resolveTonApiBase(configuration)
         tonApiKey = configuration.apiClientConfiguration?.key?.takeIf { it.isNotBlank() }
 
-        val payload =
-            JSONObject().apply {
-                put("network", currentNetwork)
-                put("apiUrl", tonClientEndpoint)
-                put("apiBaseUrl", apiBaseUrl)
-                put("tonApiUrl", apiBaseUrl)
-                configuration.bridge.bridgeUrl.takeIf { it.isNotBlank() }?.let { put("bridgeUrl", it) }
-                configuration.walletManifest.name.takeIf { it.isNotBlank() }?.let { put("bridgeName", it) }
-                // Note: QuickJS engine doesn't support persistent storage yet
-                // Storage parameter removed from config
-                tonApiKey?.let { put("apiKey", it) }
-                configuration.eventsConfiguration?.let { eventsConfig ->
-                    put("disableTransactionEmulation", eventsConfig.disableTransactionEmulation)
-                }
-            }
+        val payload = JSONObject(
+            paramsEncoder.encodeToString(
+                InitPayload(
+                    network = currentNetwork,
+                    apiUrl = tonClientEndpoint,
+                    apiBaseUrl = apiBaseUrl,
+                    tonApiUrl = apiBaseUrl,
+                    bridgeUrl = configuration.bridge.bridgeUrl.takeIf { it.isNotBlank() },
+                    bridgeName = configuration.walletManifest.name.takeIf { it.isNotBlank() },
+                    apiKey = tonApiKey,
+                    disableTransactionEmulation = configuration.eventsConfiguration?.disableTransactionEmulation,
+                ),
+            ),
+        )
 
         // Store the configuration after successful initialization
         currentConfig = configuration
@@ -378,7 +383,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun getWallet(address: String): WalletAccount? {
         ensureWalletKitInitialized()
         Log.d(logTag, "getWallet called for address: $address")
-        val params = JSONObject().apply { put("address", address) }
+        val params = JSONObject().put("address", address)
         val result = call("getWallet", params)
         Log.d(logTag, "getWallet result: $result")
 
@@ -399,7 +404,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun removeWallet(address: String) {
         ensureWalletKitInitialized()
         Log.d(logTag, "removeWallet called for address: $address")
-        val params = JSONObject().apply { put("address", address) }
+        val params = JSONObject().put("address", address)
         val result = call("removeWallet", params)
         Log.d(logTag, "removeWallet result: $result")
 
@@ -419,7 +424,7 @@ internal class QuickJsWalletKitEngine(
     override suspend fun getBalance(address: String): String {
         ensureWalletKitInitialized()
         Log.d(logTag, "getBalance called for address: $address")
-        val params = JSONObject().apply { put("address", address) }
+        val params = JSONObject().put("address", address)
         Log.d(logTag, "getBalance calling JavaScript...")
         val result = call("getBalance", params)
         Log.d(logTag, "getBalance result: $result")
@@ -434,14 +439,12 @@ internal class QuickJsWalletKitEngine(
 
     override suspend fun handleTonConnectUrl(url: String) {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply { put("url", url) }
-        call("handleTonConnectUrl", params)
+        call("handleTonConnectUrl", JSONObject().put("url", url))
     }
 
     override suspend fun connectionEventFromUrl(url: String): TONWalletConnectionRequest {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply { put("url", url) }
-        val result = call("connectionEventFromUrl", params)
+        val result = call("connectionEventFromUrl", JSONObject().put("url", url))
         val event = json.decodeFromString<TONConnectionRequestEvent>(result.toString())
         return TONWalletConnectionRequest(event = event, handler = this)
     }
@@ -451,12 +454,12 @@ internal class QuickJsWalletKitEngine(
         transactionContent: String,
     ) {
         ensureWalletKitInitialized()
-        val params =
-            JSONObject().apply {
-                put("walletAddress", walletAddress)
-                put("transactionContent", transactionContent)
-            }
-        call(BridgeMethodConstants.METHOD_HANDLE_NEW_TRANSACTION, params)
+        call(
+            BridgeMethodConstants.METHOD_HANDLE_NEW_TRANSACTION,
+            JSONObject()
+                .put("walletAddress", walletAddress)
+                .put("transactionContent", transactionContent),
+        )
     }
 
     override suspend fun sendTransaction(
@@ -464,12 +467,12 @@ internal class QuickJsWalletKitEngine(
         transactionContent: String,
     ): String {
         ensureWalletKitInitialized()
-        val params =
-            JSONObject().apply {
-                put("walletAddress", walletAddress)
-                put("transactionContent", transactionContent)
-            }
-        val result = call(BridgeMethodConstants.METHOD_SEND_TRANSACTION, params)
+        val result = call(
+            BridgeMethodConstants.METHOD_SEND_TRANSACTION,
+            JSONObject()
+                .put("walletAddress", walletAddress)
+                .put("transactionContent", transactionContent),
+        )
         // Extract the signedBoc from the result
         return result.getString("signedBoc")
     }
@@ -481,13 +484,11 @@ internal class QuickJsWalletKitEngine(
         ensureWalletKitInitialized()
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
         val walletId = event.walletId ?: throw WalletKitBridgeException("Wallet ID is required")
-        val params =
-            JSONObject().apply {
-                put("requestId", event.id)
-                put("walletAddress", walletAddress.value)
-                put("walletId", walletId)
-                response?.let { put("response", JSONObject(json.encodeToString(it))) }
-            }
+        val params = JSONObject()
+            .put("requestId", event.id)
+            .put("walletAddress", walletAddress.value)
+            .put("walletId", walletId)
+        if (response != null) params.put("response", JSONObject(json.encodeToString(response)))
         call("approveConnectRequest", params)
     }
 
@@ -497,12 +498,9 @@ internal class QuickJsWalletKitEngine(
         errorCode: Int?,
     ) {
         ensureWalletKitInitialized()
-        val params =
-            JSONObject().apply {
-                put("requestId", event.id)
-                reason?.let { put("reason", it) }
-                errorCode?.let { put("errorCode", it) }
-            }
+        val params = JSONObject().put("requestId", event.id)
+        if (reason != null) params.put("reason", reason)
+        if (errorCode != null) params.put("errorCode", errorCode)
         call("rejectConnectRequest", params)
     }
 
@@ -512,13 +510,11 @@ internal class QuickJsWalletKitEngine(
     ) {
         ensureWalletKitInitialized()
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
-        val params =
-            JSONObject().apply {
-                put("requestId", event.id)
-                put("walletAddress", walletAddress.value)
-                put("walletId", event.walletId)
-                response?.let { put("response", JSONObject(json.encodeToString(it))) }
-            }
+        val params = JSONObject()
+            .put("requestId", event.id)
+            .put("walletAddress", walletAddress.value)
+            .put("walletId", event.walletId)
+        if (response != null) params.put("response", JSONObject(json.encodeToString(response)))
         call("approveTransactionRequest", params)
     }
 
@@ -528,12 +524,9 @@ internal class QuickJsWalletKitEngine(
         errorCode: Int?,
     ) {
         ensureWalletKitInitialized()
-        val params =
-            JSONObject().apply {
-                put("requestId", event.id)
-                reason?.let { put("reason", it) }
-                errorCode?.let { put("errorCode", it) }
-            }
+        val params = JSONObject().put("requestId", event.id)
+        if (reason != null) params.put("reason", reason)
+        if (errorCode != null) params.put("errorCode", errorCode)
         call("rejectTransactionRequest", params)
     }
 
@@ -543,13 +536,11 @@ internal class QuickJsWalletKitEngine(
     ) {
         ensureWalletKitInitialized()
         val walletAddress = event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
-        val params =
-            JSONObject().apply {
-                put("requestId", event.id)
-                put("walletAddress", walletAddress)
-                put("walletId", event.walletId)
-                response?.let { put("response", JSONObject(json.encodeToString(it))) }
-            }
+        val params = JSONObject()
+            .put("requestId", event.id)
+            .put("walletAddress", walletAddress)
+            .put("walletId", event.walletId)
+        if (response != null) params.put("response", JSONObject(json.encodeToString(response)))
         call("approveSignDataRequest", params)
     }
 
@@ -559,12 +550,9 @@ internal class QuickJsWalletKitEngine(
         errorCode: Int?,
     ) {
         ensureWalletKitInitialized()
-        val params =
-            JSONObject().apply {
-                put("requestId", event.id)
-                reason?.let { put("reason", it) }
-                errorCode?.let { put("errorCode", it) }
-            }
+        val params = JSONObject().put("requestId", event.id)
+        if (reason != null) params.put("reason", reason)
+        if (errorCode != null) params.put("errorCode", errorCode)
         call("rejectSignDataRequest", params)
     }
 
@@ -610,21 +598,19 @@ internal class QuickJsWalletKitEngine(
 
     override suspend fun getNfts(walletAddress: String, limit: Int, offset: Int): io.ton.walletkit.api.generated.TONNFTsResponse {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply {
-            put("address", walletAddress)
-            put("limit", limit)
-            put("offset", offset)
-        }
-        val result = call(BridgeMethodConstants.METHOD_GET_NFTS, params)
+        val result = call(
+            BridgeMethodConstants.METHOD_GET_NFTS,
+            JSONObject()
+                .put("address", walletAddress)
+                .put("limit", limit)
+                .put("offset", offset),
+        )
         return json.decodeFromString(result.toString())
     }
 
     override suspend fun getNft(nftAddress: String): io.ton.walletkit.api.generated.TONNFT? {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply {
-            put("address", nftAddress)
-        }
-        val result = call(BridgeMethodConstants.METHOD_GET_NFT, params)
+        val result = call(BridgeMethodConstants.METHOD_GET_NFT, JSONObject().put("address", nftAddress))
         return if (result.has("address")) {
             json.decodeFromString(result.toString())
         } else {
@@ -649,12 +635,13 @@ internal class QuickJsWalletKitEngine(
     // Jetton methods
     override suspend fun getJettons(walletAddress: String, limit: Int, offset: Int): io.ton.walletkit.api.generated.TONJettonsResponse {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply {
-            put("address", walletAddress)
-            put("limit", limit)
-            put("offset", offset)
-        }
-        val result = call(BridgeMethodConstants.METHOD_GET_JETTONS, params)
+        val result = call(
+            BridgeMethodConstants.METHOD_GET_JETTONS,
+            JSONObject()
+                .put("address", walletAddress)
+                .put("limit", limit)
+                .put("offset", offset),
+        )
         return json.decodeFromString(result.toString())
     }
 
@@ -677,11 +664,12 @@ internal class QuickJsWalletKitEngine(
         transactionContent: String,
     ): io.ton.walletkit.api.generated.TONTransactionEmulatedPreview {
         ensureWalletKitInitialized()
-        val paramsJson = JSONObject().apply {
-            put("address", walletAddress)
-            put("transactionContent", JSONObject(transactionContent))
-        }
-        val result = call(BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW, paramsJson)
+        val result = call(
+            BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW,
+            JSONObject()
+                .put("address", walletAddress)
+                .put("transactionContent", JSONObject(transactionContent)),
+        )
         // Parse the result using kotlinx.serialization
         return json.decodeFromString(
             io.ton.walletkit.api.generated.TONTransactionEmulatedPreview.serializer(),
@@ -691,21 +679,23 @@ internal class QuickJsWalletKitEngine(
 
     override suspend fun getJettonBalance(walletAddress: String, jettonAddress: String): String {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply {
-            put("address", walletAddress)
-            put("jettonAddress", jettonAddress)
-        }
-        val result = call(BridgeMethodConstants.METHOD_GET_JETTON_BALANCE, params)
+        val result = call(
+            BridgeMethodConstants.METHOD_GET_JETTON_BALANCE,
+            JSONObject()
+                .put("address", walletAddress)
+                .put("jettonAddress", jettonAddress),
+        )
         return result.toString()
     }
 
     override suspend fun getJettonWalletAddress(walletAddress: String, jettonAddress: String): String {
         ensureWalletKitInitialized()
-        val params = JSONObject().apply {
-            put("address", walletAddress)
-            put("jettonAddress", jettonAddress)
-        }
-        val result = call(BridgeMethodConstants.METHOD_GET_JETTON_WALLET_ADDRESS, params)
+        val result = call(
+            BridgeMethodConstants.METHOD_GET_JETTON_WALLET_ADDRESS,
+            JSONObject()
+                .put("address", walletAddress)
+                .put("jettonAddress", jettonAddress),
+        )
         return result.toString()
     }
 
@@ -935,10 +925,9 @@ internal class QuickJsWalletKitEngine(
                 data.put(key, payload.get(key))
             }
         }
-        val readyEvent = JSONObject().apply {
-            put("type", "ready")
-            put("data", data)
-        }
+        val readyEvent = JSONObject()
+            .put("type", "ready")
+            .put("data", data)
         handleEvent(readyEvent)
     }
 
@@ -1302,12 +1291,10 @@ internal class QuickJsWalletKitEngine(
             for ((name, value) in response.headers) {
                 headersArray.put(JSONArray().put(name).put(value))
             }
-            val meta =
-                JSONObject().apply {
-                    put("status", response.code)
-                    put("statusText", response.message)
-                    put("headers", headersArray)
-                }
+            val meta = JSONObject()
+                .put("status", response.code)
+                .put("statusText", response.message)
+                .put("headers", headersArray)
             deliverFetchSuccess(id, meta.toString(), base64Body)
             response.close()
         } catch (err: Throwable) {
@@ -1631,6 +1618,18 @@ internal class QuickJsWalletKitEngine(
     }
 
     private data class BridgeResponse(val result: JSONObject)
+
+    @Serializable
+    private data class InitPayload(
+        val network: String,
+        val apiUrl: String,
+        val apiBaseUrl: String,
+        val tonApiUrl: String,
+        @SerialName("bridgeUrl") val bridgeUrl: String? = null,
+        @SerialName("bridgeName") val bridgeName: String? = null,
+        @SerialName("apiKey") val apiKey: String? = null,
+        @SerialName("disableTransactionEmulation") val disableTransactionEmulation: Boolean? = null,
+    )
 
     companion object {
         private const val QUICKJS_ASSET_DIR = "walletkit/quickjs/"

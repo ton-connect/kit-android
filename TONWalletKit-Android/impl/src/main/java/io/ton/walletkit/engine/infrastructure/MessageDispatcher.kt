@@ -23,6 +23,9 @@ package io.ton.walletkit.engine.infrastructure
 
 import android.os.Handler
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.generated.TONPreparedSignData
+import io.ton.walletkit.api.generated.TONProofMessage
+import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.AdapterManager
@@ -35,6 +38,7 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.model.TONWalletAdapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -140,6 +144,41 @@ internal class MessageDispatcher(
     // delivered back via  window.__walletkitResponse(id, resultJson, errorJson).
     // ──────────────────────────────────────────────────────────────────────────
 
+    private val requestHandlers = mapOf<String, suspend (params: JSONObject) -> String>(
+        REQUEST_METHOD_SIGN_WITH_CUSTOM_SIGNER to { params ->
+            val signerId = params.getString(ResponseConstants.KEY_SIGNER_ID)
+            val signer = signerManager.getSigner(signerId)
+                ?: throw IllegalArgumentException("Custom signer not found: $signerId")
+            val dataArray = params.getJSONArray("data")
+            val bytes = ByteArray(dataArray.length()) { dataArray.getInt(it).toByte() }
+            signer.sign(bytes).value
+        },
+        REQUEST_METHOD_ADAPTER_GET_STATE_INIT to { params ->
+            params.requireAdapter().stateInit().value
+        },
+        REQUEST_METHOD_ADAPTER_SIGN_TRANSACTION to { params ->
+            val adapter = params.requireAdapter()
+            val request = json.decodeFromString<TONTransactionRequest>(params.getString("input"))
+            adapter.signedSendTransaction(request, params.optBoolean("fakeSignature", false)).value
+        },
+        REQUEST_METHOD_ADAPTER_SIGN_DATA to { params ->
+            val adapter = params.requireAdapter()
+            val request = json.decodeFromString<TONPreparedSignData>(params.getString("input"))
+            adapter.signedSignData(request, params.optBoolean("fakeSignature", false)).value
+        },
+        REQUEST_METHOD_ADAPTER_SIGN_TON_PROOF to { params ->
+            val adapter = params.requireAdapter()
+            val request = json.decodeFromString<TONProofMessage>(params.getString("input"))
+            adapter.signedTonProof(request, params.optBoolean("fakeSignature", false)).value
+        },
+    )
+
+    private fun JSONObject.requireAdapter(): TONWalletAdapter {
+        val adapterId = getString("adapterId")
+        return adapterManager.getAdapter(adapterId)
+            ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+    }
+
     private fun handleRequest(payload: JSONObject) {
         val id = payload.optString(ResponseConstants.KEY_ID)
         val method = payload.optString(ResponseConstants.KEY_METHOD)
@@ -162,60 +201,14 @@ internal class MessageDispatcher(
     }
 
     /**
-     * Dispatches a reverse-RPC method to the appropriate native manager.
+     * Dispatches a reverse-RPC method to the appropriate native handler.
      *
      * @return The result as a raw string (already a JSON-safe value).
      */
     private suspend fun executeNativeRequest(method: String, params: JSONObject): String {
-        return when (method) {
-            REQUEST_METHOD_SIGN_WITH_CUSTOM_SIGNER -> {
-                val signerId = params.getString(ResponseConstants.KEY_SIGNER_ID)
-                val dataArray = params.getJSONArray("data")
-                val bytes = ByteArray(dataArray.length()) { dataArray.getInt(it).toByte() }
-                val signer = signerManager.getSigner(signerId)
-                    ?: throw IllegalArgumentException("Custom signer not found: $signerId")
-                signer.sign(bytes).value
-            }
-
-            REQUEST_METHOD_ADAPTER_GET_STATE_INIT -> {
-                val adapterId = params.getString("adapterId")
-                val adapter = adapterManager.getAdapter(adapterId)
-                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                adapter.stateInit().value
-            }
-
-            REQUEST_METHOD_ADAPTER_SIGN_TRANSACTION -> {
-                val adapterId = params.getString("adapterId")
-                val inputJson = params.getString("input")
-                val fakeSignature = params.optBoolean("fakeSignature", false)
-                val adapter = adapterManager.getAdapter(adapterId)
-                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONTransactionRequest>(inputJson)
-                adapter.signedSendTransaction(request, fakeSignature).value
-            }
-
-            REQUEST_METHOD_ADAPTER_SIGN_DATA -> {
-                val adapterId = params.getString("adapterId")
-                val inputJson = params.getString("input")
-                val fakeSignature = params.optBoolean("fakeSignature", false)
-                val adapter = adapterManager.getAdapter(adapterId)
-                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONPreparedSignData>(inputJson)
-                adapter.signedSignData(request, fakeSignature).value
-            }
-
-            REQUEST_METHOD_ADAPTER_SIGN_TON_PROOF -> {
-                val adapterId = params.getString("adapterId")
-                val inputJson = params.getString("input")
-                val fakeSignature = params.optBoolean("fakeSignature", false)
-                val adapter = adapterManager.getAdapter(adapterId)
-                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONProofMessage>(inputJson)
-                adapter.signedTonProof(request, fakeSignature).value
-            }
-
-            else -> throw IllegalArgumentException("Unknown reverse-RPC method: $method")
-        }
+        val handler = requestHandlers[method]
+            ?: throw IllegalArgumentException("Unknown reverse-RPC method: $method")
+        return handler(params)
     }
 
     /**
@@ -276,11 +269,9 @@ internal class MessageDispatcher(
                 data.put(key, payload.get(key))
             }
         }
-        val readyEvent =
-            JSONObject().apply {
-                put(ResponseConstants.KEY_TYPE, ResponseConstants.VALUE_KIND_READY)
-                put(ResponseConstants.KEY_DATA, data)
-            }
+        val readyEvent = JSONObject()
+            .put(ResponseConstants.KEY_TYPE, ResponseConstants.VALUE_KIND_READY)
+            .put(ResponseConstants.KEY_DATA, data)
         handleEvent(readyEvent)
     }
 
@@ -360,16 +351,10 @@ internal class MessageDispatcher(
 
         if (callId != null) {
             // Create error response for this specific call
-            val errorResponse = JSONObject().apply {
-                put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_RESPONSE)
-                put(ResponseConstants.KEY_ID, callId)
-                put(
-                    ResponseConstants.KEY_ERROR,
-                    JSONObject().apply {
-                        put(ResponseConstants.KEY_MESSAGE, exception.message ?: "Bridge error")
-                    },
-                )
-            }
+            val errorResponse = JSONObject()
+                .put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_RESPONSE)
+                .put(ResponseConstants.KEY_ID, callId)
+                .put(ResponseConstants.KEY_ERROR, JSONObject().put(ResponseConstants.KEY_MESSAGE, exception.message ?: "Bridge error"))
 
             // Dispatch the error response to fail the specific call
             rpcClient.handleResponse(callId, errorResponse)
