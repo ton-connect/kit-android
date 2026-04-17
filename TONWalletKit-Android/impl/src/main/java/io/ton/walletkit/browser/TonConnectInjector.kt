@@ -48,6 +48,11 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.json.JSONArray
 import org.json.JSONObject
 import java.lang.ref.WeakReference
@@ -608,7 +613,7 @@ internal class TonConnectInjector(
         val appName: String,
         val appVersion: String,
         val maxProtocolVersion: Int,
-        val features: List<String>,
+        val features: List<JsonElement>,
     )
 
     @Serializable
@@ -657,30 +662,39 @@ internal class TonConnectInjector(
         return Json.encodeToString(options)
     }
 
-    private fun buildFeaturesList(features: List<TONWalletKitConfiguration.Feature>?): List<String> {
-        if (features.isNullOrEmpty()) return listOf("SendTransaction")
+    private fun buildFeaturesList(features: List<TONWalletKitConfiguration.Feature>?): List<JsonElement> {
+        if (features.isNullOrEmpty()) return listOf(JsonPrimitive("SendTransaction"))
 
-        val result = mutableListOf<String>()
+        val result = mutableListOf<JsonElement>()
         for (feature in features) {
             when (feature) {
                 is TONWalletKitConfiguration.SendTransactionFeature -> {
-                    if (feature.maxMessages != null) {
-                        val optionsJson = Json.encodeToString(mapOf("maxMessages" to feature.maxMessages))
-                        result.add("SendTransaction")
-                        result.add("SendTransaction:$optionsJson")
-                    } else {
-                        result.add("SendTransaction")
-                    }
+                    result.add(
+                        buildJsonObject {
+                            put("name", "SendTransaction")
+                            feature.maxMessages?.let { put("maxMessages", it) }
+                            feature.extraCurrencySupported?.let { put("extraCurrencySupported", it) }
+                        },
+                    )
+                    result.add(JsonPrimitive("SendTransaction")) // legacy string required by TonConnect protocol
                 }
                 is TONWalletKitConfiguration.SignDataFeature -> {
-                    if (feature.types.isNotEmpty()) {
-                        val types = feature.types.map { it.name.lowercase() }
-                        val typesJson = Json.encodeToString(mapOf("types" to types))
-                        result.add("SignData:$typesJson")
-                    }
+                    result.add(
+                        buildJsonObject {
+                            put("name", "SignData")
+                            put(
+                                "types",
+                                buildJsonArray {
+                                    for (type in feature.types) {
+                                        add(type.name.lowercase())
+                                    }
+                                },
+                            )
+                        },
+                    )
                 }
             }
         }
-        return result.distinct()
+        return result
     }
 }
