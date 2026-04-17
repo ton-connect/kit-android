@@ -37,7 +37,15 @@ import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.json.JSONArray
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.json.JSONObject
 
 /**
@@ -56,6 +64,10 @@ internal class InitializationManager(
     private val rpcClient: BridgeRpcClient,
 ) {
     private val appContext = context.applicationContext
+    private val json = Json {
+        encodeDefaults = false
+        explicitNulls = false
+    }
     private val walletKitInitMutex = Mutex()
 
     @Volatile private var isWalletKitInitialized: Boolean = false
@@ -131,25 +143,106 @@ internal class InitializationManager(
     fun tonApiKey(): String? = tonApiKey
 
     private suspend fun performInitialization(configuration: TONWalletKitConfiguration) {
-        val networkName = resolveNetworkName(configuration)
-        currentNetwork = networkName
+        currentNetwork = resolveNetworkName(configuration)
         persistentStorageEnabled = configuration.storageType != TONWalletKitStorageType.Memory
-
-        val tonClientEndpoint = resolveTonClientEndpoint(configuration)
         apiBaseUrl = resolveTonApiBase(configuration)
         tonApiKey = configuration.apiClientConfiguration?.key?.takeIf { it.isNotBlank() }
 
-        // Use deviceInfo if provided, otherwise auto-detect
-        val appVersion = configuration.deviceInfo?.appVersion
+        val appVersion = resolveAppVersion(configuration)
+        val appName = resolveAppName(configuration)
+        val featuresToUse = configuration.deviceInfo?.features ?: configuration.features
+
+        val payload = InitPayload(
+            network = currentNetwork,
+            apiUrl = resolveTonClientEndpoint(configuration),
+            tonApiUrl = apiBaseUrl,
+            networkConfigurations = configuration.networkConfigurations.map { nc ->
+                NetworkConfigPayload(
+                    network = NetworkPayload(chainId = nc.network.chainId),
+                    apiClientType = when (nc.apiClientType) {
+                        TONWalletKitConfiguration.APIClientType.DEFAULT -> "default"
+                        TONWalletKitConfiguration.APIClientType.TONCENTER -> "toncenter"
+                        TONWalletKitConfiguration.APIClientType.TONAPI -> "tonapi"
+                        TONWalletKitConfiguration.APIClientType.CUSTOM -> "custom"
+                    },
+                    apiClientConfiguration = nc.apiClientConfiguration?.let { ac ->
+                        val url = ac.url?.takeIf { it.isNotBlank() }
+                        val key = ac.key?.takeIf { it.isNotBlank() }
+                        if (url != null || key != null) ApiClientConfigPayload(url, key) else null
+                    },
+                )
+            },
+            bridgeUrl = configuration.bridge.bridgeUrl.takeIf { it.isNotBlank() },
+            bridgeName = configuration.walletManifest.name.takeIf { it.isNotBlank() },
+            walletManifest = WalletManifestPayload(
+                name = configuration.walletManifest.name,
+                appName = appName,
+                imageUrl = configuration.walletManifest.imageUrl,
+                aboutUrl = configuration.walletManifest.aboutUrl,
+                universalUrl = configuration.walletManifest.universalLink.takeIf { it.isNotBlank() },
+                platforms = listOf(WebViewConstants.PLATFORM_ANDROID),
+            ),
+            deviceInfo = DeviceInfoPayload(
+                platform = configuration.deviceInfo?.platform ?: WebViewConstants.PLATFORM_ANDROID,
+                appName = appName,
+                appVersion = appVersion,
+                maxProtocolVersion = configuration.deviceInfo?.maxProtocolVersion ?: NetworkConstants.MAX_PROTOCOL_VERSION,
+                features = buildList {
+                    add(JsonPrimitive(JsonConstants.FEATURE_SEND_TRANSACTION))
+                    add(
+                        buildJsonObject {
+                            put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SEND_TRANSACTION)
+                            put(JsonConstants.KEY_MAX_MESSAGES, resolveMaxMessages(configuration, featuresToUse))
+                        },
+                    )
+                    add(
+                        buildJsonObject {
+                            put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SIGN_DATA)
+                            put(
+                                JsonConstants.KEY_TYPES,
+                                buildJsonArray {
+                                    for (type in resolveSignDataTypes(configuration, featuresToUse)) {
+                                        add(JsonPrimitive(type))
+                                    }
+                                },
+                            )
+                        },
+                    )
+                },
+            ),
+            disableNetworkSend = if (configuration.dev?.disableNetworkSend == true) true else null,
+            disableTransactionEmulation = configuration.eventsConfiguration?.disableTransactionEmulation,
+        )
+
+        Logger.d(
+            TAG,
+            buildString {
+                append("Initializing WalletKit with persistent storage: ")
+                append(persistentStorageEnabled)
+                append(", app: ")
+                append(appName)
+                append(" v")
+                append(appVersion)
+            },
+        )
+        rpcClient.call(BridgeMethodConstants.METHOD_INIT, JSONObject(json.encodeToString(payload)))
+
+        currentConfig = configuration
+        Logger.d(TAG, "WalletKit initialized. Event listeners will be set up on-demand.")
+    }
+
+    private fun resolveAppVersion(configuration: TONWalletKitConfiguration): String =
+        configuration.deviceInfo?.appVersion
             ?: try {
-                val packageInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
-                packageInfo.versionName ?: NetworkConstants.DEFAULT_APP_VERSION
+                appContext.packageManager.getPackageInfo(appContext.packageName, 0)
+                    .versionName ?: NetworkConstants.DEFAULT_APP_VERSION
             } catch (e: Exception) {
                 Logger.w(TAG, ERROR_FAILED_GET_APP_VERSION, e)
                 NetworkConstants.DEFAULT_APP_VERSION
             }
 
-        val appName = configuration.deviceInfo?.appName
+    private fun resolveAppName(configuration: TONWalletKitConfiguration): String =
+        configuration.deviceInfo?.appName
             ?: try {
                 val manifestName = configuration.walletManifest.appName
                 manifestName.ifBlank {
@@ -165,134 +258,6 @@ internal class InitializationManager(
                 Logger.w(TAG, ERROR_FAILED_GET_APP_NAME, e)
                 appContext.packageName
             }
-
-        val payload =
-            JSONObject().apply {
-                put(JsonConstants.KEY_NETWORK, currentNetwork)
-                tonClientEndpoint?.let { put(JsonConstants.KEY_API_URL, it) }
-                put(JsonConstants.KEY_TON_API_URL, apiBaseUrl)
-
-                // Pass all configured networks (matching iOS bridge format: networkConfigurations)
-                put(
-                    "networkConfigurations",
-                    org.json.JSONArray().apply {
-                        for (networkConfig in configuration.networkConfigurations) {
-                            put(
-                                JSONObject().apply {
-                                    put(
-                                        "network",
-                                        JSONObject().apply {
-                                            put("chainId", networkConfig.network.chainId)
-                                        },
-                                    )
-                                    val apiClientTypeStr = when (networkConfig.apiClientType) {
-                                        TONWalletKitConfiguration.APIClientType.DEFAULT -> "default"
-                                        TONWalletKitConfiguration.APIClientType.TONCENTER -> "toncenter"
-                                        TONWalletKitConfiguration.APIClientType.TONAPI -> "tonapi"
-                                        TONWalletKitConfiguration.APIClientType.CUSTOM -> "custom"
-                                    }
-                                    put("apiClientType", apiClientTypeStr)
-                                    networkConfig.apiClientConfiguration?.let { apiConfig ->
-                                        put(
-                                            "apiClientConfiguration",
-                                            JSONObject().apply {
-                                                apiConfig.url?.takeIf { it.isNotBlank() }?.let {
-                                                    put("url", it)
-                                                }
-                                                apiConfig.key?.takeIf { it.isNotBlank() }?.let {
-                                                    put("key", it)
-                                                }
-                                            },
-                                        )
-                                    }
-                                },
-                            )
-                        }
-                    },
-                )
-
-                configuration.bridge.bridgeUrl.takeIf { it.isNotBlank() }?.let { put(JsonConstants.KEY_BRIDGE_URL, it) }
-                configuration.walletManifest.name.takeIf { it.isNotBlank() }?.let { put(JsonConstants.KEY_BRIDGE_NAME, it) }
-
-                put(
-                    JsonConstants.KEY_WALLET_MANIFEST,
-                    JSONObject().apply {
-                        put(JsonConstants.KEY_NAME, configuration.walletManifest.name)
-                        put(JsonConstants.KEY_APP_NAME, appName)
-                        put(JsonConstants.KEY_IMAGE_URL, configuration.walletManifest.imageUrl)
-                        put(JsonConstants.KEY_ABOUT_URL, configuration.walletManifest.aboutUrl)
-                        configuration.walletManifest.universalLink.takeIf { it.isNotBlank() }?.let {
-                            put(JsonConstants.KEY_UNIVERSAL_URL, it)
-                        }
-                        put(
-                            JsonConstants.KEY_PLATFORMS,
-                            JSONArray().apply { put(WebViewConstants.PLATFORM_ANDROID) },
-                        )
-                    },
-                )
-
-                put(
-                    JsonConstants.KEY_DEVICE_INFO,
-                    JSONObject().apply {
-                        put(JsonConstants.KEY_PLATFORM, configuration.deviceInfo?.platform ?: WebViewConstants.PLATFORM_ANDROID)
-                        put(JsonConstants.KEY_APP_NAME, appName)
-                        put(JsonConstants.KEY_APP_VERSION, appVersion)
-                        put(JsonConstants.KEY_MAX_PROTOCOL_VERSION, configuration.deviceInfo?.maxProtocolVersion ?: NetworkConstants.MAX_PROTOCOL_VERSION)
-                        put(
-                            JsonConstants.KEY_FEATURES,
-                            JSONArray().apply {
-                                // Use deviceInfo.features if provided, otherwise use configuration.features
-                                val featuresToUse = configuration.deviceInfo?.features ?: configuration.features
-
-                                // Add "SendTransaction" string for backward compatibility
-                                put(JsonConstants.FEATURE_SEND_TRANSACTION)
-                                // Add SendTransaction object with maxMessages for extended info
-                                put(
-                                    JSONObject().apply {
-                                        put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SEND_TRANSACTION)
-                                        put(JsonConstants.KEY_MAX_MESSAGES, resolveMaxMessages(configuration, featuresToUse))
-                                    },
-                                )
-                                put(
-                                    JSONObject().apply {
-                                        put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SIGN_DATA)
-                                        put(JsonConstants.KEY_TYPES, JSONArray(resolveSignDataTypes(configuration, featuresToUse)))
-                                    },
-                                )
-                            },
-                        )
-                    },
-                )
-
-                // Pass disableNetworkSend flag for testing (transactions simulated but not sent)
-                configuration.dev?.disableNetworkSend?.let { disableNetworkSend ->
-                    if (disableNetworkSend) {
-                        put(JsonConstants.KEY_DISABLE_NETWORK_SEND, true)
-                    }
-                }
-                configuration.eventsConfiguration?.let { eventsConfig ->
-                    put("disableTransactionEmulation", eventsConfig.disableTransactionEmulation)
-                }
-            }
-
-        Logger.d(
-            TAG,
-            buildString {
-                append("Initializing WalletKit with persistent storage: ")
-                append(persistentStorageEnabled)
-                append(", app: ")
-                append(appName)
-                append(" v")
-                append(appVersion)
-            },
-        )
-        rpcClient.call(BridgeMethodConstants.METHOD_INIT, payload)
-
-        // Store the configuration for later use (e.g., WebView injection)
-        currentConfig = configuration
-
-        Logger.d(TAG, "WalletKit initialized. Event listeners will be set up on-demand.")
-    }
 
     private fun resolveNetworkName(configuration: TONWalletKitConfiguration): String =
         when (configuration.network.chainId) {
@@ -342,6 +307,55 @@ internal class InitializationManager(
             }
         }
     }
+
+    @Serializable
+    private data class InitPayload(
+        val network: String,
+        @SerialName("apiUrl") val apiUrl: String? = null,
+        @SerialName("tonApiUrl") val tonApiUrl: String,
+        val networkConfigurations: List<NetworkConfigPayload>,
+        @SerialName("bridgeUrl") val bridgeUrl: String? = null,
+        @SerialName("bridgeName") val bridgeName: String? = null,
+        @SerialName("walletManifest") val walletManifest: WalletManifestPayload,
+        @SerialName("deviceInfo") val deviceInfo: DeviceInfoPayload,
+        @SerialName("disableNetworkSend") val disableNetworkSend: Boolean? = null,
+        @SerialName("disableTransactionEmulation") val disableTransactionEmulation: Boolean? = null,
+    )
+
+    @Serializable
+    private data class NetworkConfigPayload(
+        val network: NetworkPayload,
+        val apiClientType: String,
+        val apiClientConfiguration: ApiClientConfigPayload? = null,
+    )
+
+    @Serializable
+    private data class NetworkPayload(val chainId: String)
+
+    @Serializable
+    private data class ApiClientConfigPayload(
+        val url: String? = null,
+        val key: String? = null,
+    )
+
+    @Serializable
+    private data class WalletManifestPayload(
+        val name: String,
+        @SerialName("appName") val appName: String,
+        @SerialName("imageUrl") val imageUrl: String,
+        @SerialName("aboutUrl") val aboutUrl: String,
+        @SerialName("universalUrl") val universalUrl: String? = null,
+        val platforms: List<String>,
+    )
+
+    @Serializable
+    private data class DeviceInfoPayload(
+        val platform: String,
+        @SerialName("appName") val appName: String,
+        @SerialName("appVersion") val appVersion: String,
+        @SerialName("maxProtocolVersion") val maxProtocolVersion: Int,
+        val features: List<JsonElement>,
+    )
 
     private companion object {
         private const val TAG = LogConstants.TAG_WEBVIEW_ENGINE

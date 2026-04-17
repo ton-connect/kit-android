@@ -27,7 +27,6 @@ import io.ton.walletkit.api.generated.TONPreparedSignData
 import io.ton.walletkit.api.generated.TONProofMessage
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.browser.TonConnectInjector
-import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.EventRouter
@@ -39,6 +38,7 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
+import io.ton.walletkit.model.TONWalletAdapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -269,11 +269,9 @@ internal class MessageDispatcher(
                 data.put(key, payload.get(key))
             }
         }
-        val readyEvent =
-            JSONObject().apply {
-                put(ResponseConstants.KEY_TYPE, ResponseConstants.VALUE_KIND_READY)
-                put(ResponseConstants.KEY_DATA, data)
-            }
+        val readyEvent = JSONObject()
+            .put(ResponseConstants.KEY_TYPE, ResponseConstants.VALUE_KIND_READY)
+            .put(ResponseConstants.KEY_DATA, data)
         handleEvent(readyEvent)
     }
 
@@ -353,16 +351,10 @@ internal class MessageDispatcher(
 
         if (callId != null) {
             // Create error response for this specific call
-            val errorResponse = JSONObject().apply {
-                put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_RESPONSE)
-                put(ResponseConstants.KEY_ID, callId)
-                put(
-                    ResponseConstants.KEY_ERROR,
-                    JSONObject().apply {
-                        put(ResponseConstants.KEY_MESSAGE, exception.message ?: "Bridge error")
-                    },
-                )
-            }
+            val errorResponse = JSONObject()
+                .put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_RESPONSE)
+                .put(ResponseConstants.KEY_ID, callId)
+                .put(ResponseConstants.KEY_ERROR, JSONObject().put(ResponseConstants.KEY_MESSAGE, exception.message ?: "Bridge error"))
 
             // Dispatch the error response to fail the specific call
             rpcClient.handleResponse(callId, errorResponse)
