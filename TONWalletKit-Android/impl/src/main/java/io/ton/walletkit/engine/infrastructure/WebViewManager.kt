@@ -52,6 +52,7 @@ import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.session.SessionFilter
 import io.ton.walletkit.session.TONConnectSessionManager
@@ -278,6 +279,19 @@ internal class WebViewManager(
     }
 
     private inner class JsBinding {
+        private val adapterSyncHandlers =
+            mapOf<String, suspend (adapter: TONWalletAdapter, params: JSONObject) -> String>(
+                "getPublicKey" to { adapter, _ -> adapter.publicKey().value },
+                "getNetwork" to { adapter, _ ->
+                    JSONObject().apply { put("chainId", adapter.network().chainId) }.toString()
+                },
+                "getAddress" to { adapter, _ -> adapter.address(adapter.network().isTestnet).value },
+                "getWalletId" to { adapter, _ -> adapter.identifier() },
+                "getSupportedFeatures" to { adapter, _ ->
+                    adapter.supportedFeatures()?.let { featuresToJson(it).toString() } ?: "null"
+                },
+            )
+
         @JavascriptInterface
         fun postMessage(json: String) {
             try {
@@ -327,18 +341,9 @@ internal class WebViewManager(
                 val adapterId = params.getString("adapterId")
                 val adapter = adapterManager.getAdapter(adapterId)
                     ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                when (method) {
-                    "getPublicKey" -> adapter.publicKey().value
-                    "getNetwork" -> JSONObject().apply { put("chainId", adapter.network().chainId) }.toString()
-                    "getAddress" -> adapter.address(adapter.network().isTestnet).value
-                    "getWalletId" -> adapter.identifier()
-                    "getSupportedFeatures" -> {
-                        val features = adapter.supportedFeatures()
-                            ?: return@withTimeout "null"
-                        featuresToJson(features).toString()
-                    }
-                    else -> throw IllegalArgumentException("Unknown sync adapter method: $method")
-                }
+                val handler = adapterSyncHandlers[method]
+                    ?: throw IllegalArgumentException("Unknown sync adapter method: $method")
+                handler(adapter, params)
             }
         }
 
