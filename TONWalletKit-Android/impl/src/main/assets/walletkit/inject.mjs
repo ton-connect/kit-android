@@ -476,6 +476,7 @@ function injectBridge(window2, options, argsTransport) {
   return;
 }
 const TONCONNECT_BRIDGE_REQUEST = "TONCONNECT_BRIDGE_REQUEST";
+const TONCONNECT_BRIDGE_RESPONSE = "TONCONNECT_BRIDGE_RESPONSE";
 const TONCONNECT_BRIDGE_EVENT = "TONCONNECT_BRIDGE_EVENT";
 var LogLevel$1;
 (function(LogLevel2) {
@@ -678,111 +679,80 @@ class AndroidWebViewTransport {
   constructor() {
     this.pendingRequests = /* @__PURE__ */ new Map();
     this.eventCallbacks = [];
-    this.setupNotificationHandlers();
-    this.setupPostMessageRelay();
+    this.setupMessageListener();
   }
-  setupNotificationHandlers() {
-    const bridge = tonWindow.AndroidTonConnect;
-    if (!bridge) return;
-    if (window === window.top) {
-      bridge.__notifyResponse = (messageId) => {
-        this.handleResponseNotification(messageId);
-      };
-      bridge.__notifyEvent = () => {
-        this.handleEventNotification();
-      };
-    }
-  }
-  setupPostMessageRelay() {
+  setupMessageListener() {
     window.addEventListener("message", (event) => {
       var _a, _b;
       if (event.source === window) return;
-      if (((_a = event.data) == null ? void 0 : _a.type) === "ANDROID_BRIDGE_RESPONSE") {
-        this.pullAndDeliverResponse(event.data.messageId);
-        document.querySelectorAll("iframe").forEach((iframe) => {
-          var _a2;
-          try {
-            (_a2 = iframe.contentWindow) == null ? void 0 : _a2.postMessage(event.data, "*");
-          } catch (_e) {
-          }
-        });
+      if (event.source === null) {
+        this.handleNativeMessage(event.data);
+      } else if (((_a = event.data) == null ? void 0 : _a.type) === "ANDROID_BRIDGE_RESPONSE") {
+        this.parseAndDeliverResponse(event.data.data);
+        this.relayToSubframes(event.data);
       } else if (((_b = event.data) == null ? void 0 : _b.type) === "ANDROID_BRIDGE_EVENT") {
-        this.pullAndDeliverEvent();
-        document.querySelectorAll("iframe").forEach((iframe) => {
-          var _a2;
+        this.deliverEventFromData(event.data.data);
+        this.relayToSubframes(event.data);
+      }
+    });
+  }
+  handleNativeMessage(rawData) {
+    try {
+      const msg = JSON.parse(rawData);
+      if (msg.type === TONCONNECT_BRIDGE_RESPONSE) {
+        this.parseAndDeliverResponse(rawData);
+        this.relayToSubframes({ type: "ANDROID_BRIDGE_RESPONSE", data: rawData });
+      } else if (msg.type === TONCONNECT_BRIDGE_EVENT) {
+        this.deliverEventFromData(rawData);
+        this.relayToSubframes({ type: "ANDROID_BRIDGE_EVENT", data: rawData });
+      }
+    } catch (err) {
+      error("[AndroidTransport] Failed to handle native message:", err);
+    }
+  }
+  parseAndDeliverResponse(rawData) {
+    try {
+      const response = JSON.parse(rawData);
+      const messageId = response.messageId;
+      if (!messageId) return;
+      const pending = this.pendingRequests.get(messageId);
+      if (!pending) return;
+      clearTimeout(pending.timeout);
+      this.pendingRequests.delete(messageId);
+      if (response.error) {
+        pending.reject(new Error(response.error.message || "Failed"));
+      } else {
+        pending.resolve(response.payload);
+      }
+    } catch (err) {
+      error("[AndroidTransport] Failed to parse/deliver response:", err);
+    }
+  }
+  deliverEventFromData(rawData) {
+    try {
+      const data = JSON.parse(rawData);
+      if (data.type === TONCONNECT_BRIDGE_EVENT && data.event) {
+        const event = data.event;
+        this.eventCallbacks.forEach((callback) => {
           try {
-            (_a2 = iframe.contentWindow) == null ? void 0 : _a2.postMessage(event.data, "*");
-          } catch (_e) {
+            callback(event);
+          } catch (err) {
+            error("[AndroidTransport] Event callback error:", err);
           }
         });
       }
-    });
+    } catch (err) {
+      error("[AndroidTransport] Failed to parse/deliver event:", err);
+    }
   }
-  handleResponseNotification(messageId) {
-    this.pullAndDeliverResponse(messageId);
+  relayToSubframes(data) {
     document.querySelectorAll("iframe").forEach((iframe) => {
       var _a;
       try {
-        (_a = iframe.contentWindow) == null ? void 0 : _a.postMessage({ type: "ANDROID_BRIDGE_RESPONSE", messageId }, "*");
+        (_a = iframe.contentWindow) == null ? void 0 : _a.postMessage(data, "*");
       } catch (_e) {
       }
     });
-  }
-  handleEventNotification() {
-    this.pullAndDeliverEvent();
-    document.querySelectorAll("iframe").forEach((iframe) => {
-      var _a;
-      try {
-        (_a = iframe.contentWindow) == null ? void 0 : _a.postMessage({ type: "ANDROID_BRIDGE_EVENT" }, "*");
-      } catch (_e) {
-      }
-    });
-  }
-  pullAndDeliverResponse(messageId) {
-    const pending = this.pendingRequests.get(messageId);
-    if (!pending) return;
-    try {
-      const bridge = tonWindow.AndroidTonConnect;
-      if (!(bridge == null ? void 0 : bridge.pullResponse)) return;
-      const responseStr = bridge.pullResponse(messageId);
-      if (responseStr) {
-        const response = JSON.parse(responseStr);
-        clearTimeout(pending.timeout);
-        this.pendingRequests.delete(messageId);
-        if (response.error) {
-          pending.reject(new Error(response.error.message || "Failed"));
-        } else {
-          pending.resolve(response.payload);
-        }
-      }
-    } catch (err) {
-      error("[AndroidTransport] Failed to pull/process response:", err);
-      pending.reject(err);
-    }
-  }
-  pullAndDeliverEvent() {
-    try {
-      const bridge = tonWindow.AndroidTonConnect;
-      if (!(bridge == null ? void 0 : bridge.pullEvent) || !(bridge == null ? void 0 : bridge.hasEvent)) return;
-      while (bridge.hasEvent(frameId)) {
-        const eventStr = bridge.pullEvent(frameId);
-        if (eventStr) {
-          const data = JSON.parse(eventStr);
-          if (data.type === TONCONNECT_BRIDGE_EVENT && data.event) {
-            const event = data.event;
-            this.eventCallbacks.forEach((callback) => {
-              try {
-                callback(event);
-              } catch (err) {
-                error("[AndroidTransport] Event callback error:", err);
-              }
-            });
-          }
-        }
-      }
-    } catch (err) {
-      error("[AndroidTransport] Failed to pull/process event:", err);
-    }
   }
   send(request) {
     return __async(this, null, function* () {
@@ -846,11 +816,6 @@ class AndroidWebViewTransport {
     });
     this.pendingRequests.clear();
     this.eventCallbacks = [];
-    const bridge = tonWindow.AndroidTonConnect;
-    if (bridge) {
-      delete bridge.__notifyResponse;
-      delete bridge.__notifyEvent;
-    }
   }
 }
 window.injectWalletKit = (options) => {
