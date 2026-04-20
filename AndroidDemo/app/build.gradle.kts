@@ -57,6 +57,10 @@ android {
             localProps.getProperty("tonApiKey")
                 ?: System.getenv("TONAPI_API_KEY")
                 ?: ""
+        val tetraApiKey =
+            localProps.getProperty("tetraApiKey")
+                ?: System.getenv("TETRA_API_KEY")
+                ?: ""
 
         testMnemonic?.let {
             testInstrumentationRunnerArguments["testMnemonic"] = it
@@ -67,6 +71,7 @@ android {
         }
         buildConfigField("String", "TONCENTER_API_KEY", "\"${tonCenterApiKey.escapeForBuildConfig()}\"")
         buildConfigField("String", "TONAPI_API_KEY", "\"${tonApiKey.escapeForBuildConfig()}\"")
+        buildConfigField("String", "TETRA_API_KEY", "\"${tetraApiKey.escapeForBuildConfig()}\"")
     }
 
     buildTypes {
