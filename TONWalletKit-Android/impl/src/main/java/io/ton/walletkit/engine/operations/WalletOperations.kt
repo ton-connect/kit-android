@@ -97,7 +97,7 @@ internal class WalletOperations(
     private fun signatureDomainToJson(domain: TONSignatureDomain): JSONObject = when (domain) {
         is TONSignatureDomain.L2 -> JSONObject().apply {
             put("type", "l2")
-            put("globalId", domain.value)
+            put("globalId", domain.globalId)
         }
         is TONSignatureDomain.Empty -> JSONObject().apply {
             put("type", "empty")

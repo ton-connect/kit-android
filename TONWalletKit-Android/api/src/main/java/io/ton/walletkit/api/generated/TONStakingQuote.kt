@@ -33,71 +33,52 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Swap quote response with pricing information
+ * Staking quote response with pricing information
  *
- * @param fromToken
- * @param toToken
- * @param rawFromAmount
- * @param rawToAmount
- * @param fromAmount Amount of tokens to sell
- * @param toAmount Amount of tokens to buy
- * @param rawMinReceived
- * @param minReceived Minimum amount of tokens to receive (after slippage)
+ * @param direction
+ * @param rawAmountIn
+ * @param rawAmountOut
+ * @param amountIn Formatted amount of tokens being provided
+ * @param amountOut Formatted estimated amount of tokens to be received
  * @param network
- * @param providerId Identifier of the swap provider
- * @param priceImpact Price impact of the swap in basis points (100 = 1%)
- * @param fee Fees associated with the swap
- * @param expiresAt Unix timestamp in seconds when the quote expires
+ * @param providerId Identifier of the staking provider
+ * @param apy Annual Percentage Yield in basis points (100 = 1%)
+ * @param unstakeMode
  * @param metadata Provider-specific metadata for the quote
  */
 @Serializable
-data class TONSwapQuote(
+data class TONStakingQuote(
 
-    @SerialName(value = "fromToken")
-    val fromToken: TONSwapToken,
+    @Contextual @SerialName(value = "direction")
+    val direction: TONStakingQuoteDirection,
 
-    @SerialName(value = "toToken")
-    val toToken: TONSwapToken,
+    @SerialName(value = "rawAmountIn")
+    val rawAmountIn: kotlin.String,
 
-    @SerialName(value = "rawFromAmount")
-    val rawFromAmount: kotlin.String,
+    @SerialName(value = "rawAmountOut")
+    val rawAmountOut: kotlin.String,
 
-    @SerialName(value = "rawToAmount")
-    val rawToAmount: kotlin.String,
+    /* Formatted amount of tokens being provided */
+    @SerialName(value = "amountIn")
+    val amountIn: kotlin.String,
 
-    /* Amount of tokens to sell */
-    @SerialName(value = "fromAmount")
-    val fromAmount: kotlin.String,
-
-    /* Amount of tokens to buy */
-    @SerialName(value = "toAmount")
-    val toAmount: kotlin.String,
-
-    @SerialName(value = "rawMinReceived")
-    val rawMinReceived: kotlin.String,
-
-    /* Minimum amount of tokens to receive (after slippage) */
-    @SerialName(value = "minReceived")
-    val minReceived: kotlin.String,
+    /* Formatted estimated amount of tokens to be received */
+    @SerialName(value = "amountOut")
+    val amountOut: kotlin.String,
 
     @SerialName(value = "network")
     val network: TONNetwork,
 
-    /* Identifier of the swap provider */
+    /* Identifier of the staking provider */
     @SerialName(value = "providerId")
     val providerId: kotlin.String,
 
-    /* Price impact of the swap in basis points (100 = 1%) */
-    @SerialName(value = "priceImpact")
-    val priceImpact: kotlin.Int? = null,
+    /* Annual Percentage Yield in basis points (100 = 1%) */
+    @SerialName(value = "apy")
+    val apy: kotlin.Int? = null,
 
-    /* Fees associated with the swap */
-    @SerialName(value = "fee")
-    val fee: kotlin.collections.List<TONSwapFee>? = null,
-
-    /* Unix timestamp in seconds when the quote expires */
-    @SerialName(value = "expiresAt")
-    val expiresAt: kotlin.Int? = null,
+    @Contextual @SerialName(value = "unstakeMode")
+    val unstakeMode: TONUnstakeMode? = null,
 
     /* Provider-specific metadata for the quote */
     @Contextual @SerialName(value = "metadata")
