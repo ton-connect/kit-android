@@ -222,6 +222,26 @@ class CryptoOperationsTest : OperationsTestBase() {
     }
 
     @Test
+    fun sign_parsesHexSignatureFromValueField() = runBlocking {
+        givenBridgeReturns(
+            jsonOf(
+                "value" to "0xdeadbeef",
+            ),
+        )
+
+        val result = cryptoOperations.sign(
+            data = byteArrayOf(1, 2, 3),
+            secretKey = ByteArray(64) { it.toByte() },
+        )
+
+        assertEquals(4, result.size)
+        assertEquals(0xde.toByte(), result[0])
+        assertEquals(0xad.toByte(), result[1])
+        assertEquals(0xbe.toByte(), result[2])
+        assertEquals(0xef.toByte(), result[3])
+    }
+
+    @Test
     fun sign_handlesHexWithPrefix() = runBlocking {
         givenBridgeReturns(
             jsonOf(

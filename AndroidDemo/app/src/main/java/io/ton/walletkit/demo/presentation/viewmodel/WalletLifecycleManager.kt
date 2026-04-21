@@ -27,16 +27,12 @@ import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.api.ChainIds
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
-import io.ton.walletkit.api.WalletVersions
+import io.ton.walletkit.api.TETRA
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.generated.TONSignatureDomain
-import io.ton.walletkit.api.isTetra
 import io.ton.walletkit.demo.data.cache.TransactionCache
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.UserPreferences
 import io.ton.walletkit.demo.data.storage.WalletRecord
-import io.ton.walletkit.demo.domain.model.PendingWalletRecord
-import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.domain.model.WalletMetadata
 import io.ton.walletkit.demo.presentation.model.SessionSummary
 import io.ton.walletkit.demo.presentation.model.WalletSummary
@@ -60,7 +56,6 @@ class WalletLifecycleManager(
 
     val tonWallets: MutableMap<String, ITONWallet> = mutableMapOf()
     val walletMetadata: MutableMap<String, WalletMetadata> = mutableMapOf()
-    val pendingWallets: ArrayDeque<PendingWalletRecord> = ArrayDeque()
     val transactionCache: TransactionCache = TransactionCache()
 
     var currentNetwork: TONNetwork = initialNetwork
@@ -80,14 +75,8 @@ class WalletLifecycleManager(
             wallet.address?.value?.let { tonWallets[it] = wallet }
         }
 
-        if (tonWallets.isEmpty()) {
-            rehydrateWalletsFromStorage()
-        }
-
-        val walletsAfterMigration = kit.getWallets()
-        tonWallets.clear()
         val metadataCorrections = mutableListOf<String>()
-        for (wallet in walletsAfterMigration) {
+        for (wallet in wallets) {
             val address = wallet.address?.value ?: continue
             tonWallets[address] = wallet
             if (walletMetadata[address] == null) {
@@ -187,7 +176,6 @@ class WalletLifecycleManager(
         if (target == currentNetwork) return
         currentNetwork = target
         walletMetadata.clear()
-        pendingWallets.clear()
         onRefresh()
     }
 
@@ -198,104 +186,17 @@ class WalletLifecycleManager(
         lastPersistedActiveWallet = null
     }
 
-    private suspend fun rehydrateWalletsFromStorage(): Boolean {
-        val stored = storage.loadAllWallets()
-        if (stored.isEmpty()) {
-            Log.d(LOG_TAG, "rehydrate: storage empty, nothing to restore")
-            return false
-        }
-
-        val kit = kitProvider()
-        var restoredCount = 0
-        for ((storedAddress, record) in stored) {
-            val interfaceType = record.interfaceType
-            if (interfaceType != WalletInterfaceType.MNEMONIC.value) {
-                Log.w(
-                    LOG_TAG,
-                    "rehydrate: skipping $storedAddress (interfaceType=$interfaceType not supported for auto-restore)",
-                )
-                continue
-            }
-
-            if (record.mnemonic.isEmpty()) {
-                Log.w(LOG_TAG, "rehydrate: skipping $storedAddress (mnemonic is empty)")
-                continue
-            }
-
-            val networkEnum = parseNetworkString(record.network, currentNetwork)
-            val version = record.version.ifBlank { defaultWalletVersion }
-            val name = record.name.ifBlank { defaultWalletNameProvider(restoredCount) }
-            val domain = if (networkEnum.isTetra) TONSignatureDomain.L2(value = 662387) else null
-
-            val result = runCatching {
-                when (version) {
-                    WalletVersions.V4R2 -> {
-                        val signer = kit.createSignerFromMnemonic(record.mnemonic)
-                        val adapter = kit.createV4R2Adapter(signer, networkEnum, domain = domain)
-                        kit.addWallet(adapter)
-                    }
-                    WalletVersions.V5R1 -> {
-                        val signer = kit.createSignerFromMnemonic(record.mnemonic)
-                        val adapter = kit.createV5R1Adapter(signer, networkEnum, domain = domain)
-                        kit.addWallet(adapter)
-                    }
-                    else -> {
-                        Log.w(LOG_TAG, "rehydrate: unsupported version $version for $storedAddress")
-                        null
-                    }
-                }
-            }
-            if (result.getOrNull() == null) {
-                continue
-            }
-            result.onSuccess { walletNullable ->
-                val wallet = walletNullable ?: return@onSuccess
-                val restoredAddress = wallet.address?.value
-                if (restoredAddress.isNullOrBlank()) {
-                    Log.w(LOG_TAG, "rehydrate: wallet added but address null for stored $storedAddress")
-                    return@onSuccess
-                }
-
-                tonWallets[restoredAddress] = wallet
-                walletMetadata[restoredAddress] = WalletMetadata(
-                    name = name,
-                    network = networkEnum,
-                    version = version,
-                )
-
-                if (restoredAddress != storedAddress) {
-                    Log.w(
-                        LOG_TAG,
-                        "rehydrate: restored address mismatch stored=$storedAddress restored=$restoredAddress",
-                    )
-                }
-
-                restoredCount += 1
-                Log.d(
-                    LOG_TAG,
-                    "rehydrate: restored wallet $restoredAddress (name='$name', network=$networkEnum, version=$version)",
-                )
-            }.onFailure {
-                Log.e(LOG_TAG, "rehydrate: failed to restore $storedAddress", it)
-            }
-        }
-
-        return restoredCount > 0
-    }
-
     private suspend fun ensureMetadataForAddress(address: String): WalletMetadata {
         walletMetadata[address]?.let { return it }
 
-        val pending = pendingWallets.removeLastOrNull()
         val storedRecord = storage.loadWallet(address)
-        val metadata = pending?.metadata
-            ?: storedRecord?.let {
-                WalletMetadata(
-                    name = it.name,
-                    network = parseNetworkString(it.network, currentNetwork),
-                    version = it.version,
-                )
-            }
+        val metadata = storedRecord?.let {
+            WalletMetadata(
+                name = it.name,
+                network = parseNetworkString(it.network, currentNetwork),
+                version = it.version,
+            )
+        }
             ?: WalletMetadata(
                 name = defaultWalletNameProvider(walletMetadata.size),
                 network = currentNetwork,
@@ -303,17 +204,7 @@ class WalletLifecycleManager(
             )
         walletMetadata[address] = metadata
 
-        if (pending?.mnemonic != null) {
-            val record = WalletRecord(
-                mnemonic = pending.mnemonic,
-                name = metadata.name,
-                network = metadata.network.chainId,
-                version = metadata.version,
-            )
-            runCatching { storage.saveWallet(address, record) }
-                .onSuccess { Log.d(LOG_TAG, "ensureMetadataForAddress: saved pending record for $address") }
-                .onFailure { Log.e(LOG_TAG, "ensureMetadataForAddress: failed to save pending record for $address", it) }
-        } else if (storedRecord != null) {
+        if (storedRecord != null) {
             val needsUpdate = storedRecord.name != metadata.name ||
                 storedRecord.network != metadata.network.chainId ||
                 storedRecord.version != metadata.version
@@ -338,6 +229,7 @@ class WalletLifecycleManager(
     private fun parseNetworkString(networkStr: String?, fallback: TONNetwork): TONNetwork = when (networkStr?.trim()) {
         ChainIds.MAINNET -> TONNetwork.MAINNET
         ChainIds.TESTNET -> TONNetwork.TESTNET
+        ChainIds.TETRA -> TONNetwork.TETRA
         null, "" -> fallback
         else -> fallback
     }

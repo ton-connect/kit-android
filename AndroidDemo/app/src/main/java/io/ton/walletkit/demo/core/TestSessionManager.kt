@@ -21,26 +21,47 @@
  */
 package io.ton.walletkit.demo.core
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.google.crypto.tink.subtle.X25519
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.session.SessionFilter
 import io.ton.walletkit.session.TONConnectSession
 import io.ton.walletkit.session.TONConnectSessionManager
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.net.URL
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Test implementation of TONConnectSessionManager that stores sessions in memory.
+ * Demo implementation of TONConnectSessionManager that persists sessions locally.
  * This demonstrates how Tonkeeper or other wallet apps can provide their own session management.
- *
- * In a real implementation, this would persist sessions to the app's database.
  */
-class TestSessionManager : TONConnectSessionManager {
+class TestSessionManager(context: Context) : TONConnectSessionManager {
 
     private val sessions = ConcurrentHashMap<String, TONConnectSession>()
+    private val prefs: SharedPreferences
+
+    init {
+        val appContext = context.applicationContext
+        val masterKey = MasterKey.Builder(appContext)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        prefs = EncryptedSharedPreferences.create(
+            appContext,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+        )
+        restoreSessions()
+    }
 
     override suspend fun createSession(
         sessionId: String,
@@ -95,6 +116,7 @@ class TestSessionManager : TONConnectSessionManager {
         )
 
         sessions[sessionId] = session
+        persistSessions()
         Log.d(TAG, "Session stored. Total sessions: ${sessions.size}")
 
         return session
@@ -132,19 +154,46 @@ class TestSessionManager : TONConnectSessionManager {
 
     override suspend fun removeSession(sessionId: String) {
         val removed = sessions.remove(sessionId)
+        if (removed != null) {
+            persistSessions()
+        }
         Log.d(TAG, "removeSession($sessionId): ${if (removed != null) "removed" else "not found"}")
     }
 
     override suspend fun removeSessions(filter: SessionFilter?) {
         val toRemove = getSessions(filter)
         toRemove.forEach { sessions.remove(it.sessionId) }
+        if (toRemove.isNotEmpty()) {
+            persistSessions()
+        }
         Log.d(TAG, "removeSessions(filter=$filter): removed ${toRemove.size} sessions")
     }
 
     override suspend fun clearSessions() {
         val count = sessions.size
         sessions.clear()
+        persistSessions()
         Log.d(TAG, "clearSessions(): cleared $count sessions")
+    }
+
+    private fun restoreSessions() {
+        val raw = prefs.getString(KEY_SESSIONS, null) ?: return
+        runCatching {
+            json.decodeFromString<List<TONConnectSession>>(raw)
+        }.onSuccess { restored ->
+            restored.forEach { sessions[it.sessionId] = it }
+            Log.d(TAG, "Restored ${restored.size} sessions from storage")
+        }.onFailure {
+            Log.e(TAG, "Failed to restore sessions from storage", it)
+        }
+    }
+
+    private fun persistSessions() {
+        runCatching {
+            prefs.edit().putString(KEY_SESSIONS, json.encodeToString(sessions.values.sortedBy { it.sessionId })).apply()
+        }.onFailure {
+            Log.e(TAG, "Failed to persist sessions", it)
+        }
     }
 
     private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
@@ -152,5 +201,10 @@ class TestSessionManager : TONConnectSessionManager {
     companion object {
         private const val TAG = "TestSessionManager"
         private const val SCHEMA_VERSION = 1
+        private const val PREFS_NAME = "walletkit_demo_sessions"
+        private const val KEY_SESSIONS = "sessions"
+        private val json = Json {
+            ignoreUnknownKeys = true
+        }
     }
 }

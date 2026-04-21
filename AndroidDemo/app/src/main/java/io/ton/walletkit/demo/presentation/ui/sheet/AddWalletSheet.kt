@@ -348,33 +348,20 @@ fun AddWalletSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
-                    // Show info message if Custom Signer or Secret Key is selected
-                    when (interfaceType) {
-                        WalletInterfaceType.SIGNER -> {
-                            Text(
-                                stringResource(R.string.wallet_error_signer_cannot_generate),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(vertical = 8.dp),
-                            )
-                        }
-                        WalletInterfaceType.SECRET_KEY -> {
-                            Text(
-                                stringResource(R.string.wallet_error_secret_key_cannot_generate),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(vertical = 8.dp),
-                            )
-                        }
-                        WalletInterfaceType.MNEMONIC -> {
-                            // No warning for mnemonic
-                        }
+                    // Show info message if Secret Key is selected
+                    if (interfaceType == WalletInterfaceType.SECRET_KEY) {
+                        Text(
+                            stringResource(R.string.wallet_error_secret_key_cannot_generate),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                        )
                     }
 
                     Button(
                         onClick = { onGenerateWallet(walletName, network, walletVersion, interfaceType) },
                         modifier = Modifier.fillMaxWidth().testTag(TestTags.GENERATE_WALLET_PROCESS_BUTTON),
-                        enabled = interfaceType == WalletInterfaceType.MNEMONIC, // Only enable for Mnemonic
+                        enabled = interfaceType != WalletInterfaceType.SECRET_KEY,
                     ) { Text(stringResource(R.string.action_generate_wallet)) }
                 }
             }

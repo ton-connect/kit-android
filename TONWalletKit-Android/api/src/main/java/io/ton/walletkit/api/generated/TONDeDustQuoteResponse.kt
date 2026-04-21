@@ -28,34 +28,49 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
+ * Quote response from DeDust Router API
  *
- *
- * @param quote
- * @param userAddress
- * @param destinationAddress
- * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
- * @param deadline Transaction deadline in unix timestamp
- * @param providerOptions Provider-specific options
+ * @param inAmount
+ * @param outAmount
+ * @param swapData
+ * @param swapIsPossible
+ * @param priceImpact
+ * @param improvement
+ * @param inMinterPrice
+ * @param outMinterPrice
  */
 @Serializable
-data class TONSwapParams<TProviderOptions>(
-    @SerialName("quote")
-    val quote: TONSwapQuote,
-    @SerialName("userAddress")
-    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
-    @SerialName("destinationAddress")
-    val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-    @SerialName("slippageBps")
-    val slippageBps: kotlin.Int? = null,
-    @SerialName("deadline")
-    val deadline: kotlin.Int? = null,
-    @SerialName("providerOptions")
-    val providerOptions: TProviderOptions? = null,
+data class TONDeDustQuoteResponse(
+
+    @SerialName(value = "in_amount")
+    val inAmount: kotlin.String,
+
+    @SerialName(value = "out_amount")
+    val outAmount: kotlin.String,
+
+    @SerialName(value = "swap_data")
+    val swapData: TONDeDustSwapData,
+
+    @SerialName(value = "swap_is_possible")
+    val swapIsPossible: kotlin.Boolean,
+
+    @SerialName(value = "price_impact")
+    val priceImpact: kotlin.Int? = null,
+
+    @SerialName(value = "improvement")
+    val improvement: kotlin.String? = null,
+
+    @SerialName(value = "in_minter_price")
+    val inMinterPrice: kotlin.String? = null,
+
+    @SerialName(value = "out_minter_price")
+    val outMinterPrice: kotlin.String? = null,
+
 ) {
+
     companion object
 }
