@@ -44,7 +44,7 @@ data class TONStakingProviderInfo(
 
     /* Annual Percentage Yield in basis points (100 = 1%) */
     @SerialName(value = "apy")
-    val apy: kotlin.Int,
+    val apy: kotlin.Double,
 
     /* Identifier of the staking provider */
     @SerialName(value = "providerId")

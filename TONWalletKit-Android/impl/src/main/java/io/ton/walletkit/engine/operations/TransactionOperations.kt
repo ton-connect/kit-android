@@ -22,6 +22,7 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
+import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
@@ -93,17 +94,30 @@ internal class TransactionOperations(
     suspend fun sendTransaction(walletId: String, transactionContent: String): String {
         ensureInitialized()
 
-        val requestObj = json.toJSONObject(SendTransactionRequest(walletId = walletId, transactionContent = transactionContent))
-        requestObj.put("transactionContent", JSONObject(transactionContent))
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_SEND_TRANSACTION, requestObj)
+        val txRequest = json.decodeFromString(TONTransactionRequest.serializer(), transactionContent)
+        val request = SendTransactionRequest(
+            walletId = walletId,
+            messages = txRequest.messages,
+            network = txRequest.network,
+            validUntil = txRequest.validUntil?.toInt(),
+            fromAddress = txRequest.fromAddress,
+        )
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_SEND_TRANSACTION, json.toJSONObject(request))
         return result.optString("boc", result.optString(ResponseConstants.KEY_SIGNED_BOC, ""))
     }
 
     suspend fun getTransactionPreview(walletId: String, transactionContent: String): TONTransactionEmulatedPreview {
         ensureInitialized()
 
-        val requestObj = json.toJSONObject(GetTransactionPreviewRequest(walletId = walletId, transactionContent = transactionContent))
-        requestObj.put("transactionContent", JSONObject(transactionContent))
+        val txRequest = json.decodeFromString(TONTransactionRequest.serializer(), transactionContent)
+        val request = GetTransactionPreviewRequest(
+            walletId = walletId,
+            messages = txRequest.messages,
+            network = txRequest.network,
+            validUntil = txRequest.validUntil?.toInt(),
+            fromAddress = txRequest.fromAddress,
+        )
+        val requestObj = json.toJSONObject(request)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW, requestObj)
         return try {
             json.decodeFromString(TONTransactionEmulatedPreview.serializer(), result.toString())
