@@ -108,7 +108,7 @@ internal class WalletOperations(
         ensureInitialized()
 
         val signerId = signerManager.registerSigner(signer)
-        val publicKeyHex = WalletKitUtils.stripHexPrefix(signer.publicKey().value)
+        val publicKeyHex = WalletKitUtils.ensureHexPrefix(signer.publicKey().value)
 
         val request = JSONObject().apply {
             put("signerId", signerId)

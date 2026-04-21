@@ -32,11 +32,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -118,6 +115,12 @@ fun WalletScreen(
 ) {
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val onRefreshAll: () -> Unit = {
+        actions.onRefresh()
+        actions.onRefreshJettons()
+        nftsViewModel?.refresh()
+    }
 
     // State for NFT details bottom sheet
     var selectedNFT by remember { mutableStateOf<TONNFT?>(null) }
@@ -279,15 +282,6 @@ fun WalletScreen(
                     ) {
                         Icon(Icons.Outlined.Language, contentDescription = "Open dApp Browser (No Injection)")
                     }
-                    IconButton(onClick = actions::onRefresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.action_refresh))
-                    }
-                    IconButton(onClick = actions::onUrlPromptClick) {
-                        Icon(Icons.Outlined.Link, contentDescription = stringResource(R.string.action_handle_url))
-                    }
-                    IconButton(onClick = actions::onAddWalletClick) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.action_add_wallet))
-                    }
                 },
             )
         },
@@ -312,7 +306,7 @@ fun WalletScreen(
             QuickActionsCard(
                 onHandleUrl = actions::onUrlPromptClick,
                 onAddWallet = actions::onAddWalletClick,
-                onRefresh = actions::onRefresh,
+                onRefresh = onRefreshAll,
             )
 
             // Wallet Switcher (only show if multiple wallets exist)
@@ -333,6 +327,7 @@ fun WalletScreen(
                 totalWallets = state.wallets.size,
                 onWalletSelected = actions::onWalletDetails,
                 onSendFromWallet = actions::onSendFromWallet,
+                onRefresh = actions::onRefresh,
             )
 
             // Show NFTs for the active wallet (if ViewModel is available)
@@ -412,8 +407,9 @@ fun WalletScreen(
                     nftDetails = nftDetails,
                     onClose = { selectedNFT = null },
                     onTransferSuccess = {
-                        // Refresh NFT list after successful transfer
-                        nftsViewModel?.refresh()
+                        val nftAddress = selectedNFT?.address?.value
+                        nftAddress?.let { addr -> nftsViewModel?.removeNft(addr) }
+                        nftsViewModel?.refreshWithDelay()
                     },
                 )
             }
