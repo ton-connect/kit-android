@@ -122,15 +122,8 @@ class WalletKitDemoApp :
 
     private suspend fun loadAndAddStoredWallets(kit: ITONWalletKit) {
         try {
-<<<<<<< HEAD
-            val storage = getSharedPreferences("wallet_storage", MODE_PRIVATE)
-            val walletDataJson = storage.getString("wallets", "[]") ?: "[]"
-
-            if (walletDataJson == "[]") {
-=======
             val storedWallets = storage.loadAllWallets()
             if (storedWallets.isEmpty()) {
->>>>>>> main
                 Log.d(TAG, "No stored wallets to load")
                 return
             }
@@ -143,11 +136,6 @@ class WalletKitDemoApp :
                     continue
                 }
 
-<<<<<<< HEAD
-            for (walletRecord in walletDataList) {
-                try {
-                    val mnemonicWords = walletRecord.mnemonic.split(" ").filter { it.isNotBlank() }
-=======
                 try {
                     if (walletRecord.interfaceType != WalletInterfaceType.MNEMONIC.value) {
                         Log.d(TAG, "Skipping auto-restore for $address: interfaceType=${walletRecord.interfaceType}")
@@ -158,7 +146,6 @@ class WalletKitDemoApp :
                         Log.w(TAG, "Skipping auto-restore for $address: mnemonic is empty")
                         continue
                     }
->>>>>>> main
 
                     val network = when (walletRecord.network) {
                         ChainIds.MAINNET -> TONNetwork.MAINNET
