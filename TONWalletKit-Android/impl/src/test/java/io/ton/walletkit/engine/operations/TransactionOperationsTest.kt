@@ -150,14 +150,29 @@ class TransactionOperationsTest : OperationsTestBase() {
     // --- sendTransaction tests ---
 
     @Test
-    fun sendTransaction_extractsSignedBoc() = runBlocking {
+    fun sendTransaction_extractsBoc() = runBlocking {
+        givenBridgeReturns(
+            jsonOf(
+                "boc" to "te6ccgEBAgEA...",
+                "normalizedBoc" to "te6ccgEBAgEA...",
+                "normalizedHash" to "abc123",
+            ),
+        )
+
+        val result = transactionOperations.sendTransaction(TEST_ADDRESS, """{"messages":[]}""")
+
+        assertEquals("te6ccgEBAgEA...", result)
+    }
+
+    @Test
+    fun sendTransaction_fallsBackToSignedBoc() = runBlocking {
         givenBridgeReturns(
             jsonOf(
                 "signedBoc" to "te6ccgEBAgEA...",
             ),
         )
 
-        val result = transactionOperations.sendTransaction(TEST_ADDRESS, """{"boc":"..."}""")
+        val result = transactionOperations.sendTransaction(TEST_ADDRESS, """{"messages":[]}""")
 
         assertEquals("te6ccgEBAgEA...", result)
         val params = capturedParams as JSONObject
@@ -182,11 +197,10 @@ class TransactionOperationsTest : OperationsTestBase() {
 
     @Test
     fun sendTransaction_throwsIfSignedBocAndBocMissing() {
-        runBlocking {
-            givenBridgeReturns(JSONObject()) // No signedBoc or boc
-
-            assertThrows(org.json.JSONException::class.java) {
-                runBlocking { transactionOperations.sendTransaction(TEST_ADDRESS, """{"boc":"..."}""") }
+        assertThrows(org.json.JSONException::class.java) {
+            runBlocking {
+                givenBridgeReturns(JSONObject())
+                transactionOperations.sendTransaction(TEST_ADDRESS, """{"messages":[]}""")
             }
         }
     }

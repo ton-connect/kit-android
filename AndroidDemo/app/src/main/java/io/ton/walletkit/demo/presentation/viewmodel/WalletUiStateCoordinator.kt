@@ -124,9 +124,15 @@ class WalletUiStateCoordinator(
     fun onSessionsStateChanged(sessionsState: SessionsState) {
         state.update { current ->
             val errorMessage = sessionsState.error ?: current.error
+            val sessionsByWallet = sessionsState.sessions.groupBy { it.walletAddress }
             current.copy(
                 sessions = sessionsState.sessions,
                 isLoadingSessions = sessionsState.isLoading,
+                wallets = current.wallets.map { wallet ->
+                    wallet.copy(
+                        connectedSessions = sessionsByWallet[wallet.address].orEmpty(),
+                    )
+                },
                 error = errorMessage,
             )
         }

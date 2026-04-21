@@ -181,4 +181,16 @@ object WalletKitUtils {
     fun stripHexPrefix(hex: String): String {
         return hex.removePrefix("0x").removePrefix("0X")
     }
+
+    /**
+     * Ensure a hex string has the "0x" prefix.
+     * If the string already starts with "0x" or "0X" it is returned unchanged;
+     * otherwise "0x" is prepended.
+     *
+     * @param hex Hex string with or without 0x prefix
+     * @return Hex string with 0x prefix
+     */
+    fun ensureHexPrefix(hex: String): String {
+        return if (hex.startsWith("0x") || hex.startsWith("0X")) hex else "0x$hex"
+    }
 }

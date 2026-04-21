@@ -53,6 +53,7 @@ fun SignDataSheet(
     onReject: () -> Unit,
 ) {
     val clipboardManager = LocalClipboardManager.current
+    val displayContent = request.preview?.takeIf { it.isNotBlank() } ?: request.payloadContent
 
     Column(
         modifier = Modifier
@@ -78,7 +79,7 @@ fun SignDataSheet(
                 clipboardManager.setText(AnnotatedString(request.payloadContent))
             },
         ) {
-            CodeBlock(request.preview ?: request.payloadContent)
+            CodeBlock(displayContent)
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {

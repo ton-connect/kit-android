@@ -28,34 +28,31 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
+ * Configuration options for the TonAPI streaming provider (v2 WebSocket protocol).
  *
- *
- * @param quote
- * @param userAddress
- * @param destinationAddress
- * @param slippageBps Slippage tolerance in basis points (1 bp = 0.01%)
- * @param deadline Transaction deadline in unix timestamp
- * @param providerOptions Provider-specific options
+ * @param network
+ * @param endpoint Full WebSocket URL for the streaming API. When set, it is used as-is (after http→wss normalization). When omitted, the default TonAPI host for the network is used with `/api/streaming/v2/ws`.
+ * @param apiKey Optional bearer token for TonAPI (`token` query parameter on the WebSocket URL).
  */
 @Serializable
-data class TONSwapParams<TProviderOptions>(
-    @SerialName("quote")
-    val quote: TONSwapQuote,
-    @SerialName("userAddress")
-    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
-    @SerialName("destinationAddress")
-    val destinationAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-    @SerialName("slippageBps")
-    val slippageBps: kotlin.Int? = null,
-    @SerialName("deadline")
-    val deadline: kotlin.Int? = null,
-    @SerialName("providerOptions")
-    val providerOptions: TProviderOptions? = null,
+data class TONTonApiStreamingProviderConfig(
+
+    @SerialName(value = "network")
+    val network: TONNetwork,
+
+    /* Full WebSocket URL for the streaming API. When set, it is used as-is (after http→wss normalization). When omitted, the default TonAPI host for the network is used with `/api/streaming/v2/ws`. */
+    @SerialName(value = "endpoint")
+    val endpoint: kotlin.String? = null,
+
+    /* Optional bearer token for TonAPI (`token` query parameter on the WebSocket URL). */
+    @SerialName(value = "apiKey")
+    val apiKey: kotlin.String? = null,
+
 ) {
+
     companion object
 }

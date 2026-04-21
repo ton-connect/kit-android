@@ -133,9 +133,11 @@ internal class CryptoOperations(
         )
         val result = rpcClient.call(BridgeMethodConstants.METHOD_SIGN, json.toJSONObject(request))
 
-        // JS now returns hex string directly (not wrapped in { signature: ... })
+        // BridgeRpcClient wraps primitive JS results into { value: ... }.
+        // Older code also supported { signature: ... }, so accept both.
         val signatureHex = when {
             result is String -> result
+            result.has(ResponseConstants.KEY_VALUE) -> result.optString(ResponseConstants.KEY_VALUE)
             result.has(ResponseConstants.KEY_SIGNATURE) -> result.optString(ResponseConstants.KEY_SIGNATURE)
             else -> result.toString()
         }.takeIf { it.isNotEmpty() && it != "null" }

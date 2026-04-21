@@ -29,6 +29,7 @@ import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.api.generated.TONNFTsRequest
 import io.ton.walletkit.api.generated.TONPagination
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -150,5 +151,17 @@ class NFTsListViewModel(
         _nfts.value = emptyList()
         _canLoadMore.value = false
         loadNFTs()
+    }
+
+    fun removeNft(nftAddress: String) {
+        _nfts.value = _nfts.value.filterNot { it.address.value == nftAddress }
+        if (_nfts.value.isEmpty()) _state.value = NFTState.Empty
+    }
+
+    fun refreshWithDelay(delayMs: Long = 5_000L) {
+        viewModelScope.launch {
+            delay(delayMs)
+            refresh()
+        }
     }
 }

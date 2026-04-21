@@ -37245,14 +37245,14 @@ function initTonWalletKit(config2, deps) {
           const DISCONNECT_EVENT = "disconnect";
           if (bridgeMessage.type === TONCONNECT_BRIDGE_RESPONSE) {
             const responseMsg = bridgeMessage;
-            const result = responseMsg.result;
-            if ((result == null ? void 0 : result.event) === DISCONNECT_EVENT && !responseMsg.messageId) {
+            const disconnectPayload = responseMsg.payload;
+            if ((disconnectPayload == null ? void 0 : disconnectPayload.event) === DISCONNECT_EVENT && !responseMsg.messageId) {
               bridgeMessage = {
                 type: TONCONNECT_BRIDGE_EVENT,
                 source: responseMsg.source,
                 event: {
                   event: "disconnect",
-                  id: (_a2 = result.id) != null ? _a2 : 0,
+                  id: (_a2 = disconnectPayload.id) != null ? _a2 : 0,
                   payload: {}
                 }
               };
