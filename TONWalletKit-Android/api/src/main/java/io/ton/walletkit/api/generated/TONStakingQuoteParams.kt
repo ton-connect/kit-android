@@ -28,38 +28,34 @@
 
 package io.ton.walletkit.api.generated
 
-import kotlinx.serialization.Contextual
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Provider-specific options for Omniston swap operations
  *
- * @param referrerAddress The address of the referrer
- * @param referrerFeeBps Referrer fee in basis points (1 bp = 0.01%)
- * @param flexibleReferrerFee Whether a flexible referrer fee is allowed
- * @param settlementMethods Settlement methods to use for the swap
+ *
+ * @param direction
+ * @param amount Amount of tokens to stake or unstake
+ * @param userAddress
+ * @param network
+ * @param unstakeMode
+ * @param providerOptions Provider-specific options
  */
 @Serializable
-data class TONOmnistonProviderOptions(
-
-    /* The address of the referrer */
-    @SerialName(value = "referrerAddress")
-    val referrerAddress: kotlin.String? = null,
-
-    /* Referrer fee in basis points (1 bp = 0.01%) */
-    @SerialName(value = "referrerFeeBps")
-    val referrerFeeBps: kotlin.Int? = null,
-
-    /* Whether a flexible referrer fee is allowed */
-    @SerialName(value = "flexibleReferrerFee")
-    val flexibleReferrerFee: kotlin.Boolean? = null,
-
-    /* Settlement methods to use for the swap */
-    @SerialName(value = "settlementMethods")
-    val settlementMethods: kotlin.collections.List<@Contextual TONSettlementMethod>? = null,
-
+data class TONStakingQuoteParams<TProviderOptions>(
+    @SerialName("direction")
+    val direction: TONStakingQuoteDirection,
+    @SerialName("amount")
+    val amount: kotlin.String,
+    @SerialName("userAddress")
+    val userAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
+    @SerialName("network")
+    val network: TONNetwork? = null,
+    @SerialName("unstakeMode")
+    val unstakeMode: TONUnstakeMode? = null,
+    @SerialName("providerOptions")
+    val providerOptions: TProviderOptions? = null,
 ) {
-
     companion object
 }

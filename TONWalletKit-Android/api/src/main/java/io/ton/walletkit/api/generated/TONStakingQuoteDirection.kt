@@ -28,38 +28,47 @@
 
 package io.ton.walletkit.api.generated
 
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Provider-specific options for Omniston swap operations
+ * Direction of the staking quote
  *
- * @param referrerAddress The address of the referrer
- * @param referrerFeeBps Referrer fee in basis points (1 bp = 0.01%)
- * @param flexibleReferrerFee Whether a flexible referrer fee is allowed
- * @param settlementMethods Settlement methods to use for the swap
+ * Values: stake,unstake
  */
 @Serializable
-data class TONOmnistonProviderOptions(
+enum class TONStakingQuoteDirection(val value: kotlin.String) {
 
-    /* The address of the referrer */
-    @SerialName(value = "referrerAddress")
-    val referrerAddress: kotlin.String? = null,
+    @SerialName(value = "stake")
+    stake("stake"),
 
-    /* Referrer fee in basis points (1 bp = 0.01%) */
-    @SerialName(value = "referrerFeeBps")
-    val referrerFeeBps: kotlin.Int? = null,
+    @SerialName(value = "unstake")
+    unstake("unstake"),
+    ;
 
-    /* Whether a flexible referrer fee is allowed */
-    @SerialName(value = "flexibleReferrerFee")
-    val flexibleReferrerFee: kotlin.Boolean? = null,
+    /**
+     * Override [toString()] to avoid using the enum variable name as the value, and instead use
+     * the actual value defined in the API spec file.
+     *
+     * This solves a problem when the variable name and its value are different, and ensures that
+     * the client sends the correct enum values to the server always.
+     */
+    override fun toString(): kotlin.String = value
 
-    /* Settlement methods to use for the swap */
-    @SerialName(value = "settlementMethods")
-    val settlementMethods: kotlin.collections.List<@Contextual TONSettlementMethod>? = null,
+    companion object {
+        /**
+         * Converts the provided [data] to a [String] on success, null otherwise.
+         */
+        fun encode(data: kotlin.Any?): kotlin.String? = if (data is TONStakingQuoteDirection) "$data" else null
 
-) {
-
-    companion object
+        /**
+         * Returns a valid [TONStakingQuoteDirection] for [data], null otherwise.
+         */
+        fun decode(data: kotlin.Any?): TONStakingQuoteDirection? = data?.let {
+            val normalizedData = "$it".lowercase()
+            values().firstOrNull { value ->
+                it == value || normalizedData == "$value".lowercase()
+            }
+        }
+    }
 }

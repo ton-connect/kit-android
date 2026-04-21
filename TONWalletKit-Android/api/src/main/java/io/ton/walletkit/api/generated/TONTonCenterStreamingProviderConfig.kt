@@ -28,36 +28,29 @@
 
 package io.ton.walletkit.api.generated
 
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Provider-specific options for Omniston swap operations
+ * Configuration options for the TonCenter streaming provider.
  *
- * @param referrerAddress The address of the referrer
- * @param referrerFeeBps Referrer fee in basis points (1 bp = 0.01%)
- * @param flexibleReferrerFee Whether a flexible referrer fee is allowed
- * @param settlementMethods Settlement methods to use for the swap
+ * @param network
+ * @param endpoint Optional custom WebSocket endpoint URL for the TonCenter v2 streaming API. If omitted, it defaults to the official mainnet or testnet URL based on the network context.
+ * @param apiKey Optional API key for authenticating requests to TonCenter. Highly recommended to avoid rate limiting on the streaming endpoint.
  */
 @Serializable
-data class TONOmnistonProviderOptions(
+data class TONTonCenterStreamingProviderConfig(
 
-    /* The address of the referrer */
-    @SerialName(value = "referrerAddress")
-    val referrerAddress: kotlin.String? = null,
+    @SerialName(value = "network")
+    val network: TONNetwork,
 
-    /* Referrer fee in basis points (1 bp = 0.01%) */
-    @SerialName(value = "referrerFeeBps")
-    val referrerFeeBps: kotlin.Int? = null,
+    /* Optional custom WebSocket endpoint URL for the TonCenter v2 streaming API. If omitted, it defaults to the official mainnet or testnet URL based on the network context. */
+    @SerialName(value = "endpoint")
+    val endpoint: kotlin.String? = null,
 
-    /* Whether a flexible referrer fee is allowed */
-    @SerialName(value = "flexibleReferrerFee")
-    val flexibleReferrerFee: kotlin.Boolean? = null,
-
-    /* Settlement methods to use for the swap */
-    @SerialName(value = "settlementMethods")
-    val settlementMethods: kotlin.collections.List<@Contextual TONSettlementMethod>? = null,
+    /* Optional API key for authenticating requests to TonCenter. Highly recommended to avoid rate limiting on the streaming endpoint. */
+    @SerialName(value = "apiKey")
+    val apiKey: kotlin.String? = null,
 
 ) {
 

@@ -47,7 +47,7 @@ internal data class CreateTransferNftRequest(
     val walletId: String,
     val nftAddress: String,
     val transferAmount: String? = null,
-    val toAddress: String,
+    val recipientAddress: String,
     val comment: String? = null,
 )
 
@@ -56,8 +56,8 @@ internal data class CreateTransferNftRawRequest(
     val walletId: String,
     val nftAddress: String,
     val transferAmount: String,
-    /** Serialized JSON of TONNFTRawTransferRequestMessage */
-    val transferMessage: String,
+    /** Serialized JSON of TONNFTRawTransferRequestMessage — sent as nested object to bridge */
+    val message: String,
 )
 
 @Serializable
@@ -69,9 +69,9 @@ internal data class GetJettonsRequest(
 @Serializable
 internal data class CreateTransferJettonRequest(
     val walletId: String,
-    val toAddress: String,
+    val recipientAddress: String,
     val jettonAddress: String,
-    val amount: String,
+    val transferAmount: String,
     val comment: String? = null,
 )
 

@@ -28,37 +28,46 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Provider-specific options for Omniston swap operations
  *
- * @param referrerAddress The address of the referrer
- * @param referrerFeeBps Referrer fee in basis points (1 bp = 0.01%)
- * @param flexibleReferrerFee Whether a flexible referrer fee is allowed
- * @param settlementMethods Settlement methods to use for the swap
+ *
+ * @param status
+ * @param address
+ * @param transactions The array of transactions
+ * @param traceHash
+ * @param addressBook Map of raw addresses to their metadata entries.
+ * @param metadata Metadata about addresses, including indexing and associated token info.
  */
 @Serializable
-data class TONOmnistonProviderOptions(
+data class TONTransactionsUpdate(
 
-    /* The address of the referrer */
-    @SerialName(value = "referrerAddress")
-    val referrerAddress: kotlin.String? = null,
+    @Contextual @SerialName(value = "status")
+    val status: TONStreamingUpdateStatus,
 
-    /* Referrer fee in basis points (1 bp = 0.01%) */
-    @SerialName(value = "referrerFeeBps")
-    val referrerFeeBps: kotlin.Int? = null,
+    @Contextual @SerialName(value = "address")
+    val address: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    /* Whether a flexible referrer fee is allowed */
-    @SerialName(value = "flexibleReferrerFee")
-    val flexibleReferrerFee: kotlin.Boolean? = null,
+    /* The array of transactions */
+    @SerialName(value = "transactions")
+    val transactions: kotlin.collections.List<TONTransaction>,
 
-    /* Settlement methods to use for the swap */
-    @SerialName(value = "settlementMethods")
-    val settlementMethods: kotlin.collections.List<@Contextual TONSettlementMethod>? = null,
+    @Contextual @SerialName(value = "traceHash")
+    val traceHash: io.ton.walletkit.model.TONHex,
 
+    /* Map of raw addresses to their metadata entries. */
+    @Contextual @SerialName(value = "addressBook")
+    val addressBook: kotlin.collections.Map<kotlin.String, TONAddressBookEntry>? = null,
+
+    /* Metadata about addresses, including indexing and associated token info. */
+    @Contextual @SerialName(value = "metadata")
+    val metadata: kotlin.collections.Map<kotlin.String, TONTransactionAddressMetadataEntry>? = null,
+    @SerialName("type")
+    val type: kotlin.String = "transactions",
 ) {
 
     companion object

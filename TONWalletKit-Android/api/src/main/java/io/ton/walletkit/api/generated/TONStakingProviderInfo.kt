@@ -28,36 +28,34 @@
 
 package io.ton.walletkit.api.generated
 
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Provider-specific options for Omniston swap operations
+ * Staking information for a provider
  *
- * @param referrerAddress The address of the referrer
- * @param referrerFeeBps Referrer fee in basis points (1 bp = 0.01%)
- * @param flexibleReferrerFee Whether a flexible referrer fee is allowed
- * @param settlementMethods Settlement methods to use for the swap
+ * @param apy Annual Percentage Yield in basis points (100 = 1%)
+ * @param providerId Identifier of the staking provider
+ * @param rawInstantUnstakeAvailable
+ * @param instantUnstakeAvailable Amount available for instant unstake
  */
 @Serializable
-data class TONOmnistonProviderOptions(
+data class TONStakingProviderInfo(
 
-    /* The address of the referrer */
-    @SerialName(value = "referrerAddress")
-    val referrerAddress: kotlin.String? = null,
+    /* Annual Percentage Yield in basis points (100 = 1%) */
+    @SerialName(value = "apy")
+    val apy: kotlin.Int,
 
-    /* Referrer fee in basis points (1 bp = 0.01%) */
-    @SerialName(value = "referrerFeeBps")
-    val referrerFeeBps: kotlin.Int? = null,
+    /* Identifier of the staking provider */
+    @SerialName(value = "providerId")
+    val providerId: kotlin.String,
 
-    /* Whether a flexible referrer fee is allowed */
-    @SerialName(value = "flexibleReferrerFee")
-    val flexibleReferrerFee: kotlin.Boolean? = null,
+    @SerialName(value = "rawInstantUnstakeAvailable")
+    val rawInstantUnstakeAvailable: kotlin.String? = null,
 
-    /* Settlement methods to use for the swap */
-    @SerialName(value = "settlementMethods")
-    val settlementMethods: kotlin.collections.List<@Contextual TONSettlementMethod>? = null,
+    /* Amount available for instant unstake */
+    @SerialName(value = "instantUnstakeAvailable")
+    val instantUnstakeAvailable: kotlin.String? = null,
 
 ) {
 

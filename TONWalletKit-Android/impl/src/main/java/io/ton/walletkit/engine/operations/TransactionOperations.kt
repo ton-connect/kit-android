@@ -22,7 +22,6 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
-import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
@@ -36,6 +35,7 @@ import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import org.json.JSONObject
 
 /**
  * Groups TON transaction related bridge operations including creation, preview,
@@ -85,37 +85,26 @@ internal class TransactionOperations(
     suspend fun handleNewTransaction(walletId: String, transactionContent: String) {
         ensureInitialized()
 
-        val request = HandleNewTransactionRequest(walletId = walletId, transactionContent = transactionContent)
-        rpcClient.call(BridgeMethodConstants.METHOD_HANDLE_NEW_TRANSACTION, json.toJSONObject(request))
+        val requestObj = json.toJSONObject(HandleNewTransactionRequest(walletId = walletId, transactionContent = transactionContent))
+        requestObj.put("transactionContent", JSONObject(transactionContent))
+        rpcClient.call(BridgeMethodConstants.METHOD_HANDLE_NEW_TRANSACTION, requestObj)
     }
 
     suspend fun sendTransaction(walletId: String, transactionContent: String): String {
         ensureInitialized()
 
-        val tx = json.decodeFromString(TONTransactionRequest.serializer(), transactionContent)
-        val request = SendTransactionRequest(
-            walletId = walletId,
-            messages = tx.messages,
-            network = tx.network,
-            validUntil = tx.validUntil,
-            fromAddress = tx.fromAddress,
-        )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_SEND_TRANSACTION, json.toJSONObject(request))
+        val requestObj = json.toJSONObject(SendTransactionRequest(walletId = walletId, transactionContent = transactionContent))
+        requestObj.put("transactionContent", JSONObject(transactionContent))
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_SEND_TRANSACTION, requestObj)
         return result.optString("boc", result.optString(ResponseConstants.KEY_SIGNED_BOC, ""))
     }
 
     suspend fun getTransactionPreview(walletId: String, transactionContent: String): TONTransactionEmulatedPreview {
         ensureInitialized()
 
-        val tx = json.decodeFromString(TONTransactionRequest.serializer(), transactionContent)
-        val request = GetTransactionPreviewRequest(
-            walletId = walletId,
-            messages = tx.messages,
-            network = tx.network,
-            validUntil = tx.validUntil,
-            fromAddress = tx.fromAddress,
-        )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW, json.toJSONObject(request))
+        val requestObj = json.toJSONObject(GetTransactionPreviewRequest(walletId = walletId, transactionContent = transactionContent))
+        requestObj.put("transactionContent", JSONObject(transactionContent))
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW, requestObj)
         return try {
             json.decodeFromString(TONTransactionEmulatedPreview.serializer(), result.toString())
         } catch (e: SerializationException) {

@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.demo.core
 
+import android.util.Base64
 import android.util.Log
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
@@ -37,7 +38,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.net.URL
 
 /**
  * Test implementation of TONAPIClient for demonstration purposes.
@@ -114,58 +114,31 @@ class TestAPIClient(
     ): String {
         Log.d(tag, "getBalance called on network: ${network.chainId}")
         Log.d(tag, "Address: ${address.value}")
-
-        // Make a real HTTP call to toncenter API
-        val baseUrl = when (network) {
-            TONNetwork.MAINNET -> "https://toncenter.com"
-            TONNetwork.TESTNET -> "https://testnet.toncenter.com"
-            else -> "https://toncenter.com"
-        }
-
-        return withContext(Dispatchers.IO) {
-            try {
-                val url = URL("$baseUrl/api/v3/addressInformation?address=${address.value}")
-                val connection = url.openConnection()
-                connection.setRequestProperty("Accept", "application/json")
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
-
-                val response = connection.getInputStream().bufferedReader().readText()
-                val json = JSONObject(response)
-                val balance = json.optString("balance", "0")
-
-                Log.d(tag, "getBalance completed, balance: $balance")
-                balance
-            } catch (e: Exception) {
-                Log.e(tag, "getBalance failed", e)
-                throw e
-            }
+        delay(300)
+        return mockBalance(network).also { balance ->
+            Log.d(tag, "getBalance completed, balance: $balance")
         }
     }
 
     override suspend fun getMasterchainInfo(): TONMasterchainInfo {
         Log.d(tag, "getMasterchainInfo called on network: ${network.chainId}")
-        val baseUrl = when (network) {
-            TONNetwork.MAINNET -> "https://toncenter.com"
-            TONNetwork.TESTNET -> "https://testnet.toncenter.com"
-            else -> "https://toncenter.com"
-        }
+        val baseUrl = if (network == TONNetwork.MAINNET) "https://toncenter.com" else "https://testnet.toncenter.com"
         return withContext(Dispatchers.IO) {
-            val url = URL("$baseUrl/api/v3/masterchainInfo")
-            val connection = url.openConnection()
-            connection.setRequestProperty("Accept", "application/json")
-            connection.connectTimeout = 10000
-            connection.readTimeout = 10000
-            val response = connection.getInputStream().bufferedReader().readText()
-            val json = JSONObject(response)
-            val last = json.getJSONObject("last")
-            TONMasterchainInfo(
-                seqno = last.getInt("seqno"),
-                shard = last.getString("shard"),
-                workchain = last.getInt("workchain"),
-                fileHash = TONHex(last.getString("file_hash")),
-                rootHash = TONHex(last.getString("root_hash")),
-            )
+            val conn = java.net.URL("$baseUrl/api/v3/masterchainInfo").openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 10_000
+            try {
+                val last = JSONObject(conn.inputStream.bufferedReader().readText()).getJSONObject("last")
+                TONMasterchainInfo(
+                    seqno = last.getInt("seqno"),
+                    shard = last.getString("shard"),
+                    workchain = last.getInt("workchain"),
+                    fileHash = TONHex("0x${base64ToHex(last.getString("file_hash"))}"),
+                    rootHash = TONHex("0x${base64ToHex(last.getString("root_hash"))}"),
+                )
+            } finally {
+                conn.disconnect()
+            }
         }
     }
 
@@ -196,15 +169,8 @@ class ToncenterAPIClient(
 
     private val tag = "ToncenterAPIClient"
 
-    private val baseUrl: String = when (network) {
-        TONNetwork.MAINNET -> "https://toncenter.com"
-        TONNetwork.TESTNET -> "https://testnet.toncenter.com"
-        else -> "https://toncenter.com"
-    }
-
     override suspend fun sendBoc(boc: TONBase64): String {
         Log.d(tag, "🚀 [Toncenter] sendBoc on ${network.chainId}")
-        // Real implementation would call: POST $baseUrl/api/v3/sendBocReturnHash
         delay(100)
         return "toncenter_tx_${System.currentTimeMillis()}"
     }
@@ -216,38 +182,35 @@ class ToncenterAPIClient(
         seqno: Int?,
     ): TONGetMethodResult {
         Log.d(tag, "📞 [Toncenter] runGetMethod: $method on ${address.value}")
-        // Real implementation would call: POST $baseUrl/api/v3/runGetMethod
         delay(100)
         return TONGetMethodResult(gasUsed = 1000, stack = emptyList(), exitCode = 0)
     }
 
     override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {
         Log.d(tag, "💰 [Toncenter] getBalance on ${network.chainId}")
-        return withContext(Dispatchers.IO) {
-            val url = URL("$baseUrl/api/v3/addressInformation?address=${address.value}")
-            val connection = url.openConnection()
-            connection.setRequestProperty("Accept", "application/json")
-            val response = connection.getInputStream().bufferedReader().readText()
-            JSONObject(response).optString("balance", "0")
-        }
+        delay(100)
+        return mockBalance(network)
     }
 
     override suspend fun getMasterchainInfo(): TONMasterchainInfo {
         Log.d(tag, "🔗 [Toncenter] getMasterchainInfo on ${network.chainId}")
+        val baseUrl = if (network == TONNetwork.MAINNET) "https://toncenter.com" else "https://testnet.toncenter.com"
         return withContext(Dispatchers.IO) {
-            val url = URL("$baseUrl/api/v3/masterchainInfo")
-            val connection = url.openConnection()
-            connection.setRequestProperty("Accept", "application/json")
-            val response = connection.getInputStream().bufferedReader().readText()
-            val json = JSONObject(response)
-            val last = json.getJSONObject("last")
-            TONMasterchainInfo(
-                seqno = last.getInt("seqno"),
-                shard = last.getString("shard"),
-                workchain = last.getInt("workchain"),
-                fileHash = TONHex(last.getString("file_hash")),
-                rootHash = TONHex(last.getString("root_hash")),
-            )
+            val conn = java.net.URL("$baseUrl/api/v3/masterchainInfo").openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 10_000
+            try {
+                val last = JSONObject(conn.inputStream.bufferedReader().readText()).getJSONObject("last")
+                TONMasterchainInfo(
+                    seqno = last.getInt("seqno"),
+                    shard = last.getString("shard"),
+                    workchain = last.getInt("workchain"),
+                    fileHash = TONHex("0x${base64ToHex(last.getString("file_hash"))}"),
+                    rootHash = TONHex("0x${base64ToHex(last.getString("root_hash"))}"),
+                )
+            } finally {
+                conn.disconnect()
+            }
         }
     }
 
@@ -270,16 +233,8 @@ class TonAPIClient(
 
     private val tag = "TonAPIClient"
 
-    private val baseUrl: String = when (network) {
-        TONNetwork.MAINNET -> "https://tonapi.io"
-        TONNetwork.TESTNET -> "https://testnet.tonapi.io"
-        TONNetwork.TETRA -> "https://tetra.tonapi.io"
-        else -> "https://tonapi.io"
-    }
-
     override suspend fun sendBoc(boc: TONBase64): String {
         Log.d(tag, "🚀 [TonAPI] sendBoc on ${network.chainId}")
-        // Real implementation would call: POST $baseUrl/v2/blockchain/message
         delay(100)
         return "tonapi_tx_${System.currentTimeMillis()}"
     }
@@ -291,43 +246,40 @@ class TonAPIClient(
         seqno: Int?,
     ): TONGetMethodResult {
         Log.d(tag, "📞 [TonAPI] runGetMethod: $method on ${address.value}")
-        // Real implementation would call: POST $baseUrl/v2/blockchain/accounts/{address}/methods/{method}
         delay(100)
         return TONGetMethodResult(gasUsed = 1000, stack = emptyList(), exitCode = 0)
     }
 
     override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {
-        Log.d(tag, "💰 [TonAPI] getBalance on ${network.chainId}")
-        return withContext(Dispatchers.IO) {
-            val url = URL("$baseUrl/v2/accounts/${address.value}")
-            val connection = url.openConnection()
-            connection.setRequestProperty("Accept", "application/json")
-            if (apiKey.isNotEmpty()) {
-                connection.setRequestProperty("Authorization", "Bearer $apiKey")
-            }
-            val response = connection.getInputStream().bufferedReader().readText()
-            JSONObject(response).optString("balance", "0")
-        }
+        Log.d(tag, "💰 [TonAPI] getBalance on ${network.chainId}, apiKeyConfigured=${apiKey.isNotEmpty()}")
+        delay(100)
+        return mockBalance(network)
     }
 
     override suspend fun getMasterchainInfo(): TONMasterchainInfo {
-        Log.d(tag, "🔗 [TonAPI] getMasterchainInfo on ${network.chainId}")
+        Log.d(tag, "🔗 [TonAPI] getMasterchainInfo on ${network.chainId}, apiKeyConfigured=${apiKey.isNotEmpty()}")
+        val baseUrl = when (network) {
+            TONNetwork.MAINNET -> "https://tonapi.io"
+            TONNetwork.TETRA -> "https://tetra.tonapi.io"
+            else -> "https://testnet.tonapi.io"
+        }
         return withContext(Dispatchers.IO) {
-            val url = URL("$baseUrl/v2/blockchain/masterchain-head")
-            val connection = url.openConnection()
-            connection.setRequestProperty("Accept", "application/json")
-            if (apiKey.isNotEmpty()) {
-                connection.setRequestProperty("Authorization", "Bearer $apiKey")
+            val conn = java.net.URL("$baseUrl/v2/blockchain/masterchain-head").openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 10_000
+            if (apiKey.isNotEmpty()) conn.setRequestProperty("Authorization", "Bearer $apiKey")
+            try {
+                val root = JSONObject(conn.inputStream.bufferedReader().readText())
+                TONMasterchainInfo(
+                    seqno = root.getInt("seqno"),
+                    shard = root.getString("shard"),
+                    workchain = root.getInt("workchain_id"),
+                    fileHash = TONHex("0x${root.getString("file_hash")}"),
+                    rootHash = TONHex("0x${root.getString("root_hash")}"),
+                )
+            } finally {
+                conn.disconnect()
             }
-            val response = connection.getInputStream().bufferedReader().readText()
-            val json = JSONObject(response)
-            TONMasterchainInfo(
-                seqno = json.getInt("seqno"),
-                shard = json.getString("shard"),
-                workchain = json.getInt("workchain_id"),
-                fileHash = TONHex("0x${json.getString("file_hash")}"),
-                rootHash = TONHex("0x${json.getString("root_hash")}"),
-            )
         }
     }
 
@@ -336,4 +288,16 @@ class TonAPIClient(
         fun testnet(apiKey: String = "") = TonAPIClient(TONNetwork.TESTNET, apiKey)
         fun tetra(apiKey: String = "") = TonAPIClient(TONNetwork.TETRA, apiKey)
     }
+}
+
+private fun mockBalance(network: TONNetwork): String = when (network) {
+    TONNetwork.MAINNET -> "1000000000"
+    TONNetwork.TESTNET -> "250000000"
+    TONNetwork.TETRA -> "50000000"
+    else -> "1000000000"
+}
+
+private fun base64ToHex(base64: String): String {
+    val bytes = Base64.decode(base64, Base64.DEFAULT)
+    return bytes.joinToString("") { "%02x".format(it) }
 }

@@ -42,7 +42,7 @@ data class TONOmnistonSwapOptions(
 
     /* Settlement methods to use for the swap */
     @SerialName(value = "settlementMethods")
-    val settlementMethods: kotlin.collections.List<@Contextual TONSettlementMethodValue>? = null,
+    val settlementMethods: kotlin.collections.List<@Contextual TONSettlementMethod>? = null,
 
 ) {
 

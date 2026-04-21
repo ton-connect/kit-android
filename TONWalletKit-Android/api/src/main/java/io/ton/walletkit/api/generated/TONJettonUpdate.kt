@@ -28,37 +28,49 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Provider-specific options for Omniston swap operations
  *
- * @param referrerAddress The address of the referrer
- * @param referrerFeeBps Referrer fee in basis points (1 bp = 0.01%)
- * @param flexibleReferrerFee Whether a flexible referrer fee is allowed
- * @param settlementMethods Settlement methods to use for the swap
+ *
+ * @param status
+ * @param masterAddress
+ * @param walletAddress
+ * @param ownerAddress
+ * @param rawBalance
+ * @param decimals Decimals mapped from metadata if available
+ * @param balance Human readable formatted balance if decimals are known
  */
 @Serializable
-data class TONOmnistonProviderOptions(
+data class TONJettonUpdate(
 
-    /* The address of the referrer */
-    @SerialName(value = "referrerAddress")
-    val referrerAddress: kotlin.String? = null,
+    @Contextual @SerialName(value = "status")
+    val status: TONStreamingUpdateStatus,
 
-    /* Referrer fee in basis points (1 bp = 0.01%) */
-    @SerialName(value = "referrerFeeBps")
-    val referrerFeeBps: kotlin.Int? = null,
+    @Contextual @SerialName(value = "masterAddress")
+    val masterAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    /* Whether a flexible referrer fee is allowed */
-    @SerialName(value = "flexibleReferrerFee")
-    val flexibleReferrerFee: kotlin.Boolean? = null,
+    @Contextual @SerialName(value = "walletAddress")
+    val walletAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
 
-    /* Settlement methods to use for the swap */
-    @SerialName(value = "settlementMethods")
-    val settlementMethods: kotlin.collections.List<@Contextual TONSettlementMethod>? = null,
+    @Contextual @SerialName(value = "ownerAddress")
+    val ownerAddress: io.ton.walletkit.model.TONUserFriendlyAddress,
 
+    @SerialName(value = "rawBalance")
+    val rawBalance: kotlin.String,
+
+    /* Decimals mapped from metadata if available */
+    @SerialName(value = "decimals")
+    val decimals: kotlin.Int? = null,
+
+    /* Human readable formatted balance if decimals are known */
+    @SerialName(value = "balance")
+    val balance: kotlin.String? = null,
+    @SerialName("type")
+    val type: kotlin.String = "jettons",
 ) {
 
     companion object

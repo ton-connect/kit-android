@@ -37,8 +37,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
@@ -48,8 +46,8 @@ import kotlinx.serialization.serializer
  *
  * This is a discriminated union type. Use the appropriate subclass based on the `type` field.
  */
-@Serializable(with = TONSignatureDomain.Serializer::class)
-sealed class TONSignatureDomain {
+@Serializable(with = TONStreamingUpdate.Serializer::class)
+sealed class TONStreamingUpdate {
 
     companion object {
         internal const val DISCRIMINATOR_FIELD = "type"
@@ -59,56 +57,72 @@ sealed class TONSignatureDomain {
      *
      */
     @Serializable
-    data class L2(
-        val globalId: kotlin.Int,
-    ) : TONSignatureDomain()
+    data class Balance(
+        val value: TONBalanceUpdate,
+    ) : TONStreamingUpdate()
 
     /**
      *
      */
-    object Empty : TONSignatureDomain()
+    @Serializable
+    data class Transactions(
+        val value: TONTransactionsUpdate,
+    ) : TONStreamingUpdate()
 
-    internal object Serializer : KSerializer<TONSignatureDomain> {
-        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("TONSignatureDomain")
+    /**
+     *
+     */
+    @Serializable
+    data class Jettons(
+        val value: TONJettonUpdate,
+    ) : TONStreamingUpdate()
+
+    internal object Serializer : KSerializer<TONStreamingUpdate> {
+        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("TONStreamingUpdate")
 
         @Suppress("UNCHECKED_CAST")
-        override fun serialize(encoder: Encoder, value: TONSignatureDomain) {
+        override fun serialize(encoder: Encoder, value: TONStreamingUpdate) {
             val jsonEncoder = encoder as? JsonEncoder
-                ?: throw SerializationException("TONSignatureDomain can only be serialized with JSON")
+                ?: throw SerializationException("TONStreamingUpdate can only be serialized with JSON")
 
             val jsonElement = when (value) {
-                is L2 ->
-                    buildJsonObject {
-                        put(DISCRIMINATOR_FIELD, JsonPrimitive("l2"))
-                        put("globalId", jsonEncoder.json.encodeToJsonElement(serializer<kotlin.Int>(), value.globalId))
-                    }
+                is Balance ->
+                    jsonEncoder.json.encodeToJsonElement(serializer<TONBalanceUpdate>(), value.value)
 
-                is Empty ->
-                    buildJsonObject {
-                        put(DISCRIMINATOR_FIELD, JsonPrimitive("empty"))
-                    }
+                is Transactions ->
+                    jsonEncoder.json.encodeToJsonElement(serializer<TONTransactionsUpdate>(), value.value)
+
+                is Jettons ->
+                    jsonEncoder.json.encodeToJsonElement(serializer<TONJettonUpdate>(), value.value)
             }
             jsonEncoder.encodeJsonElement(jsonElement)
         }
 
-        override fun deserialize(decoder: Decoder): TONSignatureDomain {
+        override fun deserialize(decoder: Decoder): TONStreamingUpdate {
             val jsonDecoder = decoder as? JsonDecoder
-                ?: throw SerializationException("TONSignatureDomain can only be deserialized from JSON")
+                ?: throw SerializationException("TONStreamingUpdate can only be deserialized from JSON")
 
             val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
             val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
-                ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for TONSignatureDomain")
+                ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for TONStreamingUpdate")
 
             return when (discriminatorValue) {
-                "l2" ->
-                    L2(
-                        globalId = jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.Int>(), jsonObject["globalId"] ?: throw SerializationException("Missing 'globalId' for TONSignatureDomain")),
+                "balance" ->
+                    Balance(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONBalanceUpdate>(), jsonObject),
                     )
 
-                "empty" ->
-                    Empty
+                "transactions" ->
+                    Transactions(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionsUpdate>(), jsonObject),
+                    )
 
-                else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for TONSignatureDomain")
+                "jettons" ->
+                    Jettons(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONJettonUpdate>(), jsonObject),
+                    )
+
+                else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for TONStreamingUpdate")
             }
         }
     }
