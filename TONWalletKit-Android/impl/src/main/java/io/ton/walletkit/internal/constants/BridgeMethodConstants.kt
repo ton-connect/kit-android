@@ -271,4 +271,14 @@ internal object BridgeMethodConstants {
      * Method name for getting supported unstake modes for a staking provider.
      */
     const val METHOD_GET_SUPPORTED_UNSTAKE_MODES = "getSupportedUnstakeModes"
+
+    /**
+     * Method name for getting all registered staking provider IDs.
+     */
+    const val METHOD_GET_REGISTERED_STAKING_PROVIDERS = "getRegisteredStakingProviders"
+
+    /**
+     * Method name for checking if a staking provider is registered.
+     */
+    const val METHOD_HAS_STAKING_PROVIDER = "hasStakingProvider"
 }

@@ -88,3 +88,8 @@ internal data class GetStakingProviderInfoRequest(
 internal data class GetSupportedUnstakeModesRequest(
     val providerId: String? = null,
 )
+
+@Serializable
+internal data class HasStakingProviderRequest(
+    val providerId: String,
+)

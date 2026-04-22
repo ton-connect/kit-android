@@ -496,6 +496,21 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun setDefaultStakingProvider(providerId: String)
 
     /**
+     * Get the IDs of all registered staking providers.
+     *
+     * @return List of provider ID strings
+     */
+    suspend fun getRegisteredStakingProviders(): List<String>
+
+    /**
+     * Check if a staking provider with the given ID is registered.
+     *
+     * @param providerId JS registry reference ID to check
+     * @return true if the provider is registered
+     */
+    suspend fun hasStakingProvider(providerId: String): Boolean
+
+    /**
      * Get a stake or unstake quote from the staking manager.
      *
      * @param params Quote parameters (direction, amount, optional user address / network / mode)

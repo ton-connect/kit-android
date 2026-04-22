@@ -37,6 +37,7 @@ import io.ton.walletkit.engine.operations.requests.GetStakedBalanceRequest
 import io.ton.walletkit.engine.operations.requests.GetStakingProviderInfoRequest
 import io.ton.walletkit.engine.operations.requests.GetStakingQuoteRequest
 import io.ton.walletkit.engine.operations.requests.GetSupportedUnstakeModesRequest
+import io.ton.walletkit.engine.operations.requests.HasStakingProviderRequest
 import io.ton.walletkit.engine.operations.requests.RegisterStakingProviderRequest
 import io.ton.walletkit.engine.operations.requests.SetDefaultStakingProviderRequest
 import io.ton.walletkit.exceptions.JSValueConversionException
@@ -87,6 +88,20 @@ internal class StakingOperations(
 
         val request = SetDefaultStakingProviderRequest(providerId = providerId)
         rpcClient.call(BridgeMethodConstants.METHOD_SET_DEFAULT_STAKING_PROVIDER, json.toJSONObject(request))
+    }
+
+    suspend fun getRegisteredStakingProviders(): List<String> {
+        ensureInitialized()
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_REGISTERED_STAKING_PROVIDERS, null)
+        val array = result.getJSONArray("providerIds")
+        return List(array.length()) { array.getString(it) }
+    }
+
+    suspend fun hasStakingProvider(providerId: String): Boolean {
+        ensureInitialized()
+        val request = HasStakingProviderRequest(providerId = providerId)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_HAS_STAKING_PROVIDER, json.toJSONObject(request))
+        return result.getBoolean("result")
     }
 
     suspend fun getStakingQuote(params: TONStakingQuoteParams<JsonElement>, providerId: String?): TONStakingQuote {

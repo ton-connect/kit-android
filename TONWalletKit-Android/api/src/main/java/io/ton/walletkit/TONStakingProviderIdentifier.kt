@@ -19,45 +19,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
-
-package io.ton.walletkit.api.generated
-
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+package io.ton.walletkit
 
 /**
- * Staking information for a provider
+ * Identifies a staking provider and carries its option types as generic parameters.
+ * Analogous to iOS's `TONStakingProviderIdentifier` protocol.
  *
- * @param apy Annual Percentage Yield in basis points (100 = 1%)
- * @param providerId Identifier of the staking provider
- * @param rawInstantUnstakeAvailable
- * @param instantUnstakeAvailable Amount available for instant unstake
+ * [TQuoteOptions] is the provider-specific type for quote params.
+ * [TStakeOptions] is the provider-specific type for stake transaction params.
  */
-@Serializable
-data class TONStakingProviderInfo(
-
-    /* Annual Percentage Yield in basis points (100 = 1%) */
-    @SerialName(value = "apy")
-    val apy: kotlin.Double,
-
-    /* Identifier of the staking provider */
-    @SerialName(value = "providerId")
-    val providerId: kotlin.String,
-
-    @SerialName(value = "rawInstantUnstakeAvailable")
-    val rawInstantUnstakeAvailable: kotlin.String? = null,
-
-    /* Amount available for instant unstake */
-    @SerialName(value = "instantUnstakeAvailable")
-    val instantUnstakeAvailable: kotlin.String? = null,
-
-) {
-
-    companion object
-}
+interface TONStakingProviderIdentifier<TQuoteOptions, TStakeOptions> : TONProviderIdentifier

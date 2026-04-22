@@ -43,22 +43,31 @@ interface ITONStakingManager {
     suspend fun register(provider: ITONTonStakersStakingProvider)
 
     /**
-     * Set the default provider used when no providerId is passed to query methods.
-     *
-     * @param providerId The [ITONTonStakersStakingProvider.identifier] of the provider to use by default
+     * Set the default provider used when no identifier is passed to query methods.
+     * Must be called explicitly before using [getQuote] or other methods without an identifier.
      */
-    fun setDefaultProvider(providerId: TONStakingProviderIdentifier)
+    suspend fun setDefaultProvider(identifier: TONStakingProviderIdentifier<*, *>)
+
+    /**
+     * Returns type-erased identifiers for all currently registered staking providers.
+     */
+    suspend fun registeredProviders(): List<AnyTONProviderIdentifier>
+
+    /**
+     * Returns true if a provider with the given [identifier] is currently registered.
+     */
+    suspend fun hasProvider(identifier: TONStakingProviderIdentifier<*, *>): Boolean
 
     /**
      * Get a stake or unstake quote.
      *
      * @param params Quote parameters including direction, amount, and optional fields
-     * @param providerId Override which provider to use (uses default when null)
+     * @param identifier Provider identifier (uses bridge default when null)
      * @return Staking quote with input/output amounts and metadata
      */
     suspend fun getQuote(
         params: TONStakingQuoteParams<JsonElement>,
-        providerId: TONStakingProviderIdentifier? = null,
+        identifier: TONStakingProviderIdentifier<*, *>? = null,
     ): TONStakingQuote
 
     /**
@@ -67,12 +76,12 @@ interface ITONStakingManager {
      * The returned [TONTransactionRequest] can be passed to [ITONWallet.send].
      *
      * @param params Stake parameters including the quote and user address
-     * @param providerId Override which provider to use (uses default when null)
+     * @param identifier Provider identifier (uses bridge default when null)
      * @return Transaction request ready for [ITONWallet.send] or [ITONWallet.preview]
      */
     suspend fun buildStakeTransaction(
         params: TONStakeParams<JsonElement>,
-        providerId: TONStakingProviderIdentifier? = null,
+        identifier: TONStakingProviderIdentifier<*, *>? = null,
     ): TONTransactionRequest
 
     /**
@@ -80,35 +89,35 @@ interface ITONStakingManager {
      *
      * @param userAddress User's wallet address
      * @param network TON network (uses current network when null)
-     * @param providerId Override which provider to use (uses default when null)
+     * @param identifier Provider identifier (uses bridge default when null)
      * @return Staking balance including staked amount and instant-unstake availability
      */
     suspend fun getStakedBalance(
         userAddress: TONUserFriendlyAddress,
         network: TONNetwork? = null,
-        providerId: TONStakingProviderIdentifier? = null,
+        identifier: TONStakingProviderIdentifier<*, *>? = null,
     ): TONStakingBalance
 
     /**
      * Get general information about a staking provider (APY, instant-unstake liquidity).
      *
      * @param network TON network (uses current network when null)
-     * @param providerId Override which provider to use (uses default when null)
+     * @param identifier Provider identifier (uses bridge default when null)
      * @return Provider info including APY as a percentage value
      */
     suspend fun getStakingProviderInfo(
         network: TONNetwork? = null,
-        providerId: TONStakingProviderIdentifier? = null,
+        identifier: TONStakingProviderIdentifier<*, *>? = null,
     ): TONStakingProviderInfo
 
     /**
      * Get the unstake modes supported by a staking provider.
      *
-     * @param providerId Override which provider to use (uses default when null)
+     * @param identifier Provider identifier (uses bridge default when null)
      * @return List of supported unstake modes
      */
     suspend fun getSupportedUnstakeModes(
-        providerId: TONStakingProviderIdentifier? = null,
+        identifier: TONStakingProviderIdentifier<*, *>? = null,
     ): List<TONUnstakeMode>
 }
 
@@ -121,3 +130,23 @@ interface ITONTonStakersStakingProvider {
     /** Typed staking provider identifier recognised by [ITONStakingManager]. */
     val identifier: TONTonStakersStakingProviderIdentifier
 }
+
+/**
+ * Returns a typed [TONStakingProvider] for [identifier] if it is currently registered, null otherwise.
+ * Type parameters are inferred from the identifier:
+ * ```kotlin
+ * val provider = manager.provider(TONTonStakersStakingProviderIdentifier())
+ * ```
+ */
+suspend inline fun <reified TQuoteOptions, reified TStakeOptions> ITONStakingManager.provider(
+    identifier: TONStakingProviderIdentifier<TQuoteOptions, TStakeOptions>,
+): TONStakingProvider<TQuoteOptions, TStakeOptions>? {
+    val handle = TONStakingProvider(identifier, this)
+    return if (hasProvider(identifier)) handle else null
+}
+
+/** Get a quote via a typed provider. Delegates to [TONStakingProvider.getQuote]. */
+suspend fun <TQuoteOptions, TStakeOptions> ITONStakingManager.getQuote(
+    params: TONStakingQuoteParams<TQuoteOptions>,
+    provider: TONStakingProvider<TQuoteOptions, TStakeOptions>,
+): TONStakingQuote = provider.getQuote(params)

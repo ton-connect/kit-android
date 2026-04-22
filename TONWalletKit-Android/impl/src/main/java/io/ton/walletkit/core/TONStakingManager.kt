@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.core
 
+import io.ton.walletkit.AnyTONProviderIdentifier
 import io.ton.walletkit.ITONStakingManager
 import io.ton.walletkit.ITONTonStakersStakingProvider
 import io.ton.walletkit.TONStakingProviderIdentifier
@@ -55,63 +56,52 @@ internal class TONStakingManager(
         engine.registerStakingProvider(internalProvider.internalRef)
     }
 
-    override fun setDefaultProvider(providerId: TONStakingProviderIdentifier) {
-        // Delegates to engine on the next coroutine opportunity.
-        // Stored locally so the manager can be used before the first suspending call.
-        _pendingDefaultProviderId = providerId
+    override suspend fun setDefaultProvider(identifier: TONStakingProviderIdentifier<*, *>) {
+        engine.setDefaultStakingProvider(identifier.name)
     }
 
-    /** Buffered default provider identifier applied lazily on the next bridge call. */
-    @Suppress("PropertyName")
-    @Volatile
-    private var _pendingDefaultProviderId: TONStakingProviderIdentifier? = null
+    override suspend fun registeredProviders(): List<AnyTONProviderIdentifier> {
+        return engine.getRegisteredStakingProviders().map { AnyTONProviderIdentifier(it) }
+    }
 
-    private suspend fun applyPendingDefault() {
-        _pendingDefaultProviderId?.let { identifier ->
-            engine.setDefaultStakingProvider(identifier.name)
-            _pendingDefaultProviderId = null
-        }
+    override suspend fun hasProvider(identifier: TONStakingProviderIdentifier<*, *>): Boolean {
+        return engine.hasStakingProvider(identifier.name)
     }
 
     override suspend fun getQuote(
         params: TONStakingQuoteParams<JsonElement>,
-        providerId: TONStakingProviderIdentifier?,
+        identifier: TONStakingProviderIdentifier<*, *>?,
     ): TONStakingQuote {
-        applyPendingDefault()
-        return engine.getStakingQuote(params, providerId?.name)
+        return engine.getStakingQuote(params, identifier?.name)
     }
 
     override suspend fun buildStakeTransaction(
         params: TONStakeParams<JsonElement>,
-        providerId: TONStakingProviderIdentifier?,
+        identifier: TONStakingProviderIdentifier<*, *>?,
     ): TONTransactionRequest {
-        applyPendingDefault()
-        val content = engine.buildStakeTransaction(params, providerId?.name)
+        val content = engine.buildStakeTransaction(params, identifier?.name)
         return json.decodeFromString(content)
     }
 
     override suspend fun getStakedBalance(
         userAddress: TONUserFriendlyAddress,
         network: TONNetwork?,
-        providerId: TONStakingProviderIdentifier?,
+        identifier: TONStakingProviderIdentifier<*, *>?,
     ): TONStakingBalance {
-        applyPendingDefault()
-        return engine.getStakedBalance(userAddress.value, network, providerId?.name)
+        return engine.getStakedBalance(userAddress.value, network, identifier?.name)
     }
 
     override suspend fun getStakingProviderInfo(
         network: TONNetwork?,
-        providerId: TONStakingProviderIdentifier?,
+        identifier: TONStakingProviderIdentifier<*, *>?,
     ): TONStakingProviderInfo {
-        applyPendingDefault()
-        return engine.getStakingProviderInfo(network, providerId?.name)
+        return engine.getStakingProviderInfo(network, identifier?.name)
     }
 
     override suspend fun getSupportedUnstakeModes(
-        providerId: TONStakingProviderIdentifier?,
+        identifier: TONStakingProviderIdentifier<*, *>?,
     ): List<TONUnstakeMode> {
-        applyPendingDefault()
-        return engine.getSupportedUnstakeModes(providerId?.name)
+        return engine.getSupportedUnstakeModes(identifier?.name)
     }
 }
 

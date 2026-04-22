@@ -455,6 +455,12 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun setDefaultStakingProvider(providerId: String) =
         stakingOperations.setDefaultStakingProvider(providerId)
 
+    override suspend fun getRegisteredStakingProviders(): List<String> =
+        stakingOperations.getRegisteredStakingProviders()
+
+    override suspend fun hasStakingProvider(providerId: String): Boolean =
+        stakingOperations.hasStakingProvider(providerId)
+
     override suspend fun getStakingQuote(
         params: TONStakingQuoteParams<kotlinx.serialization.json.JsonElement>,
         providerId: String?,

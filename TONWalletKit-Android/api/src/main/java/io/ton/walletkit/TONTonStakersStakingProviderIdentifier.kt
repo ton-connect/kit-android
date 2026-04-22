@@ -19,45 +19,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
+package io.ton.walletkit
 
-package io.ton.walletkit.api.generated
-
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 /**
- * Staking information for a provider
- *
- * @param apy Annual Percentage Yield in basis points (100 = 1%)
- * @param providerId Identifier of the staking provider
- * @param rawInstantUnstakeAvailable
- * @param instantUnstakeAvailable Amount available for instant unstake
+ * Identifier for the TonStakers staking provider.
+ * Both [TQuoteOptions] and [TStakeOptions] are [JsonElement] (untyped), matching iOS's `AnyCodable`.
  */
-@Serializable
-data class TONStakingProviderInfo(
-
-    /* Annual Percentage Yield in basis points (100 = 1%) */
-    @SerialName(value = "apy")
-    val apy: kotlin.Double,
-
-    /* Identifier of the staking provider */
-    @SerialName(value = "providerId")
-    val providerId: kotlin.String,
-
-    @SerialName(value = "rawInstantUnstakeAvailable")
-    val rawInstantUnstakeAvailable: kotlin.String? = null,
-
-    /* Amount available for instant unstake */
-    @SerialName(value = "instantUnstakeAvailable")
-    val instantUnstakeAvailable: kotlin.String? = null,
-
-) {
-
-    companion object
+data class TONTonStakersStakingProviderIdentifier(
+    override val name: String = DEFAULT_NAME,
+) : TONStakingProviderIdentifier<JsonElement, JsonElement> {
+    companion object {
+        const val DEFAULT_NAME = "tonstakers"
+    }
 }

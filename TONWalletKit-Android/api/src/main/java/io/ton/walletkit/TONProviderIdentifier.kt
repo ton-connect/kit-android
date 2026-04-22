@@ -34,19 +34,3 @@ interface TONProviderIdentifier {
 data class AnyTONProviderIdentifier(
     override val name: String,
 ) : TONProviderIdentifier
-
-/**
- * Marker interface for staking provider identifiers.
- */
-interface TONStakingProviderIdentifier : TONProviderIdentifier
-
-/**
- * Identifier for the TonStakers staking provider.
- */
-data class TONTonStakersStakingProviderIdentifier(
-    override val name: String = DEFAULT_NAME,
-) : TONStakingProviderIdentifier {
-    companion object {
-        const val DEFAULT_NAME = "tonstakers"
-    }
-}
