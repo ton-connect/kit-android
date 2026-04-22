@@ -21,11 +21,18 @@
  */
 package io.ton.walletkit
 
+import kotlinx.serialization.KSerializer
+
 /**
  * Identifies a staking provider and carries its option types as generic parameters.
- * Analogous to iOS's `TONStakingProviderIdentifier` protocol.
+ * Analogous to iOS's `TONStakingProviderIdentifier` protocol, whose
+ * `associatedtype QuoteOptions: Codable` / `associatedtype StakeOptions: Codable` are mirrored
+ * here by explicit [quoteOptionsSerializer] and [stakeOptionsSerializer].
  *
  * [TQuoteOptions] is the provider-specific type for quote params.
  * [TStakeOptions] is the provider-specific type for stake transaction params.
  */
-interface TONStakingProviderIdentifier<TQuoteOptions, TStakeOptions> : TONProviderIdentifier
+interface TONStakingProviderIdentifier<TQuoteOptions, TStakeOptions> : TONProviderIdentifier {
+    val quoteOptionsSerializer: KSerializer<TQuoteOptions>
+    val stakeOptionsSerializer: KSerializer<TStakeOptions>
+}

@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonElement
 
 /**
@@ -30,6 +31,9 @@ import kotlinx.serialization.json.JsonElement
 data class TONTonStakersStakingProviderIdentifier(
     override val name: String = DEFAULT_NAME,
 ) : TONStakingProviderIdentifier<JsonElement, JsonElement> {
+    override val quoteOptionsSerializer: KSerializer<JsonElement> = JsonElement.serializer()
+    override val stakeOptionsSerializer: KSerializer<JsonElement> = JsonElement.serializer()
+
     companion object {
         const val DEFAULT_NAME = "tonstakers"
     }

@@ -183,7 +183,7 @@ interface ITONWalletKit {
      */
     suspend fun tonStakersStakingProvider(
         config: TONTonStakersProviderConfig? = null,
-    ): ITONTonStakersStakingProvider
+    ): TONTonStakersStakingProvider
 }
 
 interface WebViewTonConnectInjector {

@@ -24,9 +24,11 @@ package io.ton.walletkit.core
 import android.content.Context
 import android.webkit.WebView
 import io.ton.walletkit.ITONStakingManager
-import io.ton.walletkit.ITONTonStakersStakingProvider
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.TONStakingProvider
+import io.ton.walletkit.TONTonStakersStakingProvider
+import io.ton.walletkit.TONTonStakersStakingProviderIdentifier
 import io.ton.walletkit.WebViewTonConnectInjector
 import io.ton.walletkit.api.TONTonStakersProviderConfig
 import io.ton.walletkit.api.generated.TONSignatureDomain
@@ -421,10 +423,10 @@ internal class TONWalletKit private constructor(
 
     override suspend fun tonStakersStakingProvider(
         config: TONTonStakersProviderConfig?,
-    ): ITONTonStakersStakingProvider {
+    ): TONTonStakersStakingProvider {
         checkNotDestroyed()
         val chainConfig = config?.toChainConfigMap()
-        val internalRef = engine.createTonStakersStakingProvider(chainConfig?.takeIf { it.isNotEmpty() })
-        return TONTonStakersStakingProvider(internalRef = internalRef)
+        val providerId = engine.createTonStakersStakingProvider(chainConfig?.takeIf { it.isNotEmpty() })
+        return TONStakingProvider(TONTonStakersStakingProviderIdentifier(providerId), _stakingManager)
     }
 }
