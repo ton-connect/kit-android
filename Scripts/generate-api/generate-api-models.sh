@@ -83,19 +83,6 @@ def _rewrite_refs(node):
 data = _rewrite_refs(data)
 schemas = components_schemas
 
-# Stamp format: "double" on properties that carry floating-point values so the
-# Kotlin generator maps them to kotlin.Double instead of the default kotlin.Int.
-FLOAT_PROPERTIES = {
-    "StakingQuote": {"apy"},
-    "StakingProviderInfo": {"apy"},
-}
-for schema_name, prop_names in FLOAT_PROPERTIES.items():
-    schema = schemas.get(schema_name, {})
-    for prop_name in prop_names:
-        prop = (schema.get("properties") or {}).get(prop_name)
-        if isinstance(prop, dict) and prop.get("type") == "number":
-            prop["format"] = "double"
-
 def add_discriminated_union(name, discriminator, cases, description=None):
     mapped_cases = []
     for case in cases:

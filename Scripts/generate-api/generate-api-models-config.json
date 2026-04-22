@@ -16,9 +16,7 @@
     "TONConnectSession": "TONConnectSession"
   },
   "typeMappings": {
-    "number": "kotlin.Int",
-    "double": "kotlin.Double",
-    "float": "kotlin.Double",
+    "number": "kotlin.Double",
     "integer": "kotlin.Int",
     "int64": "kotlin.Long",
     "int32": "kotlin.Int",
