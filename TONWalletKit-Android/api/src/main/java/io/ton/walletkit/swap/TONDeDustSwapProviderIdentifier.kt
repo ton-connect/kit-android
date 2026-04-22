@@ -22,10 +22,14 @@
 package io.ton.walletkit.swap
 
 import io.ton.walletkit.api.generated.TONDeDustProviderOptions
+import kotlinx.serialization.KSerializer
 
 /**
  * Identifier for the DeDust swap provider.
  * Both [QuoteOptions] and [SwapOptions] are [TONDeDustProviderOptions].
  */
 class TONDeDustSwapProviderIdentifier(override val name: String = "dedust") :
-    TONSwapProviderIdentifier<TONDeDustProviderOptions, TONDeDustProviderOptions>
+    TONSwapProviderIdentifier<TONDeDustProviderOptions, TONDeDustProviderOptions> {
+    override val quoteOptionsSerializer: KSerializer<TONDeDustProviderOptions> = TONDeDustProviderOptions.serializer()
+    override val swapOptionsSerializer: KSerializer<TONDeDustProviderOptions> = TONDeDustProviderOptions.serializer()
+}

@@ -22,6 +22,7 @@
 package io.ton.walletkit.swap
 
 import io.ton.walletkit.api.generated.TONOmnistonProviderOptions
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonElement
 
 /**
@@ -29,4 +30,7 @@ import kotlinx.serialization.json.JsonElement
  * [QuoteOptions] = [TONOmnistonProviderOptions]; [SwapOptions] = [JsonElement] (untyped, like iOS `AnyCodable`).
  */
 class TONOmnistonSwapProviderIdentifier(override val name: String = "omniston") :
-    TONSwapProviderIdentifier<TONOmnistonProviderOptions, JsonElement>
+    TONSwapProviderIdentifier<TONOmnistonProviderOptions, JsonElement> {
+    override val quoteOptionsSerializer: KSerializer<TONOmnistonProviderOptions> = TONOmnistonProviderOptions.serializer()
+    override val swapOptionsSerializer: KSerializer<JsonElement> = JsonElement.serializer()
+}

@@ -21,17 +21,21 @@
  */
 package io.ton.walletkit.swap
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonElement
 
 /**
  * Identifies a swap provider and carries its option types as generic parameters.
- * Analogous to iOS's `TONSwapProviderIdentifier` protocol.
+ * Analogous to iOS's `TONSwapProviderIdentifier` protocol, whose `associatedtype QuoteOptions: Codable`
+ * is mirrored here by an explicit [quoteOptionsSerializer] (same for [swapOptionsSerializer]).
  *
  * [TQuoteOptions] is the provider-specific type for [ITONSwapManager.getQuote] options.
- * [TSwapOptions] is the provider-specific type for [ITONSwapManager.buildSwapTransaction] options.
+ * [TSwapOptions] is the provider-specific type for swap-transaction building options.
  */
 interface TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions> {
     val name: String
+    val quoteOptionsSerializer: KSerializer<TQuoteOptions>
+    val swapOptionsSerializer: KSerializer<TSwapOptions>
 }
 
 /**
@@ -39,4 +43,7 @@ interface TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions> {
  * Analogous to iOS's `AnyTONProviderIdentifier`.
  */
 data class AnyTONSwapProviderIdentifier(override val name: String) :
-    TONSwapProviderIdentifier<JsonElement, JsonElement>
+    TONSwapProviderIdentifier<JsonElement, JsonElement> {
+    override val quoteOptionsSerializer: KSerializer<JsonElement> = JsonElement.serializer()
+    override val swapOptionsSerializer: KSerializer<JsonElement> = JsonElement.serializer()
+}

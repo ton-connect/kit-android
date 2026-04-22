@@ -25,9 +25,7 @@ import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.serializer
 
 /** Manages swap providers and executes swap operations. Obtain via [io.ton.walletkit.ITONWalletKit.swap]. */
 interface ITONSwapManager {
@@ -47,12 +45,11 @@ interface ITONSwapManager {
      * Get a quote from the provider with [identifier]. Mirrors iOS
      * `quote<Identifier: TONSwapProviderIdentifier>(params:, identifier:)`.
      *
-     * Prefer the typed extension `getQuote<TQuoteOptions, TSwapOptions>(params, identifier)`,
-     * which serializes typed `providerOptions` automatically.
+     * Typed `providerOptions` are serialized via [TONSwapProviderIdentifier.quoteOptionsSerializer].
      */
-    suspend fun getQuote(
-        params: TONSwapQuoteParams<JsonElement>,
-        identifier: TONSwapProviderIdentifier<*, *>,
+    suspend fun <TQuoteOptions, TSwapOptions> getQuote(
+        params: TONSwapQuoteParams<TQuoteOptions>,
+        identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
     ): TONSwapQuote
 
     /** Get a quote from the default registered provider. Mirrors iOS `quote(params: TONSwapQuoteParams<AnyCodable>)`. */
@@ -60,50 +57,19 @@ interface ITONSwapManager {
 
     /**
      * Build a swap transaction. The provider is resolved from [TONSwapParams.quote.providerId].
-     * Prefer the typed extension `buildSwapTransaction<TSwapOptions>(params)` for typed options.
+     * For typed `providerOptions`, call [TONSwapProvider.buildSwapTransaction], which serializes
+     * via [TONSwapProviderIdentifier.swapOptionsSerializer] before delegating here.
      */
     suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): TONTransactionRequest
 }
 
 /**
  * Returns a typed [TONSwapProvider] for [identifier] if it is currently registered, null otherwise.
- * Type parameters are inferred from the identifier, e.g.:
  * ```kotlin
  * val provider: TONOmnistonSwapProvider? = manager.provider(TONOmnistonSwapProviderIdentifier())
  * ```
  */
-suspend inline fun <reified TQuoteOptions, reified TSwapOptions> ITONSwapManager.provider(
+suspend fun <TQuoteOptions, TSwapOptions> ITONSwapManager.provider(
     identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
-): TONSwapProvider<TQuoteOptions, TSwapOptions>? {
-    val handle = TONSwapProvider(identifier, this)
-    return if (hasProvider(identifier)) handle else null
-}
-
-/**
- * Get a quote from the provider with [identifier], serializing typed `providerOptions` automatically.
- * Mirrors iOS `quote<Identifier: TONSwapProviderIdentifier>(params: TONSwapQuoteParams<Identifier.QuoteOptions>, identifier: Identifier)`.
- */
-suspend inline fun <reified TQuoteOptions, reified TSwapOptions> ITONSwapManager.getQuote(
-    params: TONSwapQuoteParams<TQuoteOptions>,
-    identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
-): TONSwapQuote = TONSwapProvider(identifier, this).quote(params)
-
-/**
- * Build a swap transaction with typed swap options, serializing `providerOptions` automatically.
- * Mirrors iOS `swapTransaction<QuoteOptions: Codable>(params: TONSwapParams<QuoteOptions>)`.
- */
-suspend inline fun <reified TSwapOptions> ITONSwapManager.buildSwapTransaction(
-    params: TONSwapParams<TSwapOptions>,
-): TONTransactionRequest {
-    val jsonOptions = params.providerOptions?.let { Json.encodeToJsonElement(serializer<TSwapOptions>(), it) }
-    return buildSwapTransaction(
-        TONSwapParams(
-            quote = params.quote,
-            userAddress = params.userAddress,
-            destinationAddress = params.destinationAddress,
-            slippageBps = params.slippageBps,
-            deadline = params.deadline,
-            providerOptions = jsonOptions,
-        ),
-    )
-}
+): TONSwapProvider<TQuoteOptions, TSwapOptions>? =
+    if (hasProvider(identifier)) TONSwapProvider(identifier, this) else null

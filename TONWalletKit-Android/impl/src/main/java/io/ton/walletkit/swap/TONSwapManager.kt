@@ -51,11 +51,22 @@ internal class TONSwapManager(
         return engine.hasSwapProvider(identifier.name)
     }
 
-    override suspend fun getQuote(
-        params: TONSwapQuoteParams<JsonElement>,
-        identifier: TONSwapProviderIdentifier<*, *>,
+    override suspend fun <TQuoteOptions, TSwapOptions> getQuote(
+        params: TONSwapQuoteParams<TQuoteOptions>,
+        identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
     ): TONSwapQuote {
-        return engine.getSwapQuote(params, identifier.name)
+        val jsonOptions = params.providerOptions?.let { Json.encodeToJsonElement(identifier.quoteOptionsSerializer, it) }
+        val jsonParams = TONSwapQuoteParams(
+            amount = params.amount,
+            from = params.from,
+            to = params.to,
+            network = params.network,
+            slippageBps = params.slippageBps,
+            maxOutgoingMessages = params.maxOutgoingMessages,
+            providerOptions = jsonOptions,
+            isReverseSwap = params.isReverseSwap,
+        )
+        return engine.getSwapQuote(jsonParams, identifier.name)
     }
 
     override suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>): TONSwapQuote {
