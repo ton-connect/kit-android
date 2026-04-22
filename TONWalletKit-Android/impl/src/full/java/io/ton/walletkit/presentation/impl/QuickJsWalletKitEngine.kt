@@ -631,6 +631,14 @@ internal class QuickJsWalletKitEngine(
         throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
     }
 
+    override suspend fun getRegisteredStakingProviders(): List<String> {
+        throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
+    }
+
+    override suspend fun hasStakingProvider(providerId: String): Boolean {
+        throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
+    }
+
     override suspend fun getStakingQuote(
         params: TONStakingQuoteParams<JsonElement>,
         providerId: String?,
