@@ -29,8 +29,8 @@ import kotlinx.serialization.json.JsonElement
 
 /** Manages swap providers and executes swap operations. Obtain via [io.ton.walletkit.ITONWalletKit.swap]. */
 interface ITONSwapManager {
-    /** Register a provider. Must be called before [getQuote] or [buildSwapTransaction]. */
-    suspend fun registerProvider(provider: TONSwapProvider<*, *>)
+    /** Register a provider. Accepts any [ITONSwapProvider] implementation — the built-in [TONSwapProvider] and any user-defined conformers. Mirrors iOS `register<Provider: TONSwapProviderProtocol>(provider:)`. */
+    suspend fun registerProvider(provider: ITONSwapProvider<*, *>)
 
     /** Set the default provider used by [getQuote] when no identifier is specified. */
     suspend fun setDefaultProvider(identifier: TONSwapProviderIdentifier<*, *>)

@@ -40,18 +40,18 @@ import kotlinx.serialization.json.JsonElement
  * Register with [ITONSwapManager.registerProvider] before calling [quote] / [buildSwapTransaction].
  */
 class TONSwapProvider<TQuoteOptions, TSwapOptions>(
-    val identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
+    override val identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
     private val manager: ITONSwapManager,
-) {
+) : ITONSwapProvider<TQuoteOptions, TSwapOptions> {
     /** Get a quote from this provider. Delegates to [ITONSwapManager.getQuote] with this provider's [identifier]. */
-    suspend fun quote(params: TONSwapQuoteParams<TQuoteOptions>): TONSwapQuote =
+    override suspend fun quote(params: TONSwapQuoteParams<TQuoteOptions>): TONSwapQuote =
         manager.getQuote(params, identifier)
 
     /**
      * Build a swap transaction using this provider. Serializes `providerOptions`
      * via [TONSwapProviderIdentifier.swapOptionsSerializer] before delegating to the manager.
      */
-    suspend fun buildSwapTransaction(params: TONSwapParams<TSwapOptions>): TONTransactionRequest {
+    override suspend fun buildSwapTransaction(params: TONSwapParams<TSwapOptions>): TONTransactionRequest {
         val jsonOptions = params.providerOptions?.let { Json.encodeToJsonElement(identifier.swapOptionsSerializer, it) }
         return manager.buildSwapTransaction(
             TONSwapParams(

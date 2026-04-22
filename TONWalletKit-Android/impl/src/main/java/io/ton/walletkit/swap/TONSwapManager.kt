@@ -35,8 +35,20 @@ internal class TONSwapManager(
     private val engine: WalletKitEngine,
 ) : ITONSwapManager {
 
-    override suspend fun registerProvider(provider: TONSwapProvider<*, *>) {
-        engine.registerSwapProvider(provider.identifier.name)
+    override suspend fun registerProvider(provider: ITONSwapProvider<*, *>) {
+        if (provider is TONSwapProvider<*, *>) {
+            // Built-in JS-backed provider: the JS side already has the instance; just register its name.
+            engine.registerSwapProvider(provider.identifier.name)
+        } else {
+            // Custom Kotlin provider: register locally so reverse-RPC calls from JS's ProxySwapProvider
+            // can reach it, then tell JS to create the proxy and register it with the JS swap manager.
+            @Suppress("UNCHECKED_CAST")
+            engine.kotlinSwapProviderManager.register(
+                provider.identifier.name,
+                provider as ITONSwapProvider<JsonElement, JsonElement>,
+            )
+            engine.registerKotlinSwapProvider(provider.identifier.name)
+        }
     }
 
     override suspend fun setDefaultProvider(identifier: TONSwapProviderIdentifier<*, *>) {

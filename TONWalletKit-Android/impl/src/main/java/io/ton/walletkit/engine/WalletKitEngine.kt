@@ -484,6 +484,19 @@ internal interface WalletKitEngine : RequestHandler {
 
     suspend fun hasSwapProvider(providerId: String): Boolean
 
+    /**
+     * Registry for Kotlin-implemented [io.ton.walletkit.swap.ITONSwapProvider] instances. Reverse-RPC
+     * calls from JS's `ProxySwapProvider` are routed here by [io.ton.walletkit.engine.infrastructure.MessageDispatcher].
+     */
+    val kotlinSwapProviderManager: io.ton.walletkit.engine.state.KotlinSwapProviderManager
+
+    /**
+     * Tell the JS side to create a `ProxySwapProvider` bound to [providerId] and register it
+     * with the JS swap manager. Called after [kotlinSwapProviderManager] has the Kotlin instance
+     * so reverse-RPC calls can find it.
+     */
+    suspend fun registerKotlinSwapProvider(providerId: String)
+
     suspend fun getSwapQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote
 
     suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): String

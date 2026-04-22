@@ -38699,6 +38699,55 @@ var __async$2 = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
+class ProxyStakingProvider {
+  constructor(providerId, supportedUnstakeModes) {
+    this.providerId = providerId;
+    this.supportedUnstakeModes = supportedUnstakeModes;
+    this.type = "staking";
+  }
+  getQuote(params) {
+    return __async$2(this, null, function* () {
+      const resultJson = yield bridgeRequest("kotlinStakingProviderGetQuote", {
+        providerId: this.providerId,
+        params: JSON.stringify(params)
+      });
+      return JSON.parse(resultJson);
+    });
+  }
+  buildStakeTransaction(params) {
+    return __async$2(this, null, function* () {
+      const resultJson = yield bridgeRequest("kotlinStakingProviderBuildStakeTransaction", {
+        providerId: this.providerId,
+        params: JSON.stringify(params)
+      });
+      return JSON.parse(resultJson);
+    });
+  }
+  getStakedBalance(userAddress, network) {
+    return __async$2(this, null, function* () {
+      var _a;
+      const resultJson = yield bridgeRequest("kotlinStakingProviderGetStakedBalance", {
+        providerId: this.providerId,
+        userAddress,
+        networkChainId: (_a = network == null ? void 0 : network.chainId) != null ? _a : null
+      });
+      return JSON.parse(resultJson);
+    });
+  }
+  getStakingProviderInfo(network) {
+    return __async$2(this, null, function* () {
+      var _a;
+      const resultJson = yield bridgeRequest("kotlinStakingProviderGetStakingProviderInfo", {
+        providerId: this.providerId,
+        networkChainId: (_a = network == null ? void 0 : network.chainId) != null ? _a : null
+      });
+      return JSON.parse(resultJson);
+    });
+  }
+  getSupportedUnstakeModes() {
+    return this.supportedUnstakeModes;
+  }
+}
 function createTonStakersStakingProvider(args) {
   return __async$2(this, null, function* () {
     var _a;
@@ -38752,6 +38801,18 @@ function getSupportedUnstakeModes(args) {
   return __async$2(this, null, function* () {
     const instance = yield getKit();
     return instance.staking.getSupportedUnstakeModes(args.providerId);
+  });
+}
+function registerKotlinStakingProvider(args) {
+  return __async$2(this, null, function* () {
+    const instance = yield getKit();
+    const previous = get(args.providerId);
+    if (previous instanceof ProxyStakingProvider) {
+      release(args.providerId);
+    }
+    const provider = new ProxyStakingProvider(args.providerId, args.supportedUnstakeModes);
+    retainWithId(args.providerId, provider);
+    instance.staking.registerProvider(provider);
   });
 }
 function emitBrowserPageStarted(args) {
@@ -43154,6 +43215,30 @@ var __async = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
+class ProxySwapProvider {
+  constructor(providerId) {
+    this.providerId = providerId;
+    this.type = "swap";
+  }
+  getQuote(params) {
+    return __async(this, null, function* () {
+      const resultJson = yield bridgeRequest("kotlinSwapProviderQuote", {
+        providerId: this.providerId,
+        params: JSON.stringify(params)
+      });
+      return JSON.parse(resultJson);
+    });
+  }
+  buildSwapTransaction(params) {
+    return __async(this, null, function* () {
+      const resultJson = yield bridgeRequest("kotlinSwapProviderBuildSwapTransaction", {
+        providerId: this.providerId,
+        params: JSON.stringify(params)
+      });
+      return JSON.parse(resultJson);
+    });
+  }
+}
 function getSwap() {
   return __async(this, null, function* () {
     const instance = yield getKit();
@@ -43205,6 +43290,17 @@ function getSwapQuote(args) {
 function buildSwapTransaction(args) {
   return __async(this, null, function* () {
     return (yield getSwap()).buildSwapTransaction(args.params);
+  });
+}
+function registerKotlinSwapProvider(args) {
+  return __async(this, null, function* () {
+    const previous = get(args.providerId);
+    if (previous instanceof ProxySwapProvider) {
+      release(args.providerId);
+    }
+    const provider = new ProxySwapProvider(args.providerId);
+    retainWithId(args.providerId, provider);
+    (yield getSwap()).registerProvider(provider);
   });
 }
 const api = {
@@ -43277,6 +43373,7 @@ const api = {
   getStakedBalance,
   getStakingProviderInfo,
   getSupportedUnstakeModes,
+  registerKotlinStakingProvider,
   createOmnistonSwapProvider,
   createDeDustSwapProvider,
   registerSwapProvider,
@@ -43284,7 +43381,8 @@ const api = {
   getRegisteredSwapProviders,
   hasSwapProvider,
   getSwapQuote,
-  buildSwapTransaction
+  buildSwapTransaction,
+  registerKotlinSwapProvider
 };
 setBridgeApi(api);
 registerNativeCallHandler();

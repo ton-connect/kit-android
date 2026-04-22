@@ -126,6 +126,8 @@ internal class WebViewWalletKitEngine private constructor(
     private val signerManager = io.ton.walletkit.engine.state.SignerManager()
     private val eventRouter = EventRouter()
     private val storageManager = StorageManager(storageAdapter) { persistentStorageEnabled }
+    override val kotlinSwapProviderManager =
+        io.ton.walletkit.engine.state.KotlinSwapProviderManager(json)
 
     private val webViewManager: WebViewManager
     private val rpcClient: BridgeRpcClient
@@ -164,6 +166,7 @@ internal class WebViewWalletKitEngine private constructor(
                 webViewManager = webViewManager,
                 adapterManager = adapterManager,
                 signerManager = signerManager,
+                kotlinSwapProviderManager = kotlinSwapProviderManager,
                 json = json,
                 onInitialized = ::refreshDerivedState,
                 onNetworkChanged = ::handleNetworkChanged,
@@ -463,6 +466,13 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun hasSwapProvider(providerId: String): Boolean =
         swapOperations.hasSwapProvider(providerId)
 
+    override suspend fun registerKotlinSwapProvider(providerId: String) {
+        callBridgeMethod(
+            io.ton.walletkit.internal.constants.BridgeMethodConstants.METHOD_REGISTER_KOTLIN_SWAP_PROVIDER,
+            JSONObject().apply { put("providerId", providerId) },
+        )
+    }
+
     override suspend fun getSwapQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote =
         swapOperations.getSwapQuote(params, providerId)
 
@@ -518,6 +528,7 @@ internal class WebViewWalletKitEngine private constructor(
                 Logger.w(TAG, "Failed to remove event listeners during destroy", e)
             }
 
+            kotlinSwapProviderManager.clear()
             webViewManager.destroy()
         }
     }

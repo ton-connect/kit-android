@@ -257,4 +257,10 @@ internal object BridgeMethodConstants {
 
     /** Build a transaction for executing a swap. */
     const val METHOD_BUILD_SWAP_TRANSACTION = "buildSwapTransaction"
+
+    /**
+     * Method name for telling JS to create a ProxySwapProvider that forwards calls back to a
+     * Kotlin-implemented [io.ton.walletkit.swap.ITONSwapProvider] via reverse-RPC.
+     */
+    const val METHOD_REGISTER_KOTLIN_SWAP_PROVIDER = "registerKotlinSwapProvider"
 }

@@ -638,6 +638,13 @@ internal class QuickJsWalletKitEngine(
         throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
     }
 
+    override val kotlinSwapProviderManager =
+        io.ton.walletkit.engine.state.KotlinSwapProviderManager(kotlinx.serialization.json.Json)
+
+    override suspend fun registerKotlinSwapProvider(providerId: String) {
+        throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
+    }
+
     override suspend fun getSwapQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote {
         throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
     }
