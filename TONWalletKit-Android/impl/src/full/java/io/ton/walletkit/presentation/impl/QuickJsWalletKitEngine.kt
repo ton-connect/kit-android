@@ -639,6 +639,13 @@ internal class QuickJsWalletKitEngine(
         throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
     }
 
+    override val kotlinStakingProviderManager =
+        io.ton.walletkit.engine.state.KotlinStakingProviderManager(kotlinx.serialization.json.Json)
+
+    override suspend fun registerKotlinStakingProvider(providerId: String, supportedUnstakeModesJson: String) {
+        throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
+    }
+
     override suspend fun getStakingQuote(
         params: TONStakingQuoteParams<JsonElement>,
         providerId: String?,

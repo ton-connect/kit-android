@@ -41,30 +41,30 @@ import kotlinx.serialization.json.JsonElement
  * [ITONStakingManager.provider]. Register with [ITONStakingManager.register] before use.
  */
 class TONStakingProvider<TQuoteOptions, TStakeOptions>(
-    val identifier: TONStakingProviderIdentifier<TQuoteOptions, TStakeOptions>,
+    override val identifier: TONStakingProviderIdentifier<TQuoteOptions, TStakeOptions>,
     private val manager: ITONStakingManager,
-) {
+) : ITONStakingProvider<TQuoteOptions, TStakeOptions> {
     /** Get a quote from this provider. Delegates to [ITONStakingManager.getQuote] with this provider's [identifier]. */
-    suspend fun getQuote(params: TONStakingQuoteParams<TQuoteOptions>): TONStakingQuote =
+    override suspend fun getQuote(params: TONStakingQuoteParams<TQuoteOptions>): TONStakingQuote =
         manager.getQuote(params, identifier)
 
     /** Build a stake or unstake transaction using this provider. Delegates to [ITONStakingManager.buildStakeTransaction] with this provider's [identifier]. */
-    suspend fun buildStakeTransaction(params: TONStakeParams<TStakeOptions>): TONTransactionRequest =
+    override suspend fun buildStakeTransaction(params: TONStakeParams<TStakeOptions>): TONTransactionRequest =
         manager.buildStakeTransaction(params, identifier)
 
     /** Get the user's staked balance for this provider. Mirrors iOS `TONStakingProvider.stakedBalance(userAddress:network:)`. */
-    suspend fun getStakedBalance(
+    override suspend fun getStakedBalance(
         userAddress: TONUserFriendlyAddress,
-        network: TONNetwork? = null,
+        network: TONNetwork?,
     ): TONStakingBalance = manager.getStakedBalance(userAddress, network, identifier)
 
     /** Get this provider's general info (APY, instant-unstake liquidity). Mirrors iOS `TONStakingProvider.stakingProviderInfo(network:)`. */
-    suspend fun getStakingProviderInfo(
-        network: TONNetwork? = null,
+    override suspend fun getStakingProviderInfo(
+        network: TONNetwork?,
     ): TONStakingProviderInfo = manager.getStakingProviderInfo(network, identifier)
 
     /** Get the unstake modes supported by this provider. Mirrors iOS `TONStakingProvider.supportedUnstakeModes()`. */
-    suspend fun getSupportedUnstakeModes(): List<TONUnstakeMode> =
+    override suspend fun getSupportedUnstakeModes(): List<TONUnstakeMode> =
         manager.getSupportedUnstakeModes(identifier)
 }
 

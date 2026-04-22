@@ -38,8 +38,8 @@ import kotlinx.serialization.json.JsonElement
  */
 interface ITONStakingManager {
 
-    /** Register a staking provider. Must be called before any operations that target this provider. */
-    suspend fun register(provider: TONStakingProvider<*, *>)
+    /** Register a staking provider. Accepts any [ITONStakingProvider] implementation — the built-in [TONStakingProvider] and any user-defined conformers. Mirrors iOS `register<Provider: TONStakingProviderProtocol>(provider:)`. */
+    suspend fun register(provider: ITONStakingProvider<*, *>)
 
     /** Set the default provider used when no identifier is passed to query methods. */
     suspend fun setDefaultProvider(identifier: TONStakingProviderIdentifier<*, *>)

@@ -511,6 +511,22 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun hasStakingProvider(providerId: String): Boolean
 
     /**
+     * Registry for Kotlin-implemented [io.ton.walletkit.ITONStakingProvider] instances. Reverse-RPC
+     * calls from JS's `ProxyStakingProvider` are routed here by [io.ton.walletkit.engine.infrastructure.MessageDispatcher].
+     */
+    val kotlinStakingProviderManager: io.ton.walletkit.engine.state.KotlinStakingProviderManager
+
+    /**
+     * Tell the JS side to create a `ProxyStakingProvider` bound to [providerId] and register it
+     * with the JS staking manager. Called after [kotlinStakingProviderManager] has the Kotlin
+     * instance so reverse-RPC calls can find it.
+     *
+     * @param supportedUnstakeModesJson JSON array of supported unstake modes, fetched eagerly so the
+     *   JS proxy can satisfy the synchronous `getSupportedUnstakeModes()` contract without a round-trip.
+     */
+    suspend fun registerKotlinStakingProvider(providerId: String, supportedUnstakeModesJson: String)
+
+    /**
      * Get a stake or unstake quote from the staking manager.
      *
      * @param params Quote parameters (direction, amount, optional user address / network / mode)

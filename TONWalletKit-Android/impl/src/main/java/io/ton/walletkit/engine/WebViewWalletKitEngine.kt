@@ -85,6 +85,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -127,6 +128,8 @@ internal class WebViewWalletKitEngine private constructor(
     private val signerManager = io.ton.walletkit.engine.state.SignerManager()
     private val eventRouter = EventRouter()
     private val storageManager = StorageManager(storageAdapter) { persistentStorageEnabled }
+    override val kotlinStakingProviderManager =
+        io.ton.walletkit.engine.state.KotlinStakingProviderManager(json)
 
     private val webViewManager: WebViewManager
     private val rpcClient: BridgeRpcClient
@@ -165,6 +168,7 @@ internal class WebViewWalletKitEngine private constructor(
                 webViewManager = webViewManager,
                 adapterManager = adapterManager,
                 signerManager = signerManager,
+                kotlinStakingProviderManager = kotlinStakingProviderManager,
                 json = json,
                 onInitialized = ::refreshDerivedState,
                 onNetworkChanged = ::handleNetworkChanged,
@@ -461,6 +465,16 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun hasStakingProvider(providerId: String): Boolean =
         stakingOperations.hasStakingProvider(providerId)
 
+    override suspend fun registerKotlinStakingProvider(providerId: String, supportedUnstakeModesJson: String) {
+        callBridgeMethod(
+            io.ton.walletkit.internal.constants.BridgeMethodConstants.METHOD_REGISTER_KOTLIN_STAKING_PROVIDER,
+            JSONObject().apply {
+                put("providerId", providerId)
+                put("supportedUnstakeModes", JSONArray(supportedUnstakeModesJson))
+            },
+        )
+    }
+
     override suspend fun getStakingQuote(
         params: TONStakingQuoteParams<kotlinx.serialization.json.JsonElement>,
         providerId: String?,
@@ -534,6 +548,7 @@ internal class WebViewWalletKitEngine private constructor(
                 Logger.w(TAG, "Failed to remove event listeners during destroy", e)
             }
 
+            kotlinStakingProviderManager.clear()
             webViewManager.destroy()
         }
     }

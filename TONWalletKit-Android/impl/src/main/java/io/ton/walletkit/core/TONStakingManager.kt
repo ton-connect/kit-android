@@ -23,6 +23,7 @@ package io.ton.walletkit.core
 
 import io.ton.walletkit.AnyTONProviderIdentifier
 import io.ton.walletkit.ITONStakingManager
+import io.ton.walletkit.ITONStakingProvider
 import io.ton.walletkit.TONStakingProvider
 import io.ton.walletkit.TONStakingProviderIdentifier
 import io.ton.walletkit.api.generated.TONNetwork
@@ -35,6 +36,7 @@ import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
@@ -49,8 +51,25 @@ internal class TONStakingManager(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun register(provider: TONStakingProvider<*, *>) {
-        engine.registerStakingProvider(provider.identifier.name)
+    override suspend fun register(provider: ITONStakingProvider<*, *>) {
+        if (provider is TONStakingProvider<*, *>) {
+            // Built-in JS-backed provider: the JS side already has the instance; just register its name.
+            engine.registerStakingProvider(provider.identifier.name)
+        } else {
+            // Custom Kotlin provider: register locally so reverse-RPC calls from JS's ProxyStakingProvider
+            // can reach it, then tell JS to create the proxy and register it with the JS staking manager.
+            @Suppress("UNCHECKED_CAST")
+            val typedProvider = provider as ITONStakingProvider<JsonElement, JsonElement>
+            engine.kotlinStakingProviderManager.register(provider.identifier.name, typedProvider)
+            // Pre-fetch supported unstake modes so the JS proxy can satisfy its synchronous
+            // `getSupportedUnstakeModes()` contract without a round-trip.
+            val modes = typedProvider.getSupportedUnstakeModes()
+            val modesJson = json.encodeToString(
+                ListSerializer(io.ton.walletkit.api.generated.TONUnstakeMode.serializer()),
+                modes,
+            )
+            engine.registerKotlinStakingProvider(provider.identifier.name, modesJson)
+        }
     }
 
     override suspend fun setDefaultProvider(identifier: TONStakingProviderIdentifier<*, *>) {
