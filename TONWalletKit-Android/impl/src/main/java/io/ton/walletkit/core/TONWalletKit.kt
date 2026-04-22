@@ -36,8 +36,10 @@ import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.swap.ITONSwapManager
 import io.ton.walletkit.swap.TONDeDustSwapProvider
 import io.ton.walletkit.swap.TONDeDustSwapProviderConfig
+import io.ton.walletkit.swap.TONDeDustSwapProviderIdentifier
 import io.ton.walletkit.swap.TONOmnistonSwapProvider
 import io.ton.walletkit.swap.TONOmnistonSwapProviderConfig
+import io.ton.walletkit.swap.TONOmnistonSwapProviderIdentifier
 import io.ton.walletkit.swap.TONSwapManager
 import io.ton.walletkit.swap.TONSwapProvider
 
@@ -420,13 +422,13 @@ internal class TONWalletKit private constructor(
     override suspend fun omnistonSwapProvider(config: TONOmnistonSwapProviderConfig?): TONOmnistonSwapProvider {
         checkNotDestroyed()
         val providerId = engine.createOmnistonSwapProvider(config)
-        return TONSwapProvider(providerId, swapManager)
+        return TONSwapProvider(TONOmnistonSwapProviderIdentifier(providerId), swapManager)
     }
 
     override suspend fun dedustSwapProvider(config: TONDeDustSwapProviderConfig?): TONDeDustSwapProvider {
         checkNotDestroyed()
         val providerId = engine.createDeDustSwapProvider(config)
-        return TONSwapProvider(providerId, swapManager)
+        return TONSwapProvider(TONDeDustSwapProviderIdentifier(providerId), swapManager)
     }
 
     override suspend fun swap(): ITONSwapManager = swapManager

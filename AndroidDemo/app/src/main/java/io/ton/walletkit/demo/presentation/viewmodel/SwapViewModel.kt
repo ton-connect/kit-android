@@ -118,7 +118,7 @@ class SwapViewModel(
         swapResources?.let { resources ->
             viewModelScope.launch {
                 val newDefault = if (provider == SwapProvider.OMNISTON) resources.omnistonProvider else resources.deDustProvider
-                resources.manager.setDefaultProvider(newDefault)
+                resources.manager.setDefaultProvider(newDefault.identifier)
             }
         }
     }
@@ -228,11 +228,11 @@ class SwapViewModel(
         manager.registerProvider(deDust)
 
         val defaultProvider = if (_state.value.selectedProvider == SwapProvider.OMNISTON) omniston else deDust
-        manager.setDefaultProvider(defaultProvider)
+        manager.setDefaultProvider(defaultProvider.identifier)
 
         // Verify both providers are registered and update UI with their IDs
-        Log.d(TAG, "hasOmniston=${manager.hasProvider(omniston)}, hasDeDust=${manager.hasProvider(deDust)}")
-        val providerIds = manager.registeredProviders()
+        Log.d(TAG, "hasOmniston=${manager.hasProvider(omniston.identifier)}, hasDeDust=${manager.hasProvider(deDust.identifier)}")
+        val providerIds = manager.registeredProviders().map { it.name }
         _state.update { it.copy(registeredProviders = providerIds) }
 
         return SwapResources(manager, omniston, deDust).also { swapResources = it }

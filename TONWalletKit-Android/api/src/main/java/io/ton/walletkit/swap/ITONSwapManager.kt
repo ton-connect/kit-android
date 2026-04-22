@@ -33,13 +33,13 @@ interface ITONSwapManager {
     suspend fun registerProvider(provider: TONSwapProvider<*, *>)
 
     /** Set the default provider used by [getQuote] when no provider is specified. */
-    suspend fun setDefaultProvider(provider: TONSwapProvider<*, *>)
+    suspend fun setDefaultProvider(identifier: TONSwapProviderIdentifier<*, *>)
 
-    /** Returns the IDs of all registered providers. */
-    suspend fun registeredProviders(): List<String>
+    /** Returns typed identifiers for all registered providers. */
+    suspend fun registeredProviders(): List<AnyTONSwapProviderIdentifier>
 
-    /** Returns true if [provider] is currently registered. */
-    suspend fun hasProvider(provider: TONSwapProvider<*, *>): Boolean
+    /** Returns true if a provider with the given [identifier] is currently registered. */
+    suspend fun hasProvider(identifier: TONSwapProviderIdentifier<*, *>): Boolean
 
     /** Get a quote from the specific [providerId]. */
     suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String): TONSwapQuote
@@ -55,17 +55,17 @@ interface ITONSwapManager {
 }
 
 /**
- * Returns a typed [TONSwapProvider] for [providerId] if it is currently registered, null otherwise.
- * Type parameters are inferred from the assignment context, e.g.:
+ * Returns a typed [TONSwapProvider] for [identifier] if it is currently registered, null otherwise.
+ * Type parameters are inferred from the identifier, e.g.:
  * ```kotlin
- * val provider: TONOmnistonSwapProvider? = manager.provider("omniston")
+ * val provider: TONOmnistonSwapProvider? = manager.provider(TONOmnistonSwapProviderIdentifier())
  * ```
  */
 suspend inline fun <reified TQuoteOptions, reified TSwapOptions> ITONSwapManager.provider(
-    providerId: String,
+    identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
 ): TONSwapProvider<TQuoteOptions, TSwapOptions>? {
-    val handle = TONSwapProvider<TQuoteOptions, TSwapOptions>(providerId, this)
-    return if (hasProvider(handle)) handle else null
+    val handle = TONSwapProvider(identifier, this)
+    return if (hasProvider(identifier)) handle else null
 }
 
 /** Get a quote via a typed provider. Delegates to [TONSwapProvider.quote]. */

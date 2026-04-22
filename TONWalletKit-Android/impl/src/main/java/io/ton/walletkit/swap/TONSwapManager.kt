@@ -39,16 +39,16 @@ internal class TONSwapManager(
         engine.registerSwapProvider(provider.providerId)
     }
 
-    override suspend fun setDefaultProvider(provider: TONSwapProvider<*, *>) {
-        engine.setDefaultSwapProvider(provider.providerId)
+    override suspend fun setDefaultProvider(identifier: TONSwapProviderIdentifier<*, *>) {
+        engine.setDefaultSwapProvider(identifier.name)
     }
 
-    override suspend fun registeredProviders(): List<String> {
-        return engine.getRegisteredSwapProviders()
+    override suspend fun registeredProviders(): List<AnyTONSwapProviderIdentifier> {
+        return engine.getRegisteredSwapProviders().map { AnyTONSwapProviderIdentifier(it) }
     }
 
-    override suspend fun hasProvider(provider: TONSwapProvider<*, *>): Boolean {
-        return engine.hasSwapProvider(provider.providerId)
+    override suspend fun hasProvider(identifier: TONSwapProviderIdentifier<*, *>): Boolean {
+        return engine.hasSwapProvider(identifier.name)
     }
 
     override suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String): TONSwapQuote {
