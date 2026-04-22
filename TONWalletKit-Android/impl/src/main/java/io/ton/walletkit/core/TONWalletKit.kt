@@ -420,13 +420,13 @@ internal class TONWalletKit private constructor(
     override suspend fun omnistonSwapProvider(config: TONOmnistonSwapProviderConfig?): TONOmnistonSwapProvider {
         checkNotDestroyed()
         val providerId = engine.createOmnistonSwapProvider(config)
-        return TONSwapProvider(providerId)
+        return TONSwapProvider(providerId, swapManager)
     }
 
     override suspend fun dedustSwapProvider(config: TONDeDustSwapProviderConfig?): TONDeDustSwapProvider {
         checkNotDestroyed()
         val providerId = engine.createDeDustSwapProvider(config)
-        return TONSwapProvider(providerId)
+        return TONSwapProvider(providerId, swapManager)
     }
 
     override suspend fun swap(): ITONSwapManager = swapManager
