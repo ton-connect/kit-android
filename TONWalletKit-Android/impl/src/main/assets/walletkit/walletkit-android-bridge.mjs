@@ -43215,6 +43215,30 @@ var __async = (__this, __arguments, generator) => {
     step((generator = generator.apply(__this, __arguments)).next());
   });
 };
+class ProxySwapProvider {
+  constructor(providerId) {
+    this.providerId = providerId;
+    this.type = "swap";
+  }
+  getQuote(params) {
+    return __async(this, null, function* () {
+      const resultJson = yield bridgeRequest("kotlinSwapProviderQuote", {
+        providerId: this.providerId,
+        params: JSON.stringify(params)
+      });
+      return JSON.parse(resultJson);
+    });
+  }
+  buildSwapTransaction(params) {
+    return __async(this, null, function* () {
+      const resultJson = yield bridgeRequest("kotlinSwapProviderBuildSwapTransaction", {
+        providerId: this.providerId,
+        params: JSON.stringify(params)
+      });
+      return JSON.parse(resultJson);
+    });
+  }
+}
 function getSwap() {
   return __async(this, null, function* () {
     const instance = yield getKit();
@@ -43266,6 +43290,17 @@ function getSwapQuote(args) {
 function buildSwapTransaction(args) {
   return __async(this, null, function* () {
     return (yield getSwap()).buildSwapTransaction(args.params);
+  });
+}
+function registerKotlinSwapProvider(args) {
+  return __async(this, null, function* () {
+    const previous = get(args.providerId);
+    if (previous instanceof ProxySwapProvider) {
+      release(args.providerId);
+    }
+    const provider = new ProxySwapProvider(args.providerId);
+    retainWithId(args.providerId, provider);
+    (yield getSwap()).registerProvider(provider);
   });
 }
 const api = {
@@ -43346,7 +43381,8 @@ const api = {
   getRegisteredSwapProviders,
   hasSwapProvider,
   getSwapQuote,
-  buildSwapTransaction
+  buildSwapTransaction,
+  registerKotlinSwapProvider
 };
 setBridgeApi(api);
 registerNativeCallHandler();
