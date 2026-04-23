@@ -27,19 +27,22 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.engine.adapter.BridgeWalletAdapter
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
-import io.ton.walletkit.engine.infrastructure.JsRef
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.engine.operations.requests.WalletIdRequest
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
+import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletAdapterInfo
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
@@ -155,11 +158,22 @@ internal class WalletOperations(
         // adapter is created. Custom signers live in SignerManager (Kotlin-side) and must
         // not be released here.
         if (!signerManager.hasCustomSigner(signerId)) {
-            JsRef(signerId, rpcClient).close()
+            @OptIn(DelicateCoroutinesApi::class)
+            GlobalScope.launch {
+                try {
+                    rpcClient.call(
+                        BridgeMethodConstants.METHOD_RELEASE_REF,
+                        JSONObject().apply { put("id", signerId) },
+                    )
+                } catch (_: Exception) {
+                    Logger.w("WalletOperations", "Failed to release JS signer ref: $signerId")
+                }
+            }
         }
 
         return BridgeWalletAdapter(
-            ref = JsRef(adapterId, rpcClient),
+            rpcClient = rpcClient,
+            adapterId = adapterId,
             cachedPublicKey = publicKey,
             cachedNetwork = resolvedNetwork,
             cachedAddress = TONUserFriendlyAddress(address),
