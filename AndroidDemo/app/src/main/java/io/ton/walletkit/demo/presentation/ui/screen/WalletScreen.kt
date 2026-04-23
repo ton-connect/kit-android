@@ -98,12 +98,14 @@ import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.ConnectRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.JettonDetailsSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.SignDataSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.SwapSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransferJettonSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.WalletDetailsSheet
 import io.ton.walletkit.demo.presentation.util.TestTags
 import io.ton.walletkit.demo.presentation.viewmodel.NFTsListViewModel
+import io.ton.walletkit.demo.presentation.viewmodel.SwapViewModel
 
 // URL for the TonConnect E2E test runner dApp
 // This is the same dApp used by web demo-wallet E2E tests
@@ -115,6 +117,7 @@ fun WalletScreen(
     state: WalletUiState,
     walletKit: ITONWalletKit,
     nftsViewModel: NFTsListViewModel?,
+    swapViewModel: SwapViewModel?,
     actions: WalletActions,
 ) {
     val scrollState = rememberScrollState()
@@ -239,6 +242,12 @@ fun WalletScreen(
                     )
                 }
 
+                is SheetState.Swap -> {
+                    swapViewModel?.let { vm ->
+                        SwapSheet(viewModel = vm, onDismiss = actions::onDismissSheet)
+                    }
+                }
+
                 SheetState.None -> Unit
             }
         }
@@ -305,6 +314,7 @@ fun WalletScreen(
                 onHandleUrl = actions::onUrlPromptClick,
                 onAddWallet = actions::onAddWalletClick,
                 onRefresh = onRefreshAll,
+                onSwap = actions::onSwapClick,
             )
 
             // Wallet Switcher (only show if multiple wallets exist)
