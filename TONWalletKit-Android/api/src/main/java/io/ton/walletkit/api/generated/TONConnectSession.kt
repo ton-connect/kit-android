@@ -80,7 +80,7 @@ data class TONConnectSession(
     val domain: kotlin.String,
 
     @SerialName(value = "schemaVersion")
-    val schemaVersion: kotlin.Int,
+    val schemaVersion: kotlin.Double,
 
     /* Display name of the dApp */
     @SerialName(value = "dAppName")

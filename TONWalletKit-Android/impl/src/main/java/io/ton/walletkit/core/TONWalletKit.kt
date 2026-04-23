@@ -26,6 +26,8 @@ import android.webkit.WebView
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.WebViewTonConnectInjector
+import io.ton.walletkit.api.generated.TONDeDustSwapProviderConfig
+import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
 import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -33,6 +35,13 @@ import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONWalletAdapter
+import io.ton.walletkit.swap.BuiltInSwapProvider
+import io.ton.walletkit.swap.ITONSwapManager
+import io.ton.walletkit.swap.TONSwapManager
+import io.ton.walletkit.swap.dedust.TONDeDustSwapProvider
+import io.ton.walletkit.swap.dedust.TONDeDustSwapProviderIdentifier
+import io.ton.walletkit.swap.omniston.TONOmnistonSwapProvider
+import io.ton.walletkit.swap.omniston.TONOmnistonSwapProviderIdentifier
 
 /**
  * Main entry point for TON Wallet Kit SDK.
@@ -90,6 +99,8 @@ internal class TONWalletKit private constructor(
     @JvmSynthetic
     internal val engine: WalletKitEngine,
 ) : ITONWalletKit {
+
+    private val swapManager: ITONSwapManager = TONSwapManager(engine)
 
     companion object {
         /**
@@ -407,4 +418,18 @@ internal class TONWalletKit private constructor(
     override fun createWebViewInjector(webView: WebView, walletId: String?): WebViewTonConnectInjector {
         return TonConnectInjector(webView, this, walletId)
     }
+
+    override suspend fun omnistonSwapProvider(config: TONOmnistonSwapProviderConfig?): TONOmnistonSwapProvider {
+        checkNotDestroyed()
+        val providerId = engine.createOmnistonSwapProvider(config)
+        return BuiltInSwapProvider(TONOmnistonSwapProviderIdentifier(providerId), engine)
+    }
+
+    override suspend fun dedustSwapProvider(config: TONDeDustSwapProviderConfig?): TONDeDustSwapProvider {
+        checkNotDestroyed()
+        val providerId = engine.createDeDustSwapProvider(config)
+        return BuiltInSwapProvider(TONDeDustSwapProviderIdentifier(providerId), engine)
+    }
+
+    override suspend fun swap(): ITONSwapManager = swapManager
 }

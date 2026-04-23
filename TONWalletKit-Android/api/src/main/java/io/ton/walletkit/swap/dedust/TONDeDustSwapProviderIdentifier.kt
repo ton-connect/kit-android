@@ -19,50 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
+package io.ton.walletkit.swap.dedust
 
-package io.ton.walletkit.api.generated
-
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import io.ton.walletkit.api.generated.TONDeDustProviderOptions
+import io.ton.walletkit.swap.TONSwapProviderIdentifier
 
 /**
- * Token type for swap
- *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * Identifier for the DeDust swap provider.
+ * Both [QuoteOptions] and [SwapOptions] are [TONDeDustProviderOptions].
  */
-@Serializable
-data class TONSwapToken(
-
-    @SerialName(value = "address")
-    val address: kotlin.String,
-
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Double,
-
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
-
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
-
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
-
-) {
-
-    companion object
-}
+class TONDeDustSwapProviderIdentifier(override val name: String = "dedust") :
+    TONSwapProviderIdentifier<TONDeDustProviderOptions, TONDeDustProviderOptions>

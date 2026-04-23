@@ -48,7 +48,7 @@ data class TONConnectionApprovalProof(
     val signature: io.ton.walletkit.model.TONBase64,
 
     @SerialName(value = "timestamp")
-    val timestamp: kotlin.Int,
+    val timestamp: kotlin.Double,
 
     @SerialName(value = "domain")
     val domain: TONConnectionApprovalProofDomain,

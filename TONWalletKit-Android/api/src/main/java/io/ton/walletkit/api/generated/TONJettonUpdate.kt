@@ -64,7 +64,7 @@ data class TONJettonUpdate(
 
     /* Decimals mapped from metadata if available */
     @SerialName(value = "decimals")
-    val decimals: kotlin.Int? = null,
+    val decimals: kotlin.Double? = null,
 
     /* Human readable formatted balance if decimals are known */
     @SerialName(value = "balance")

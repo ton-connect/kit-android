@@ -54,9 +54,9 @@ data class TONSwapQuoteParams<TProviderOptions>(
     @SerialName("network")
     val network: TONNetwork,
     @SerialName("slippageBps")
-    val slippageBps: kotlin.Int? = null,
+    val slippageBps: kotlin.Double? = null,
     @SerialName("maxOutgoingMessages")
-    val maxOutgoingMessages: kotlin.Int? = null,
+    val maxOutgoingMessages: kotlin.Double? = null,
     @SerialName("providerOptions")
     val providerOptions: TProviderOptions? = null,
     @SerialName("isReverseSwap")

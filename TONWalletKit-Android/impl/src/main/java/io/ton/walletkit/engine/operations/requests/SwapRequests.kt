@@ -19,50 +19,48 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
+package io.ton.walletkit.engine.operations.requests
 
-package io.ton.walletkit.api.generated
-
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Token type for swap
+ * Internal bridge request models for swap operations.
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * @suppress Internal bridge communication only.
  */
+
 @Serializable
-data class TONSwapToken(
+internal data class CreateOmnistonSwapProviderRequest(
+    val config: kotlinx.serialization.json.JsonElement? = null,
+)
 
-    @SerialName(value = "address")
-    val address: kotlin.String,
+@Serializable
+internal data class CreateDeDustSwapProviderRequest(
+    val config: kotlinx.serialization.json.JsonElement? = null,
+)
 
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Double,
+@Serializable
+internal data class RegisterSwapProviderRequest(
+    val providerId: String,
+)
 
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
+@Serializable
+internal data class SetDefaultSwapProviderRequest(
+    val providerId: String,
+)
 
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
+@Serializable
+internal data class HasSwapProviderRequest(
+    val providerId: String,
+)
 
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
+@Serializable
+internal data class GetSwapQuoteRequest(
+    val params: kotlinx.serialization.json.JsonElement,
+    val providerId: String? = null,
+)
 
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
-
-) {
-
-    companion object
-}
+@Serializable
+internal data class BuildSwapTransactionRequest(
+    val params: kotlinx.serialization.json.JsonElement,
+)

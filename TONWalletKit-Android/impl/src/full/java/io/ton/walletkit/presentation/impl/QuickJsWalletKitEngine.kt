@@ -30,16 +30,21 @@ import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONDeDustSwapProviderConfig
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
 import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONSwapParams
+import io.ton.walletkit.api.generated.TONSwapQuote
+import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
@@ -71,6 +76,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Headers
@@ -606,6 +612,45 @@ internal class QuickJsWalletKitEngine(
         val params = JSONObject()
         sessionId?.let { params.put("sessionId", it) }
         call("disconnectSession", if (params.length() == 0) null else params)
+    }
+
+    override suspend fun createOmnistonSwapProvider(config: TONOmnistonSwapProviderConfig?): String {
+        throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
+    }
+
+    override suspend fun createDeDustSwapProvider(config: TONDeDustSwapProviderConfig?): String {
+        throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
+    }
+
+    override suspend fun registerSwapProvider(providerId: String) {
+        throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
+    }
+
+    override suspend fun setDefaultSwapProvider(providerId: String) {
+        throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
+    }
+
+    override suspend fun getRegisteredSwapProviders(): List<String> {
+        throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
+    }
+
+    override suspend fun hasSwapProvider(providerId: String): Boolean {
+        throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
+    }
+
+    override val kotlinSwapProviderManager =
+        io.ton.walletkit.engine.state.KotlinSwapProviderManager(kotlinx.serialization.json.Json)
+
+    override suspend fun registerKotlinSwapProvider(providerId: String) {
+        throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
+    }
+
+    override suspend fun getSwapQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote {
+        throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
+    }
+
+    override suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): String {
+        throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
     }
 
     override suspend fun getNfts(walletAddress: String, limit: Int, offset: Int): io.ton.walletkit.api.generated.TONNFTsResponse {

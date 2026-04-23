@@ -19,50 +19,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-@file:Suppress(
-    "ArrayInDataClass",
-    "EnumEntryName",
-    "RemoveRedundantQualifierName",
-    "UnusedImport",
-)
+package io.ton.walletkit.swap
 
-package io.ton.walletkit.api.generated
-
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 /**
- * Token type for swap
+ * Identifies a swap provider and carries its option types as generic parameters.
+ * Analogous to iOS's `TONSwapProviderIdentifier` protocol.
  *
- * @param address
- * @param decimals
- * @param name
- * @param symbol
- * @param image
- * @param chainId
+ * [TQuoteOptions] is the provider-specific type for [ITONSwapManager.getQuote] options.
+ * [TSwapOptions] is the provider-specific type for swap-transaction building options.
  */
-@Serializable
-data class TONSwapToken(
-
-    @SerialName(value = "address")
-    val address: kotlin.String,
-
-    @SerialName(value = "decimals")
-    val decimals: kotlin.Double,
-
-    @SerialName(value = "name")
-    val name: kotlin.String? = null,
-
-    @SerialName(value = "symbol")
-    val symbol: kotlin.String? = null,
-
-    @SerialName(value = "image")
-    val image: kotlin.String? = null,
-
-    @SerialName(value = "chainId")
-    val chainId: kotlin.String? = null,
-
-) {
-
-    companion object
+interface TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions> {
+    val name: String
 }
+
+/**
+ * Type-erased swap provider identifier returned by [ITONSwapManager.registeredProviders].
+ * Analogous to iOS's `AnyTONProviderIdentifier`.
+ */
+data class AnyTONSwapProviderIdentifier(override val name: String) :
+    TONSwapProviderIdentifier<JsonElement, JsonElement>

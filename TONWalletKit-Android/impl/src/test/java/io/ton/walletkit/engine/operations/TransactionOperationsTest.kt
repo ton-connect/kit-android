@@ -196,7 +196,7 @@ class TransactionOperationsTest : OperationsTestBase() {
             },
         )
 
-        val result = transactionOperations.getTransactionPreview(TEST_ADDRESS, """{"boc":"..."}""")
+        val result = transactionOperations.getTransactionPreview(TEST_ADDRESS, """{"messages":[]}""")
 
         // Result should be a Success type
         assertNotNull(result)

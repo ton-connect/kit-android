@@ -71,7 +71,7 @@ data class TONTransaction(
 
     /* Unix timestamp of the transaction */
     @SerialName(value = "now")
-    val now: kotlin.Int,
+    val now: kotlin.Double,
 
     /* Masterchain block sequence number */
     @SerialName(value = "mcBlockSeqno")
