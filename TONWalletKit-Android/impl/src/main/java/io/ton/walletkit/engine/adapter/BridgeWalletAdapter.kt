@@ -33,21 +33,49 @@ import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletAdapterInfo
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Internal adapter wrapping a JS-side wallet adapter.
  * Holds cached metadata; signing is handled by the JS engine.
+ *
+ * Closing releases the JS-side registry entry. A finalize() safety net covers the
+ * case where the user never closes the adapter — the JS registry would otherwise
+ * accumulate entries for the lifetime of the engine.
  */
 internal class BridgeWalletAdapter(
+    private val rpcClient: BridgeRpcClient,
     internal val adapterId: String,
     private val cachedPublicKey: TONHex,
     private val cachedNetwork: TONNetwork,
     private val cachedAddress: TONUserFriendlyAddress,
-    private val rpcClient: BridgeRpcClient,
-) : TONWalletAdapter {
+) : TONWalletAdapter, AutoCloseable {
+
+    private val released = AtomicBoolean(false)
+
+    override fun close() = releaseOnce()
+
+    @Suppress("removal")
+    protected fun finalize() = releaseOnce()
+
+    private fun releaseOnce() {
+        if (!released.compareAndSet(false, true)) return
+        @OptIn(DelicateCoroutinesApi::class)
+        GlobalScope.launch {
+            try {
+                rpcClient.call(
+                    BridgeMethodConstants.METHOD_RELEASE_REF,
+                    JSONObject().apply { put("id", adapterId) },
+                )
+            } catch (_: Exception) {
+                Logger.w(TAG, "Failed to release JS adapter ref: $adapterId")
+            }
+        }
+    }
 
     override fun identifier(): String = adapterId
 
@@ -82,19 +110,6 @@ internal class BridgeWalletAdapter(
         throw UnsupportedOperationException("BridgeWalletAdapter delegates to JS engine")
     }
 
-    @Suppress("removal")
-    @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
-    protected fun finalize() {
-        GlobalScope.launch {
-            try {
-                val request = JSONObject().apply { put("id", adapterId) }
-                rpcClient.call(BridgeMethodConstants.METHOD_RELEASE_REF, request)
-            } catch (_: Exception) {
-                Logger.w(TAG, "Failed to release adapter $adapterId during finalization")
-            }
-        }
-    }
-
     internal fun toWalletAdapterInfo(): WalletAdapterInfo = WalletAdapterInfo(
         adapterId = adapterId,
         address = cachedAddress,
@@ -102,6 +117,6 @@ internal class BridgeWalletAdapter(
     )
 
     private companion object {
-        private const val TAG = "BridgeWalletAdapter"
+        const val TAG = "BridgeWalletAdapter"
     }
 }

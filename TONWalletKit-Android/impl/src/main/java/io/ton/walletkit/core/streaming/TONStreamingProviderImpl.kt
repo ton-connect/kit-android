@@ -36,12 +36,35 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal class TONStreamingProviderImpl(
     private val engine: WalletKitEngine,
     override val network: TONNetwork,
     override val id: String,
-) : ITONStreamingProvider {
+) : ITONStreamingProvider, AutoCloseable {
+
+    private val released = AtomicBoolean(false)
+
+    override fun close() = releaseOnce()
+
+    @Suppress("removal")
+    protected fun finalize() = releaseOnce()
+
+    private fun releaseOnce() {
+        if (!released.compareAndSet(false, true)) return
+        @OptIn(DelicateCoroutinesApi::class)
+        GlobalScope.launch {
+            try {
+                engine.callBridgeMethod(
+                    BridgeMethodConstants.METHOD_RELEASE_REF,
+                    JSONObject().apply { put("id", id) },
+                )
+            } catch (_: Exception) {
+                Logger.w(TAG, "Failed to release JS streaming provider ref: $id")
+            }
+        }
+    }
 
     override suspend fun connect() {
         engine.callBridgeMethod(BridgeMethodConstants.METHOD_STREAMING_CONNECT)
@@ -125,12 +148,6 @@ internal class TONStreamingProviderImpl(
         }
     }
 
-    /**
-     * Fires METHOD_STREAMING_UNWATCH so the JS-side subscription stops and its entry is
-     * removed from the bridge registry. Called from [callbackFlow]'s [awaitClose], which
-     * runs once when the collector goes away — cleanup is tied to Flow lifecycle, not to
-     * any JS-ref releaseOnce machinery.
-     */
     private fun unwatchSubscription(id: String?) {
         if (id == null) return
         @OptIn(DelicateCoroutinesApi::class)
