@@ -28,7 +28,9 @@ import io.ton.walletkit.core.streaming.StreamingEvent
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.EventRouter
+import io.ton.walletkit.engine.state.KotlinStakingProviderManager
 import io.ton.walletkit.engine.state.KotlinStreamingProviderManager
+import io.ton.walletkit.engine.state.KotlinSwapProviderManager
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.EventTypeConstants
@@ -68,6 +70,8 @@ internal class MessageDispatcher(
     private val webViewManager: WebViewManager,
     private val adapterManager: AdapterManager,
     private val signerManager: SignerManager,
+    private val kotlinSwapProviderManager: KotlinSwapProviderManager,
+    private val kotlinStakingProviderManager: KotlinStakingProviderManager,
     private val kotlinStreamingProviderManager: KotlinStreamingProviderManager,
     private val json: Json,
     private val onInitialized: () -> Unit,
@@ -221,6 +225,55 @@ internal class MessageDispatcher(
                     ?: throw IllegalArgumentException("Adapter not found: $adapterId")
                 val request = json.decodeFromString<io.ton.walletkit.api.generated.TONProofMessage>(inputJson)
                 adapter.signedTonProof(request, fakeSignature).value
+            }
+
+            REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_QUOTE -> {
+                val providerId = params.getString("providerId")
+                val paramsJson = params.getString("params")
+                kotlinSwapProviderManager.quote(providerId, paramsJson)
+            }
+
+            REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_BUILD_SWAP_TRANSACTION -> {
+                val providerId = params.getString("providerId")
+                val paramsJson = params.getString("params")
+                kotlinSwapProviderManager.buildSwapTransaction(providerId, paramsJson)
+            }
+
+            REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_RELEASE -> {
+                val providerId = params.getString("providerId")
+                kotlinSwapProviderManager.unregister(providerId)
+                emptyJsonObject()
+            }
+
+            REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_QUOTE -> {
+                val providerId = params.getString("providerId")
+                val paramsJson = params.getString("params")
+                kotlinStakingProviderManager.getQuote(providerId, paramsJson)
+            }
+
+            REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_BUILD_STAKE_TRANSACTION -> {
+                val providerId = params.getString("providerId")
+                val paramsJson = params.getString("params")
+                kotlinStakingProviderManager.buildStakeTransaction(providerId, paramsJson)
+            }
+
+            REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_STAKED_BALANCE -> {
+                val providerId = params.getString("providerId")
+                val userAddress = params.getString("userAddress")
+                val networkChainId = params.optString("networkChainId").takeUnless { it.isBlank() }
+                kotlinStakingProviderManager.getStakedBalance(providerId, userAddress, networkChainId)
+            }
+
+            REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_STAKING_PROVIDER_INFO -> {
+                val providerId = params.getString("providerId")
+                val networkChainId = params.optString("networkChainId").takeUnless { it.isBlank() }
+                kotlinStakingProviderManager.getStakingProviderInfo(providerId, networkChainId)
+            }
+
+            REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_RELEASE -> {
+                val providerId = params.getString("providerId")
+                kotlinStakingProviderManager.unregister(providerId)
+                emptyJsonObject()
             }
 
             REQUEST_METHOD_KOTLIN_PROVIDER_WATCH -> {
@@ -464,6 +517,14 @@ internal class MessageDispatcher(
         private const val REQUEST_METHOD_ADAPTER_SIGN_TRANSACTION = "adapterSignTransaction"
         private const val REQUEST_METHOD_ADAPTER_SIGN_DATA = "adapterSignData"
         private const val REQUEST_METHOD_ADAPTER_SIGN_TON_PROOF = "adapterSignTonProof"
+        private const val REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_QUOTE = "kotlinSwapProviderQuote"
+        private const val REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_BUILD_SWAP_TRANSACTION = "kotlinSwapProviderBuildSwapTransaction"
+        private const val REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_RELEASE = "kotlinSwapProviderRelease"
+        private const val REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_QUOTE = "kotlinStakingProviderGetQuote"
+        private const val REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_BUILD_STAKE_TRANSACTION = "kotlinStakingProviderBuildStakeTransaction"
+        private const val REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_STAKED_BALANCE = "kotlinStakingProviderGetStakedBalance"
+        private const val REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_STAKING_PROVIDER_INFO = "kotlinStakingProviderGetStakingProviderInfo"
+        private const val REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_RELEASE = "kotlinStakingProviderRelease"
         private const val REQUEST_METHOD_KOTLIN_PROVIDER_WATCH = "kotlinProviderWatch"
         private const val REQUEST_METHOD_KOTLIN_PROVIDER_UNWATCH = "kotlinProviderUnwatch"
         private const val REQUEST_METHOD_KOTLIN_PROVIDER_CONNECT = "kotlinProviderConnect"

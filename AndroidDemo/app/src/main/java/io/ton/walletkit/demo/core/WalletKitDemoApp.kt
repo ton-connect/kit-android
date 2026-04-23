@@ -232,15 +232,21 @@ object TONWalletKitHelper {
                 null
             }
 
+            // Create network configurations for both mainnet and testnet
+            // This demonstrates the iOS-like pattern where each network config has either:
+            // - apiClientConfiguration: Use SDK's built-in API client with your API key
+            // - apiClient: Use your own custom API client implementation
+            val toncenterApiKey = DemoApiConfig.toncenterApiKey
+            val tonApiKey = DemoApiConfig.tonApiKey
             val networkConfigurations = if (useCustomApiClient) {
                 setOf(
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.MAINNET,
-                        apiClient = ToncenterAPIClient.mainnet(),
+                        apiClient = ToncenterAPIClient.mainnet(apiKey = toncenterApiKey),
                     ),
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.TESTNET,
-                        apiClient = TonAPIClient.testnet(),
+                        apiClient = TonAPIClient.testnet(apiKey = tonApiKey),
                     ),
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.TETRA,
@@ -248,17 +254,18 @@ object TONWalletKitHelper {
                     ),
                 )
             } else {
+                // Configure via -PwalletkitToncenterApiKey / WALLETKIT_TONCENTER_API_KEY.
                 setOf(
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.MAINNET,
                         apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(
-                            key = "", // Empty key uses default behavior
+                            key = toncenterApiKey,
                         ),
                     ),
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.TESTNET,
                         apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(
-                            key = "", // Empty key uses default behavior
+                            key = toncenterApiKey,
                         ),
                     ),
                     TONWalletKitConfiguration.NetworkConfiguration(
@@ -280,6 +287,7 @@ object TONWalletKitHelper {
                     aboutUrl = DEFAULT_MANIFEST_ABOUT_URL,
                     universalLink = DEFAULT_MANIFEST_UNIVERSAL_LINK,
                     bridgeUrl = DEFAULT_BRIDGE_URL,
+                    jsBridgeKey = DEFAULT_JS_BRIDGE_KEY,
                 ),
                 bridge = TONWalletKitConfiguration.Bridge(
                     bridgeUrl = DEFAULT_BRIDGE_URL,
@@ -330,6 +338,10 @@ object TONWalletKitHelper {
 
     private const val DEFAULT_MANIFEST_NAME = "Wallet"
     private const val DEFAULT_APP_NAME = "Wallet"
+
+    // "tonkeeper" matches the jsBridgeKey in the official TonConnect wallet list, so dApps
+    // using @tonconnect/ui-react will discover our injected bridge via window["tonkeeper"].tonconnect.
+    private const val DEFAULT_JS_BRIDGE_KEY = "tonkeeper"
     private const val DEFAULT_MANIFEST_IMAGE_URL = "https://wallet.ton.org/icon.png"
     private const val DEFAULT_MANIFEST_ABOUT_URL = "https://wallet.ton.org"
     private const val DEFAULT_MANIFEST_UNIVERSAL_LINK = "https://wallet.ton.org/tc"

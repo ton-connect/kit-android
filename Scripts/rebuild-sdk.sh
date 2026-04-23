@@ -22,25 +22,12 @@ echo "kit-android: $KIT_ANDROID_DIR"
 # 1. Build TypeScript bridge bundle
 echo -e "\n${GREEN}[1/4] Building TypeScript bridge...${NC}"
 
-if [[ "$*" == *"--legacy"* ]]; then
-    export WALLETKIT_LEGACY=1
-fi
-
-cd "$KIT_DIR/packages/walletkit"
-rm -rf dist
-npx tsc -p tsconfig.json || echo -e "${YELLOW}  ⚠ tsc (CJS) errors — output still emitted${NC}"
-npx tsc -p tsconfig.esm.json || echo -e "${YELLOW}  ⚠ tsc (ESM) errors — output still emitted${NC}"
-
-if [[ ! -d dist/cjs ]] || [[ ! -d dist/esm ]]; then
-    echo -e "${RED}  ✗ tsc produced no output — aborting${NC}"
-    exit 1
-fi
-
 cd "$KIT_DIR"
-pnpm --filter walletkit-android-bridge build
+pnpm build --force --filter walletkit-android-bridge
 
 # 2. Copy bundle
 echo -e "\n${GREEN}[2/4] Copying bundle to dist-android...${NC}"
+mkdir -p "$KIT_ANDROID_DIR/dist-android/"
 cp packages/walletkit-android-bridge/dist/* "$KIT_ANDROID_DIR/dist-android/"
 
 # 3. Regenerate OpenAPI models (opt-in)

@@ -19,8 +19,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.streaming
+package io.ton.walletkit.staking.tonstakers
 
-enum class TONProviderType {
-    STREAMING,
+import io.ton.walletkit.staking.TONStakingProviderIdentifier
+import kotlinx.serialization.json.JsonElement
+
+/**
+ * Identifier for the TonStakers staking provider.
+ * Both [TQuoteOptions] and [TStakeOptions] are [JsonElement] (untyped), matching iOS's `AnyCodable`.
+ */
+data class TONTonStakersStakingProviderIdentifier(
+    override val name: String = DEFAULT_NAME,
+) : TONStakingProviderIdentifier<JsonElement, JsonElement> {
+    companion object {
+        const val DEFAULT_NAME = "tonstakers"
+    }
 }

@@ -99,9 +99,9 @@ class TestAPIClient(
 
         // For demo purposes, return a mock result
         val mockResult = TONGetMethodResult(
-            gasUsed = 1000,
+            gasUsed = 1000.0,
             stack = emptyList(), // Empty stack for demo
-            exitCode = 0, // Success exit code
+            exitCode = 0.0, // Success exit code
         )
 
         Log.d(tag, "runGetMethod completed, exitCode: ${mockResult.exitCode}")
@@ -166,6 +166,7 @@ class TestAPIClient(
  */
 class ToncenterAPIClient(
     override val network: TONNetwork,
+    private val apiKey: String = "",
 ) : TONAPIClient {
 
     private val tag = "ToncenterAPIClient"
@@ -184,13 +185,24 @@ class ToncenterAPIClient(
     ): TONGetMethodResult {
         Log.d(tag, "📞 [Toncenter] runGetMethod: $method on ${address.value}")
         delay(100)
-        return TONGetMethodResult(gasUsed = 1000, stack = emptyList(), exitCode = 0)
+        return TONGetMethodResult(gasUsed = 1000.0, stack = emptyList(), exitCode = 0.0)
     }
 
     override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {
         Log.d(tag, "💰 [Toncenter] getBalance on ${network.chainId}")
-        delay(100)
-        return mockBalance(network)
+        val baseUrl = if (network == TONNetwork.MAINNET) "https://toncenter.com" else "https://testnet.toncenter.com"
+        return withContext(Dispatchers.IO) {
+            val conn = java.net.URL("$baseUrl/api/v3/addressInformation?address=${address.value}").openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 10_000
+            conn.setRequestProperty("Accept", "application/json")
+            if (apiKey.isNotEmpty()) conn.setRequestProperty("x-api-key", apiKey)
+            try {
+                JSONObject(conn.inputStream.bufferedReader().readText()).optString("balance", "0")
+            } finally {
+                conn.disconnect()
+            }
+        }
     }
 
     override suspend fun getMasterchainInfo(): TONMasterchainInfo {
@@ -200,6 +212,8 @@ class ToncenterAPIClient(
             val conn = java.net.URL("$baseUrl/api/v3/masterchainInfo").openConnection() as java.net.HttpURLConnection
             conn.connectTimeout = 10_000
             conn.readTimeout = 10_000
+            conn.setRequestProperty("Accept", "application/json")
+            if (apiKey.isNotEmpty()) conn.setRequestProperty("x-api-key", apiKey)
             try {
                 val last = JSONObject(conn.inputStream.bufferedReader().readText()).getJSONObject("last")
                 TONMasterchainInfo(
@@ -216,8 +230,8 @@ class ToncenterAPIClient(
     }
 
     companion object {
-        fun mainnet() = ToncenterAPIClient(TONNetwork.MAINNET)
-        fun testnet() = ToncenterAPIClient(TONNetwork.TESTNET)
+        fun mainnet(apiKey: String = "") = ToncenterAPIClient(TONNetwork.MAINNET, apiKey)
+        fun testnet(apiKey: String = "") = ToncenterAPIClient(TONNetwork.TESTNET, apiKey)
     }
 }
 
@@ -248,7 +262,7 @@ class TonAPIClient(
     ): TONGetMethodResult {
         Log.d(tag, "📞 [TonAPI] runGetMethod: $method on ${address.value}")
         delay(100)
-        return TONGetMethodResult(gasUsed = 1000, stack = emptyList(), exitCode = 0)
+        return TONGetMethodResult(gasUsed = 1000.0, stack = emptyList(), exitCode = 0.0)
     }
 
     override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {

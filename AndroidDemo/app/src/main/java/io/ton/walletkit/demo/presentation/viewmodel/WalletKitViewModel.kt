@@ -150,6 +150,10 @@ class WalletKitViewModel @Inject constructor(
     private val _nftsViewModel = MutableStateFlow<NFTsListViewModel?>(null)
     val nftsViewModel: StateFlow<NFTsListViewModel?> = _nftsViewModel.asStateFlow()
 
+    // Swap ViewModel — created when swap sheet is opened
+    private val _swapViewModel = MutableStateFlow<SwapViewModel?>(null)
+    val swapViewModel: StateFlow<SwapViewModel?> = _swapViewModel.asStateFlow()
+
     private val activeTransactionHistoryViewModel = MutableStateFlow<TransactionHistoryViewModel?>(null)
     private val activeJettonsViewModel = MutableStateFlow<JettonsListViewModel?>(null)
 
@@ -878,6 +882,22 @@ class WalletKitViewModel @Inject constructor(
         }
     }
 
+    fun openSwapSheet() {
+        val activeAddress = state.value.activeWalletAddress ?: state.value.wallets.firstOrNull()?.address ?: return
+        val walletSummary = state.value.wallets.firstOrNull { it.address == activeAddress } ?: return
+        val tonWallet = lifecycleManager.tonWallets[activeAddress] ?: return
+        val kit = walletKit ?: return
+        _swapViewModel.value = SwapViewModel(wallet = tonWallet, kit = kit)
+        uiCoordinator.openSwapSheet(walletSummary)
+    }
+
+    fun openStakingSheet(walletAddress: String) {
+        val wallet = state.value.wallets.firstOrNull { it.address == walletAddress }
+        if (wallet != null) {
+            uiCoordinator.openStakingSheet(wallet)
+        }
+    }
+
     fun sendLocalTransaction(walletAddress: String, recipient: String, amount: String, comment: String = "") {
         walletOperationsViewModel.sendLocalTransaction(walletAddress, recipient, amount, comment)
     }
@@ -1526,7 +1546,7 @@ class WalletKitViewModel @Inject constructor(
                                         balance = update.rawBalance,
                                         formattedBalance = JettonSummary.formatBalance(
                                             update.rawBalance,
-                                            update.decimals,
+                                            update.decimals?.toInt(),
                                             jetton.symbol,
                                         ),
                                     )

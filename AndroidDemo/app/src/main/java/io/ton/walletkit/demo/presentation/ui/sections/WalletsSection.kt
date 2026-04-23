@@ -47,6 +47,7 @@ fun WalletsSection(
     totalWallets: Int,
     onWalletSelected: (String) -> Unit,
     onSendFromWallet: (String) -> Unit = {},
+    onStakeFromWallet: (String) -> Unit = {},
     isStreamingConnected: Boolean? = null,
     onRefresh: () -> Unit = {},
 ) {
@@ -74,6 +75,7 @@ fun WalletsSection(
                 wallet = activeWallet,
                 onDetails = { onWalletSelected(activeWallet.address) },
                 onSend = { onSendFromWallet(activeWallet.address) },
+                onStake = { onStakeFromWallet(activeWallet.address) },
                 isStreamingConnected = isStreamingConnected,
                 onRefresh = onRefresh,
             )
@@ -99,5 +101,6 @@ private fun WalletsSectionPreview() {
         totalWallets = 3,
         onWalletSelected = {},
         onSendFromWallet = {},
+        onStakeFromWallet = {},
     )
 }
