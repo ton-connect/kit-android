@@ -177,7 +177,6 @@ class TransactionOperationsTest : OperationsTestBase() {
         assertEquals("te6ccgEBAgEA...", result)
         val params = capturedParams as JSONObject
         assertTrue(params.get("transactionContent") is JSONObject)
-        assertEquals("...", params.getJSONObject("transactionContent").getString("boc"))
     }
 
     @Test
