@@ -64,7 +64,6 @@ internal class TONSwapManager(
     override suspend fun <TQuoteOptions, TSwapOptions> provider(
         identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
     ): ITONSwapProvider<TQuoteOptions, TSwapOptions>? {
-        if (!hasProvider(identifier)) return null
         // Custom Kotlin provider: return the user's actual registered instance.
         engine.kotlinSwapProviderManager.getProvider(identifier.name)?.let { custom ->
             @Suppress("UNCHECKED_CAST")
