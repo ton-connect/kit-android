@@ -32,10 +32,10 @@ import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
-import io.ton.walletkit.staking.ITONStakingManager
-import io.ton.walletkit.staking.tonstakers.TONTonStakersStakingProvider
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.TONWalletConnectionRequest
+import io.ton.walletkit.staking.ITONStakingManager
+import io.ton.walletkit.staking.tonstakers.TONTonStakersStakingProvider
 
 /**
  * TON Wallet Kit SDK for managing wallets and TON Connect.

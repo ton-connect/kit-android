@@ -280,16 +280,18 @@ object TONWalletKitHelper {
             // This demonstrates the iOS-like pattern where each network config has either:
             // - apiClientConfiguration: Use SDK's built-in API client with your API key
             // - apiClient: Use your own custom API client implementation
+            val toncenterApiKey = DemoApiConfig.toncenterApiKey
+            val tonApiKey = DemoApiConfig.tonApiKey
             val networkConfigurations = if (useCustomApiClient) {
                 // Demonstrate using different API providers per network
                 setOf(
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.MAINNET,
-                        apiClient = ToncenterAPIClient.mainnet(),
+                        apiClient = ToncenterAPIClient.mainnet(apiKey = toncenterApiKey),
                     ),
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.TESTNET,
-                        apiClient = TonAPIClient.testnet(),
+                        apiClient = TonAPIClient.testnet(apiKey = tonApiKey),
                     ),
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.TETRA,
@@ -297,18 +299,18 @@ object TONWalletKitHelper {
                     ),
                 )
             } else {
-                // Use SDK's built-in API client with default configuration
+                // Configure via -PwalletkitToncenterApiKey / WALLETKIT_TONCENTER_API_KEY.
                 setOf(
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.MAINNET,
                         apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(
-                            key = "", // Empty key uses default behavior
+                            key = toncenterApiKey,
                         ),
                     ),
                     TONWalletKitConfiguration.NetworkConfiguration(
                         network = TONNetwork.TESTNET,
                         apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(
-                            key = "", // Empty key uses default behavior
+                            key = toncenterApiKey,
                         ),
                     ),
                     TONWalletKitConfiguration.NetworkConfiguration(

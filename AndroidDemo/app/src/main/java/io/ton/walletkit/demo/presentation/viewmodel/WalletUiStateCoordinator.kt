@@ -63,6 +63,10 @@ class WalletUiStateCoordinator(
         setSheet(SheetState.SendTransaction(summary))
     }
 
+    fun openStakingSheet(summary: WalletSummary) {
+        setSheet(SheetState.Staking(summary))
+    }
+
     fun showTransactionDetail(detail: SheetState.TransactionDetail) {
         setSheet(detail)
     }

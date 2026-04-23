@@ -98,6 +98,7 @@ import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.ConnectRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.JettonDetailsSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.SignDataSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.StakingSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransferJettonSheet
@@ -207,6 +208,13 @@ fun WalletScreen(
                     },
                     error = state.error,
                     isLoading = state.isSendingTransaction,
+                )
+
+                is SheetState.Staking -> StakingSheet(
+                    wallet = sheet.wallet,
+                    walletKit = walletKit,
+                    sheetKey = sheet.openedAt,
+                    onDismiss = actions::onDismissSheet,
                 )
 
                 is SheetState.TransactionDetail -> TransactionDetailSheet(
@@ -325,6 +333,7 @@ fun WalletScreen(
                 totalWallets = state.wallets.size,
                 onWalletSelected = actions::onWalletDetails,
                 onSendFromWallet = actions::onSendFromWallet,
+                onStakeFromWallet = actions::onStakeFromWallet,
                 onRefresh = actions::onRefresh,
             )
 

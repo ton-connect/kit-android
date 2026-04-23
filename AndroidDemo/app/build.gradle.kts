@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -14,6 +15,28 @@ configurations.all {
     resolutionStrategy {
         force("com.squareup.okhttp3:okhttp:5.3.2")
     }
+}
+
+fun escapedBuildConfigString(value: String): String {
+    val escaped =
+        value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+    return "\"$escaped\""
+}
+
+fun readLocalProperty(
+    rootDir: java.io.File,
+    name: String,
+): String? {
+    val localPropertiesFile = rootDir.resolve("local.properties")
+    if (!localPropertiesFile.exists()) {
+        return null
+    }
+
+    val properties = Properties()
+    localPropertiesFile.inputStream().use(properties::load)
+    return properties.getProperty(name)
 }
 
 android {
@@ -41,6 +64,16 @@ android {
         val allureToken =
             findProperty("allureToken") as String?
                 ?: System.getenv("ALLURE_API_TOKEN")
+        val toncenterApiKey =
+            findProperty("walletkitToncenterApiKey") as String?
+                ?: readLocalProperty(rootDir, "walletkitToncenterApiKey")
+                ?: System.getenv("WALLETKIT_TONCENTER_API_KEY")
+                ?: ""
+        val tonApiKey =
+            findProperty("walletkitTonApiKey") as String?
+                ?: readLocalProperty(rootDir, "walletkitTonApiKey")
+                ?: System.getenv("WALLETKIT_TONAPI_API_KEY")
+                ?: ""
 
         testMnemonic?.let {
             testInstrumentationRunnerArguments["testMnemonic"] = it
@@ -49,6 +82,9 @@ android {
         allureToken?.let {
             testInstrumentationRunnerArguments["allureToken"] = it
         }
+
+        buildConfigField("String", "TONCENTER_API_KEY", escapedBuildConfigString(toncenterApiKey))
+        buildConfigField("String", "TONAPI_API_KEY", escapedBuildConfigString(tonApiKey))
     }
 
     buildTypes {
@@ -64,6 +100,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

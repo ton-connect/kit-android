@@ -36,6 +36,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,6 +61,7 @@ fun WalletCard(
     wallet: WalletSummary,
     onDetails: () -> Unit,
     onSend: () -> Unit = {},
+    onStake: () -> Unit = {},
     onRefresh: () -> Unit = {},
 ) {
     val clipboard = LocalClipboard.current
@@ -136,7 +138,9 @@ fun WalletCard(
                 ) {
                     Button(
                         onClick = onSend,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(TestTags.WALLET_SEND_BUTTON),
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.Send,
@@ -144,6 +148,14 @@ fun WalletCard(
                             modifier = Modifier.padding(end = SEND_ICON_PADDING),
                         )
                         Text(stringResource(R.string.action_send))
+                    }
+                    OutlinedButton(
+                        onClick = onStake,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(TestTags.WALLET_STAKE_BUTTON),
+                    ) {
+                        Text(stringResource(R.string.action_stake))
                     }
                 }
             }
@@ -162,5 +174,5 @@ private const val CLIPBOARD_WALLET_ADDRESS_LABEL = "wallet_address"
 @Preview(showBackground = true)
 @Composable
 private fun WalletCardPreview() {
-    WalletCard(wallet = PreviewData.wallet, onDetails = {}, onSend = {})
+    WalletCard(wallet = PreviewData.wallet, onDetails = {}, onSend = {}, onStake = {})
 }
