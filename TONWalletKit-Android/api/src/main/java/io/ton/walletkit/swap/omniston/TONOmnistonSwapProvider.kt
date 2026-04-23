@@ -19,17 +19,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.swap
+package io.ton.walletkit.swap.omniston
 
-import io.ton.walletkit.api.generated.TONDeDustProviderOptions
-import kotlinx.serialization.KSerializer
+import io.ton.walletkit.api.generated.TONOmnistonProviderOptions
+import io.ton.walletkit.swap.ITONSwapProvider
+import kotlinx.serialization.json.JsonElement
 
-/**
- * Identifier for the DeDust swap provider.
- * Both [QuoteOptions] and [SwapOptions] are [TONDeDustProviderOptions].
- */
-class TONDeDustSwapProviderIdentifier(override val name: String = "dedust") :
-    TONSwapProviderIdentifier<TONDeDustProviderOptions, TONDeDustProviderOptions> {
-    override val quoteOptionsSerializer: KSerializer<TONDeDustProviderOptions> = TONDeDustProviderOptions.serializer()
-    override val swapOptionsSerializer: KSerializer<TONDeDustProviderOptions> = TONDeDustProviderOptions.serializer()
-}
+/** Typed handle for the Omniston (STON.fi) swap provider. SwapOptions is [JsonElement] (untyped), matching iOS `AnyCodable`. */
+typealias TONOmnistonSwapProvider = ITONSwapProvider<TONOmnistonProviderOptions, JsonElement>

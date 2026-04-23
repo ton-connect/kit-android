@@ -35,13 +35,13 @@ import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONWalletAdapter
+import io.ton.walletkit.swap.BuiltInSwapProvider
 import io.ton.walletkit.swap.ITONSwapManager
-import io.ton.walletkit.swap.TONDeDustSwapProvider
-import io.ton.walletkit.swap.TONDeDustSwapProviderIdentifier
-import io.ton.walletkit.swap.TONOmnistonSwapProvider
-import io.ton.walletkit.swap.TONOmnistonSwapProviderIdentifier
 import io.ton.walletkit.swap.TONSwapManager
-import io.ton.walletkit.swap.TONSwapProvider
+import io.ton.walletkit.swap.dedust.TONDeDustSwapProvider
+import io.ton.walletkit.swap.dedust.TONDeDustSwapProviderIdentifier
+import io.ton.walletkit.swap.omniston.TONOmnistonSwapProvider
+import io.ton.walletkit.swap.omniston.TONOmnistonSwapProviderIdentifier
 
 /**
  * Main entry point for TON Wallet Kit SDK.
@@ -422,13 +422,13 @@ internal class TONWalletKit private constructor(
     override suspend fun omnistonSwapProvider(config: TONOmnistonSwapProviderConfig?): TONOmnistonSwapProvider {
         checkNotDestroyed()
         val providerId = engine.createOmnistonSwapProvider(config)
-        return TONSwapProvider(TONOmnistonSwapProviderIdentifier(providerId), swapManager)
+        return BuiltInSwapProvider(TONOmnistonSwapProviderIdentifier(providerId), engine)
     }
 
     override suspend fun dedustSwapProvider(config: TONDeDustSwapProviderConfig?): TONDeDustSwapProvider {
         checkNotDestroyed()
         val providerId = engine.createDeDustSwapProvider(config)
-        return TONSwapProvider(TONDeDustSwapProviderIdentifier(providerId), swapManager)
+        return BuiltInSwapProvider(TONDeDustSwapProviderIdentifier(providerId), engine)
     }
 
     override suspend fun swap(): ITONSwapManager = swapManager

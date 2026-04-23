@@ -19,24 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.swap
+package io.ton.walletkit.swap.dedust
 
-import kotlinx.serialization.json.JsonElement
-
-/**
- * Identifies a swap provider and carries its option types as generic parameters.
- * Analogous to iOS's `TONSwapProviderIdentifier` protocol.
- *
- * [TQuoteOptions] is the provider-specific type for [ITONSwapManager.getQuote] options.
- * [TSwapOptions] is the provider-specific type for swap-transaction building options.
- */
-interface TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions> {
-    val name: String
-}
+import io.ton.walletkit.api.generated.TONDeDustProviderOptions
+import io.ton.walletkit.swap.TONSwapProviderIdentifier
 
 /**
- * Type-erased swap provider identifier returned by [ITONSwapManager.registeredProviders].
- * Analogous to iOS's `AnyTONProviderIdentifier`.
+ * Identifier for the DeDust swap provider.
+ * Both [QuoteOptions] and [SwapOptions] are [TONDeDustProviderOptions].
  */
-data class AnyTONSwapProviderIdentifier(override val name: String) :
-    TONSwapProviderIdentifier<JsonElement, JsonElement>
+class TONDeDustSwapProviderIdentifier(override val name: String = "dedust") :
+    TONSwapProviderIdentifier<TONDeDustProviderOptions, TONDeDustProviderOptions>

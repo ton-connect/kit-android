@@ -98,9 +98,9 @@ class TestAPIClient(
 
         // For demo purposes, return a mock result
         val mockResult = TONGetMethodResult(
-            gasUsed = 1000.0,
+            gasUsed = 1000,
             stack = emptyList(), // Empty stack for demo
-            exitCode = 0.0, // Success exit code
+            exitCode = 0, // Success exit code
         )
 
         Log.d(tag, "runGetMethod completed, exitCode: ${mockResult.exitCode}")
@@ -183,7 +183,7 @@ class ToncenterAPIClient(
     ): TONGetMethodResult {
         Log.d(tag, "📞 [Toncenter] runGetMethod: $method on ${address.value}")
         delay(100)
-        return TONGetMethodResult(gasUsed = 1000.0, stack = emptyList(), exitCode = 0.0)
+        return TONGetMethodResult(gasUsed = 1000, stack = emptyList(), exitCode = 0)
     }
 
     override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {
@@ -247,7 +247,7 @@ class TonAPIClient(
     ): TONGetMethodResult {
         Log.d(tag, "📞 [TonAPI] runGetMethod: $method on ${address.value}")
         delay(100)
-        return TONGetMethodResult(gasUsed = 1000.0, stack = emptyList(), exitCode = 0.0)
+        return TONGetMethodResult(gasUsed = 1000, stack = emptyList(), exitCode = 0)
     }
 
     override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {

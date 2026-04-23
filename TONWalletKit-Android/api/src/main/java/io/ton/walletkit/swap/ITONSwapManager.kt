@@ -29,7 +29,11 @@ import kotlinx.serialization.json.JsonElement
 
 /** Manages swap providers and executes swap operations. Obtain via [io.ton.walletkit.ITONWalletKit.swap]. */
 interface ITONSwapManager {
-    /** Register a provider. Accepts any [ITONSwapProvider] implementation — the built-in [TONSwapProvider] and any user-defined conformers. Mirrors iOS `register<Provider: TONSwapProviderProtocol>(provider:)`. */
+    /**
+     * Register a provider. Accepts any [ITONSwapProvider] implementation — the SDK's built-in
+     * providers returned from `ITONWalletKit.omnistonSwapProvider` / `dedustSwapProvider`, and any
+     * user-defined conformer. Mirrors iOS `register<Provider: TONSwapProviderProtocol>(provider:)`.
+     */
     suspend fun registerProvider(provider: ITONSwapProvider<*, *>)
 
     /** Set the default provider used by [getQuote] when no identifier is specified. */
@@ -42,10 +46,18 @@ interface ITONSwapManager {
     suspend fun hasProvider(identifier: TONSwapProviderIdentifier<*, *>): Boolean
 
     /**
+     * Returns a typed [ITONSwapProvider] for [identifier] if it is currently registered, null otherwise.
+     * Mirrors iOS `provider<Identifier: TONSwapProviderIdentifier>(with: Identifier) -> TONSwapProvider<Identifier>?`.
+     */
+    suspend fun <TQuoteOptions, TSwapOptions> provider(
+        identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
+    ): ITONSwapProvider<TQuoteOptions, TSwapOptions>?
+
+    /**
      * Get a quote from the provider with [identifier]. Mirrors iOS
      * `quote<Identifier: TONSwapProviderIdentifier>(params:, identifier:)`.
      *
-     * Typed `providerOptions` are serialized via [TONSwapProviderIdentifier.quoteOptionsSerializer].
+     * Typed `providerOptions` are serialized internally by the SDK before reaching the JS bridge.
      */
     suspend fun <TQuoteOptions, TSwapOptions> getQuote(
         params: TONSwapQuoteParams<TQuoteOptions>,
@@ -57,19 +69,8 @@ interface ITONSwapManager {
 
     /**
      * Build a swap transaction. The provider is resolved from [TONSwapParams.quote.providerId].
-     * For typed `providerOptions`, call [TONSwapProvider.buildSwapTransaction], which serializes
-     * via [TONSwapProviderIdentifier.swapOptionsSerializer] before delegating here.
+     * For typed `providerOptions`, call [ITONSwapProvider.buildSwapTransaction] — it handles
+     * serialization internally before delegating here.
      */
     suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): TONTransactionRequest
 }
-
-/**
- * Returns a typed [TONSwapProvider] for [identifier] if it is currently registered, null otherwise.
- * ```kotlin
- * val provider: TONOmnistonSwapProvider? = manager.provider(TONOmnistonSwapProviderIdentifier())
- * ```
- */
-suspend fun <TQuoteOptions, TSwapOptions> ITONSwapManager.provider(
-    identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
-): TONSwapProvider<TQuoteOptions, TSwapOptions>? =
-    if (hasProvider(identifier)) TONSwapProvider(identifier, this) else null

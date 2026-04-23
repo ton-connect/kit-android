@@ -36,7 +36,7 @@ internal class TONSwapManager(
 ) : ITONSwapManager {
 
     override suspend fun registerProvider(provider: ITONSwapProvider<*, *>) {
-        if (provider is TONSwapProvider<*, *>) {
+        if (provider is BuiltInSwapProvider<*, *>) {
             // Built-in JS-backed provider: the JS side already has the instance; just register its name.
             engine.registerSwapProvider(provider.identifier.name)
         } else {
@@ -55,19 +55,32 @@ internal class TONSwapManager(
         engine.setDefaultSwapProvider(identifier.name)
     }
 
-    override suspend fun registeredProviders(): List<AnyTONSwapProviderIdentifier> {
-        return engine.getRegisteredSwapProviders().map { AnyTONSwapProviderIdentifier(it) }
-    }
+    override suspend fun registeredProviders(): List<AnyTONSwapProviderIdentifier> =
+        engine.getRegisteredSwapProviders().map { AnyTONSwapProviderIdentifier(it) }
 
-    override suspend fun hasProvider(identifier: TONSwapProviderIdentifier<*, *>): Boolean {
-        return engine.hasSwapProvider(identifier.name)
+    override suspend fun hasProvider(identifier: TONSwapProviderIdentifier<*, *>): Boolean =
+        engine.hasSwapProvider(identifier.name)
+
+    override suspend fun <TQuoteOptions, TSwapOptions> provider(
+        identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
+    ): ITONSwapProvider<TQuoteOptions, TSwapOptions>? {
+        if (!hasProvider(identifier)) return null
+        // Custom Kotlin provider: return the user's actual registered instance.
+        engine.kotlinSwapProviderManager.getProvider(identifier.name)?.let { custom ->
+            @Suppress("UNCHECKED_CAST")
+            return custom as ITONSwapProvider<TQuoteOptions, TSwapOptions>
+        }
+        // Built-in JS-backed provider: wrap in a fresh handle that talks to the engine.
+        return BuiltInSwapProvider(identifier, engine)
     }
 
     override suspend fun <TQuoteOptions, TSwapOptions> getQuote(
         params: TONSwapQuoteParams<TQuoteOptions>,
         identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
     ): TONSwapQuote {
-        val jsonOptions = params.providerOptions?.let { Json.encodeToJsonElement(identifier.quoteOptionsSerializer, it) }
+        val jsonOptions = params.providerOptions?.let {
+            Json.encodeToJsonElement(SwapSerializers.quoteSerializer(identifier), it)
+        }
         val jsonParams = TONSwapQuoteParams(
             amount = params.amount,
             from = params.from,
@@ -81,22 +94,18 @@ internal class TONSwapManager(
         return engine.getSwapQuote(jsonParams, identifier.name)
     }
 
-    override suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>): TONSwapQuote {
-        return engine.getSwapQuote(params, null)
-    }
+    override suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>): TONSwapQuote =
+        engine.getSwapQuote(params, null)
 
-    override suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): TONTransactionRequest {
-        return decodeTransactionRequest(engine.buildSwapTransaction(params))
-    }
+    override suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): TONTransactionRequest =
+        decodeTransactionRequest(engine.buildSwapTransaction(params))
 
-    private fun decodeTransactionRequest(json: String): TONTransactionRequest {
-        return try {
-            Json.decodeFromString(TONTransactionRequest.serializer(), json)
-        } catch (e: SerializationException) {
-            throw JSValueConversionException.DecodingError(
-                message = "Failed to decode TONTransactionRequest: ${e.message}",
-                cause = e,
-            )
-        }
+    private fun decodeTransactionRequest(json: String): TONTransactionRequest = try {
+        Json.decodeFromString(TONTransactionRequest.serializer(), json)
+    } catch (e: SerializationException) {
+        throw JSValueConversionException.DecodingError(
+            message = "Failed to decode TONTransactionRequest: ${e.message}",
+            cause = e,
+        )
     }
 }

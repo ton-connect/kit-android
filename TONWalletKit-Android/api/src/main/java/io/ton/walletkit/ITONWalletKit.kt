@@ -36,8 +36,8 @@ import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.swap.ITONSwapManager
-import io.ton.walletkit.swap.TONDeDustSwapProvider
-import io.ton.walletkit.swap.TONOmnistonSwapProvider
+import io.ton.walletkit.swap.dedust.TONDeDustSwapProvider
+import io.ton.walletkit.swap.omniston.TONOmnistonSwapProvider
 
 /**
  * TON Wallet Kit SDK for managing wallets and TON Connect.
