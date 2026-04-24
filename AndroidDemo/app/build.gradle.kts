@@ -105,17 +105,25 @@ android {
         buildConfigField("String", "TETRA_API_KEY", escapedBuildConfigString(tetraApiKey))
     }
 
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
-        debug {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
             firebaseAppDistribution {
                 appId = System.getenv("FIREBASE_APP_ID") ?: ""
                 releaseNotes = System.getenv("FIREBASE_RELEASE_NOTES") ?: "Build from CI"
                 groups = "testers"
             }
-        }
-        release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
