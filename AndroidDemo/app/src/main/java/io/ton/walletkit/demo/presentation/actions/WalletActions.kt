@@ -42,6 +42,7 @@ interface WalletActions {
     fun onDismissSheet()
     fun onWalletDetails(address: String)
     fun onSendFromWallet(address: String)
+    fun onStakeFromWallet(address: String)
     fun onDisconnectSession(sessionId: String)
     fun onToggleWalletSwitcher()
     fun onSwitchWallet(address: String)
@@ -74,4 +75,5 @@ interface WalletActions {
     fun onShowTransferJetton(jetton: JettonDetails)
     fun onLoadMoreJettons()
     fun onRefreshJettons()
+    fun onSwapClick()
 }

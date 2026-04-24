@@ -231,4 +231,97 @@ internal object BridgeMethodConstants {
      * Method name for getting jetton wallet address.
      */
     const val METHOD_GET_JETTON_WALLET_ADDRESS = "getJettonWalletAddress"
+
+    // Swap methods
+
+    /** Create an Omniston swap provider instance. */
+    const val METHOD_CREATE_OMNISTON_SWAP_PROVIDER = "createOmnistonSwapProvider"
+
+    /** Create a DeDust swap provider instance. */
+    const val METHOD_CREATE_DEDUST_SWAP_PROVIDER = "createDeDustSwapProvider"
+
+    /** Register a previously created swap provider with the swap manager. */
+    const val METHOD_REGISTER_SWAP_PROVIDER = "registerSwapProvider"
+
+    /** Set the default swap provider. */
+    const val METHOD_SET_DEFAULT_SWAP_PROVIDER = "setDefaultSwapProvider"
+
+    /** Get all registered swap provider IDs. */
+    const val METHOD_GET_REGISTERED_SWAP_PROVIDERS = "getRegisteredSwapProviders"
+
+    /** Check if a swap provider is registered. */
+    const val METHOD_HAS_SWAP_PROVIDER = "hasSwapProvider"
+
+    /** Get a swap quote from a registered provider. */
+    const val METHOD_GET_SWAP_QUOTE = "getSwapQuote"
+
+    /** Build a transaction for executing a swap. */
+    const val METHOD_BUILD_SWAP_TRANSACTION = "buildSwapTransaction"
+
+    /**
+     * Method name for telling JS to create a ProxySwapProvider that forwards calls back to a
+     * Kotlin-implemented [io.ton.walletkit.swap.ITONSwapProvider] via reverse-RPC.
+     */
+    const val METHOD_REGISTER_KOTLIN_SWAP_PROVIDER = "registerKotlinSwapProvider"
+
+    // Staking methods
+
+    /** Create a TonStakers staking provider instance. */
+    const val METHOD_CREATE_TON_STAKERS_STAKING_PROVIDER = "createTonStakersStakingProvider"
+
+    /** Register a previously created staking provider with the staking manager. */
+    const val METHOD_REGISTER_STAKING_PROVIDER = "registerStakingProvider"
+
+    /** Set the default staking provider. */
+    const val METHOD_SET_DEFAULT_STAKING_PROVIDER = "setDefaultStakingProvider"
+
+    /** Get a staking quote (stake or unstake) from a registered provider. */
+    const val METHOD_GET_STAKING_QUOTE = "getStakingQuote"
+
+    /** Build a stake or unstake transaction. */
+    const val METHOD_BUILD_STAKE_TRANSACTION = "buildStakeTransaction"
+
+    /** Get the user's staked balance. */
+    const val METHOD_GET_STAKED_BALANCE = "getStakedBalance"
+
+    /** Get staking provider information (APY, liquidity). */
+    const val METHOD_GET_STAKING_PROVIDER_INFO = "getStakingProviderInfo"
+
+    /** Get supported unstake modes for a staking provider. */
+    const val METHOD_GET_SUPPORTED_UNSTAKE_MODES = "getSupportedUnstakeModes"
+
+    /** Get all registered staking provider IDs. */
+    const val METHOD_GET_REGISTERED_STAKING_PROVIDERS = "getRegisteredStakingProviders"
+
+    /** Check if a staking provider is registered. */
+    const val METHOD_HAS_STAKING_PROVIDER = "hasStakingProvider"
+
+    /**
+     * Method name for telling JS to create a ProxyStakingProvider that forwards calls back
+     * to a Kotlin-implemented [io.ton.walletkit.staking.ITONStakingProvider] via reverse-RPC.
+     */
+    const val METHOD_REGISTER_KOTLIN_STAKING_PROVIDER = "registerKotlinStakingProvider"
+
+    // Streaming methods
+
+    const val METHOD_CREATE_TON_CENTER_STREAMING_PROVIDER = "createTonCenterStreamingProvider"
+    const val METHOD_CREATE_TON_API_STREAMING_PROVIDER = "createTonApiStreamingProvider"
+    const val METHOD_REGISTER_STREAMING_PROVIDER = "registerStreamingProvider"
+    const val METHOD_STREAMING_HAS_PROVIDER = "streamingHasProvider"
+    const val METHOD_STREAMING_WATCH = "streamingWatch"
+    const val METHOD_STREAMING_UNWATCH = "streamingUnwatch"
+    const val METHOD_STREAMING_CONNECT = "streamingConnect"
+    const val METHOD_STREAMING_DISCONNECT = "streamingDisconnect"
+    const val METHOD_STREAMING_WATCH_CONNECTION_CHANGE = "streamingWatchConnectionChange"
+    const val METHOD_STREAMING_WATCH_BALANCE = "streamingWatchBalance"
+    const val METHOD_STREAMING_WATCH_TRANSACTIONS = "streamingWatchTransactions"
+    const val METHOD_STREAMING_WATCH_JETTONS = "streamingWatchJettons"
+
+    /**
+     * Method name for telling JS to create a ProxyStreamingProvider that forwards calls back
+     * to a Kotlin-implemented [io.ton.walletkit.streaming.ITONStreamingProvider] via reverse-RPC.
+     */
+    const val METHOD_REGISTER_KOTLIN_STREAMING_PROVIDER = "registerKotlinStreamingProvider"
+
+    const val METHOD_KOTLIN_PROVIDER_DISPATCH = "kotlinProviderDispatch"
 }

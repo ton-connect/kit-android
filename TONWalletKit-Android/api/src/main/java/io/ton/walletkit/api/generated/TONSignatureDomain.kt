@@ -29,7 +29,6 @@
 package io.ton.walletkit.api.generated
 
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -52,32 +51,22 @@ import kotlinx.serialization.serializer
 @Serializable(with = TONSignatureDomain.Serializer::class)
 sealed class TONSignatureDomain {
 
-    /**
-     * The discriminator value for this union type
-     */
-    abstract val type: String
+    companion object {
+        internal const val DISCRIMINATOR_FIELD = "type"
+    }
 
     /**
      *
      */
     @Serializable
     data class L2(
-        @SerialName("value")
-        val value: kotlin.Int,
-    ) : TONSignatureDomain() {
-        override val type: String = "l2"
-    }
+        val globalId: kotlin.Int,
+    ) : TONSignatureDomain()
 
     /**
      *
      */
-    @Serializable
-    data class Empty(
-        @SerialName("value")
-        val value: kotlinx.serialization.json.JsonElement,
-    ) : TONSignatureDomain() {
-        override val type: String = "empty"
-    }
+    object Empty : TONSignatureDomain()
 
     internal object Serializer : KSerializer<TONSignatureDomain> {
         override val descriptor: SerialDescriptor = buildClassSerialDescriptor("TONSignatureDomain")
@@ -87,25 +76,19 @@ sealed class TONSignatureDomain {
             val jsonEncoder = encoder as? JsonEncoder
                 ?: throw SerializationException("TONSignatureDomain can only be serialized with JSON")
 
-            val jsonObject = when (value) {
-                is L2 -> {
-                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
-                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<kotlin.Int>(), value.value)
+            val jsonElement = when (value) {
+                is L2 ->
                     buildJsonObject {
-                        put("type", JsonPrimitive("l2"))
-                        put("value", valueJson)
+                        put(DISCRIMINATOR_FIELD, JsonPrimitive("l2"))
+                        put("globalId", jsonEncoder.json.encodeToJsonElement(serializer<kotlin.Int>(), value.globalId))
                     }
-                }
-                is Empty -> {
-                    // Use explicit type serializer to avoid runtime class serialization issues (e.g., LinkedHashMap)
-                    val valueJson = jsonEncoder.json.encodeToJsonElement(serializer<kotlinx.serialization.json.JsonElement>(), value.value)
+
+                is Empty ->
                     buildJsonObject {
-                        put("type", JsonPrimitive("empty"))
-                        put("value", valueJson)
+                        put(DISCRIMINATOR_FIELD, JsonPrimitive("empty"))
                     }
-                }
             }
-            jsonEncoder.encodeJsonElement(jsonObject)
+            jsonEncoder.encodeJsonElement(jsonElement)
         }
 
         override fun deserialize(decoder: Decoder): TONSignatureDomain {
@@ -113,25 +96,19 @@ sealed class TONSignatureDomain {
                 ?: throw SerializationException("TONSignatureDomain can only be deserialized from JSON")
 
             val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val typeValue = jsonObject["type"]?.jsonPrimitive?.content
-                ?: throw SerializationException("Missing 'type' discriminator for TONSignatureDomain")
+            val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
+                ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for TONSignatureDomain")
 
-            return when (typeValue) {
-                "l2" -> {
-                    val valueJson = jsonObject["value"]
-                        ?: throw SerializationException("Missing 'value' for TONSignatureDomain.L2")
+            return when (discriminatorValue) {
+                "l2" ->
                     L2(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.Int>(), valueJson),
+                        globalId = jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.Int>(), jsonObject["globalId"] ?: throw SerializationException("Missing 'globalId' for TONSignatureDomain")),
                     )
-                }
-                "empty" -> {
-                    val valueJson = jsonObject["value"]
-                        ?: throw SerializationException("Missing 'value' for TONSignatureDomain.Empty")
-                    Empty(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<kotlinx.serialization.json.JsonElement>(), valueJson),
-                    )
-                }
-                else -> throw SerializationException("Unknown type '$typeValue' for TONSignatureDomain")
+
+                "empty" ->
+                    Empty
+
+                else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for TONSignatureDomain")
             }
         }
     }

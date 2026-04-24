@@ -176,6 +176,38 @@ class TestSessionManager(context: Context) : TONConnectSessionManager {
         Log.d(TAG, "clearSessions(): cleared $count sessions")
     }
 
+    /**
+     * Snapshot internal-browser JS Bridge sessions so the demo can swap them between
+     * the injected/plain browser modes on pre-API-35 devices.
+     */
+    fun snapshotJsBridgeSessions(): List<TONConnectSession> = sessions.values
+        .filter { it.isJsBridge == true }
+        .sortedBy { it.sessionId }
+        .map { it.copy() }
+
+    /**
+     * Replace only JS Bridge sessions, preserving non-browser sessions.
+     *
+     * This is a demo-only fallback for API 21-34 where WebView storage is shared
+     * process-wide and we need the two browser modes to behave like separate profiles.
+     */
+    fun replaceJsBridgeSessions(restoredSessions: Collection<TONConnectSession>) {
+        val preserved = sessions.values
+            .filter { it.isJsBridge != true }
+            .associateByTo(LinkedHashMap()) { it.sessionId }
+
+        restoredSessions.forEach { preserved[it.sessionId] = it.copy() }
+
+        sessions.clear()
+        sessions.putAll(preserved)
+        persistSessions()
+
+        Log.d(
+            TAG,
+            "replaceJsBridgeSessions(): restored=${restoredSessions.size}, total=${sessions.size}",
+        )
+    }
+
     private fun restoreSessions() {
         val raw = prefs.getString(KEY_SESSIONS, null) ?: return
         runCatching {

@@ -48,7 +48,7 @@ data class TONSwapToken(
     val address: kotlin.String,
 
     @SerialName(value = "decimals")
-    val decimals: kotlin.Int,
+    val decimals: kotlin.Double,
 
     @SerialName(value = "name")
     val name: kotlin.String? = null,

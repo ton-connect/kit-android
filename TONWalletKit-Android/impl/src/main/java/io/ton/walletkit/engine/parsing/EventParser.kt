@@ -21,12 +21,17 @@
  */
 package io.ton.walletkit.engine.parsing
 
+import io.ton.walletkit.api.generated.TONBalanceUpdate
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
+import io.ton.walletkit.api.generated.TONJettonUpdate
 import io.ton.walletkit.api.generated.TONRequestErrorEvent
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONStreamingUpdate
+import io.ton.walletkit.api.generated.TONTransactionsUpdate
+import io.ton.walletkit.core.streaming.StreamingEvent
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.exceptions.JSValueConversionException
@@ -160,7 +165,7 @@ internal class EventParser(
                 }
             }
 
-            // Internal browser events - not exposed to public API
+            // Internal events - not exposed via public event API
             EventTypeConstants.EVENT_BROWSER_PAGE_STARTED,
             EventTypeConstants.EVENT_BROWSER_PAGE_FINISHED,
             EventTypeConstants.EVENT_BROWSER_ERROR,
@@ -168,8 +173,64 @@ internal class EventParser(
             EventTypeConstants.EVENT_STATE_CHANGED,
             EventTypeConstants.EVENT_WALLET_STATE_CHANGED,
             EventTypeConstants.EVENT_SESSIONS_CHANGED,
+            EventTypeConstants.EVENT_STREAMING_UPDATE,
+            EventTypeConstants.EVENT_STREAMING_CONNECTION_CHANGE,
+            EventTypeConstants.EVENT_STREAMING_BALANCE_UPDATE,
+            EventTypeConstants.EVENT_STREAMING_TRANSACTIONS_UPDATE,
+            EventTypeConstants.EVENT_STREAMING_JETTONS_UPDATE,
             -> null
 
+            else -> null
+        }
+
+    fun parseStreamingEvent(type: String, data: JSONObject): StreamingEvent? =
+        when (type) {
+            EventTypeConstants.EVENT_STREAMING_UPDATE -> {
+                try {
+                    val updateObj = data.optJSONObject("update") ?: throw Exception("Missing 'update' field")
+                    val subscriptionId = data.optString("subscriptionId")
+                    val update = json.decodeFromString<TONStreamingUpdate>(updateObj.toString())
+                    StreamingEvent.Update(subscriptionId, update)
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to parse EVENT_STREAMING_UPDATE: ${e.message}", e)
+                    null
+                }
+            }
+            EventTypeConstants.EVENT_STREAMING_CONNECTION_CHANGE -> {
+                val subscriptionId = data.optString("subscriptionId")
+                val connected = data.optBoolean("connected", false)
+                StreamingEvent.ConnectionChange(subscriptionId, connected)
+            }
+            EventTypeConstants.EVENT_STREAMING_BALANCE_UPDATE -> {
+                try {
+                    val updateObj = data.optJSONObject("update") ?: throw Exception("Missing 'update' field")
+                    val subscriptionId = data.optString("subscriptionId")
+                    StreamingEvent.BalanceUpdate(subscriptionId, json.decodeFromString<TONBalanceUpdate>(updateObj.toString()))
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to parse EVENT_STREAMING_BALANCE_UPDATE: ${e.message}", e)
+                    null
+                }
+            }
+            EventTypeConstants.EVENT_STREAMING_TRANSACTIONS_UPDATE -> {
+                try {
+                    val updateObj = data.optJSONObject("update") ?: throw Exception("Missing 'update' field")
+                    val subscriptionId = data.optString("subscriptionId")
+                    StreamingEvent.TransactionsUpdate(subscriptionId, json.decodeFromString<TONTransactionsUpdate>(updateObj.toString()))
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to parse EVENT_STREAMING_TRANSACTIONS_UPDATE: ${e.message}", e)
+                    null
+                }
+            }
+            EventTypeConstants.EVENT_STREAMING_JETTONS_UPDATE -> {
+                try {
+                    val updateObj = data.optJSONObject("update") ?: throw Exception("Missing 'update' field")
+                    val subscriptionId = data.optString("subscriptionId")
+                    StreamingEvent.JettonsUpdate(subscriptionId, json.decodeFromString<TONJettonUpdate>(updateObj.toString()))
+                } catch (e: Exception) {
+                    Logger.e(TAG, "Failed to parse EVENT_STREAMING_JETTONS_UPDATE: ${e.message}", e)
+                    null
+                }
+            }
             else -> null
         }
 
