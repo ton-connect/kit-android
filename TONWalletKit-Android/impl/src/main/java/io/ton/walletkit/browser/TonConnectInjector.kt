@@ -193,7 +193,6 @@ internal class TonConnectInjector(
     @SuppressLint("SetJavaScriptEnabled")
     override fun setup() {
         // Add JavaScript interface for bridge communication
-        // Store reference so we can call storeResponse() later
         bridgeInterface = BridgeInterface(
             onMessage = { json, type -> handleBridgeMessage(json, type) },
             onError = { error -> Logger.e(TAG, "Bridge error: $error") },
@@ -415,14 +414,10 @@ internal class TonConnectInjector(
             put(BrowserConstants.KEY_EVENT, actualEvent)
         }
 
-        // Store event in BridgeInterface - available to ALL frames via @JavascriptInterface
-        bridgeInterface.storeEvent(eventMessage.toString())
-
-        // Notify the main frame via JavaScript injection - main frame will broadcast to iframes via postMessage
         webView.post {
-            webView.evaluateJavascript(
-                "window.AndroidTonConnect && window.AndroidTonConnect.__notifyEvent();",
-                null,
+            webView.postWebMessage(
+                android.webkit.WebMessage(eventMessage.toString()),
+                android.net.Uri.EMPTY,
             )
         }
     }
@@ -584,14 +579,9 @@ internal class TonConnectInjector(
             put(BrowserConstants.KEY_PAYLOAD, response)
         }
 
-        // Store response in BridgeInterface - available to ALL frames via @JavascriptInterface
-        bridgeInterface.storeResponse(pending.messageId, responseJson.toString())
-
-        // Notify the main frame via JavaScript injection - main frame will broadcast to iframes via postMessage
-        val safeMessageId = Json.encodeToString(pending.messageId)
-        webView.evaluateJavascript(
-            "window.AndroidTonConnect && window.AndroidTonConnect.__notifyResponse($safeMessageId);",
-            null,
+        webView.postWebMessage(
+            android.webkit.WebMessage(responseJson.toString()),
+            android.net.Uri.EMPTY,
         )
     }
 

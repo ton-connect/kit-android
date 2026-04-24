@@ -38976,58 +38976,9 @@ var TonStakersStakingProvider = class TonStakersStakingProvider extends StakingP
 };
 //#endregion
 //#region src/api/staking.ts
-/**
-* JS-side proxy that implements [StakingProviderInterface] by forwarding every call to a
-* Kotlin-implemented `ITONStakingProvider` via reverse-RPC. Mirrors the streaming
-* `ProxyStreamingProvider` pattern.
-*
-* `getSupportedUnstakeModes` is synchronous per the interface contract, so the supported modes
-* are fetched once at registration and cached on this instance.
-*/
-var ProxyStakingProvider = class {
-	constructor(providerId, supportedUnstakeModes) {
-		this.providerId = providerId;
-		this.supportedUnstakeModes = supportedUnstakeModes;
-		this.type = "staking";
-	}
-	async getQuote(params) {
-		const resultJson = await bridgeRequest("kotlinStakingProviderGetQuote", {
-			providerId: this.providerId,
-			params: JSON.stringify(params)
-		});
-		return JSON.parse(resultJson);
-	}
-	async buildStakeTransaction(params) {
-		const resultJson = await bridgeRequest("kotlinStakingProviderBuildStakeTransaction", {
-			providerId: this.providerId,
-			params: JSON.stringify(params)
-		});
-		return JSON.parse(resultJson);
-	}
-	async getStakedBalance(userAddress, network) {
-		const resultJson = await bridgeRequest("kotlinStakingProviderGetStakedBalance", {
-			providerId: this.providerId,
-			userAddress,
-			networkChainId: network?.chainId ?? null
-		});
-		return JSON.parse(resultJson);
-	}
-	async getStakingProviderInfo(network) {
-		const resultJson = await bridgeRequest("kotlinStakingProviderGetStakingProviderInfo", {
-			providerId: this.providerId,
-			networkChainId: network?.chainId ?? null
-		});
-		return JSON.parse(resultJson);
-	}
-	getSupportedUnstakeModes() {
-		return this.supportedUnstakeModes;
-	}
-};
 async function createTonStakersStakingProvider(args) {
 	const instance = await getKit();
-	const provider = TonStakersStakingProvider.createFromContext(instance.createFactoryContext(), args?.config ?? {});
-	retainWithId(provider.providerId, provider);
-	return { providerId: provider.providerId };
+	return { providerId: retain("stakingProvider", TonStakersStakingProvider.createFromContext(instance.createFactoryContext(), args?.config ?? {})) };
 }
 async function registerStakingProvider(args) {
 	const provider = get(args.providerId);
@@ -39053,21 +39004,6 @@ async function getStakingProviderInfo(args) {
 }
 async function getSupportedUnstakeModes(args) {
 	return (await getKit()).staking.getSupportedUnstakeModes(args.providerId);
-}
-/**
-* Tell the JS staking manager that a Kotlin-implemented provider is available.
-* A [ProxyStakingProvider] is created and registered; all subsequent staking operations on it
-* forward to the Kotlin instance via reverse-RPC.
-*
-* @param args.providerId Unique id — matches `identifier.name` on the Kotlin side.
-* @param args.supportedUnstakeModes Cached modes returned synchronously from `getSupportedUnstakeModes`.
-*/
-async function registerKotlinStakingProvider(args) {
-	const instance = await getKit();
-	if (get(args.providerId) instanceof ProxyStakingProvider) release(args.providerId);
-	const provider = new ProxyStakingProvider(args.providerId, args.supportedUnstakeModes);
-	retainWithId(args.providerId, provider);
-	instance.staking.registerProvider(provider);
 }
 //#endregion
 //#region src/api/browser.ts
@@ -43469,31 +43405,6 @@ var DeDustSwapProvider = class extends SwapProvider {
 * LICENSE file in the root directory of this source tree.
 *
 */
-/**
-* JS-side proxy that implements [SwapProviderInterface] by forwarding every call to a
-* Kotlin-implemented `ITONSwapProvider` via reverse-RPC. Mirrors the Kotlin staking / streaming
-* proxy pattern.
-*/
-var ProxySwapProvider = class {
-	constructor(providerId) {
-		this.providerId = providerId;
-		this.type = "swap";
-	}
-	async getQuote(params) {
-		const resultJson = await bridgeRequest("kotlinSwapProviderQuote", {
-			providerId: this.providerId,
-			params: JSON.stringify(params)
-		});
-		return JSON.parse(resultJson);
-	}
-	async buildSwapTransaction(params) {
-		const resultJson = await bridgeRequest("kotlinSwapProviderBuildSwapTransaction", {
-			providerId: this.providerId,
-			params: JSON.stringify(params)
-		});
-		return JSON.parse(resultJson);
-	}
-};
 async function getSwap() {
 	const instance = await getKit();
 	if (!instance.swap) throw new Error("Swap is not configured");
@@ -43526,17 +43437,6 @@ async function getSwapQuote(args) {
 }
 async function buildSwapTransaction(args) {
 	return (await getSwap()).buildSwapTransaction(args.params);
-}
-/**
-* Tell the JS swap manager that a Kotlin-implemented provider is available.
-* A [ProxySwapProvider] is created and registered; all subsequent swap operations on it
-* forward to the Kotlin instance via reverse-RPC.
-*/
-async function registerKotlinSwapProvider(args) {
-	if (get(args.providerId) instanceof ProxySwapProvider) release(args.providerId);
-	const provider = new ProxySwapProvider(args.providerId);
-	retainWithId(args.providerId, provider);
-	(await getSwap()).registerProvider(provider);
 }
 //#endregion
 //#region src/api/index.ts
@@ -43610,7 +43510,6 @@ var api = {
 	getStakedBalance,
 	getStakingProviderInfo,
 	getSupportedUnstakeModes,
-	registerKotlinStakingProvider,
 	createOmnistonSwapProvider,
 	createDeDustSwapProvider,
 	registerSwapProvider,
@@ -43618,8 +43517,7 @@ var api = {
 	getRegisteredSwapProviders,
 	hasSwapProvider,
 	getSwapQuote,
-	buildSwapTransaction,
-	registerKotlinSwapProvider
+	buildSwapTransaction
 };
 //#endregion
 //#region src/bridge.ts
