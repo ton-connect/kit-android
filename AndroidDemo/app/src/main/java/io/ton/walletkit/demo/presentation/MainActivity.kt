@@ -71,6 +71,7 @@ private fun AppNavigation(
     val isUnlocked by viewModel.isUnlocked.collectAsState()
     val state by viewModel.state.collectAsState()
     val nftsViewModel by viewModel.nftsViewModel.collectAsState()
+    val swapViewModel by viewModel.swapViewModel.collectAsState()
     val hasWallet = state.wallets.isNotEmpty()
 
     // Get wallet kit instance for browser sheet
@@ -117,6 +118,7 @@ private fun AppNavigation(
                     state = state,
                     walletKit = kit,
                     nftsViewModel = nftsViewModel,
+                    swapViewModel = swapViewModel,
                     actions = walletActions,
                 )
             }

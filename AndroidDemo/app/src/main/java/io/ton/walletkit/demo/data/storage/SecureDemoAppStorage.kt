@@ -36,7 +36,7 @@ import java.security.MessageDigest
 
 /**
  * Secure implementation of DemoAppStorage using Android Keystore + EncryptedSharedPreferences.
- * Encrypts sensitive data like wallet mnemonics and password hash.
+ * Stores demo wallet data, metadata, and password hash.
  *
  * This is demo app internal storage - NOT part of the SDK.
  */
@@ -83,8 +83,12 @@ class SecureDemoAppStorage(context: Context) : DemoAppStorage {
         val jsonString = walletPrefs.getString(walletKey(address), null) ?: return@withContext null
         try {
             val json = JSONObject(jsonString)
-            val mnemonicArray = json.getJSONArray(KEY_MNEMONIC)
-            val mnemonic = List(mnemonicArray.length()) { mnemonicArray.getString(it) }
+            val mnemonic = if (json.has(KEY_MNEMONIC)) {
+                val mnemonicArray = json.getJSONArray(KEY_MNEMONIC)
+                List(mnemonicArray.length()) { mnemonicArray.getString(it) }
+            } else {
+                emptyList()
+            }
             val name = json.getString(KEY_NAME)
             val network = json.getString(KEY_NETWORK)
             val version = json.getString(KEY_VERSION)

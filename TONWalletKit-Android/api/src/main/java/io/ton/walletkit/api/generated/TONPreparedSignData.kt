@@ -50,7 +50,7 @@ data class TONPreparedSignData(
 
     /* Unix timestamp when the sign request was created */
     @SerialName(value = "timestamp")
-    val timestamp: kotlin.Int,
+    val timestamp: kotlin.Double,
 
     /* Domain requesting the signature (e.g., \"example.com\") */
     @SerialName(value = "domain")

@@ -83,7 +83,7 @@ data class TONTransactionMessage(
 
     /* The timestamp when the message was created */
     @SerialName(value = "createdAt")
-    val createdAt: kotlin.Int? = null,
+    val createdAt: kotlin.Double? = null,
 
     /* The opcode included in the message payload */
     @SerialName(value = "opcode")

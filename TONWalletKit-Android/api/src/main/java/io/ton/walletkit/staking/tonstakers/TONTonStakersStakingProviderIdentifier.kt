@@ -19,9 +19,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.demo.domain.model
+package io.ton.walletkit.staking.tonstakers
 
-data class PendingWalletRecord(
-    val metadata: WalletMetadata,
-    val mnemonic: List<String>?,
-)
+import io.ton.walletkit.staking.TONStakingProviderIdentifier
+import kotlinx.serialization.json.JsonElement
+
+/**
+ * Identifier for the TonStakers staking provider.
+ * Both [TQuoteOptions] and [TStakeOptions] are [JsonElement] (untyped), matching iOS's `AnyCodable`.
+ */
+data class TONTonStakersStakingProviderIdentifier(
+    override val name: String = DEFAULT_NAME,
+) : TONStakingProviderIdentifier<JsonElement, JsonElement> {
+    companion object {
+        const val DEFAULT_NAME = "tonstakers"
+    }
+}

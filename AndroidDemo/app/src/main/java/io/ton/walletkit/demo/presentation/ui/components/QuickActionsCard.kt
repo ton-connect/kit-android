@@ -23,7 +23,8 @@ package io.ton.walletkit.demo.presentation.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
@@ -38,11 +39,13 @@ import androidx.compose.ui.unit.dp
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.util.TestTags
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun QuickActionsCard(
     onHandleUrl: () -> Unit,
     onAddWallet: () -> Unit,
     onRefresh: () -> Unit,
+    onSwap: () -> Unit = {},
 ) {
     ElevatedCard {
         Column(
@@ -50,13 +53,14 @@ fun QuickActionsCard(
             verticalArrangement = Arrangement.spacedBy(ACTION_CARD_SPACING),
         ) {
             Text(stringResource(R.string.quick_actions_title), style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(ACTION_BUTTON_SPACING)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(ACTION_BUTTON_SPACING)) {
                 FilledTonalButton(
                     onClick = onHandleUrl,
                     modifier = Modifier.testTag(TestTags.HANDLE_URL_BUTTON),
                 ) { Text(stringResource(R.string.action_handle_url)) }
                 FilledTonalButton(onClick = onAddWallet) { Text(stringResource(R.string.action_add_wallet)) }
                 FilledTonalButton(onClick = onRefresh) { Text(stringResource(R.string.action_refresh)) }
+                FilledTonalButton(onClick = onSwap) { Text("Swap") }
             }
         }
     }

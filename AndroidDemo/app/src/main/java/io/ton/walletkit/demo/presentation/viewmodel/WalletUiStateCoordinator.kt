@@ -63,6 +63,10 @@ class WalletUiStateCoordinator(
         setSheet(SheetState.SendTransaction(summary))
     }
 
+    fun openStakingSheet(summary: WalletSummary) {
+        setSheet(SheetState.Staking(summary))
+    }
+
     fun showTransactionDetail(detail: SheetState.TransactionDetail) {
         setSheet(detail)
     }
@@ -73,6 +77,10 @@ class WalletUiStateCoordinator(
 
     fun showTransferJetton(details: JettonDetails) {
         setSheet(SheetState.TransferJetton(details))
+    }
+
+    fun openSwapSheet(wallet: WalletSummary) {
+        setSheet(SheetState.Swap(wallet))
     }
 
     fun openBrowser(url: String, injectTonConnect: Boolean = true) {
@@ -120,9 +128,15 @@ class WalletUiStateCoordinator(
     fun onSessionsStateChanged(sessionsState: SessionsState) {
         state.update { current ->
             val errorMessage = sessionsState.error ?: current.error
+            val sessionsByWallet = sessionsState.sessions.groupBy { it.walletAddress }
             current.copy(
                 sessions = sessionsState.sessions,
                 isLoadingSessions = sessionsState.isLoading,
+                wallets = current.wallets.map { wallet ->
+                    wallet.copy(
+                        connectedSessions = sessionsByWallet[wallet.address].orEmpty(),
+                    )
+                },
                 error = errorMessage,
             )
         }

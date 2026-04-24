@@ -32,7 +32,7 @@ import io.ton.walletkit.demo.domain.model.WalletInterfaceType
  */
 interface DemoAppStorage {
     /**
-     * Save a wallet record (mnemonic + metadata).
+     * Save a wallet record for the demo app.
      */
     suspend fun saveWallet(address: String, record: WalletRecord)
 
