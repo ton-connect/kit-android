@@ -81,7 +81,7 @@ data class TONTransactionTraceAction(
 
     /* Unix time when the action started */
     @SerialName(value = "startUtime")
-    val startUtime: kotlin.Int? = null,
+    val startUtime: kotlin.Double? = null,
 
     /* Unix time when the action ended */
     @SerialName(value = "endUtime")
@@ -96,7 +96,7 @@ data class TONTransactionTraceAction(
 
     /* Masterchain block sequence number when the trace ended */
     @SerialName(value = "traceMcSeqnoEnd")
-    val traceMcSeqnoEnd: kotlin.Int? = null,
+    val traceMcSeqnoEnd: kotlin.Double? = null,
 
     /* Indicates if the action was successful */
     @SerialName(value = "isSuccess")

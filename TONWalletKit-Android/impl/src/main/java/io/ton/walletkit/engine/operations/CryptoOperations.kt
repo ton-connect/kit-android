@@ -35,7 +35,6 @@ import io.ton.walletkit.internal.util.JsonUtils
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.KeyPair
 import kotlinx.serialization.json.Json
-import org.json.JSONArray
 
 /**
  * Handles cryptographic bridge operations such as mnemonic generation, key derivation,
@@ -68,12 +67,7 @@ internal class CryptoOperations(
         val request = CreateMnemonicRequest(count = wordCount)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TON_MNEMONIC, json.toJSONObject(request))
 
-        // JS now returns array directly (not wrapped in { items: [...] })
-        val items = if (result is JSONArray) {
-            result
-        } else {
-            result.optJSONArray(ResponseConstants.KEY_ITEMS)
-        }
+        val items = result.optJSONArray(ResponseConstants.KEY_ITEMS)
 
         if (items == null) {
             Logger.w(TAG, "Mnemonic generation returned no items (wordCount=$wordCount)")
@@ -100,8 +94,7 @@ internal class CryptoOperations(
         val request = MnemonicToKeyPairRequest(mnemonic = words, mnemonicType = mnemonicType)
         val result = rpcClient.call(BridgeMethodConstants.METHOD_MNEMONIC_TO_KEY_PAIR, json.toJSONObject(request))
 
-        // JS returns keyPair object with Uint8Array properties
-        // These can be serialized as either JSONArray or JSONObject with indexed keys
+        // Uint8Array properties may arrive as indexed JSON objects depending on the bridge.
         val publicKeyJson = result.opt(ResponseConstants.KEY_PUBLIC_KEY)
             ?: throw WalletKitBridgeException("Missing publicKey in mnemonicToKeyPair response")
         val secretKeyJson = result.opt(ResponseConstants.KEY_SECRET_KEY)

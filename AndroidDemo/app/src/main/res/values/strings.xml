@@ -10,6 +10,7 @@
     <string name="action_import_wallet">Import wallet</string>
     <string name="action_generate_wallet">Generate wallet</string>
     <string name="action_send">Send</string>
+    <string name="action_stake">Stake</string>
     <string name="action_disconnect">Disconnect</string>
     <string name="action_details">Details</string>
     <string name="action_copy_address">Copy address</string>

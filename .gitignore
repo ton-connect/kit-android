@@ -59,3 +59,9 @@ build-js-bundles.sh
 # Source maps (generated, can be regenerated from build)
 *.map
 sdk-test-utility/.idea/
+.idea/AndroidProjectSystem.xml
+.idea/deploymentTargetSelector.xml
+.idea/deviceManager.xml
+.idea/markdown.xml
+.idea/migrations.xml
+.idea/vcs.xml

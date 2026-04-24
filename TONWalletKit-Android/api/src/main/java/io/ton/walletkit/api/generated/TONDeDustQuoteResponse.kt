@@ -59,7 +59,7 @@ data class TONDeDustQuoteResponse(
     val swapIsPossible: kotlin.Boolean,
 
     @SerialName(value = "price_impact")
-    val priceImpact: kotlin.Int? = null,
+    val priceImpact: kotlin.Double? = null,
 
     @SerialName(value = "improvement")
     val improvement: kotlin.String? = null,

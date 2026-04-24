@@ -22,11 +22,15 @@
 package io.ton.walletkit.demo.presentation.ui.components
 
 import android.content.ClipData
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ContentCopy
@@ -36,12 +40,14 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.testTag
@@ -60,6 +66,8 @@ fun WalletCard(
     wallet: WalletSummary,
     onDetails: () -> Unit,
     onSend: () -> Unit = {},
+    onStake: () -> Unit = {},
+    isStreamingConnected: Boolean? = null,
     onRefresh: () -> Unit = {},
 ) {
     val clipboard = LocalClipboard.current
@@ -76,7 +84,22 @@ fun WalletCard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(WALLET_CARD_LABEL_SPACING)) {
                     Text(wallet.name, style = MaterialTheme.typography.titleMedium)
-                    NetworkBadge(wallet.network)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(STREAMING_DOT_SPACING),
+                    ) {
+                        NetworkBadge(wallet.network)
+                        if (isStreamingConnected != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(STREAMING_DOT_SIZE)
+                                    .background(
+                                        color = if (isStreamingConnected) STREAMING_DOT_CONNECTED else STREAMING_DOT_DISCONNECTED,
+                                        shape = CircleShape,
+                                    ),
+                            )
+                        }
+                    }
                 }
                 TextButton(onClick = onDetails) { Text(stringResource(R.string.action_details)) }
             }
@@ -136,7 +159,9 @@ fun WalletCard(
                 ) {
                     Button(
                         onClick = onSend,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(TestTags.WALLET_SEND_BUTTON),
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.Send,
@@ -144,6 +169,14 @@ fun WalletCard(
                             modifier = Modifier.padding(end = SEND_ICON_PADDING),
                         )
                         Text(stringResource(R.string.action_send))
+                    }
+                    OutlinedButton(
+                        onClick = onStake,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(TestTags.WALLET_STAKE_BUTTON),
+                    ) {
+                        Text(stringResource(R.string.action_stake))
                     }
                 }
             }
@@ -157,10 +190,14 @@ private val WALLET_CARD_CONTENT_SPACING = 8.dp
 private val WALLET_CARD_LABEL_SPACING = 4.dp
 private val WALLET_CARD_BUTTON_SPACING = 8.dp
 private val SEND_ICON_PADDING = 4.dp
+private val STREAMING_DOT_SIZE = 8.dp
+private val STREAMING_DOT_SPACING = 6.dp
+private val STREAMING_DOT_CONNECTED = Color(0xFF4CAF50)
+private val STREAMING_DOT_DISCONNECTED = Color(0xFFBDBDBD)
 private const val CLIPBOARD_WALLET_ADDRESS_LABEL = "wallet_address"
 
 @Preview(showBackground = true)
 @Composable
 private fun WalletCardPreview() {
-    WalletCard(wallet = PreviewData.wallet, onDetails = {}, onSend = {})
+    WalletCard(wallet = PreviewData.wallet, onDetails = {}, onSend = {}, onStake = {})
 }

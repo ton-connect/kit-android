@@ -34,6 +34,7 @@ import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSignatureDomain
+import io.ton.walletkit.api.generated.TONStreamingUpdateStatus
 import io.ton.walletkit.api.isTetra
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.core.RequestErrorTracker
@@ -51,12 +52,14 @@ import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
+import io.ton.walletkit.demo.presentation.util.TonFormatter
 import io.ton.walletkit.demo.presentation.util.TransactionDetailMapper
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
@@ -91,7 +94,13 @@ class WalletKitViewModel @Inject constructor(
     )
     val state: StateFlow<WalletUiState> = _state.asStateFlow()
 
-    private var balanceJob: Job? = null
+    private var balanceRefreshJob: Job? = null
+    private var streamingBalanceJob: Job? = null
+    private var streamingTransactionsJob: Job? = null
+    private var streamingConnectionJob: Job? = null
+    private var streamingJettonsJob: Job? = null
+    private var currentStreamingWalletAddress: String? = null
+    private var currentStreamingNetwork: TONNetwork? = null
     private var walletKit: io.ton.walletkit.ITONWalletKit? = null
 
     private val lifecycleManager = WalletLifecycleManager(
@@ -140,6 +149,10 @@ class WalletKitViewModel @Inject constructor(
     // NFTs ViewModel for active wallet
     private val _nftsViewModel = MutableStateFlow<NFTsListViewModel?>(null)
     val nftsViewModel: StateFlow<NFTsListViewModel?> = _nftsViewModel.asStateFlow()
+
+    // Swap ViewModel — created when swap sheet is opened
+    private val _swapViewModel = MutableStateFlow<SwapViewModel?>(null)
+    val swapViewModel: StateFlow<SwapViewModel?> = _swapViewModel.asStateFlow()
 
     private val activeTransactionHistoryViewModel = MutableStateFlow<TransactionHistoryViewModel?>(null)
     private val activeJettonsViewModel = MutableStateFlow<JettonsListViewModel?>(null)
@@ -258,6 +271,7 @@ class WalletKitViewModel @Inject constructor(
             }
         }
 
+        syncStreamingObservers(_state.value.activeWalletAddress)
         startBalancePolling()
     }
 
@@ -378,6 +392,7 @@ class WalletKitViewModel @Inject constructor(
         }
 
         uiCoordinator.setActiveWallet(address)
+        syncStreamingObservers(address)
 
         if (persistPreference) {
             lifecycleManager.persistActiveWalletPreference(address)
@@ -473,16 +488,6 @@ class WalletKitViewModel @Inject constructor(
         }
     }
 
-    private fun startBalancePolling() {
-        balanceJob?.cancel()
-        balanceJob = viewModelScope.launch {
-            while (true) {
-                delay(BALANCE_REFRESH_MS)
-                refreshWallets()
-            }
-        }
-    }
-
     fun refreshAll() {
         viewModelScope.launch {
             refreshWallets()
@@ -531,6 +536,7 @@ class WalletKitViewModel @Inject constructor(
                 attachJettonsViewModel(newActiveAddress)
             }
             updateNftsViewModel(newActiveAddress)
+            syncStreamingObservers(newActiveAddress)
         }.onFailure { error ->
             Log.e(LOG_TAG, "refreshWallets: loadWalletSummaries failed", error)
             val fallback = uiString(R.string.wallet_error_load_default)
@@ -873,6 +879,22 @@ class WalletKitViewModel @Inject constructor(
         val wallet = state.value.wallets.firstOrNull { it.address == walletAddress }
         if (wallet != null) {
             uiCoordinator.openSendTransactionSheet(wallet)
+        }
+    }
+
+    fun openSwapSheet() {
+        val activeAddress = state.value.activeWalletAddress ?: state.value.wallets.firstOrNull()?.address ?: return
+        val walletSummary = state.value.wallets.firstOrNull { it.address == activeAddress } ?: return
+        val tonWallet = lifecycleManager.tonWallets[activeAddress] ?: return
+        val kit = walletKit ?: return
+        _swapViewModel.value = SwapViewModel(wallet = tonWallet, kit = kit)
+        uiCoordinator.openSwapSheet(walletSummary)
+    }
+
+    fun openStakingSheet(walletAddress: String) {
+        val wallet = state.value.wallets.firstOrNull { it.address == walletAddress }
+        if (wallet != null) {
+            uiCoordinator.openStakingSheet(wallet)
         }
     }
 
@@ -1379,9 +1401,178 @@ class WalletKitViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        balanceJob?.cancel()
-        // SDK cleanup is handled globally, no per-ViewModel cleanup needed
+        balanceRefreshJob?.cancel()
+        streamingBalanceJob?.cancel()
+        streamingTransactionsJob?.cancel()
+        streamingConnectionJob?.cancel()
+        streamingJettonsJob?.cancel()
         super.onCleared()
+    }
+
+    private fun startBalancePolling() {
+        if (balanceRefreshJob?.isActive == true) {
+            return
+        }
+
+        balanceRefreshJob = viewModelScope.launch {
+            while (true) {
+                delay(BALANCE_REFRESH_MS)
+                refreshWallets()
+            }
+        }
+    }
+
+    private fun syncStreamingObservers(address: String?) {
+        val network = resolveStreamingNetwork(address)
+
+        if (
+            address == currentStreamingWalletAddress &&
+            network == currentStreamingNetwork &&
+            streamingBalanceJob?.isActive == true &&
+            streamingTransactionsJob?.isActive == true &&
+            streamingConnectionJob?.isActive == true &&
+            streamingJettonsJob?.isActive == true
+        ) {
+            return
+        }
+
+        streamingBalanceJob?.cancel()
+        streamingTransactionsJob?.cancel()
+        streamingConnectionJob?.cancel()
+        streamingJettonsJob?.cancel()
+        streamingBalanceJob = null
+        streamingTransactionsJob = null
+        streamingConnectionJob = null
+        streamingJettonsJob = null
+        currentStreamingWalletAddress = address
+        currentStreamingNetwork = network
+
+        if (address == null || network == null) {
+            Log.d(LOG_TAG, "STREAMING: observers stopped - no active wallet")
+            _state.update { it.copy(isStreamingConnected = null) }
+            return
+        }
+
+        Log.d(LOG_TAG, "STREAMING: subscribing for wallet=$address network=${network.chainId}")
+
+        streamingConnectionJob = viewModelScope.launch {
+            try {
+                val kit = getKit()
+                kit.streaming().connectionChange(network).collect { connected ->
+                    Log.d(LOG_TAG, "STREAMING: connection changed. connected=$connected network=${network.chainId}")
+                    _state.update { it.copy(isStreamingConnected = connected) }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "STREAMING CONNECTION ERROR - ${e.message}", e)
+                _state.update { it.copy(isStreamingConnected = false) }
+            }
+        }
+
+        streamingBalanceJob = viewModelScope.launch {
+            try {
+                val kit = getKit()
+                kit.streaming().balance(network, address).collect { update ->
+                    if (update.status != TONStreamingUpdateStatus.confirmed &&
+                        update.status != TONStreamingUpdateStatus.finalized
+                    ) {
+                        Log.d(
+                            LOG_TAG,
+                            "STREAMING: ignoring balance update status=${update.status} rawBalance=${update.rawBalance}",
+                        )
+                        return@collect
+                    }
+
+                    Log.d(
+                        LOG_TAG,
+                        "STREAMING: applying balance update status=${update.status} rawBalance=${update.rawBalance}",
+                    )
+                    _state.update { state ->
+                        state.copy(
+                            wallets = state.wallets.map { wallet ->
+                                if (wallet.address == address) {
+                                    wallet.copy(
+                                        balanceNano = update.rawBalance,
+                                        balance = TonFormatter.formatTon(update.rawBalance),
+                                        lastUpdated = System.currentTimeMillis(),
+                                    )
+                                } else {
+                                    wallet
+                                }
+                            },
+                        )
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "STREAMING BALANCE ERROR - ${e.message}", e)
+            }
+        }
+
+        streamingTransactionsJob = viewModelScope.launch {
+            try {
+                val kit = getKit()
+                kit.streaming().transactions(network, address).collect { update ->
+                    Log.d(LOG_TAG, "STREAMING: transactions updated count=${update.transactions.size}")
+                    refreshTransactions(address)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "STREAMING TRANSACTIONS ERROR - ${e.message}", e)
+            }
+        }
+
+        streamingJettonsJob = viewModelScope.launch {
+            try {
+                val kit = getKit()
+                kit.streaming().jettons(network, address).collect { update ->
+                    if (update.status != TONStreamingUpdateStatus.confirmed &&
+                        update.status != TONStreamingUpdateStatus.finalized
+                    ) {
+                        return@collect
+                    }
+                    val walletAddr = update.walletAddress.value
+                    Log.d(LOG_TAG, "STREAMING: jetton update wallet=$walletAddr balance=${update.rawBalance}")
+                    _state.update { state ->
+                        val matched = state.jettons.any { it.address == walletAddr }
+                        if (!matched) return@update state
+                        state.copy(
+                            jettons = state.jettons.map { jetton ->
+                                if (jetton.address == walletAddr) {
+                                    jetton.copy(
+                                        balance = update.rawBalance,
+                                        formattedBalance = JettonSummary.formatBalance(
+                                            update.rawBalance,
+                                            update.decimals?.toInt(),
+                                            jetton.symbol,
+                                        ),
+                                    )
+                                } else {
+                                    jetton
+                                }
+                            },
+                        )
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "STREAMING JETTONS ERROR - ${e.message}", e)
+            }
+        }
+    }
+
+    private fun resolveStreamingNetwork(address: String?): TONNetwork? {
+        if (address == null) {
+            return null
+        }
+
+        return state.value.wallets.firstOrNull { it.address == address }?.network
+            ?: lifecycleManager.walletMetadata[address]?.network
+            ?: DEFAULT_NETWORK
     }
 
     private fun defaultWalletName(index: Int): String = uiString(R.string.wallet_default_name, index + 1)

@@ -51,7 +51,7 @@ data class TONTransactionRequest(
 
     /* Unix timestamp after which the transaction becomes invalid */
     @SerialName(value = "validUntil")
-    val validUntil: kotlin.Int? = null,
+    val validUntil: kotlin.Double? = null,
 
     /* Sender wallet address in received format(raw, user friendly) */
     @SerialName(value = "fromAddress")

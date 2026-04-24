@@ -23,6 +23,7 @@ package io.ton.walletkit.engine
 
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONDeDustSwapProviderConfig
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFT
@@ -30,22 +31,37 @@ import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
 import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONSignatureDomain
+import io.ton.walletkit.api.generated.TONStakeParams
+import io.ton.walletkit.api.generated.TONStakingBalance
+import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingQuote
+import io.ton.walletkit.api.generated.TONStakingQuoteParams
+import io.ton.walletkit.api.generated.TONSwapParams
+import io.ton.walletkit.api.generated.TONSwapQuote
+import io.ton.walletkit.api.generated.TONSwapQuoteParams
+import io.ton.walletkit.api.generated.TONTonStakersChainConfig
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
+import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
+import io.ton.walletkit.core.streaming.StreamingEvent
 import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.engine.state.KotlinStreamingProviderManager
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.RequestHandler
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.serialization.json.JsonElement
 
 /**
  * Abstraction over a runtime that can execute the WalletKit JavaScript bundle and expose
@@ -65,6 +81,8 @@ import io.ton.walletkit.request.RequestHandler
  */
 internal interface WalletKitEngine : RequestHandler {
     val kind: WalletKitEngineKind
+    val streamingEvents: SharedFlow<StreamingEvent>
+    val kotlinStreamingProviderManager: KotlinStreamingProviderManager
 
     /**
      * Initialize WalletKit with custom configuration. This must be called before any other method;
@@ -463,6 +481,98 @@ internal interface WalletKitEngine : RequestHandler {
      * @throws WalletKitBridgeException if address retrieval fails
      */
     suspend fun getJettonWalletAddress(walletId: String, jettonAddress: String): String
+
+    // ── Swap ──
+
+    suspend fun createOmnistonSwapProvider(config: TONOmnistonSwapProviderConfig?): String
+
+    suspend fun createDeDustSwapProvider(config: TONDeDustSwapProviderConfig?): String
+
+    suspend fun registerSwapProvider(providerId: String)
+
+    suspend fun setDefaultSwapProvider(providerId: String)
+
+    suspend fun getRegisteredSwapProviders(): List<String>
+
+    suspend fun hasSwapProvider(providerId: String): Boolean
+
+    /**
+     * Registry for Kotlin-implemented [io.ton.walletkit.swap.ITONSwapProvider] instances. Reverse-RPC
+     * calls from JS's `ProxySwapProvider` are routed here by [io.ton.walletkit.engine.infrastructure.MessageDispatcher].
+     */
+    val kotlinSwapProviderManager: io.ton.walletkit.engine.state.KotlinSwapProviderManager
+
+    /**
+     * Tell the JS side to create a `ProxySwapProvider` bound to [providerId] and register it
+     * with the JS swap manager. Called after [kotlinSwapProviderManager] has the Kotlin instance
+     * so reverse-RPC calls can find it.
+     */
+    suspend fun registerKotlinSwapProvider(providerId: String)
+
+    suspend fun getSwapQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote
+
+    suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): String
+
+    // ── Staking ──
+
+    /**
+     * Create a TonStakers staking provider in the JS bridge.
+     *
+     * @param chainConfig Chain-ID keyed config, e.g. { "-239" to TONTonStakersChainConfig(...) }
+     * @return JS registry reference ID for the created provider
+     */
+    suspend fun createTonStakersStakingProvider(chainConfig: Map<String, TONTonStakersChainConfig>?): String
+
+    /** Register a previously created staking provider with the staking manager. */
+    suspend fun registerStakingProvider(providerId: String)
+
+    /** Set the default staking provider used when no providerId is specified. */
+    suspend fun setDefaultStakingProvider(providerId: String)
+
+    /** Get the IDs of all registered staking providers. */
+    suspend fun getRegisteredStakingProviders(): List<String>
+
+    /** Check if a staking provider with the given ID is registered. */
+    suspend fun hasStakingProvider(providerId: String): Boolean
+
+    /**
+     * Registry for Kotlin-implemented [io.ton.walletkit.staking.ITONStakingProvider] instances. Reverse-RPC
+     * calls from JS's `ProxyStakingProvider` are routed here by [io.ton.walletkit.engine.infrastructure.MessageDispatcher].
+     */
+    val kotlinStakingProviderManager: io.ton.walletkit.engine.state.KotlinStakingProviderManager
+
+    /**
+     * Tell the JS side to create a `ProxyStakingProvider` bound to [providerId] and register it
+     * with the JS staking manager. Called after [kotlinStakingProviderManager] has the Kotlin
+     * instance so reverse-RPC calls can find it.
+     *
+     * @param supportedUnstakeModesJson JSON array of supported unstake modes, fetched eagerly so the
+     *   JS proxy can satisfy the synchronous `getSupportedUnstakeModes()` contract without a round-trip.
+     */
+    suspend fun registerKotlinStakingProvider(providerId: String, supportedUnstakeModesJson: String)
+
+    suspend fun getStakingQuote(
+        params: TONStakingQuoteParams<JsonElement>,
+        providerId: String?,
+    ): TONStakingQuote
+
+    suspend fun buildStakeTransaction(
+        params: TONStakeParams<JsonElement>,
+        providerId: String?,
+    ): String
+
+    suspend fun getStakedBalance(
+        userAddress: String,
+        network: TONNetwork?,
+        providerId: String?,
+    ): TONStakingBalance
+
+    suspend fun getStakingProviderInfo(
+        network: TONNetwork?,
+        providerId: String?,
+    ): TONStakingProviderInfo
+
+    suspend fun getSupportedUnstakeModes(providerId: String?): List<TONUnstakeMode>
 
     /**
      * Call a bridge method directly.

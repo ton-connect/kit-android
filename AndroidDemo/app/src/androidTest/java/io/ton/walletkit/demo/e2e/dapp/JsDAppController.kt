@@ -115,7 +115,7 @@ class JsDAppController {
         jsBridge.clearCache() // Clear any cached WebView reference
 
         if (injectTonConnect) {
-            composeTestRule.onNodeWithContentDescription("Open dApp Browser")
+            composeTestRule.onNodeWithContentDescription("Open TonConnect Browser")
                 .performClick()
         } else {
             composeTestRule.onNodeWithTag(io.ton.walletkit.demo.presentation.util.TestTags.BROWSER_NO_INJECT_BUTTON)
