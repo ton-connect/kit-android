@@ -97,7 +97,7 @@ internal class WalletOperations(
     private fun signatureDomainToJson(domain: TONSignatureDomain): JSONObject = when (domain) {
         is TONSignatureDomain.L2 -> JSONObject().apply {
             put("type", "l2")
-            put("globalId", domain.value)
+            put("globalId", domain.globalId)
         }
         is TONSignatureDomain.Empty -> JSONObject().apply {
             put("type", "empty")
@@ -308,7 +308,6 @@ internal class WalletOperations(
         val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_BALANCE, json.toJSONObject(request))
 
         return when {
-            result is String -> result
             result.has(ResponseConstants.KEY_BALANCE) -> result.optString(ResponseConstants.KEY_BALANCE)
             result.has(ResponseConstants.KEY_VALUE) -> result.optString(ResponseConstants.KEY_VALUE)
             else -> result.toString().takeIf { it != "null" && it.isNotEmpty() }

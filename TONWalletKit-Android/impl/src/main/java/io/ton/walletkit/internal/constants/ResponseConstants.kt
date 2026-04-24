@@ -233,6 +233,11 @@ internal object ResponseConstants {
     const val KEY_SIGNED_BOC = "signedBoc"
 
     /**
+     * JSON key for sent transaction BOC returned by wallet.sendTransaction().
+     */
+    const val KEY_BOC = "boc"
+
+    /**
      * JSON key for URL parameter.
      */
     const val KEY_URL = "url"
@@ -320,6 +325,11 @@ internal object ResponseConstants {
      * JSON key for 'ok' status flag.
      */
     const val KEY_OK = "ok"
+
+    /**
+     * JSON key for provider identifier (swap).
+     */
+    const val KEY_PROVIDER_ID = "providerId"
 
     /**
      * JSON key for 'removed' status flag.
