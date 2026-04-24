@@ -51,6 +51,12 @@ android {
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // The SDK's :impl module has two product flavors (webview / full). When consumed via
+        // the composite build's project-substitution, Gradle needs to know which to pick; the
+        // demo has always targeted the WebView build. Harmless when consuming the pre-built
+        // AAR fallback — the attribute just isn't referenced in that case.
+        missingDimensionStrategy("engine", "webview")
+
         // Pass instrumentation arguments from gradle properties or environment
         // Usage: ./gradlew connectedDebugAndroidTest -PtestMnemonic="word1 word2 ..."
         // Or set TEST_MNEMONIC environment variable
@@ -152,11 +158,28 @@ dependencies {
     implementation(libs.hiltAndroid)
     ksp(libs.hiltCompiler)
 
-    // TONWalletKit SDK
-//    implementation(libs.walletkitAndroid)
-    // TONWalletKit SDK - Use local AAR file
-    // Build and copy with: cd ../TONWalletKit-Android && ./gradlew buildAndCopyWebviewToDemo
-    implementation(files("libs/tonwalletkit-release.aar"))
+    // TONWalletKit SDK.
+    //
+    // Two modes:
+    //   • Composite build — open kit-android/ as the root in Android Studio. The root
+    //     `settings.gradle.kts` sets `walletkit.compositeSdk=true` and substitutes the
+    //     `org.ton:walletkit` coord with the live `:impl` project, so SDK edits flow into
+    //     the demo on rebuild. No AAR copy needed.
+    //   • Standalone — open AndroidDemo/ alone. The flag is absent, so we fall back to the
+    //     pre-built AAR produced by `./gradlew buildAndCopyWebviewToDemo` in
+    //     TONWalletKit-Android/. Force this path even in composite mode with
+    //     `-Pwalletkit.useAarFile=true`.
+    val forceAar = findProperty("walletkit.useAarFile") == "true"
+    val compositeSdk = System.getProperty("walletkit.compositeSdk") == "true"
+    if (compositeSdk && !forceAar) {
+        implementation("org.ton:walletkit:0.0.5")
+        // :api is merged into the fat AAR in the standalone path, but in composite mode we
+        // need it on the classpath too (impl exposes :api as compileOnly). Root settings
+        // substitutes this coord to project(":api").
+        implementation("org.ton:walletkit-api:0.0.5")
+    } else {
+        implementation(files("libs/tonwalletkit-release.aar"))
+    }
     // Required transitive dependencies when using AAR:
     implementation(libs.androidxWebkit)
     implementation(libs.androidxDatastorePreferences)
