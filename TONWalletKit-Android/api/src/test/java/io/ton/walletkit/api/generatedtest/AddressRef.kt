@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,7 +26,7 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
 
 import kotlinx.serialization.Serializable
@@ -39,20 +38,17 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 /**
  * 
  *
- * @param payload 
+ * @param addr 
  */
 @Serializable
-data class Versioned (
+data class AddressRef (
 
 
 
-    @SerialName(value = "payload")
-    val payload: kotlin.String
+    @SerialName(value = "addr")
+    val addr: kotlin.String
 
 
-,
-    @SerialName("version")
-    val version: kotlin.String = "v2"
 ) {
 
     companion object

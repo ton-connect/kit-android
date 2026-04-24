@@ -10,34 +10,40 @@
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
-package io.ton.walletkit.api.generation_tests
+package io.ton.walletkit.api.generationtests
 
-import io.ton.walletkit.api.generated_test.AddressRef
-import io.ton.walletkit.api.generated_test.AnnotatedFields
-import io.ton.walletkit.api.generated_test.Command
-import io.ton.walletkit.api.generated_test.Direction
-import io.ton.walletkit.api.generated_test.Flags
-import io.ton.walletkit.api.generated_test.GitEvent
-import io.ton.walletkit.api.generated_test.InfoNotification
-import io.ton.walletkit.api.generated_test.Int64Fields
-import io.ton.walletkit.api.generated_test.Notification
-import io.ton.walletkit.api.generated_test.Paginated
-import io.ton.walletkit.api.generated_test.PushEvent
-import io.ton.walletkit.api.generated_test.SettlementMethod
-import io.ton.walletkit.api.generated_test.StackItem
-import io.ton.walletkit.api.generated_test.Theme
-import io.ton.walletkit.api.generated_test.ThemeDark
-import io.ton.walletkit.api.generated_test.ThemeLight
-import io.ton.walletkit.api.generated_test.Versioned
-import io.ton.walletkit.api.generated_test.WalletAlias
-import io.ton.walletkit.api.generated_test.WidthFormats
-import io.ton.walletkit.api.generated_test.Wire
-import io.ton.walletkit.api.generated_test.WithDefaults
-import io.ton.walletkit.api.generated_test.WithUrl
+import io.ton.walletkit.api.generatedtest.AddressRef
+import io.ton.walletkit.api.generatedtest.AnnotatedFields
+import io.ton.walletkit.api.generatedtest.Command
+import io.ton.walletkit.api.generatedtest.Direction
+import io.ton.walletkit.api.generatedtest.Flags
+import io.ton.walletkit.api.generatedtest.GitEvent
+import io.ton.walletkit.api.generatedtest.InfoNotification
+import io.ton.walletkit.api.generatedtest.Int64Fields
+import io.ton.walletkit.api.generatedtest.Notification
+import io.ton.walletkit.api.generatedtest.Paginated
+import io.ton.walletkit.api.generatedtest.PushEvent
+import io.ton.walletkit.api.generatedtest.SettlementMethod
+import io.ton.walletkit.api.generatedtest.StackItem
+import io.ton.walletkit.api.generatedtest.Theme
+import io.ton.walletkit.api.generatedtest.ThemeDark
+import io.ton.walletkit.api.generatedtest.ThemeLight
+import io.ton.walletkit.api.generatedtest.Versioned
+import io.ton.walletkit.api.generatedtest.WalletAlias
+import io.ton.walletkit.api.generatedtest.WidthFormats
+import io.ton.walletkit.api.generatedtest.Wire
+import io.ton.walletkit.api.generatedtest.WithDefaults
+import io.ton.walletkit.api.generatedtest.WithUrl
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
@@ -113,7 +119,7 @@ class GeneratedModelsTest {
         // Full variant Info must wrap the original interface (promoted to a ref).
         val infoCtor = Notification.Info::class.primaryConstructor!!
         assertEquals(
-            "io.ton.walletkit.api.generated_test.InfoNotification",
+            "io.ton.walletkit.api.generatedtest.InfoNotification",
             infoCtor.parameters.single { it.name == "value" }.type.jvmErasure.qualifiedName,
         )
         // Empty variant Ping is a kotlin object (no fields).
@@ -278,7 +284,7 @@ class GeneratedModelsTest {
     fun `string literal ref union produces a model file (stub shape until template lands)`() {
         // If/when the template renders a real sealed hierarchy for Endpoint, this
         // assertion must be replaced by one that checks each literal / ref case.
-        val endpointClass = runCatching { Class.forName("io.ton.walletkit.api.generated_test.Endpoint") }
+        val endpointClass = runCatching { Class.forName("io.ton.walletkit.api.generatedtest.Endpoint") }
         assertNotNull(endpointClass.getOrNull())
     }
 
@@ -317,7 +323,7 @@ class GeneratedModelsTest {
             "Command", "WidthFormats", "Int64Fields", "WithUrl", "Endpoint",
         )
         for (name in expected) {
-            val fqn = "io.ton.walletkit.api.generated_test.$name"
+            val fqn = "io.ton.walletkit.api.generatedtest.$name"
             assertNotNull("Expected generated class $fqn", runCatching { Class.forName(fqn) }.getOrNull())
         }
     }
@@ -331,7 +337,7 @@ class GeneratedModelsTest {
     @Test
     fun `single-field variants are inlined and do not produce standalone files`() {
         for (inlined in listOf("AlertNotification", "TagEvent", "StartCommand")) {
-            val fqn = "io.ton.walletkit.api.generated_test.$inlined"
+            val fqn = "io.ton.walletkit.api.generatedtest.$inlined"
             assertTrue(
                 "Expected $fqn to be inlined (no standalone generated class)",
                 runCatching { Class.forName(fqn) }.isFailure,

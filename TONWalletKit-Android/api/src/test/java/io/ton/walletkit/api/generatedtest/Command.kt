@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,10 +26,8 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
-import io.ton.walletkit.api.generated_test.ThemeDark
-import io.ton.walletkit.api.generated_test.ThemeLight
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -55,76 +52,76 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
  *
  * This is a discriminated union type. Use the appropriate subclass based on the `type` field.
  */
-@Serializable(with = Theme.Serializer::class)
-sealed class Theme {
+@Serializable(with = Command.Serializer::class)
+sealed class Command {
 
     companion object {
         internal const val DISCRIMINATOR_FIELD = "type"
     }
 
-
     /**
      * 
      */
     @Serializable
-    data class DarkMode(
-        val value: ThemeDark
-    ) : Theme()
-
+    data class Start(
+        val timeout: kotlin.Int? = null
+    ) : Command()
 
 
     /**
      * 
      */
-    @Serializable
-    data class LightMode(
-        val value: ThemeLight
-    ) : Theme()
+    object Stop : Command()
 
 
-    internal object Serializer : KSerializer<Theme> {
-        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("Theme")
+    internal object Serializer : KSerializer<Command> {
+        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("Command")
 
         @Suppress("UNCHECKED_CAST")
-        override fun serialize(encoder: Encoder, value: Theme) {
+        override fun serialize(encoder: Encoder, value: Command) {
             val jsonEncoder = encoder as? JsonEncoder
-                ?: throw SerializationException("Theme can only be serialized with JSON")
+                ?: throw SerializationException("Command can only be serialized with JSON")
 
             val jsonElement = when (value) {
+                is Start ->
+                    buildJsonObject {
+                        put(DISCRIMINATOR_FIELD, JsonPrimitive("start"))
+                        value.timeout?.let { put("timeout", jsonEncoder.json.encodeToJsonElement(serializer<kotlin.Int>(), it)) }
+                    }
 
-                is DarkMode ->
-                    jsonEncoder.json.encodeToJsonElement(serializer<ThemeDark>(), value.value)
-
-
-                is LightMode ->
-                    jsonEncoder.json.encodeToJsonElement(serializer<ThemeLight>(), value.value)
+                is Stop ->
+                    buildJsonObject {
+                        put(DISCRIMINATOR_FIELD, JsonPrimitive("stop"))
+                    }
 
             }
             jsonEncoder.encodeJsonElement(jsonElement)
         }
 
-        override fun deserialize(decoder: Decoder): Theme {
+        override fun deserialize(decoder: Decoder): Command {
             val jsonDecoder = decoder as? JsonDecoder
-                ?: throw SerializationException("Theme can only be deserialized from JSON")
+                ?: throw SerializationException("Command can only be deserialized from JSON")
 
             val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
             val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
-                ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for Theme")
+                ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for Command")
 
             return when (discriminatorValue) {
+                "start" -> {
+                    val fieldElement = jsonObject["timeout"]
+                    if (fieldElement != null) {
+                        Start(
+                            timeout = jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.Int>(), fieldElement)
+                        )
+                    } else {
+                        Start()
+                    }
+                }
 
-                "dark_mode" ->
-                    DarkMode(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<ThemeDark>(), jsonObject)
-                    )
+                "stop" ->
+                    Stop
 
-
-                "light_mode" ->
-                    LightMode(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<ThemeLight>(), jsonObject)
-                    )
-
-                else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for Theme")
+                else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for Command")
             }
         }
     }

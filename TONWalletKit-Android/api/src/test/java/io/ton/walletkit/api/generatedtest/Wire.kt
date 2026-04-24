@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,7 +26,7 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
 
 import kotlinx.serialization.Serializable
@@ -39,29 +38,23 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 /**
  * 
  *
- * @param count 
- * @param extra 
- * @param ratio 
+ * @param payload 
  */
 @Serializable
-data class AnnotatedFields (
+data class Wire (
 
 
 
-    @SerialName(value = "count")
-    val count: kotlin.Int
+    @SerialName(value = "payload")
+    val payload: kotlin.String
+
+
 ,
+    @SerialName("magic")
+    val magic: kotlin.String = "0xff",
 
-    @SerialName("extra")
-    private val extra: kotlinx.serialization.json.JsonElement
-,
-
-
-
-    @SerialName(value = "ratio")
-    val ratio: kotlin.Int
-
-
+    @SerialName("version")
+    val version: kotlin.String = "2"
 ) {
 
     companion object

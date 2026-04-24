@@ -1,6 +1,6 @@
 {
-  "packageName": "io.ton.walletkit.api.generated_test",
-  "modelPackage": "io.ton.walletkit.api.generated_test",
+  "packageName": "io.ton.walletkit.api.generatedtest",
+  "modelPackage": "io.ton.walletkit.api.generatedtest",
   "serializationLibrary": "kotlinx_serialization",
   "dateLibrary": "kotlinx-datetime",
   "collectionType": "list",

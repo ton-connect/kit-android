@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,7 +26,7 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
 
 import kotlinx.serialization.SerialName
@@ -35,18 +34,18 @@ import kotlinx.serialization.Serializable
 
 
 /**
- * Fixture covering every distinct TypeScript→JSON Schema pattern handled by generate-json-schema.js. Excluded from the normal TS build (*.fixture.ts in tsconfig exclude), but ts-json-schema-generator processes it explicitly via the `path` option.
+ * 
  *
- * Values: north,southWest
+ * Values: swap,escrow
  */
 @Serializable
-enum class Direction(val value: kotlin.String) {
+enum class SettlementMethod(val value: kotlin.String) {
 
-    @SerialName(value = "north")
-    north("north"),
+    @SerialName(value = "SETTLEMENT_METHOD_SWAP")
+    swap("SETTLEMENT_METHOD_SWAP"),
 
-    @SerialName(value = "south_west")
-    southWest("south_west");
+    @SerialName(value = "SETTLEMENT_METHOD_ESCROW")
+    escrow("SETTLEMENT_METHOD_ESCROW");
 
     /**
      * Override [toString()] to avoid using the enum variable name as the value, and instead use
@@ -61,12 +60,12 @@ enum class Direction(val value: kotlin.String) {
         /**
          * Converts the provided [data] to a [String] on success, null otherwise.
          */
-        fun encode(data: kotlin.Any?): kotlin.String? = if (data is Direction) "$data" else null
+        fun encode(data: kotlin.Any?): kotlin.String? = if (data is SettlementMethod) "$data" else null
 
         /**
-         * Returns a valid [Direction] for [data], null otherwise.
+         * Returns a valid [SettlementMethod] for [data], null otherwise.
          */
-        fun decode(data: kotlin.Any?): Direction? = data?.let {
+        fun decode(data: kotlin.Any?): SettlementMethod? = data?.let {
           val normalizedData = "$it".lowercase()
           values().firstOrNull { value ->
             it == value || normalizedData == "$value".lowercase()

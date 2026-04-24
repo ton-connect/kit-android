@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,7 +26,7 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
 
 import kotlinx.serialization.Serializable
@@ -39,16 +38,29 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 /**
  * 
  *
- * @param items The page items
- * @param total 
+ * @param ref 
+ * @param branch 
  */
 @Serializable
-data class Paginated<T>(
-    @SerialName("items")
-    val items: T,
-    @SerialName("total")
-    val total: kotlin.Int
+data class PushEvent (
+
+
+
+    @SerialName(value = "ref")
+    val ref: kotlin.String
+,
+
+
+
+    @SerialName(value = "branch")
+    val branch: kotlin.String
+
+
+,
+    @SerialName("event")
+    val event: kotlin.String = "push"
 ) {
+
     companion object
 }
 

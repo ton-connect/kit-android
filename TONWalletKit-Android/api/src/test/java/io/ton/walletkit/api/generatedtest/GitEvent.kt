@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,8 +26,9 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
+import io.ton.walletkit.api.generatedtest.PushEvent
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -51,78 +51,78 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 /**
  * 
  *
- * This is a discriminated union type. Use the appropriate subclass based on the `type` field.
+ * This is a discriminated union type. Use the appropriate subclass based on the `event` field.
  */
-@Serializable(with = Command.Serializer::class)
-sealed class Command {
+@Serializable(with = GitEvent.Serializer::class)
+sealed class GitEvent {
 
     companion object {
-        internal const val DISCRIMINATOR_FIELD = "type"
+        internal const val DISCRIMINATOR_FIELD = "event"
     }
+
 
     /**
      * 
      */
     @Serializable
-    data class Start(
-        val timeout: kotlin.Int? = null
-    ) : Command()
+    data class Push(
+        val value: PushEvent
+    ) : GitEvent()
 
 
     /**
      * 
      */
-    object Stop : Command()
+    @Serializable
+    data class Tag(
+        val ref: kotlin.String
+    ) : GitEvent()
 
 
-    internal object Serializer : KSerializer<Command> {
-        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("Command")
+    internal object Serializer : KSerializer<GitEvent> {
+        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("GitEvent")
 
         @Suppress("UNCHECKED_CAST")
-        override fun serialize(encoder: Encoder, value: Command) {
+        override fun serialize(encoder: Encoder, value: GitEvent) {
             val jsonEncoder = encoder as? JsonEncoder
-                ?: throw SerializationException("Command can only be serialized with JSON")
+                ?: throw SerializationException("GitEvent can only be serialized with JSON")
 
             val jsonElement = when (value) {
-                is Start ->
-                    buildJsonObject {
-                        put(DISCRIMINATOR_FIELD, JsonPrimitive("start"))
-                        value.timeout?.let { put("timeout", jsonEncoder.json.encodeToJsonElement(serializer<kotlin.Int>(), it)) }
-                    }
 
-                is Stop ->
+                is Push ->
+                    jsonEncoder.json.encodeToJsonElement(serializer<PushEvent>(), value.value)
+
+                is Tag ->
                     buildJsonObject {
-                        put(DISCRIMINATOR_FIELD, JsonPrimitive("stop"))
+                        put(DISCRIMINATOR_FIELD, JsonPrimitive("tag"))
+                        put("ref", jsonEncoder.json.encodeToJsonElement(serializer<kotlin.String>(), value.ref))
                     }
 
             }
             jsonEncoder.encodeJsonElement(jsonElement)
         }
 
-        override fun deserialize(decoder: Decoder): Command {
+        override fun deserialize(decoder: Decoder): GitEvent {
             val jsonDecoder = decoder as? JsonDecoder
-                ?: throw SerializationException("Command can only be deserialized from JSON")
+                ?: throw SerializationException("GitEvent can only be deserialized from JSON")
 
             val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
             val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
-                ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for Command")
+                ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for GitEvent")
 
             return when (discriminatorValue) {
-                "start" -> {
-                    val fieldElement = jsonObject["timeout"]
-                    if (fieldElement != null) {
-                        Start(
-                            timeout = jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.Int>(), fieldElement)
-                        )
-                    } else {
-                        Start()
-                    }
-                }
 
-                "stop" ->
-                    Stop
+                "push" ->
+                    Push(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<PushEvent>(), jsonObject)
+                    )
 
-                else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for Command")
+                "tag" ->
+                    Tag(
+                        ref = jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.String>(), jsonObject["ref"] ?: throw SerializationException("Missing 'ref' for GitEvent"))
+                    )
+
+                else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for GitEvent")
             }
         }
     }

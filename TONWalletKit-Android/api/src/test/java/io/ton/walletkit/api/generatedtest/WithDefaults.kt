@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,7 +26,7 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
 
 import kotlinx.serialization.Serializable
@@ -39,15 +38,22 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 /**
  * 
  *
- * @param placeholder 
+ * @param enabled 
+ * @param count 
  */
 @Serializable
-data class Endpoint (
+data class WithDefaults (
 
 
 
-    @SerialName(value = "_placeholder")
-    val placeholder: kotlin.String? = null
+    @SerialName(value = "enabled")
+    val enabled: kotlin.Boolean
+,
+
+
+
+    @SerialName(value = "count")
+    val count: kotlin.Int
 
 
 ) {

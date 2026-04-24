@@ -15,6 +15,10 @@ subprojects {
             targetExclude(
                 "**/build/**/*.kt",
                 "**/WalletKitEngineFactoryTest.kt",
+                // Output of Scripts/generate-api/generate-test-models.sh — openapi-generator's
+                // Kotlin template formatting clashes with ktlint, and any fix would be wiped
+                // on the next regen. The authored test (generationtests/) is NOT excluded.
+                "**/generatedtest/**/*.kt",
             )
             licenseHeaderFile(rootProject.file("../LICENSE_HEADER"))
             ktlint("1.0.1")

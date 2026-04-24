@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,7 +26,7 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
 
 import kotlinx.serialization.Serializable
@@ -39,24 +38,27 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 /**
  * 
  *
- * @param iconUrl 
- * @param label 
+ * @param hex 
+ * @param opacity 
  */
 @Serializable
-data class WithUrl (
+data class ThemeDark (
 
 
 
-    @SerialName(value = "iconUrl")
-    val iconUrl: kotlin.String
+    @SerialName(value = "hex")
+    val hex: kotlin.String
 ,
 
 
 
-    @SerialName(value = "label")
-    val label: kotlin.String
+    @SerialName(value = "opacity")
+    val opacity: kotlin.Int
 
 
+,
+    @SerialName("type")
+    val type: kotlin.String = "dark_mode"
 ) {
 
     companion object

@@ -6,7 +6,7 @@
 #    (the fixture is excluded from the normal TS build, so the usual OpenAPI extraction
 #     path skips it)
 #  * writes the generated Kotlin models into a test-only package
-#    (`io.ton.walletkit.api.generated_test`) under `api/src/test/java/`
+#    (`io.ton.walletkit.api.generatedtest`) under `api/src/test/java/`
 #
 # This output is consumed by GeneratedModelsTest.kt, which asserts the generated
 # Kotlin shape matches each fixture pattern. Run this script whenever fixtures
@@ -50,7 +50,7 @@ pnpm install --silent
 OUTPUT_DIR="${SCRIPT_DIR}/generated/test-openapi"
 CONFIG_FILE="${SCRIPT_DIR}/generate-test-models-config.json"
 TEMPLATES_DIR="${SCRIPT_DIR}/templates"
-DEST_DIR="${PROJECT_ROOT}/TONWalletKit-Android/api/src/test/java/io/ton/walletkit/api/generated_test"
+DEST_DIR="${PROJECT_ROOT}/TONWalletKit-Android/api/src/test/java/io/ton/walletkit/api/generatedtest"
 
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
@@ -74,7 +74,7 @@ openapi-generator generate \
     --skip-validate-spec \
     --global-property models,modelDocs=false,modelTests=false,apis=false,apiDocs=false,apiTests=false,supportingFiles=false
 
-MODELS_DIR="$OUTPUT_DIR/src/main/kotlin/io/ton/walletkit/api/generated_test"
+MODELS_DIR="$OUTPUT_DIR/src/main/kotlin/io/ton/walletkit/api/generatedtest"
 if [ ! -d "$MODELS_DIR" ]; then
     echo "❌ Error: generated models dir not found at '$MODELS_DIR'"
     exit 1

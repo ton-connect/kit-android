@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,7 +26,7 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
 
 import kotlinx.serialization.Serializable
@@ -39,27 +38,24 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 /**
  * 
  *
- * @param ref 
- * @param branch 
+ * @param seqno 
+ * @param timestampSec 
  */
 @Serializable
-data class PushEvent (
+data class WidthFormats (
 
 
 
-    @SerialName(value = "ref")
-    val ref: kotlin.String
+    @SerialName(value = "seqno")
+    val seqno: kotlin.Int
 ,
 
 
 
-    @SerialName(value = "branch")
-    val branch: kotlin.String
+    @SerialName(value = "timestampSec")
+    val timestampSec: kotlin.Int
 
 
-,
-    @SerialName("event")
-    val event: kotlin.String = "push"
 ) {
 
     companion object

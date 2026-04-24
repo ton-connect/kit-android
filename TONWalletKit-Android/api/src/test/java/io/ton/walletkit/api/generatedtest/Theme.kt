@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,9 +26,10 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
-import io.ton.walletkit.api.generated_test.PushEvent
+import io.ton.walletkit.api.generatedtest.ThemeDark
+import io.ton.walletkit.api.generatedtest.ThemeLight
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -52,13 +52,13 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 /**
  * 
  *
- * This is a discriminated union type. Use the appropriate subclass based on the `event` field.
+ * This is a discriminated union type. Use the appropriate subclass based on the `type` field.
  */
-@Serializable(with = GitEvent.Serializer::class)
-sealed class GitEvent {
+@Serializable(with = Theme.Serializer::class)
+sealed class Theme {
 
     companion object {
-        internal const val DISCRIMINATOR_FIELD = "event"
+        internal const val DISCRIMINATOR_FIELD = "type"
     }
 
 
@@ -66,64 +66,64 @@ sealed class GitEvent {
      * 
      */
     @Serializable
-    data class Push(
-        val value: PushEvent
-    ) : GitEvent()
+    data class DarkMode(
+        val value: ThemeDark
+    ) : Theme()
+
 
 
     /**
      * 
      */
     @Serializable
-    data class Tag(
-        val ref: kotlin.String
-    ) : GitEvent()
+    data class LightMode(
+        val value: ThemeLight
+    ) : Theme()
 
 
-    internal object Serializer : KSerializer<GitEvent> {
-        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("GitEvent")
+    internal object Serializer : KSerializer<Theme> {
+        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("Theme")
 
         @Suppress("UNCHECKED_CAST")
-        override fun serialize(encoder: Encoder, value: GitEvent) {
+        override fun serialize(encoder: Encoder, value: Theme) {
             val jsonEncoder = encoder as? JsonEncoder
-                ?: throw SerializationException("GitEvent can only be serialized with JSON")
+                ?: throw SerializationException("Theme can only be serialized with JSON")
 
             val jsonElement = when (value) {
 
-                is Push ->
-                    jsonEncoder.json.encodeToJsonElement(serializer<PushEvent>(), value.value)
+                is DarkMode ->
+                    jsonEncoder.json.encodeToJsonElement(serializer<ThemeDark>(), value.value)
 
-                is Tag ->
-                    buildJsonObject {
-                        put(DISCRIMINATOR_FIELD, JsonPrimitive("tag"))
-                        put("ref", jsonEncoder.json.encodeToJsonElement(serializer<kotlin.String>(), value.ref))
-                    }
+
+                is LightMode ->
+                    jsonEncoder.json.encodeToJsonElement(serializer<ThemeLight>(), value.value)
 
             }
             jsonEncoder.encodeJsonElement(jsonElement)
         }
 
-        override fun deserialize(decoder: Decoder): GitEvent {
+        override fun deserialize(decoder: Decoder): Theme {
             val jsonDecoder = decoder as? JsonDecoder
-                ?: throw SerializationException("GitEvent can only be deserialized from JSON")
+                ?: throw SerializationException("Theme can only be deserialized from JSON")
 
             val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
             val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
-                ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for GitEvent")
+                ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for Theme")
 
             return when (discriminatorValue) {
 
-                "push" ->
-                    Push(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<PushEvent>(), jsonObject)
+                "dark_mode" ->
+                    DarkMode(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<ThemeDark>(), jsonObject)
                     )
 
-                "tag" ->
-                    Tag(
-                        ref = jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.String>(), jsonObject["ref"] ?: throw SerializationException("Missing 'ref' for GitEvent"))
+
+                "light_mode" ->
+                    LightMode(
+                        jsonDecoder.json.decodeFromJsonElement(serializer<ThemeLight>(), jsonObject)
                     )
 
-                else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for GitEvent")
+                else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for Theme")
             }
         }
     }

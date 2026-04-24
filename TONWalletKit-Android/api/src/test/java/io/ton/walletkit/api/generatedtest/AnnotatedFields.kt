@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,7 +26,7 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
 
 import kotlinx.serialization.Serializable
@@ -39,27 +38,29 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 /**
  * 
  *
- * @param hex 
- * @param opacity 
+ * @param count 
+ * @param extra 
+ * @param ratio 
  */
 @Serializable
-data class ThemeLight (
+data class AnnotatedFields (
 
 
 
-    @SerialName(value = "hex")
-    val hex: kotlin.String
+    @SerialName(value = "count")
+    val count: kotlin.Int
+,
+
+    @SerialName("extra")
+    private val extra: kotlinx.serialization.json.JsonElement
 ,
 
 
 
-    @SerialName(value = "opacity")
-    val opacity: kotlin.Int
+    @SerialName(value = "ratio")
+    val ratio: kotlin.Int
 
 
-,
-    @SerialName("type")
-    val type: kotlin.String = "light_mode"
 ) {
 
     companion object

@@ -19,7 +19,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 @file:Suppress(
     "ArrayInDataClass",
     "EnumEntryName",
@@ -27,7 +26,7 @@
     "UnusedImport"
 )
 
-package io.ton.walletkit.api.generated_test
+package io.ton.walletkit.api.generatedtest
 
 
 import kotlinx.serialization.Serializable
@@ -39,22 +38,15 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 /**
  * 
  *
- * @param bigAmount 
- * @param unsignedBigAmount 
+ * @param placeholder 
  */
 @Serializable
-data class Int64Fields (
+data class Endpoint (
 
 
 
-    @SerialName(value = "bigAmount")
-    val bigAmount: kotlin.Long
-,
-
-
-
-    @SerialName(value = "unsignedBigAmount")
-    val unsignedBigAmount: kotlin.Int
+    @SerialName(value = "_placeholder")
+    val placeholder: kotlin.String? = null
 
 
 ) {
