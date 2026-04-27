@@ -43,6 +43,7 @@ androidxComposeMaterial3 = { module = "androidx.compose.material3:material3" }
 androidxComposeMaterialIconsExtended = { module = "androidx.compose.material:material-icons-extended" }
 androidxComposeUiToolingPreview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidxComposeUiTooling = { module = "androidx.compose.ui:ui-tooling" }
+androidxComposeUiTextGoogleFonts = { module = "androidx.compose.ui:ui-text-google-fonts" }
 androidxLifecycleRuntimeKtx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidxLifecycleViewmodelCompose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 kotlinxCoroutinesAndroid = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutinesAndroid" }
