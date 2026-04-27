@@ -39,6 +39,7 @@ import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.TONWalletConnectionRequest
+import io.ton.walletkit.session.TONConnectSession
 import io.ton.walletkit.staking.ITONStakingManager
 import io.ton.walletkit.staking.tonstakers.TONTonStakersStakingProvider
 import io.ton.walletkit.streaming.ITONStreamingManager
@@ -169,7 +170,7 @@ interface ITONWalletKit {
      */
     suspend fun connectionEventFromUrl(url: String): TONWalletConnectionRequest
 
-    suspend fun listSessions(): List<io.ton.walletkit.session.TONConnectSession>
+    suspend fun listSessions(): List<TONConnectSession>
 
     suspend fun disconnectSession(sessionId: String)
 

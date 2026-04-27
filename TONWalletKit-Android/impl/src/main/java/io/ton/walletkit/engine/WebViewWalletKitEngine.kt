@@ -75,6 +75,7 @@ import io.ton.walletkit.engine.state.KotlinStakingProviderManager
 import io.ton.walletkit.engine.state.KotlinStreamingProviderManager
 import io.ton.walletkit.engine.state.KotlinSwapProviderManager
 import io.ton.walletkit.engine.state.SignerManager
+import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
@@ -499,7 +500,7 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun registerKotlinSwapProvider(providerId: String) {
         callBridgeMethod(
-            io.ton.walletkit.internal.constants.BridgeMethodConstants.METHOD_REGISTER_KOTLIN_SWAP_PROVIDER,
+            BridgeMethodConstants.METHOD_REGISTER_KOTLIN_SWAP_PROVIDER,
             JSONObject().apply { put("providerId", providerId) },
         )
     }
@@ -527,7 +528,7 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun registerKotlinStakingProvider(providerId: String, supportedUnstakeModesJson: String) {
         callBridgeMethod(
-            io.ton.walletkit.internal.constants.BridgeMethodConstants.METHOD_REGISTER_KOTLIN_STAKING_PROVIDER,
+            BridgeMethodConstants.METHOD_REGISTER_KOTLIN_STAKING_PROVIDER,
             JSONObject().apply {
                 put("providerId", providerId)
                 put("supportedUnstakeModes", JSONArray(supportedUnstakeModesJson))

@@ -29,6 +29,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.WalletVersions
@@ -78,6 +79,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.math.BigInteger
 import javax.inject.Inject
 import kotlin.collections.ArrayDeque
 import kotlin.collections.firstOrNull
@@ -106,7 +108,7 @@ class WalletKitViewModel @Inject constructor(
     private var streamingJettonsJob: Job? = null
     private var currentStreamingWalletAddress: String? = null
     private var currentStreamingNetwork: TONNetwork? = null
-    private var walletKit: io.ton.walletkit.ITONWalletKit? = null
+    private var walletKit: ITONWalletKit? = null
 
     private val lifecycleManager = WalletLifecycleManager(
         storage = storage,
@@ -181,7 +183,7 @@ class WalletKitViewModel @Inject constructor(
     /**
      * Get the shared ITONWalletKit instance used across the demo.
      */
-    private suspend fun getKit(): io.ton.walletkit.ITONWalletKit {
+    private suspend fun getKit(): ITONWalletKit {
         walletKit?.let { return it }
         val kit = TONWalletKitHelper.mainnet(application)
         walletKit = kit
@@ -1307,7 +1309,7 @@ class WalletKitViewModel @Inject constructor(
                 try {
                     val balance = wallet.balance()
                     val totalAmount = txRequest.messages.sumOf { msg ->
-                        msg.amount.toBigIntegerOrNull() ?: java.math.BigInteger.ZERO
+                        msg.amount.toBigIntegerOrNull() ?: BigInteger.ZERO
                     }
                     Log.d(LOG_TAG, "Balance check: balance=${balance.value}, totalAmount=$totalAmount")
 

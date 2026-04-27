@@ -33,6 +33,7 @@ import io.ton.walletkit.demo.data.cache.TransactionCache
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.UserPreferences
 import io.ton.walletkit.demo.data.storage.WalletRecord
+import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.domain.model.WalletMetadata
 import io.ton.walletkit.demo.presentation.model.SessionSummary
 import io.ton.walletkit.demo.presentation.model.WalletSummary
@@ -142,8 +143,8 @@ class WalletLifecycleManager(
 
             val storedRecord = storage.loadWallet(address)
             val createdAt = storedRecord?.createdAt
-            val interfaceType = storedRecord?.interfaceType?.let { io.ton.walletkit.demo.domain.model.WalletInterfaceType.fromValue(it) }
-                ?: io.ton.walletkit.demo.domain.model.WalletInterfaceType.MNEMONIC
+            val interfaceType = storedRecord?.interfaceType?.let { WalletInterfaceType.fromValue(it) }
+                ?: WalletInterfaceType.MNEMONIC
 
             result.add(
                 WalletSummary(

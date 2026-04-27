@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.demo.e2e.tests
 
+import android.util.Log
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -85,7 +86,7 @@ class ConnectE2ETest : BaseE2ETest() {
             dAppController.clearDAppStorage()
             dAppController.closeBrowserFully()
         } catch (e: Throwable) {
-            android.util.Log.w(TAG, "Failed to clean up dApp sessions in tearDown: ${e.message}")
+            Log.w(TAG, "Failed to clean up dApp sessions in tearDown: ${e.message}")
         }
     }
 

@@ -25,6 +25,7 @@ import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
+import io.ton.walletkit.api.generated.TONNFTRawTransferRequestMessage
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONPagination
@@ -120,7 +121,7 @@ internal class AssetOperations(
     ): String {
         ensureInitialized()
 
-        val messageJson = json.encodeToString(io.ton.walletkit.api.generated.TONNFTRawTransferRequestMessage.serializer(), params.message)
+        val messageJson = json.encodeToString(TONNFTRawTransferRequestMessage.serializer(), params.message)
         val request = CreateTransferNftRawRequest(
             walletId = walletId,
             nftAddress = params.nftAddress.value,

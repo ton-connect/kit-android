@@ -64,6 +64,7 @@ import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.RequestHandler
 import io.ton.walletkit.request.TONWalletConnectionRequest
+import io.ton.walletkit.session.TONConnectSession
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.serialization.json.JsonElement
 import org.json.JSONObject
@@ -361,7 +362,7 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @return List of active sessions
      */
-    suspend fun listSessions(): List<io.ton.walletkit.session.TONConnectSession>
+    suspend fun listSessions(): List<TONConnectSession>
 
     /**
      * Disconnect a TON Connect session.

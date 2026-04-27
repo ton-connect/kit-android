@@ -33,6 +33,7 @@ import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletAdapterInfo
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -83,7 +84,7 @@ internal class BridgeWalletAdapter(
     }
 
     @Suppress("removal")
-    @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+    @OptIn(DelicateCoroutinesApi::class)
     protected fun finalize() {
         GlobalScope.launch {
             try {

@@ -62,6 +62,8 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.engine.state.KotlinStakingProviderManager
+import io.ton.walletkit.engine.state.KotlinSwapProviderManager
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
@@ -658,7 +660,7 @@ internal class QuickJsWalletKitEngine(
     }
 
     override val kotlinSwapProviderManager =
-        io.ton.walletkit.engine.state.KotlinSwapProviderManager(kotlinx.serialization.json.Json)
+        KotlinSwapProviderManager(Json)
 
     override suspend fun registerKotlinSwapProvider(providerId: String) {
         throw UnsupportedOperationException("QuickJS engine does not support swaps. Use WebView engine.")
@@ -693,7 +695,7 @@ internal class QuickJsWalletKitEngine(
     }
 
     override val kotlinStakingProviderManager =
-        io.ton.walletkit.engine.state.KotlinStakingProviderManager(kotlinx.serialization.json.Json)
+        KotlinStakingProviderManager(Json)
 
     override suspend fun registerKotlinStakingProvider(providerId: String, supportedUnstakeModesJson: String) {
         throw UnsupportedOperationException("QuickJS engine does not support staking. Use WebView engine.")
@@ -808,7 +810,7 @@ internal class QuickJsWalletKitEngine(
         val result = call(BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW, paramsJson)
         // Parse the result using kotlinx.serialization
         return json.decodeFromString(
-            io.ton.walletkit.api.generated.TONTransactionEmulatedPreview.serializer(),
+            TONTransactionEmulatedPreview.serializer(),
             result.toString(),
         )
     }

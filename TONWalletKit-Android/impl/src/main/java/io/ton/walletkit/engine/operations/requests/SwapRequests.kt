@@ -22,6 +22,7 @@
 package io.ton.walletkit.engine.operations.requests
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 /**
  * Internal bridge request models for swap operations.
@@ -31,12 +32,12 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 internal data class CreateOmnistonSwapProviderRequest(
-    val config: kotlinx.serialization.json.JsonElement? = null,
+    val config: JsonElement? = null,
 )
 
 @Serializable
 internal data class CreateDeDustSwapProviderRequest(
-    val config: kotlinx.serialization.json.JsonElement? = null,
+    val config: JsonElement? = null,
 )
 
 @Serializable
@@ -56,11 +57,11 @@ internal data class HasSwapProviderRequest(
 
 @Serializable
 internal data class GetSwapQuoteRequest(
-    val params: kotlinx.serialization.json.JsonElement,
+    val params: JsonElement,
     val providerId: String? = null,
 )
 
 @Serializable
 internal data class BuildSwapTransactionRequest(
-    val params: kotlinx.serialization.json.JsonElement,
+    val params: JsonElement,
 )

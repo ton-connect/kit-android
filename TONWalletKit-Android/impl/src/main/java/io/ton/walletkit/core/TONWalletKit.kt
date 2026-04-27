@@ -48,6 +48,7 @@ import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.TONWalletConnectionRequest
+import io.ton.walletkit.session.TONConnectSession
 import io.ton.walletkit.staking.BuiltInStakingProvider
 import io.ton.walletkit.staking.ITONStakingManager
 import io.ton.walletkit.staking.TONStakingManager
@@ -428,7 +429,7 @@ internal class TONWalletKit private constructor(
      *
      * @return List of all active sessions
      */
-    override suspend fun listSessions(): List<io.ton.walletkit.session.TONConnectSession> {
+    override suspend fun listSessions(): List<TONConnectSession> {
         checkNotDestroyed()
         return engine.listSessions()
     }

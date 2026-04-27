@@ -34,6 +34,7 @@ import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.model.TONWalletAdapter
 import org.json.JSONObject
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -146,8 +147,8 @@ internal object TestWalletKitFactory {
         }
 
         // Setup addWallet
-        coEvery { mockEngine.addWallet(any<io.ton.walletkit.model.TONWalletAdapter>()) } answers {
-            val adapter = firstArg<io.ton.walletkit.model.TONWalletAdapter>()
+        coEvery { mockEngine.addWallet(any<TONWalletAdapter>()) } answers {
+            val adapter = firstArg<TONWalletAdapter>()
             scenario.handleAddWallet(adapter.identifier())
         }
 
