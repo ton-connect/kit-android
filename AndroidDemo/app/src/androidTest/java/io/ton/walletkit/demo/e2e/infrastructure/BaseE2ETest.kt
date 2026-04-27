@@ -57,8 +57,8 @@ abstract class BaseE2ETest {
     protected var allureClient: AllureApiClient? = null
 
     companion object {
-        // Default password used for tests
-        const val TEST_PASSWORD = "testpass123"
+        // Default 4-digit PIN used for tests (matches the new login flow).
+        const val TEST_PIN = "1234"
 
         // =====================================================================
         // E2E Test Timeouts
@@ -213,7 +213,7 @@ abstract class BaseE2ETest {
     protected fun ensureWalletReady() {
         android.util.Log.d("BaseE2ETest", "ensureWalletReady called with mnemonic (${TEST_MNEMONIC.size} words)")
         android.util.Log.d("BaseE2ETest", "First few words: ${TEST_MNEMONIC.take(3).joinToString(" ")}...")
-        walletController.setupWallet(TEST_MNEMONIC, TEST_PASSWORD)
+        walletController.setupWallet(TEST_MNEMONIC, TEST_PIN)
         walletController.waitForWalletHome()
         android.util.Log.d("BaseE2ETest", "Wallet is ready on home screen")
     }

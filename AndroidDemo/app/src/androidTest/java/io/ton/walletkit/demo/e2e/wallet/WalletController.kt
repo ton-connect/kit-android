@@ -49,6 +49,9 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
         const val SHEET_APPEAR_TIMEOUT = 30_000L // Wait for sheets to appear (depends on WebView/network)
         const val BUTTON_ENABLE_TIMEOUT = 15_000L // Wait for buttons to become enabled
         const val UI_IDLE_TIMEOUT = 10_000L // General UI idle/animation timeout
+
+        const val PIN_LENGTH = 4
+        const val DEFAULT_PIN = "1234"
     }
 
     private lateinit var composeTestRule: ComposeTestRule
@@ -107,7 +110,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
      * Automatically detects which screen we're on.
      */
     @Step("Authenticate")
-    fun authenticate(password: String = "testpass123") {
+    fun authenticate(pin: String = DEFAULT_PIN) {
         composeTestRule.waitForIdle()
         // Give app time to settle after activity start
 
@@ -128,7 +131,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
             // Check if on unlock screen FIRST (more likely if wallet exists from previous test)
             val onUnlock = try {
-                composeTestRule.onNodeWithTag(TestTags.UNLOCK_PASSWORD_FIELD)
+                composeTestRule.onNodeWithTag(TestTags.UNLOCK_PIN_FIELD)
                     .assertExists()
                 true
             } catch (e: AssertionError) {
@@ -137,14 +140,14 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
             if (onUnlock) {
                 Log.d("WalletController", "Detected unlock screen")
-                unlockWalletSafe(password)
+                unlockPinSafe(pin)
                 screenDetected = true
                 return
             }
 
-            // Check if on setup password screen (has confirm field)
+            // Check if on create PIN screen
             val onSetup = try {
-                composeTestRule.onNodeWithTag(TestTags.PASSWORD_CONFIRM_FIELD)
+                composeTestRule.onNodeWithTag(TestTags.CREATE_PIN_FIELD)
                     .assertExists()
                 true
             } catch (e: AssertionError) {
@@ -152,8 +155,8 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             }
 
             if (onSetup) {
-                Log.d("WalletController", "Detected setup password screen")
-                setupPasswordSafe(password)
+                Log.d("WalletController", "Detected create PIN screen")
+                createPinSafe(pin)
                 screenDetected = true
                 return
             }
@@ -171,52 +174,52 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
         // Last resort - try unlock as fallback
         android.util.Log.w("WalletController", "No auth screen detected after $maxAttempts attempts, trying unlock")
-        unlockWalletSafe(password)
+        unlockPinSafe(pin)
     }
 
     /**
-     * Safe version of setupPassword that doesn't throw on timeout.
+     * Safe version of createPin — types the PIN twice (entering → confirming) and taps Save.
      */
-    private fun setupPasswordSafe(password: String) {
+    private fun createPinSafe(pin: String) {
         try {
-            // Enter password (field should already exist from detection)
-            composeTestRule.onNodeWithTag(TestTags.PASSWORD_FIELD)
-                .performTextInput(password)
+            require(pin.length == PIN_LENGTH) {
+                "PIN must be $PIN_LENGTH digits, got '${pin.length}'"
+            }
+            // First entry — auto-advances to confirming once 4 digits are typed.
+            composeTestRule.onNodeWithTag(TestTags.CREATE_PIN_FIELD)
+                .performTextInput(pin)
+            composeTestRule.waitForIdle()
 
-            // Enter confirmation
-            composeTestRule.onNodeWithTag(TestTags.PASSWORD_CONFIRM_FIELD)
-                .performTextInput(password)
+            // Second entry — confirming phase.
+            composeTestRule.onNodeWithTag(TestTags.CREATE_PIN_FIELD)
+                .performTextInput(pin)
+            composeTestRule.waitForIdle()
 
-            // Submit
-            composeTestRule.onNodeWithTag(TestTags.PASSWORD_SUBMIT_BUTTON)
+            // Save button is enabled once confirming has 4 digits.
+            composeTestRule.onNodeWithTag(TestTags.CREATE_PIN_SAVE_BUTTON)
                 .performClick()
 
-            // Wait for transition
             composeTestRule.waitForIdle()
         } catch (e: Exception) {
-            android.util.Log.w("WalletController", "setupPasswordSafe failed: ${e.message}")
+            android.util.Log.w("WalletController", "createPinSafe failed: ${e.message}")
         }
     }
 
     /**
-     * Safe version of unlockWallet that doesn't throw on timeout.
+     * Safe version of unlockPin — types the PIN; auto-unlock fires when length hits 4.
      */
-    private fun unlockWalletSafe(password: String) {
+    private fun unlockPinSafe(pin: String) {
         try {
-            // Enter password (field should already exist from detection)
-            composeTestRule.onNodeWithTag(TestTags.UNLOCK_PASSWORD_FIELD)
-                .performTextInput(password)
+            require(pin.length == PIN_LENGTH) {
+                "PIN must be $PIN_LENGTH digits, got '${pin.length}'"
+            }
+            composeTestRule.onNodeWithTag(TestTags.UNLOCK_PIN_FIELD)
+                .performTextInput(pin)
 
-            // Submit
-            composeTestRule.onNodeWithTag(TestTags.UNLOCK_SUBMIT_BUTTON)
-                .performClick()
-
-            // Wait for transition to complete
             composeTestRule.waitForIdle()
-            // Give extra time for app to finish state transition
             Log.d("WalletController", "Unlock completed, waiting for app to stabilize...")
         } catch (e: Exception) {
-            android.util.Log.w("WalletController", "unlockWalletSafe failed: ${e.message}")
+            android.util.Log.w("WalletController", "unlockPinSafe failed: ${e.message}")
         }
     }
 
@@ -327,7 +330,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
      *   - If home screen: wallet already set up, skip import (assume same wallet)
      */
     @Step("Complete wallet setup")
-    fun setupWallet(mnemonic: List<String>, password: String = "testpass123") {
+    fun setupWallet(mnemonic: List<String>, pin: String = DEFAULT_PIN) {
         Log.d("WalletController", "=== setupWallet called with ${mnemonic.size} word mnemonic ===")
         composeTestRule.waitForIdle()
 
@@ -350,7 +353,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
         // First authenticate (handles both setup and unlock)
         Log.d("WalletController", "Neither home nor AddWalletSheet detected, calling authenticate()...")
-        authenticate(password)
+        authenticate(pin)
 
         // After authentication, wait for UI to stabilize
         composeTestRule.waitForIdle()

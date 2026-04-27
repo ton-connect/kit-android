@@ -147,6 +147,7 @@ dependencies {
     implementation(libs.androidxLifecycleViewmodelCompose)
     implementation(libs.kotlinxCoroutinesAndroid)
     implementation(libs.androidxSecurityCrypto)
+    implementation(libs.androidxBiometric)
     implementation(libs.coilCompose)
     implementation(libs.coilNetwork)
 

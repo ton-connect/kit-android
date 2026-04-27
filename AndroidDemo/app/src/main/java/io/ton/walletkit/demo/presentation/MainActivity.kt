@@ -26,7 +26,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,9 +38,10 @@ import androidx.compose.ui.platform.LocalContext
 import dagger.hilt.android.AndroidEntryPoint
 import io.ton.walletkit.demo.core.TONWalletKitHelper
 import io.ton.walletkit.demo.core.WalletKitDemoApp
+import io.ton.walletkit.demo.designsystem.theme.TonTheme
 import io.ton.walletkit.demo.presentation.actions.WalletActionsImpl
-import io.ton.walletkit.demo.presentation.ui.screen.SetupPasswordScreen
-import io.ton.walletkit.demo.presentation.ui.screen.UnlockWalletScreen
+import io.ton.walletkit.demo.presentation.ui.screen.CreatePinScreen
+import io.ton.walletkit.demo.presentation.ui.screen.UnlockPinScreen
 import io.ton.walletkit.demo.presentation.ui.screen.WalletScreen
 import io.ton.walletkit.demo.presentation.viewmodel.WalletKitViewModel
 import javax.inject.Inject
@@ -54,8 +54,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
-                Surface(color = MaterialTheme.colorScheme.background) {
+            TonTheme {
+                Surface(color = TonTheme.colors.bgPrimary) {
                     AppNavigation(viewModel = viewModel)
                 }
             }
@@ -87,21 +87,24 @@ private fun AppNavigation(
     val walletActions = remember(viewModel) { WalletActionsImpl(viewModel) }
 
     when {
-        // Step 1: Setup password (first time user)
+        // Step 1: Setup PIN (first time user)
         !isPasswordSet -> {
-            SetupPasswordScreen(
-                onPasswordSet = { password ->
-                    viewModel.setupPassword(password)
+            CreatePinScreen(
+                onPinSet = { pin ->
+                    viewModel.setupPassword(pin)
                 },
                 modifier = Modifier.fillMaxSize(),
             )
         }
 
-        // Step 2: Unlock wallet (password set but locked)
+        // Step 2: Unlock wallet (PIN set but locked)
         !isUnlocked -> {
-            UnlockWalletScreen(
-                onUnlock = { password ->
-                    viewModel.unlockWallet(password)
+            UnlockPinScreen(
+                onUnlock = { pin ->
+                    viewModel.unlockWallet(pin)
+                },
+                onUnlockBiometric = {
+                    viewModel.unlockWithBiometric()
                 },
                 onReset = {
                     viewModel.resetWallet()

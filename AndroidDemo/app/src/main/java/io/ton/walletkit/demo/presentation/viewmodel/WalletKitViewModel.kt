@@ -1662,18 +1662,32 @@ class WalletKitViewModel @Inject constructor(
     fun unlockWallet(password: String): Boolean {
         val verified = securityController.verifyPassword(password)
         if (verified) {
-            viewModelScope.launch {
-                // Wait until the initial wallet load cycle in bootstrap() has fully completed
-                // before deciding whether to open the "add wallet" sheet.
-                _state.first { it.walletsBootstrapped }
-                if (_state.value.wallets.isEmpty()) {
-                    uiCoordinator.openAddWalletSheet()
-                }
-            }
+            onUnlocked()
             return true
         }
         _state.update { it.copy(error = uiString(R.string.wallet_error_incorrect_password)) }
         return false
+    }
+
+    /**
+     * Biometric bypass — caller has already authenticated via BiometricPrompt.
+     * Mirrors iOS `UnlockPinView`'s `tryBiometryAuthentication() → appStateManager.unlock()`
+     * which flips state without revalidating the PIN.
+     */
+    fun unlockWithBiometric() {
+        securityController.unlockWithBiometric()
+        onUnlocked()
+    }
+
+    private fun onUnlocked() {
+        viewModelScope.launch {
+            // Wait until the initial wallet load cycle in bootstrap() has fully completed
+            // before deciding whether to open the "add wallet" sheet.
+            _state.first { it.walletsBootstrapped }
+            if (_state.value.wallets.isEmpty()) {
+                uiCoordinator.openAddWalletSheet()
+            }
+        }
     }
 
     fun lockWallet() {
