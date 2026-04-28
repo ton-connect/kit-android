@@ -71,7 +71,7 @@ import kotlinx.coroutines.delay
 // 600ms reveal + 200ms grace before [TonPinField] fires onComplete. The grace gives
 // the user a beat to see all four slots as solid filled dots before the screen
 // transitions away — matches the Figma "fill then unlock" feel.
-private const val RevealDurationMs = 600L
+private const val REVEAL_DURATION_MS = 600L
 
 @Composable
 fun TonPinDots(
@@ -92,7 +92,7 @@ fun TonPinDots(
         prevLength = pin.length
         if (grew && !isError && pin.isNotEmpty()) {
             revealIndex = pin.length - 1
-            delay(RevealDurationMs)
+            delay(REVEAL_DURATION_MS)
             if (revealIndex == pin.length - 1) revealIndex = -1
         } else {
             revealIndex = -1

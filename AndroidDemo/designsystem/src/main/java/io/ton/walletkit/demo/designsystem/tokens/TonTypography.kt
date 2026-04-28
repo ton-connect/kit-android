@@ -48,6 +48,7 @@ data class TonTypography(
     val title2: TonTextStyleSpec,
     val title3Bold: TonTextStyleSpec,
     val title3Semibold: TonTextStyleSpec,
+    val title3RoundedRegular: TonTextStyleSpec,
     val body: TonTextStyleSpec,
     val bodyMedium: TonTextStyleSpec,
     val bodySemibold: TonTextStyleSpec,
@@ -69,7 +70,7 @@ data class TonTypography(
     val allStyles: List<TonTextStyleSpec>
         get() = listOf(
             price64, price44, price40,
-            title1, title2, title3Bold, title3Semibold,
+            title1, title2, title3Bold, title3Semibold, title3RoundedRegular,
             body, bodyMedium, bodySemibold, bodyRoundedSemibold,
             callout, calloutMedium,
             subheadline1,
@@ -123,6 +124,7 @@ fun defaultTonTypography(): TonTypography = TonTypography(
     title2 = style("Title 2", 22f, FontWeight.SemiBold, 28f, -0.264f),
     title3Bold = style("Title 3 Bold", 20f, FontWeight.Bold, 24f, -0.45f),
     title3Semibold = style("Title 3 Semibold", 20f, FontWeight.SemiBold, 24f, -0.45f),
+    title3RoundedRegular = style("Title 3 Rounded Regular", 20f, FontWeight.Normal, 24f, -0.45f, family = roundedFontFamily),
     // Body (17)
     body = style("Body", 17f, FontWeight.Normal, 22f, -0.43f),
     bodyMedium = style("Body Medium", 17f, FontWeight.Medium, 22f, -0.43f),

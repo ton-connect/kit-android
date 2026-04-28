@@ -46,7 +46,18 @@ fun TonText(
         text = if (style.uppercase) text.uppercase() else text,
         modifier = modifier,
         color = color,
-        style = style.style,
+        style = style.style.copy(
+            // Tighten the leading distribution so glyphs sit closer to their baseline
+            // — without this, mixing 64sp + 40sp Text in a Row with [alignByBaseline]
+            // still leaves the smaller glyph visually lower because its lineHeight
+            // padding pushes it below the baseline. With Trim.Both the lineHeight
+            // pads symmetrically around the baseline and price64 + price40 sit on
+            // the same line, matching iOS's `.lastTextBaseline` HStack.
+            lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.None,
+            ),
+        ),
         textAlign = textAlign,
         maxLines = maxLines,
         overflow = overflow,

@@ -53,6 +53,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +70,9 @@ import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.demo.R
+import io.ton.walletkit.demo.designsystem.icons.TonIcon
+import io.ton.walletkit.demo.designsystem.icons.TonIconImage
+import io.ton.walletkit.demo.designsystem.theme.TonTheme
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.actions.WalletActions
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
@@ -81,17 +85,13 @@ import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.ui.components.QuickActionsCard
-import io.ton.walletkit.demo.presentation.ui.components.StatusHeader
-import io.ton.walletkit.demo.presentation.ui.components.WalletSwitcher
+import io.ton.walletkit.demo.presentation.ui.components.wallet.home.WalletHomeAssetIcon
+import io.ton.walletkit.demo.presentation.ui.components.wallet.home.WalletHomeAssetItem
+import io.ton.walletkit.demo.presentation.ui.components.wallet.home.WalletHomeContent
+import io.ton.walletkit.demo.presentation.ui.components.wallet.home.WalletHomeHeader
+import io.ton.walletkit.demo.presentation.ui.components.wallet.home.WalletHomeNFTPreview
 import io.ton.walletkit.demo.presentation.ui.dialog.SignerConfirmationDialog
 import io.ton.walletkit.demo.presentation.ui.dialog.UrlPromptDialog
-import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
-import io.ton.walletkit.demo.presentation.ui.sections.EventLogSection
-import io.ton.walletkit.demo.presentation.ui.sections.JettonsSection
-import io.ton.walletkit.demo.presentation.ui.sections.MasterchainInfoSection
-import io.ton.walletkit.demo.presentation.ui.sections.NFTsSection
-import io.ton.walletkit.demo.presentation.ui.sections.SessionsSection
-import io.ton.walletkit.demo.presentation.ui.sections.WalletsSection
 import io.ton.walletkit.demo.presentation.ui.sheet.AddWalletSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSession
 import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSheet
@@ -104,13 +104,102 @@ import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransferJettonSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.WalletDetailsSheet
-import io.ton.walletkit.demo.presentation.util.TestTags
+import io.ton.walletkit.demo.presentation.ui.sheet.WalletsBottomSheet
 import io.ton.walletkit.demo.presentation.viewmodel.NFTsListViewModel
 import io.ton.walletkit.demo.presentation.viewmodel.SwapViewModel
 
 // URL for the TonConnect E2E test runner dApp
 // This is the same dApp used by web demo-wallet E2E tests
 private const val DEFAULT_DAPP_URL = "https://allure-test-runner.vercel.app/e2e"
+
+private const val MAX_ASSETS = 3
+private const val MAX_NFTS = 5
+private const val MAX_FRACTION_DIGITS = 5
+
+private object WalletHomeTopBar {
+    fun shortAddress(address: String): String {
+        if (address.length <= 10) return address
+        return "${address.take(4)}...${address.takeLast(6)}"
+    }
+}
+
+private fun trimFraction(value: String?, maxFractionDigits: Int): String {
+    val raw = value.orEmpty().ifBlank { "0" }
+    val dotIndex = raw.indexOf('.')
+    if (dotIndex < 0) return raw
+    val fractionStart = dotIndex + 1
+    val fraction = raw.substring(fractionStart)
+    if (fraction.length <= maxFractionDigits) return raw
+    var truncated = raw.substring(0, fractionStart + maxFractionDigits)
+    while (truncated.endsWith('0')) truncated = truncated.dropLast(1)
+    if (truncated.endsWith('.')) truncated = truncated.dropLast(1)
+    return truncated
+}
+
+private fun splitBalance(rawBalance: String?, maxFractionDigits: Int): Pair<String, String> {
+    val trimmed = trimFraction(rawBalance, maxFractionDigits)
+    val dotIndex = trimmed.indexOf('.')
+    return if (dotIndex < 0) {
+        trimmed to ""
+    } else {
+        trimmed.substring(0, dotIndex) to trimmed.substring(dotIndex)
+    }
+}
+
+private fun buildAssetList(
+    rawBalance: String?,
+    jettons: List<JettonSummary>,
+    maxFractionDigits: Int,
+    maxAssets: Int,
+): List<WalletHomeAssetItem> {
+    val tonAmount = trimFraction(rawBalance, maxFractionDigits)
+    val tonItem = WalletHomeAssetItem(
+        id = "ton",
+        name = "Toncoin",
+        symbol = "TON",
+        formattedAmount = "$tonAmount TON",
+        icon = WalletHomeAssetIcon.Ton,
+    )
+    val items = mutableListOf(tonItem)
+    jettons.take(maxAssets - 1).forEach { jetton ->
+        val amount = trimFraction(jetton.balance, maxFractionDigits)
+        val icon = jetton.imageUrl?.takeIf { it.isNotBlank() }
+            ?.let { WalletHomeAssetIcon.Url(it) }
+            ?: WalletHomeAssetIcon.Placeholder(jetton.symbol)
+        items += WalletHomeAssetItem(
+            id = jetton.address,
+            name = jetton.name,
+            symbol = jetton.symbol,
+            formattedAmount = "$amount ${jetton.symbol}",
+            icon = icon,
+        )
+    }
+    return items
+}
+
+private sealed interface HomeSubScreen {
+    data object None : HomeSubScreen
+    data object AllAssets : HomeSubScreen
+    data object AllNFTs : HomeSubScreen
+}
+
+private fun nftPreviewFrom(nft: TONNFT): WalletHomeNFTPreview {
+    val info = nft.info
+    return WalletHomeNFTPreview(
+        id = nft.address.value,
+        name = info?.name ?: "Unknown NFT",
+        address = nft.address.value,
+        imageUrl = info?.image?.mediumUrl ?: info?.image?.url,
+    )
+}
+
+private fun networkLabelFor(network: TONNetwork?): String = when (network?.chainId) {
+    io.ton.walletkit.api.ChainIds.MAINNET -> "MainNet"
+    io.ton.walletkit.api.ChainIds.TESTNET -> "TestNet"
+    io.ton.walletkit.api.ChainIds.TETRA -> "Tetra"
+    null -> "MainNet"
+    else -> "TON"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -277,25 +366,96 @@ fun WalletScreen(
         )
     }
 
+    val activeIndex = state.wallets.indexOfFirst { it.address == state.activeWalletAddress }
+    val homeTitle = if (activeIndex >= 0) "Wallet ${activeIndex + 1}" else "Wallet"
+    val homeAddress = activeWallet?.address.orEmpty()
+    val homeNetworkLabel = networkLabelFor(activeWallet?.network)
+    val nftsList by (nftsViewModel?.nfts?.collectAsState() ?: remember { mutableStateOf(emptyList<TONNFT>()) })
+    val (totalInteger, totalFraction) = remember(activeWallet?.balance) {
+        splitBalance(activeWallet?.balance, MAX_FRACTION_DIGITS)
+    }
+    val assetItems = remember(activeWallet?.balance, state.jettons) {
+        buildAssetList(activeWallet?.balance, state.jettons, MAX_FRACTION_DIGITS, MAX_ASSETS)
+    }
+    val hasMoreAssets = state.jettons.size > (MAX_ASSETS - 1)
+    val nftPreviews = remember(nftsList) {
+        nftsList.take(MAX_NFTS).map(::nftPreviewFrom)
+    }
+    val hasMoreNFTs = nftsList.size > MAX_NFTS
+
+    var showWalletsSheet by remember { mutableStateOf(false) }
+    var subScreen by remember { mutableStateOf<HomeSubScreen>(HomeSubScreen.None) }
+    val walletsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Drop the wallet picker sheet automatically when we navigate to a sub-screen,
+    // and reset the sub-screen when the active wallet changes (e.g. user switched
+    // wallets while looking at all-assets — bounce them back to home for the new
+    // context, mirroring the iOS NavigationStack popping on `.id(active.id)`).
+    LaunchedEffect(state.activeWalletAddress) {
+        subScreen = HomeSubScreen.None
+    }
+    if (subScreen != HomeSubScreen.None) {
+        when (val current = subScreen) {
+            HomeSubScreen.AllAssets -> {
+                AllAssetsScreen(
+                    assets = remember(activeWallet?.balance, state.jettons) {
+                        buildAssetList(
+                            rawBalance = activeWallet?.balance,
+                            jettons = state.jettons,
+                            maxFractionDigits = MAX_FRACTION_DIGITS,
+                            // No cap — show everything on the all-assets screen.
+                            maxAssets = Int.MAX_VALUE,
+                        )
+                    },
+                    onBack = { subScreen = HomeSubScreen.None },
+                )
+            }
+            HomeSubScreen.AllNFTs -> {
+                AllNFTsScreen(
+                    nfts = remember(nftsList) { nftsList.map(::nftPreviewFrom) },
+                    onTap = { preview ->
+                        nftsList.firstOrNull { it.address.value == preview.address }
+                            ?.let { selectedNFT = it }
+                    },
+                    onBack = { subScreen = HomeSubScreen.None },
+                )
+            }
+            HomeSubScreen.None -> Unit
+            else -> Unit
+        }
+        // Drain the rest of the composable to render only the sub-screen + its modals.
+        // Falling through would also render the home Scaffold underneath.
+        return
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = stringResource(R.string.wallet_screen_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    if (activeWallet != null) {
+                        WalletHomeHeader(
+                            title = homeTitle,
+                            networkLabel = homeNetworkLabel,
+                            truncatedAddress = WalletHomeTopBar.shortAddress(homeAddress),
+                            onClick = { showWalletsSheet = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.wallet_screen_title),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 },
                 actions = {
-                    IconButton(onClick = { actions.onOpenBrowser(DEFAULT_DAPP_URL) }) {
-                        Icon(painterResource(R.drawable.ic_ton), contentDescription = "Open TonConnect Browser")
-                    }
-                    IconButton(
-                        onClick = { actions.onOpenBrowser(DEFAULT_DAPP_URL, injectTonConnect = false) },
-                        modifier = Modifier.testTag(TestTags.BROWSER_NO_INJECT_BUTTON),
-                    ) {
-                        Icon(Icons.Default.Language, contentDescription = "Open Plain Browser")
+                    IconButton(onClick = { showWalletsSheet = true }) {
+                        TonIconImage(
+                            icon = TonIcon.Settings24,
+                            size = 24.dp,
+                            tint = TonTheme.colors.textPrimary,
+                        )
                     }
                 },
             )
@@ -305,107 +465,63 @@ fun WalletScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+                .padding(padding),
         ) {
-            // Always reserve space for progress indicator to prevent content shift
+            // Always reserve space for progress indicator to prevent content shift.
             Box(modifier = Modifier.fillMaxWidth().height(4.dp)) {
                 if (state.isLoadingWallets || state.isLoadingSessions) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
             }
-            StatusHeader(state)
 
-            QuickActionsCard(
-                onHandleUrl = actions::onUrlPromptClick,
-                onAddWallet = actions::onAddWalletClick,
-                onRefresh = onRefreshAll,
-                onSwap = actions::onSwapClick,
+            WalletHomeContent(
+                totalBalanceInteger = totalInteger,
+                totalBalanceFraction = totalFraction,
+                assets = assetItems,
+                nfts = nftPreviews,
+                hasMoreAssets = hasMoreAssets,
+                hasMoreNFTs = hasMoreNFTs,
+                onDeposit = { activeWallet?.let { actions.onWalletDetails(it.address) } },
+                onSend = { activeWallet?.let { actions.onSendFromWallet(it.address) } },
+                onReceive = { activeWallet?.let { actions.onWalletDetails(it.address) } },
+                onShowAllAssets = { subScreen = HomeSubScreen.AllAssets },
+                onShowAllNFTs = { subScreen = HomeSubScreen.AllNFTs },
+                onNFTTap = { preview ->
+                    nftsList.firstOrNull { it.address.value == preview.address }?.let { selectedNFT = it }
+                },
             )
+        }
+    }
 
-            // Wallet Switcher (only show if multiple wallets exist)
-            if (state.wallets.size > 1) {
-                WalletSwitcher(
-                    wallets = state.wallets,
-                    activeWalletAddress = state.activeWalletAddress,
-                    isExpanded = state.isWalletSwitcherExpanded,
-                    onToggle = actions::onToggleWalletSwitcher,
-                    onSwitchWallet = actions::onSwitchWallet,
-                    onRemoveWallet = actions::onRemoveWallet,
-                    onRenameWallet = actions::onRenameWallet,
-                )
-            }
-
-            WalletsSection(
-                activeWallet = activeWallet,
-                totalWallets = state.wallets.size,
-                onWalletSelected = actions::onWalletDetails,
-                onSendFromWallet = actions::onSendFromWallet,
-                onStakeFromWallet = actions::onStakeFromWallet,
-                isStreamingConnected = state.isStreamingConnected,
-                onRefresh = actions::onRefresh,
-            )
-
-            // Show NFTs for the active wallet (if ViewModel is available)
-            if (nftsViewModel != null) {
-                NFTsSection(
-                    viewModel = nftsViewModel,
-                    onNFTClick = { nft -> selectedNFT = nft },
-                )
-            }
-
-            // Show Jettons for the active wallet
-            JettonsSection(
-                jettons = state.jettons,
-                isLoading = state.isLoadingJettons,
-                error = state.jettonsError,
-                canLoadMore = state.canLoadMoreJettons,
-                onJettonClick = actions::onShowJettonDetails,
-                onLoadMore = actions::onLoadMoreJettons,
-                onRefresh = actions::onRefreshJettons,
-            )
-
-            // Masterchain Info demo
-            if (activeWallet != null) {
-                MasterchainInfoSection(network = activeWallet.network)
-            }
-
-            // Transaction history - Coming Soon
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = "Transaction History",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
+    if (showWalletsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showWalletsSheet = false },
+            sheetState = walletsSheetState,
+            dragHandle = null,
+        ) {
+            WalletsBottomSheet(
+                wallets = state.wallets,
+                activeWalletAddress = state.activeWalletAddress,
+                onSelect = { wallet ->
+                    actions.onSwitchWallet(wallet.address)
+                    showWalletsSheet = false
+                },
+                onCopyAddress = { address ->
+                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                        as? android.content.ClipboardManager
+                    clipboard?.setPrimaryClip(
+                        android.content.ClipData.newPlainText("Wallet address", address),
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Coming Soon",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            SessionsSection(
-                sessions = state.sessions,
-                onDisconnect = actions::onDisconnectSession,
+                },
+                onAddWallet = {
+                    showWalletsSheet = false
+                    actions.onAddWalletClick()
+                },
+                onDelete = { wallet ->
+                    actions.onRemoveWallet(wallet.address)
+                },
+                onClose = { showWalletsSheet = false },
             )
-
-            if (state.events.isNotEmpty()) {
-                EventLogSection(events = state.events)
-            }
-
-            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 

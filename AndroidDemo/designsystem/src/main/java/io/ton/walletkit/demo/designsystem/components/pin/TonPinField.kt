@@ -45,7 +45,7 @@ import kotlinx.coroutines.delay
 // [onComplete] fires after a short grace period once the entered value reaches
 // [length] characters — long enough that the user sees all slots fill before the
 // screen transitions away.
-private const val CompleteGraceMs = 800L
+private const val COMPLETE_GRACE_MS = 800L
 
 @Composable
 fun TonPinField(
@@ -62,7 +62,7 @@ fun TonPinField(
     val currentOnComplete by rememberUpdatedState(onComplete)
     LaunchedEffect(pin) {
         if (pin.length == length) {
-            delay(CompleteGraceMs)
+            delay(COMPLETE_GRACE_MS)
             currentOnComplete(pin)
         }
     }
