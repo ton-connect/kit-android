@@ -28,8 +28,13 @@ import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.browser.TonConnectErrorBody
+import io.ton.walletkit.browser.TonConnectErrorResponse
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
+import io.ton.walletkit.engine.operations.requests.ProcessRequestBody
+import io.ton.walletkit.engine.operations.requests.ProcessRequestMessageInfo
+import io.ton.walletkit.engine.operations.requests.RejectionReasonBody
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
@@ -38,6 +43,7 @@ import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.session.TONConnectSession
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -82,34 +88,34 @@ internal class TonConnectOperations(
         try {
             ensureInitialized()
 
-            // Parse params - could be either JSONObject (for connect) or JSONArray (for other methods)
-            val params: Any = paramsJson?.let {
+            // Parse params into a JsonElement so the typed [ProcessRequestBody] DTO can carry it
+            // through. Connect uses a `{manifestUrl, items, ...}` object; other methods use an array.
+            // Falls back to empty array on malformed/missing input — matches legacy behaviour.
+            val params: kotlinx.serialization.json.JsonElement = paramsJson?.let {
                 try {
-                    // Try as JSONObject first (for connect method which has {manifestUrl, items, ...})
-                    JSONObject(it)
-                } catch (e: Exception) {
-                    try {
-                        // Fall back to JSONArray (for other methods)
-                        JSONArray(it)
-                    } catch (e2: Exception) {
-                        // Last resort - empty array
-                        JSONArray()
-                    }
+                    json.parseToJsonElement(it)
+                } catch (_: Exception) {
+                    JsonArray(emptyList())
                 }
-            } ?: JSONArray()
+            } ?: JsonArray(emptyList())
 
             val domain = resolveDomain(url)
-            val messageInfo = JSONObject().apply {
-                put("messageId", messageId)
-                put("tabId", messageId)
-                put("domain", domain)
-                walletId?.let { put("walletId", it) }
-            }
+            val messageInfo = json.toJSONObject(
+                ProcessRequestMessageInfo(
+                    messageId = messageId,
+                    tabId = messageId,
+                    domain = domain,
+                    walletId = walletId,
+                ),
+            )
 
-            val request = JSONObject()
-                .put("id", messageId)
-                .put("method", method)
-                .put("params", params)
+            val request = json.toJSONObject(
+                ProcessRequestBody(
+                    id = messageId,
+                    method = method,
+                    params = params,
+                ),
+            )
 
             val argsArray = JSONArray()
                 .put(messageInfo)
@@ -119,11 +125,13 @@ internal class TonConnectOperations(
             responseCallback(result)
         } catch (e: Exception) {
             Logger.e(TAG, "Failed to process internal browser request", e)
-            val errorResponse = JSONObject().put(
-                ResponseConstants.KEY_ERROR,
-                JSONObject()
-                    .put(ResponseConstants.KEY_MESSAGE, e.message ?: ERROR_FAILED_PROCESS_REQUEST)
-                    .put(ResponseConstants.KEY_CODE, 500),
+            val errorResponse = json.toJSONObject(
+                TonConnectErrorResponse(
+                    error = TonConnectErrorBody(
+                        message = e.message ?: ERROR_FAILED_PROCESS_REQUEST,
+                        code = 500,
+                    ),
+                ),
             )
             responseCallback(errorResponse)
         }
@@ -178,8 +186,8 @@ internal class TonConnectOperations(
 
         // Send array [event, reason] - walletkit expects: rejectTransactionRequest(event, reason?)
         // reason can be string or {code, message} object
-        val reasonValue = if (errorCode != null) {
-            JSONObject().put("code", errorCode).put("message", reason ?: "")
+        val reasonValue: Any = if (errorCode != null) {
+            json.toJSONObject(RejectionReasonBody(code = errorCode, message = reason ?: ""))
         } else {
             reason ?: JSONObject.NULL
         }

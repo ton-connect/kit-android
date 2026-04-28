@@ -28,6 +28,7 @@ import io.ton.walletkit.api.generated.TONTonStakersChainConfig
 import io.ton.walletkit.api.generated.TONUnstakeMode
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
 
 /**
  * Internal bridge request models for staking operations.
@@ -92,4 +93,16 @@ internal data class GetSupportedUnstakeModesRequest(
 @Serializable
 internal data class HasStakingProviderRequest(
     val providerId: String,
+)
+
+/**
+ * Payload for `registerKotlinStakingProvider` — pairs the provider id with the
+ * pre-encoded `[TONUnstakeMode, ...]` JSON array the bridge passes through to
+ * the JS side as-is. Wire shape:
+ * `{ "providerId": "...", "supportedUnstakeModes": [ ... ] }`.
+ */
+@Serializable
+internal data class RegisterKotlinStakingProviderRequest(
+    val providerId: String,
+    val supportedUnstakeModes: JsonArray,
 )

@@ -62,7 +62,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.json.JSONArray
+import kotlinx.serialization.json.encodeToJsonElement
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -283,12 +283,12 @@ internal class WebViewManager(
             mapOf<String, suspend (adapter: TONWalletAdapter, params: JSONObject) -> String>(
                 "getPublicKey" to { adapter, _ -> adapter.publicKey().value },
                 "getNetwork" to { adapter, _ ->
-                    JSONObject().apply { put("chainId", adapter.network().chainId) }.toString()
+                    json.encodeToString(TONNetwork.serializer(), adapter.network())
                 },
                 "getAddress" to { adapter, _ -> adapter.address(adapter.network().isTestnet).value },
                 "getWalletId" to { adapter, _ -> adapter.identifier() },
                 "getSupportedFeatures" to { adapter, _ ->
-                    adapter.supportedFeatures()?.let { featuresToJson(it).toString() } ?: "null"
+                    adapter.supportedFeatures()?.let { featuresToJsonString(it) } ?: "null"
                 },
             )
 
@@ -596,44 +596,59 @@ internal class WebViewManager(
             }
         }
 
-        private fun featuresToJson(features: List<TONWalletKitConfiguration.Feature>): JSONArray {
-            return JSONArray().apply {
-                for (feature in features) {
-                    when (feature) {
-                        is TONWalletKitConfiguration.SendTransactionFeature -> {
-                            put(
-                                JSONObject().apply {
-                                    put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SEND_TRANSACTION)
-                                    feature.maxMessages?.let { put(JsonConstants.KEY_MAX_MESSAGES, it) }
-                                    feature.extraCurrencySupported?.let { put("extraCurrencySupported", it) }
+        /**
+         * Serialise the adapter's supported-feature list to its protocol JSON-array shape.
+         * Reuses the shared [SendTransactionFeatureDto] / [SignDataFeatureDto] DTOs that
+         * [io.ton.walletkit.browser.TonConnectInjector] and [InitializationManager] also
+         * use. Encoded with `explicitNulls = false` so optional `maxMessages` /
+         * `extraCurrencySupported` keys are omitted (not emitted as JSON `null`) — that
+         * preserves the byte-identical wire format the previous hand-rolled
+         * `JSONArray`/`JSONObject` builder produced.
+         */
+        private fun featuresToJsonString(features: List<TONWalletKitConfiguration.Feature>): String {
+            val elements = mutableListOf<kotlinx.serialization.json.JsonElement>()
+            for (feature in features) {
+                when (feature) {
+                    is TONWalletKitConfiguration.SendTransactionFeature -> elements.add(
+                        featuresJson.encodeToJsonElement(
+                            SendTransactionFeatureDto.serializer(),
+                            SendTransactionFeatureDto(
+                                maxMessages = feature.maxMessages,
+                                extraCurrencySupported = feature.extraCurrencySupported,
+                            ),
+                        ),
+                    )
+                    is TONWalletKitConfiguration.SignDataFeature -> elements.add(
+                        featuresJson.encodeToJsonElement(
+                            SignDataFeatureDto.serializer(),
+                            SignDataFeatureDto(
+                                types = feature.types.map {
+                                    when (it) {
+                                        SignDataType.TEXT -> JsonConstants.VALUE_SIGN_DATA_TEXT
+                                        SignDataType.BINARY -> JsonConstants.VALUE_SIGN_DATA_BINARY
+                                        SignDataType.CELL -> JsonConstants.VALUE_SIGN_DATA_CELL
+                                    }
                                 },
-                            )
-                        }
-                        is TONWalletKitConfiguration.SignDataFeature -> {
-                            put(
-                                JSONObject().apply {
-                                    put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SIGN_DATA)
-                                    put(
-                                        JsonConstants.KEY_TYPES,
-                                        JSONArray().apply {
-                                            for (type in feature.types) {
-                                                put(
-                                                    when (type) {
-                                                        SignDataType.TEXT -> JsonConstants.VALUE_SIGN_DATA_TEXT
-                                                        SignDataType.BINARY -> JsonConstants.VALUE_SIGN_DATA_BINARY
-                                                        SignDataType.CELL -> JsonConstants.VALUE_SIGN_DATA_CELL
-                                                    },
-                                                )
-                                            }
-                                        },
-                                    )
-                                },
-                            )
-                        }
-                    }
+                            ),
+                        ),
+                    )
                 }
             }
+            return featuresJson.encodeToString(
+                kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.json.JsonElement.serializer()),
+                elements,
+            )
         }
+    }
+
+    /**
+     * Dedicated [Json] for feature-list encoding. Strips `null` optional keys
+     * (`explicitNulls = false`) so the produced JSON matches the format the
+     * legacy hand-rolled `JSONObject().apply { ... }` builder produced.
+     */
+    private val featuresJson = Json {
+        encodeDefaults = true
+        explicitNulls = false
     }
 
     private companion object {

@@ -43,9 +43,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+import kotlinx.serialization.json.encodeToJsonElement
 import org.json.JSONObject
 
 /**
@@ -190,23 +188,20 @@ internal class InitializationManager(
                 features = buildList {
                     add(JsonPrimitive(JsonConstants.FEATURE_SEND_TRANSACTION))
                     add(
-                        buildJsonObject {
-                            put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SEND_TRANSACTION)
-                            put(JsonConstants.KEY_MAX_MESSAGES, resolveMaxMessages(configuration, featuresToUse))
-                        },
+                        json.encodeToJsonElement(
+                            SendTransactionFeatureDto.serializer(),
+                            SendTransactionFeatureDto(
+                                maxMessages = resolveMaxMessages(configuration, featuresToUse),
+                            ),
+                        ),
                     )
                     add(
-                        buildJsonObject {
-                            put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SIGN_DATA)
-                            put(
-                                JsonConstants.KEY_TYPES,
-                                buildJsonArray {
-                                    for (type in resolveSignDataTypes(configuration, featuresToUse)) {
-                                        add(JsonPrimitive(type))
-                                    }
-                                },
-                            )
-                        },
+                        json.encodeToJsonElement(
+                            SignDataFeatureDto.serializer(),
+                            SignDataFeatureDto(
+                                types = resolveSignDataTypes(configuration, featuresToUse),
+                            ),
+                        ),
                     )
                 },
             ),

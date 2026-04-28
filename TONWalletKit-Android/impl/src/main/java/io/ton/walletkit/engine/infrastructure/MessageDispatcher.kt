@@ -292,8 +292,7 @@ internal class MessageDispatcher(
         val idLiteral = JSONObject.quote(id)
         val resultLiteral = if (result != null) JSONObject.quote(result) else "null"
         val errorLiteral = if (errorMessage != null) {
-            val errorObj = JSONObject().put(ResponseConstants.KEY_MESSAGE, errorMessage)
-            JSONObject.quote(errorObj.toString())
+            JSONObject.quote(json.encodeToString(BridgeErrorPayload.serializer(), BridgeErrorPayload(message = errorMessage)))
         } else {
             "null"
         }
@@ -430,14 +429,14 @@ internal class MessageDispatcher(
         val callId = malformedJson?.let { tryExtractCallId(it) }
 
         if (callId != null) {
-            // Create error response for this specific call
-            val errorResponse = JSONObject()
-                .put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_RESPONSE)
-                .put(ResponseConstants.KEY_ID, callId)
-                .put(ResponseConstants.KEY_ERROR, JSONObject().put(ResponseConstants.KEY_MESSAGE, exception.message ?: "Bridge error"))
-
-            // Dispatch the error response to fail the specific call
-            rpcClient.handleResponse(callId, errorResponse)
+            // Synthesise the same response envelope JS would send, then feed it through
+            // [rpcClient.handleResponse] so the pending deferred for this call fails.
+            val envelope = BridgeResponseEnvelope(
+                kind = ResponseConstants.VALUE_KIND_RESPONSE,
+                id = callId,
+                error = BridgeErrorPayload(message = exception.message ?: "Bridge error"),
+            )
+            rpcClient.handleResponse(callId, json.toJSONObject(envelope))
         } else {
             Logger.w(TAG, "Could not extract call ID from malformed JSON, cannot fail specific call")
         }

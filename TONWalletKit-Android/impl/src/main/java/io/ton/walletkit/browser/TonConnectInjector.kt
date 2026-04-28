@@ -36,6 +36,9 @@ import io.ton.walletkit.bridge.BuildConfig
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.TONWalletKit
 import io.ton.walletkit.engine.WalletKitEngine
+import io.ton.walletkit.engine.infrastructure.SendTransactionFeatureDto
+import io.ton.walletkit.engine.infrastructure.SignDataFeatureDto
+import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.BrowserConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
@@ -50,9 +53,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import org.json.JSONArray
 import org.json.JSONObject
 import java.lang.ref.WeakReference
@@ -274,9 +274,7 @@ internal class TonConnectInjector(
                         try {
                             engine?.callBridgeMethod(
                                 method = BridgeMethodConstants.METHOD_EMIT_BROWSER_PAGE_STARTED,
-                                params = JSONObject().apply {
-                                    put(ResponseConstants.KEY_URL, it)
-                                },
+                                params = Json.toJSONObject(BrowserUrlEvent(url = it)),
                             )
                         } catch (e: Exception) {
                             Logger.w(TAG, "Failed to emit page started event", e)
@@ -292,9 +290,7 @@ internal class TonConnectInjector(
                         try {
                             engine?.callBridgeMethod(
                                 method = BridgeMethodConstants.METHOD_EMIT_BROWSER_PAGE_FINISHED,
-                                params = JSONObject().apply {
-                                    put(ResponseConstants.KEY_URL, it)
-                                },
+                                params = Json.toJSONObject(BrowserUrlEvent(url = it)),
                             )
                         } catch (e: Exception) {
                             Logger.w(TAG, "Failed to emit page finished event", e)
@@ -316,9 +312,7 @@ internal class TonConnectInjector(
                     try {
                         engine?.callBridgeMethod(
                             method = BridgeMethodConstants.METHOD_EMIT_BROWSER_ERROR,
-                            params = JSONObject().apply {
-                                put(ResponseConstants.KEY_MESSAGE, errorMessage)
-                            },
+                            params = Json.toJSONObject(BrowserErrorEvent(message = errorMessage)),
                         )
                     } catch (e: Exception) {
                         Logger.w(TAG, "Failed to emit error event", e)
@@ -414,14 +408,16 @@ internal class TonConnectInjector(
             event
         }
 
-        // Create the message structure for the event
-        val eventMessage = JSONObject().apply {
-            put(BrowserConstants.KEY_TYPE, BrowserConstants.MESSAGE_TYPE_BRIDGE_EVENT)
-            put(BrowserConstants.KEY_EVENT, actualEvent)
-        }
+        // Create the message structure for the event. The inner [actualEvent] is parsed
+        // back from its JSONObject form into a kotlinx.serialization JsonElement so the
+        // typed [TonConnectEventMessage] envelope can carry it through.
+        val eventMessage = TonConnectEventMessage(
+            type = BrowserConstants.MESSAGE_TYPE_BRIDGE_EVENT,
+            event = Json.parseToJsonElement(actualEvent.toString()),
+        )
 
         // Store event in BridgeInterface - available to ALL frames via @JavascriptInterface
-        bridgeInterface.storeEvent(eventMessage.toString())
+        bridgeInterface.storeEvent(Json.encodeToString(eventMessage))
 
         // Notify the main frame via JavaScript injection - main frame will broadcast to iframes via postMessage
         webView.post {
@@ -498,15 +494,14 @@ internal class TonConnectInjector(
         if (engine == null) {
             Logger.e(TAG, "WalletKit engine not available!")
             // Send error response back to dApp
-            val errorResponse = JSONObject().apply {
-                put(
-                    ResponseConstants.KEY_ERROR,
-                    JSONObject().apply {
-                        put(ResponseConstants.KEY_MESSAGE, ERROR_WALLET_ENGINE_NOT_INITIALIZED)
-                        put(ResponseConstants.KEY_CODE, ERROR_CODE_INTERNAL)
-                    },
-                )
-            }
+            val errorResponse = Json.toJSONObject(
+                TonConnectErrorResponse(
+                    error = TonConnectErrorBody(
+                        message = ERROR_WALLET_ENGINE_NOT_INITIALIZED,
+                        code = ERROR_CODE_INTERNAL,
+                    ),
+                ),
+            )
             sendResponse(messageId, errorResponse)
             return
         }
@@ -516,11 +511,13 @@ internal class TonConnectInjector(
             try {
                 engine.callBridgeMethod(
                     method = BridgeMethodConstants.METHOD_EMIT_BROWSER_BRIDGE_REQUEST,
-                    params = JSONObject().apply {
-                        put(BrowserConstants.KEY_MESSAGE_ID, messageId)
-                        put(BrowserConstants.KEY_METHOD, method)
-                        put(BrowserConstants.KEY_REQUEST, json.toString())
-                    },
+                    params = Json.toJSONObject(
+                        BrowserBridgeRequestEvent(
+                            messageId = messageId,
+                            method = method,
+                            request = json.toString(),
+                        ),
+                    ),
                 )
             } catch (e: Exception) {
                 Logger.w(TAG, "Failed to emit browser bridge request event", e)
@@ -561,15 +558,14 @@ internal class TonConnectInjector(
             } catch (e: Exception) {
                 Logger.e(TAG, "Failed to forward request to WalletKit engine", e)
                 // Send error response back to dApp
-                val errorResponse = JSONObject().apply {
-                    put(
-                        ResponseConstants.KEY_ERROR,
-                        JSONObject().apply {
-                            put(ResponseConstants.KEY_MESSAGE, e.message ?: ERROR_FAILED_PROCESS_REQUEST)
-                            put(ResponseConstants.KEY_CODE, ERROR_CODE_INTERNAL)
-                        },
-                    )
-                }
+                val errorResponse = Json.toJSONObject(
+                    TonConnectErrorResponse(
+                        error = TonConnectErrorBody(
+                            message = e.message ?: ERROR_FAILED_PROCESS_REQUEST,
+                            code = ERROR_CODE_INTERNAL,
+                        ),
+                    ),
+                )
                 sendResponse(messageId, errorResponse)
             }
         }
@@ -582,15 +578,15 @@ internal class TonConnectInjector(
     }
 
     private fun deliverResponse(pending: PendingRequest, response: JSONObject) {
-        val responseJson = JSONObject().apply {
-            put(BrowserConstants.KEY_TYPE, BrowserConstants.MESSAGE_TYPE_BRIDGE_RESPONSE)
-            put(BrowserConstants.KEY_MESSAGE_ID, pending.messageId)
-            put(BrowserConstants.KEY_SUCCESS, true)
-            put(BrowserConstants.KEY_PAYLOAD, response)
-        }
+        val envelope = TonConnectResponseEnvelope(
+            type = BrowserConstants.MESSAGE_TYPE_BRIDGE_RESPONSE,
+            messageId = pending.messageId,
+            success = true,
+            payload = Json.parseToJsonElement(response.toString()),
+        )
 
         // Store response in BridgeInterface - available to ALL frames via @JavascriptInterface
-        bridgeInterface.storeResponse(pending.messageId, responseJson.toString())
+        bridgeInterface.storeResponse(pending.messageId, Json.encodeToString(envelope))
 
         // Notify the main frame via JavaScript injection - main frame will broadcast to iframes via postMessage
         val safeMessageId = Json.encodeToString(pending.messageId)
@@ -662,6 +658,14 @@ internal class TonConnectInjector(
         return Json.encodeToString(options)
     }
 
+    /**
+     * Builds the protocol-shaped feature list:
+     *   • `SendTransactionFeature` → `{ name, maxMessages?, extraCurrencySupported? }`
+     *     plus a legacy `"SendTransaction"` string the protocol still requires.
+     *   • `SignDataFeature`        → `{ name, types: ["text", "binary", ...] }`.
+     * Each entry is encoded via its own DTO and re-parsed into [JsonElement] so the
+     * outer list keeps mixed shapes (object + bare string).
+     */
     private fun buildFeaturesList(features: List<TONWalletKitConfiguration.Feature>?): List<JsonElement> {
         if (features.isNullOrEmpty()) return listOf(JsonPrimitive("SendTransaction"))
 
@@ -670,27 +674,22 @@ internal class TonConnectInjector(
             when (feature) {
                 is TONWalletKitConfiguration.SendTransactionFeature -> {
                     result.add(
-                        buildJsonObject {
-                            put("name", "SendTransaction")
-                            feature.maxMessages?.let { put("maxMessages", it) }
-                            feature.extraCurrencySupported?.let { put("extraCurrencySupported", it) }
-                        },
+                        Json.encodeToJsonElement(
+                            SendTransactionFeatureDto.serializer(),
+                            SendTransactionFeatureDto(
+                                maxMessages = feature.maxMessages,
+                                extraCurrencySupported = feature.extraCurrencySupported,
+                            ),
+                        ),
                     )
                     result.add(JsonPrimitive("SendTransaction")) // legacy string required by TonConnect protocol
                 }
                 is TONWalletKitConfiguration.SignDataFeature -> {
                     result.add(
-                        buildJsonObject {
-                            put("name", "SignData")
-                            put(
-                                "types",
-                                buildJsonArray {
-                                    for (type in feature.types) {
-                                        add(JsonPrimitive(type.name.lowercase()))
-                                    }
-                                },
-                            )
-                        },
+                        Json.encodeToJsonElement(
+                            SignDataFeatureDto.serializer(),
+                            SignDataFeatureDto(types = feature.types.map { it.name.lowercase() }),
+                        ),
                     )
                 }
             }

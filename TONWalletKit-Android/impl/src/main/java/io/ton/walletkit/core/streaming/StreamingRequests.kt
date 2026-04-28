@@ -19,62 +19,55 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.engine.operations.requests
+package io.ton.walletkit.core.streaming
 
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.generated.TONSignatureDomain
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 /**
- * Internal bridge request models for wallet operations.
- * These DTOs represent the exact JSON structure sent to the JavaScript bridge.
+ * Internal bridge request models for streaming operations. These DTOs replace the
+ * hand-rolled `JSONObject().apply { put(...) }` payloads that previously served the
+ * register / connect / watch / unwatch RPCs. Encode through `json.toJSONObject(...)`
+ * at the bridge boundary; the wire format is identical to what the manual builders
+ * produced.
  *
  * @suppress Internal bridge communication only.
  */
 
 @Serializable
-internal data class AddressRequest(
+internal data class StreamingNetworkRequest(val network: TONNetwork)
+
+@Serializable
+internal data class StreamingProviderRequest(val providerId: String)
+
+@Serializable
+internal data class StreamingProviderNetworkRequest(
+    val providerId: String,
+    val network: TONNetwork,
+)
+
+@Serializable
+internal data class StreamingWatchRequest(
+    val network: TONNetwork,
     val address: String,
 )
 
 @Serializable
-internal data class WalletIdRequest(
-    val walletId: String,
+internal data class StreamingWatchTypesRequest(
+    val network: TONNetwork,
+    val address: String,
+    val types: List<String>,
 )
 
 @Serializable
-internal data class CreateSignerFromMnemonicRequest(
-    val mnemonic: List<String>,
-    val mnemonicType: String,
-)
-
-@Serializable
-internal data class CreateSignerFromSecretKeyRequest(
-    val secretKey: String,
-)
-
-@Serializable
-internal data class CreateSignerFromCustomRequest(
-    val signerId: String,
-    val publicKey: String,
-)
+internal data class StreamingSubscriptionRequest(val subscriptionId: String)
 
 /**
- * `createV5R1Adapter` / `createV4R2Adapter` request shape. [TONSignatureDomain] is
- * already `@Serializable` with a custom serializer that emits the same
- * `{type:"l2", globalId:N}` / `{type:"empty"}` shape the old hand-rolled
- * `signatureDomainToJson` helper produced, so we route it straight through.
+ * Wraps a generated streaming-provider config (TonCenter / TonApi / etc.) for the
+ * `startStreamingProvider` / `startWebViewStreamingProvider` core entry points.
+ * The config is passed pre-encoded as [JsonElement] so this DTO doesn't need to
+ * know every concrete config subclass.
  */
 @Serializable
-internal data class CreateAdapterRequest(
-    val signerId: String,
-    val network: TONNetwork,
-    val workchain: Int,
-    val walletId: Long,
-    val domain: TONSignatureDomain? = null,
-)
-
-@Serializable
-internal data class AddWalletRequest(
-    val adapterId: String,
-)
+internal data class StartStreamingProviderRequest(val config: JsonElement)

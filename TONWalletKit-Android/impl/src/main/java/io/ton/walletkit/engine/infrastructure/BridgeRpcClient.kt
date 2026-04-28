@@ -30,6 +30,9 @@ import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -139,9 +142,11 @@ internal class BridgeRpcClient(
         val payload =
             when (result) {
                 is JSONObject -> result
-                is JSONArray -> JSONObject().put(ResponseConstants.KEY_ITEMS, result)
+                is JSONArray -> Json.toJSONObject(
+                    BridgeItemsWrap(items = Json.parseToJsonElement(result.toString())),
+                )
                 null -> JSONObject()
-                else -> JSONObject().put(ResponseConstants.KEY_VALUE, result)
+                else -> Json.toJSONObject(BridgeValueWrap(value = scalarToJsonElement(result)))
             }
         deferred.complete(BridgeResponse(payload))
     }
@@ -165,6 +170,26 @@ internal class BridgeRpcClient(
     }
 
     fun isReady(): Boolean = ready.isCompleted
+
+    /**
+     * Convert a single scalar `result` value (String / Boolean / Number / null) returned
+     * by `JSONObject.opt(...)` into a [JsonElement] so it can be wrapped via
+     * [BridgeValueWrap] and re-encoded as `{ "value": ... }`. Preserves the original
+     * scalar type — strings stay strings, numbers stay numbers, booleans stay booleans.
+     */
+    private fun scalarToJsonElement(value: Any): kotlinx.serialization.json.JsonElement {
+        return when (value) {
+            JSONObject.NULL -> JsonNull
+            is Boolean -> JsonPrimitive(value)
+            is Int -> JsonPrimitive(value)
+            is Long -> JsonPrimitive(value)
+            is Double -> JsonPrimitive(value)
+            is Float -> JsonPrimitive(value)
+            is Number -> JsonPrimitive(value)
+            is String -> JsonPrimitive(value)
+            else -> JsonPrimitive(value.toString())
+        }
+    }
 
     private data class BridgeResponse(
         val result: JSONObject,

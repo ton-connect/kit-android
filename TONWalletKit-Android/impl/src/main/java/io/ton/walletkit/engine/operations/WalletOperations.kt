@@ -29,6 +29,11 @@ import io.ton.walletkit.engine.adapter.BridgeWalletAdapter
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.engine.operations.requests.AddWalletRequest
+import io.ton.walletkit.engine.operations.requests.CreateAdapterRequest
+import io.ton.walletkit.engine.operations.requests.CreateSignerFromCustomRequest
+import io.ton.walletkit.engine.operations.requests.CreateSignerFromMnemonicRequest
+import io.ton.walletkit.engine.operations.requests.CreateSignerFromSecretKeyRequest
 import io.ton.walletkit.engine.operations.requests.WalletIdRequest
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
@@ -41,7 +46,6 @@ import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import kotlinx.serialization.json.Json
 import org.json.JSONArray
-import org.json.JSONObject
 
 /**
  * Wallet lifecycle and account state operations.
@@ -66,11 +70,8 @@ internal class WalletOperations(
     ): WalletSignerInfo {
         ensureInitialized()
 
-        val request = JSONObject().apply {
-            put("mnemonic", JSONArray(mnemonic))
-            put("mnemonicType", mnemonicType)
-        }
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER_FROM_MNEMONIC, request)
+        val request = CreateSignerFromMnemonicRequest(mnemonic = mnemonic, mnemonicType = mnemonicType)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER_FROM_MNEMONIC, json.toJSONObject(request))
         val signerId = result.optString("signerId").takeIf { it.isNotEmpty() }
             ?: throw WalletKitBridgeException("JS did not return signerId")
         val publicKeyHex = WalletKitUtils.stripHexPrefix(result.optString("publicKey", ""))
@@ -83,25 +84,13 @@ internal class WalletOperations(
     ): WalletSignerInfo {
         ensureInitialized()
 
-        val request = JSONObject().apply {
-            put("secretKey", secretKeyHex)
-        }
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER_FROM_PRIVATE_KEY, request)
+        val request = CreateSignerFromSecretKeyRequest(secretKey = secretKeyHex)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER_FROM_PRIVATE_KEY, json.toJSONObject(request))
         val signerId = result.optString("signerId").takeIf { it.isNotEmpty() }
             ?: throw WalletKitBridgeException("JS did not return signerId")
         val publicKeyHex = WalletKitUtils.stripHexPrefix(result.optString("publicKey", ""))
 
         return WalletSignerInfo(signerId = signerId, publicKey = TONHex(publicKeyHex))
-    }
-
-    private fun signatureDomainToJson(domain: TONSignatureDomain): JSONObject = when (domain) {
-        is TONSignatureDomain.L2 -> JSONObject().apply {
-            put("type", "l2")
-            put("globalId", domain.globalId)
-        }
-        is TONSignatureDomain.Empty -> JSONObject().apply {
-            put("type", "empty")
-        }
     }
 
     suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo {
@@ -110,11 +99,8 @@ internal class WalletOperations(
         val signerId = signerManager.registerSigner(signer)
         val publicKeyHex = WalletKitUtils.ensureHexPrefix(signer.publicKey().value)
 
-        val request = JSONObject().apply {
-            put("signerId", signerId)
-            put("publicKey", publicKeyHex)
-        }
-        rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER_FROM_CUSTOM, request)
+        val request = CreateSignerFromCustomRequest(signerId = signerId, publicKey = publicKeyHex)
+        rpcClient.call(BridgeMethodConstants.METHOD_CREATE_SIGNER_FROM_CUSTOM, json.toJSONObject(request))
 
         return WalletSignerInfo(signerId = signerId, publicKey = signer.publicKey())
     }
@@ -138,14 +124,14 @@ internal class WalletOperations(
             else -> throw WalletKitBridgeException("Unsupported wallet version: $version")
         }
 
-        val request = JSONObject().apply {
-            put("signerId", signerId)
-            put("network", JSONObject().apply { put("chainId", resolvedNetwork.chainId) })
-            put("workchain", workchain)
-            put("walletId", walletId)
-            domain?.let { put("domain", signatureDomainToJson(it)) }
-        }
-        val result = rpcClient.call(method, request)
+        val request = CreateAdapterRequest(
+            signerId = signerId,
+            network = resolvedNetwork,
+            workchain = workchain,
+            walletId = walletId,
+            domain = domain,
+        )
+        val result = rpcClient.call(method, json.toJSONObject(request))
         val adapterId = result.optString("adapterId").takeIf { it.isNotEmpty() }
             ?: throw WalletKitBridgeException("JS did not return adapterId")
         val address = result.optString("address", "")
@@ -162,10 +148,8 @@ internal class WalletOperations(
     suspend fun addWallet(adapter: WalletAdapterInfo): WalletAccount {
         ensureInitialized()
 
-        val request = JSONObject().apply {
-            put("adapterId", adapter.adapterId)
-        }
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, request)
+        val request = AddWalletRequest(adapterId = adapter.adapterId)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, json.toJSONObject(request))
 
         val walletId = result.optString("walletId").takeIf { it.isNotEmpty() }
             ?: throw WalletKitBridgeException(ERROR_NEW_WALLET_NOT_FOUND)
@@ -195,11 +179,8 @@ internal class WalletOperations(
 
         val adapterId = adapterManager.registerAdapter(adapter)
 
-        val request = JSONObject().apply {
-            put("adapterId", adapterId)
-        }
-
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, request)
+        val request = AddWalletRequest(adapterId = adapterId)
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_ADD_WALLET, json.toJSONObject(request))
 
         val returnedWalletId = result.optString("walletId").takeIf { it.isNotEmpty() }
             ?: throw WalletKitBridgeException(ERROR_NEW_WALLET_NOT_FOUND)
@@ -249,10 +230,8 @@ internal class WalletOperations(
     }
 
     suspend fun getWalletAddress(walletId: String): String {
-        val request = JSONObject().apply {
-            put("walletId", walletId)
-        }
-        val result = rpcClient.call("getWalletAddress", request)
+        val request = WalletIdRequest(walletId = walletId)
+        val result = rpcClient.call("getWalletAddress", json.toJSONObject(request))
         return result.optString(ResponseConstants.KEY_VALUE, "")
     }
 
