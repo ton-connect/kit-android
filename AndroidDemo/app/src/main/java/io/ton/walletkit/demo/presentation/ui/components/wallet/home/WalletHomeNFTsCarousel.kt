@@ -27,7 +27,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -57,11 +62,8 @@ data class WalletHomeNFTPreview(
     val imageUrl: String?,
 )
 
-private val CardSize = 168.dp
+private val CarouselCardWidth = 164.dp
 
-// Horizontal carousel of square NFT cards. Cards are 168x168 with rounded-16 corners
-// (continuous via SmoothCornerShape — matches iOS .continuous), title (bodySemibold)
-// + truncated #suffix address below.
 @Composable
 fun WalletHomeNFTsCarousel(
     nfts: List<WalletHomeNFTPreview>,
@@ -75,57 +77,85 @@ fun WalletHomeNFTsCarousel(
         contentPadding = contentPadding,
     ) {
         items(items = nfts, key = { it.id }) { nft ->
-            Column(
-                modifier = Modifier
-                    .width(CardSize)
-                    .clickable { onTap(nft) },
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(CardSize)
-                        .clip(SmoothCornerShape(16.dp))
-                        .background(TonTheme.colors.bgFillTertiary),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    val imageUrl = nft.imageUrl
-                    if (!imageUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(imageUrl)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = nft.name,
-                            modifier = Modifier.size(CardSize),
-                            contentScale = ContentScale.Crop,
-                        )
-                    } else {
-                        TonIconImage(
-                            icon = TonIcon.Doc,
-                            size = 28.dp,
-                            tint = TonTheme.colors.textTertiary,
-                        )
-                    }
-                }
+            NFTCard(
+                nft = nft,
+                onClick = { onTap(nft) },
+                modifier = Modifier.width(CarouselCardWidth),
+            )
+        }
+    }
+}
 
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    TonText(
-                        text = nft.name,
-                        style = TonTheme.typography.bodySemibold,
-                        color = TonTheme.colors.textPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    TonText(
-                        text = shortNftAddress(nft.address),
-                        style = TonTheme.typography.subheadline2,
-                        color = TonTheme.colors.textSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+@Composable
+internal fun NFTCard(
+    nft: WalletHomeNFTPreview,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(SmoothCornerShape(16.dp))
+            .background(TonTheme.colors.bgSecondary)
+            .clickable(onClick = onClick),
+    ) {
+        // Image area — aspectRatio 164/140 ≈ 1.171 keeps Figma's proportions on any
+        // card width. No clip needed: the outer SmoothCornerShape already rounds the
+        // top corners; the image bottom is a hard square inside the card, exactly per
+        // the Figma `border-radius: 16px 16px 0px 0px`.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(164f / 140f)
+                .background(TonTheme.colors.bgFillTertiary),
+            contentAlignment = Alignment.Center,
+        ) {
+            val imageUrl = nft.imageUrl
+            if (!imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(imageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = nft.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                TonIconImage(
+                    icon = TonIcon.Doc,
+                    size = 28.dp,
+                    tint = TonTheme.colors.textTertiary,
+                )
             }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            TonText(
+                text = nft.name,
+                style = TonTheme.typography.bodySemibold,
+                color = TonTheme.colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            TonText(
+                text = shortNftAddress(nft.address),
+                style = TonTheme.typography.subheadline2,
+                color = TonTheme.colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

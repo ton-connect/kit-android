@@ -95,14 +95,12 @@ fun WalletHomeContent(
                 .padding(horizontal = 16.dp),
         )
 
-        if (nfts.isNotEmpty()) {
-            NFTsSection(
-                nfts = nfts,
-                hasMore = hasMoreNFTs,
-                onShowAll = onShowAllNFTs,
-                onNFTTap = onNFTTap,
-            )
-        }
+        NFTsSection(
+            nfts = nfts,
+            hasMore = hasMoreNFTs,
+            onShowAll = onShowAllNFTs,
+            onNFTTap = onNFTTap,
+        )
 
         Box(modifier = Modifier.padding(bottom = 24.dp))
     }
@@ -144,14 +142,16 @@ private fun NFTsSection(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
         )
-        // iOS extends the carousel edge-to-edge with `padding(.horizontal, -16)
-        // .padding(.leading, 16)` — Compose equivalent: zero horizontal padding here,
-        // then [LazyRow.contentPadding] gives the leading 16dp inset for the first card.
-        WalletHomeNFTsCarousel(
-            nfts = nfts,
-            onTap = onNFTTap,
-            contentPadding = PaddingValues(horizontal = 16.dp),
-        )
+        if (nfts.isNotEmpty()) {
+            // iOS extends the carousel edge-to-edge with `padding(.horizontal, -16)
+            // .padding(.leading, 16)` — Compose equivalent: zero horizontal padding here,
+            // then [LazyRow.contentPadding] gives the leading 16dp inset for the first card.
+            WalletHomeNFTsCarousel(
+                nfts = nfts,
+                onTap = onNFTTap,
+                contentPadding = PaddingValues(horizontal = 16.dp),
+            )
+        }
     }
 }
 

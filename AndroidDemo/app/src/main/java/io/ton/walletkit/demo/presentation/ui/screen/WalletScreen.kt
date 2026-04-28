@@ -371,6 +371,10 @@ fun WalletScreen(
     val homeAddress = activeWallet?.address.orEmpty()
     val homeNetworkLabel = networkLabelFor(activeWallet?.network)
     val nftsList by (nftsViewModel?.nfts?.collectAsState() ?: remember { mutableStateOf(emptyList<TONNFT>()) })
+
+    LaunchedEffect(nftsViewModel) {
+        nftsViewModel?.loadNFTs()
+    }
     val (totalInteger, totalFraction) = remember(activeWallet?.balance) {
         splitBalance(activeWallet?.balance, MAX_FRACTION_DIGITS)
     }
