@@ -53,6 +53,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import org.json.JSONObject
 
 /**
@@ -330,20 +331,13 @@ internal class MessageDispatcher(
             }
         }
 
-        val data = JSONObject()
-        val keys = payload.keys()
-        while (keys.hasNext()) {
-            val key = keys.next()
-            if (key == ResponseConstants.KEY_KIND) continue
-            if (payload.isNull(key)) {
-                data.put(key, JSONObject.NULL)
-            } else {
-                data.put(key, payload.get(key))
-            }
+        val payloadJson = Json.parseToJsonElement(payload.toString()).let {
+            it as? JsonObject ?: JsonObject(emptyMap())
         }
-        val readyEvent = JSONObject()
-            .put(ResponseConstants.KEY_TYPE, ResponseConstants.VALUE_KIND_READY)
-            .put(ResponseConstants.KEY_DATA, data)
+        val data = JsonObject(payloadJson.filterKeys { it != ResponseConstants.KEY_KIND })
+        val readyEvent = json.toJSONObject(
+            BridgeReadyEvent(type = ResponseConstants.VALUE_KIND_READY, data = data),
+        )
         handleEvent(readyEvent)
     }
 

@@ -584,11 +584,7 @@ internal class WebViewManager(
                 if (jsonObj.length() == 0) {
                     null
                 } else {
-                    SessionFilter(
-                        walletId = jsonObj.optNullableString("walletId"),
-                        domain = jsonObj.optNullableString("domain"),
-                        isJsBridge = if (jsonObj.has("isJsBridge")) jsonObj.getBoolean("isJsBridge") else null,
-                    )
+                    json.decodeFromString(SessionFilter.serializer(), filterJson)
                 }
             } catch (e: Exception) {
                 Logger.w(TAG, "Failed to parse session filter: $filterJson", e)

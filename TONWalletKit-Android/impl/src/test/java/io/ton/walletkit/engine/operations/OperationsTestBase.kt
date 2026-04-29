@@ -25,6 +25,12 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Before
 
@@ -93,13 +99,40 @@ abstract class OperationsTestBase {
     }
 
     /**
-     * Build a JSONObject from pairs for concise test setup.
+     * Build a JSONObject from pairs for concise test setup. The implementation
+     * routes every value through a typed [JsonElement], encodes via
+     * `kotlinx.serialization`, and parses back into [JSONObject] — so the wire
+     * shape is identical to the legacy hand-rolled `JSONObject().apply { put(...) }`
+     * builder, but constructed via a single typed pipeline.
      */
     protected fun jsonOf(vararg pairs: Pair<String, Any?>): JSONObject {
-        return JSONObject().apply {
-            pairs.forEach { (key, value) ->
-                put(key, value)
-            }
-        }
+        val map = pairs.associate { (key, value) -> key to value.toJsonElement() }
+        return JSONObject(JsonObject(map).toString())
+    }
+
+    /**
+     * Recursive bridge that turns the heterogeneous test fixture inputs into
+     * [JsonElement]s. Production code never sees these values directly — they
+     * are immediately re-serialised — so the conversion only has to be wide
+     * enough to cover the inputs the test files actually hand us today.
+     */
+    private fun Any?.toJsonElement(): JsonElement = when (this) {
+        null -> JsonNull
+        JSONObject.NULL -> JsonNull
+        is Boolean -> JsonPrimitive(this)
+        is Int -> JsonPrimitive(this)
+        is Long -> JsonPrimitive(this)
+        is Double -> JsonPrimitive(this)
+        is Float -> JsonPrimitive(this)
+        is Number -> JsonPrimitive(this)
+        is String -> JsonPrimitive(this)
+        is JsonElement -> this
+        is JSONObject -> Json.parseToJsonElement(this.toString())
+        is JSONArray -> Json.parseToJsonElement(this.toString())
+        is Map<*, *> -> JsonObject(
+            this.entries.associate { (k, v) -> k.toString() to v.toJsonElement() },
+        )
+        is Iterable<*> -> JsonArray(this.map { it.toJsonElement() })
+        else -> JsonPrimitive(this.toString())
     }
 }

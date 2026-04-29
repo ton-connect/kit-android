@@ -24,10 +24,18 @@ package io.ton.walletkit.engine.infrastructure
 import io.mockk.every
 import io.mockk.mockk
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.testfixtures.TestBridgeError
+import io.ton.walletkit.testfixtures.TestBridgeResponseEnvelope
+import io.ton.walletkit.testfixtures.TestValueWrap
+import io.ton.walletkit.testfixtures.jsonObjectOf
+import io.ton.walletkit.testfixtures.testFixtureJson
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
-import org.json.JSONArray
-import org.json.JSONObject
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.encodeToJsonElement
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -68,16 +76,12 @@ class BridgeRpcClientTest {
         // by using reflection or by testing handleResponse behavior
 
         // For this test, we verify the response parsing works correctly
-        val response = JSONObject().apply {
-            put("kind", "response")
-            put("id", "test-id-1")
-            put(
-                "result",
-                JSONObject().apply {
-                    put("value", "test-value")
-                },
-            )
-        }
+        val response = jsonObjectOf(
+            TestBridgeResponseEnvelope(
+                id = "test-id-1",
+                result = testFixtureJson.encodeToJsonElement(TestValueWrap(value = "test-value")),
+            ),
+        )
 
         // handleResponse with unknown ID should just log warning, not throw
         rpcClient.handleResponse("test-id-1", response)
@@ -87,11 +91,12 @@ class BridgeRpcClientTest {
 
     @Test
     fun handleResponse_unknownId_doesNotThrow() {
-        val response = JSONObject().apply {
-            put("kind", "response")
-            put("id", "unknown-id")
-            put("result", JSONObject())
-        }
+        val response = jsonObjectOf(
+            TestBridgeResponseEnvelope(
+                id = "unknown-id",
+                result = JsonObject(emptyMap()),
+            ),
+        )
 
         // Should not throw, just log warning
         rpcClient.handleResponse("unknown-id", response)
@@ -99,16 +104,12 @@ class BridgeRpcClientTest {
 
     @Test
     fun handleResponse_errorInResponse_logsError() {
-        val response = JSONObject().apply {
-            put("kind", "response")
-            put("id", "test-id")
-            put(
-                "error",
-                JSONObject().apply {
-                    put("message", "Something went wrong")
-                },
-            )
-        }
+        val response = jsonObjectOf(
+            TestBridgeResponseEnvelope(
+                id = "test-id",
+                error = TestBridgeError(message = "Something went wrong"),
+            ),
+        )
 
         // Should not throw for unknown ID
         rpcClient.handleResponse("test-id", response)
@@ -160,11 +161,15 @@ class BridgeRpcClientTest {
 
     @Test
     fun handleResponse_nullResult_createsEmptyJsonObject() {
-        val response = JSONObject().apply {
-            put("kind", "response")
-            put("id", "test-id")
-            // No "result" key
-        }
+        // No "result" key — DTO emits the field as JSON null only because we keep
+        // explicitNulls=true in the fixture Json; the production code's `opt("result")`
+        // treats either missing or `null` results identically.
+        val response = jsonObjectOf(
+            TestBridgeResponseEnvelope(
+                id = "test-id",
+                result = JsonNull,
+            ),
+        )
 
         // Should not throw
         rpcClient.handleResponse("test-id", response)
@@ -172,17 +177,13 @@ class BridgeRpcClientTest {
 
     @Test
     fun handleResponse_jsonArrayResult_wrapsInItems() {
-        val response = JSONObject().apply {
-            put("kind", "response")
-            put("id", "test-id")
-            put(
-                "result",
-                JSONArray().apply {
-                    put("item1")
-                    put("item2")
-                },
-            )
-        }
+        val arrayResult = JsonArray(listOf(JsonPrimitive("item1"), JsonPrimitive("item2")))
+        val response = jsonObjectOf(
+            TestBridgeResponseEnvelope(
+                id = "test-id",
+                result = arrayResult,
+            ),
+        )
 
         // Should not throw - array gets wrapped in {"items": [...]}
         rpcClient.handleResponse("test-id", response)
@@ -190,11 +191,12 @@ class BridgeRpcClientTest {
 
     @Test
     fun handleResponse_primitiveResult_wrapsInValue() {
-        val response = JSONObject().apply {
-            put("kind", "response")
-            put("id", "test-id")
-            put("result", "simple-string")
-        }
+        val response = jsonObjectOf(
+            TestBridgeResponseEnvelope(
+                id = "test-id",
+                result = JsonPrimitive("simple-string"),
+            ),
+        )
 
         // Should not throw - primitive gets wrapped in {"value": ...}
         rpcClient.handleResponse("test-id", response)
@@ -202,11 +204,12 @@ class BridgeRpcClientTest {
 
     @Test
     fun handleResponse_integerResult_wrapsInValue() {
-        val response = JSONObject().apply {
-            put("kind", "response")
-            put("id", "test-id")
-            put("result", 42)
-        }
+        val response = jsonObjectOf(
+            TestBridgeResponseEnvelope(
+                id = "test-id",
+                result = JsonPrimitive(42),
+            ),
+        )
 
         // Should not throw
         rpcClient.handleResponse("test-id", response)
@@ -214,11 +217,12 @@ class BridgeRpcClientTest {
 
     @Test
     fun handleResponse_booleanResult_wrapsInValue() {
-        val response = JSONObject().apply {
-            put("kind", "response")
-            put("id", "test-id")
-            put("result", true)
-        }
+        val response = jsonObjectOf(
+            TestBridgeResponseEnvelope(
+                id = "test-id",
+                result = JsonPrimitive(true),
+            ),
+        )
 
         // Should not throw
         rpcClient.handleResponse("test-id", response)
@@ -226,11 +230,12 @@ class BridgeRpcClientTest {
 
     @Test
     fun handleResponse_errorWithDefaultMessage() {
-        val response = JSONObject().apply {
-            put("kind", "response")
-            put("id", "test-id")
-            put("error", JSONObject()) // No message key
-        }
+        val response = jsonObjectOf(
+            TestBridgeResponseEnvelope(
+                id = "test-id",
+                error = TestBridgeError(),
+            ),
+        )
 
         // Should use default message "Bridge call failed"
         rpcClient.handleResponse("test-id", response)

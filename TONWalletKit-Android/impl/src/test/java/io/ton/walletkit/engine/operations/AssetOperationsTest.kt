@@ -24,8 +24,19 @@ package io.ton.walletkit.engine.operations
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
+import io.ton.walletkit.testfixtures.TestAddressBody
+import io.ton.walletkit.testfixtures.TestBalanceBody
+import io.ton.walletkit.testfixtures.TestJettonEntry
+import io.ton.walletkit.testfixtures.TestJettonInfo
+import io.ton.walletkit.testfixtures.TestJettonWalletAddressBody
+import io.ton.walletkit.testfixtures.TestJettonsResponse
+import io.ton.walletkit.testfixtures.TestNftEntry
+import io.ton.walletkit.testfixtures.TestNftsResponse
+import io.ton.walletkit.testfixtures.TestSingleNftResponse
+import io.ton.walletkit.testfixtures.jsonObjectOf
 import kotlinx.coroutines.runBlocking
-import org.json.JSONArray
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Before
@@ -66,24 +77,16 @@ class AssetOperationsTest : OperationsTestBase() {
     @Test
     fun getNfts_parsesNftItemsArray() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "nfts",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("address", TEST_NFT_ADDRESS)
-                                put(
-                                    "owner",
-                                    JSONObject().apply {
-                                        put("address", TEST_ADDRESS)
-                                    },
-                                )
-                            },
-                        )
-                    },
-                )
-            },
+            jsonObjectOf(
+                TestNftsResponse(
+                    nfts = listOf(
+                        TestNftEntry(
+                            address = TEST_NFT_ADDRESS,
+                            owner = TestAddressBody(address = TEST_ADDRESS),
+                        ),
+                    ),
+                ),
+            ),
         )
 
         val result = assetOperations.getNfts(TEST_ADDRESS, limit = 10, offset = 0)
@@ -94,11 +97,7 @@ class AssetOperationsTest : OperationsTestBase() {
 
     @Test
     fun getNfts_returnsEmptyItemsIfNone() = runBlocking {
-        givenBridgeReturns(
-            JSONObject().apply {
-                put("nfts", JSONArray())
-            },
-        )
+        givenBridgeReturns(jsonObjectOf(TestNftsResponse(nfts = emptyList())))
 
         val result = assetOperations.getNfts(TEST_ADDRESS, limit = 10, offset = 0)
 
@@ -110,10 +109,12 @@ class AssetOperationsTest : OperationsTestBase() {
     @Test
     fun getNft_parsesSingleNft() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
-                put("address", TEST_NFT_ADDRESS)
-                put("ownerAddress", TEST_ADDRESS)
-            },
+            jsonObjectOf(
+                TestSingleNftResponse(
+                    address = TEST_NFT_ADDRESS,
+                    ownerAddress = TEST_ADDRESS,
+                ),
+            ),
         )
 
         val result = assetOperations.getNft(TEST_NFT_ADDRESS)
@@ -137,30 +138,22 @@ class AssetOperationsTest : OperationsTestBase() {
     fun getJettons_parsesJettonWallets() = runBlocking {
         // TONJettonWallets uses "jettons" for items, and TONJettonWallet requires "jettonWalletAddress"
         givenBridgeReturns(
-            JSONObject().apply {
-                put("addressBook", JSONObject())
-                put(
-                    "jettons",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("address", TEST_JETTON_ADDRESS) // Jetton master address
-                                put("walletAddress", TEST_JETTON_ADDRESS) // Wallet address
-                                put("balance", "1000000000")
-                                put(
-                                    "info",
-                                    JSONObject().apply {
-                                        put("name", "Test Jetton")
-                                        put("symbol", "TST")
-                                    },
-                                )
-                                put("isVerified", false)
-                                put("prices", JSONArray())
-                            },
-                        )
-                    },
-                )
-            },
+            jsonObjectOf(
+                TestJettonsResponse(
+                    addressBook = JsonObject(emptyMap()),
+                    jettons = listOf(
+                        // address is the jetton master address; walletAddress is this wallet's jetton wallet.
+                        TestJettonEntry(
+                            address = TEST_JETTON_ADDRESS,
+                            walletAddress = TEST_JETTON_ADDRESS,
+                            balance = "1000000000",
+                            info = TestJettonInfo(name = "Test Jetton", symbol = "TST"),
+                            isVerified = false,
+                            prices = JsonArray(emptyList()),
+                        ),
+                    ),
+                ),
+            ),
         )
 
         val result = assetOperations.getJettons(TEST_ADDRESS, limit = 10, offset = 0)
@@ -172,10 +165,12 @@ class AssetOperationsTest : OperationsTestBase() {
     @Test
     fun getJettons_returnsEmptyIfNone() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
-                put("addressBook", JSONObject())
-                put("jettons", JSONArray())
-            },
+            jsonObjectOf(
+                TestJettonsResponse(
+                    addressBook = JsonObject(emptyMap()),
+                    jettons = emptyList(),
+                ),
+            ),
         )
 
         val result = assetOperations.getJettons(TEST_ADDRESS, limit = 10, offset = 0)
@@ -187,11 +182,7 @@ class AssetOperationsTest : OperationsTestBase() {
 
     @Test
     fun getJettonBalance_extractsBalanceString() = runBlocking {
-        givenBridgeReturns(
-            jsonOf(
-                "balance" to "5000000000",
-            ),
-        )
+        givenBridgeReturns(jsonObjectOf(TestBalanceBody(balance = "5000000000")))
 
         val result = assetOperations.getJettonBalance(TEST_ADDRESS, TEST_JETTON_ADDRESS)
 
@@ -212,9 +203,7 @@ class AssetOperationsTest : OperationsTestBase() {
     @Test
     fun getJettonWalletAddress_extractsAddress() = runBlocking {
         givenBridgeReturns(
-            jsonOf(
-                "jettonWalletAddress" to TEST_JETTON_ADDRESS,
-            ),
+            jsonObjectOf(TestJettonWalletAddressBody(jettonWalletAddress = TEST_JETTON_ADDRESS)),
         )
 
         val result = assetOperations.getJettonWalletAddress(TEST_ADDRESS, TEST_JETTON_ADDRESS)
@@ -236,6 +225,8 @@ class AssetOperationsTest : OperationsTestBase() {
     @Test
     fun createTransferNftTransaction_returnsTransactionString() = runBlocking {
         val transactionContent = """{"messages":[{"address":"EQ...","amount":"50000000"}]}"""
+        // The bridge returns the transaction-content JSON verbatim, not a typed DTO,
+        // so we round-trip through JSONObject(jsonString) — same shape as production.
         givenBridgeReturns(JSONObject(transactionContent))
 
         val params = TONNFTTransferRequest(

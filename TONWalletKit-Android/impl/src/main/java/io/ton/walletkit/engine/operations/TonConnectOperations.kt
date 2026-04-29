@@ -42,8 +42,13 @@ import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.session.TONConnectSession
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.encodeToJsonElement
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -100,7 +105,7 @@ internal class TonConnectOperations(
             } ?: JsonArray(emptyList())
 
             val domain = resolveDomain(url)
-            val messageInfo = json.toJSONObject(
+            val messageInfo = json.encodeToJsonElement(
                 ProcessRequestMessageInfo(
                     messageId = messageId,
                     tabId = messageId,
@@ -109,7 +114,7 @@ internal class TonConnectOperations(
                 ),
             )
 
-            val request = json.toJSONObject(
+            val request = json.encodeToJsonElement(
                 ProcessRequestBody(
                     id = messageId,
                     method = method,
@@ -117,9 +122,7 @@ internal class TonConnectOperations(
                 ),
             )
 
-            val argsArray = JSONArray()
-                .put(messageInfo)
-                .put(request)
+            val argsArray = buildBridgeJsonArray(messageInfo, request)
 
             val result = rpcClient.call(BridgeMethodConstants.METHOD_PROCESS_INTERNAL_BROWSER_REQUEST, argsArray)
             responseCallback(result)
@@ -147,9 +150,10 @@ internal class TonConnectOperations(
         val walletId = event.walletId ?: throw WalletKitBridgeException("Wallet ID is required")
 
         // Send array [event, response] - walletkit expects: approveConnectRequest(event, response?)
-        val argsArray = JSONArray()
-            .put(json.toJSONObject(event))
-            .put(if (response != null) json.toJSONObject(response) else JSONObject.NULL)
+        val argsArray = buildBridgeJsonArray(
+            json.encodeToJsonElement(event),
+            response?.let { json.encodeToJsonElement(it) } ?: JsonNull,
+        )
 
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_CONNECT_REQUEST, argsArray)
     }
@@ -158,10 +162,11 @@ internal class TonConnectOperations(
         ensureInitialized()
 
         // Send array [event, reason, errorCode] - walletkit expects: rejectConnectRequest(event, reason?, errorCode?)
-        val argsArray = JSONArray()
-            .put(json.toJSONObject(event))
-            .put(reason ?: JSONObject.NULL)
-            .put(errorCode ?: JSONObject.NULL)
+        val argsArray = buildBridgeJsonArray(
+            json.encodeToJsonElement(event),
+            reason?.let { JsonPrimitive(it) } ?: JsonNull,
+            errorCode?.let { JsonPrimitive(it) } ?: JsonNull,
+        )
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_CONNECT_REQUEST, argsArray)
     }
 
@@ -175,9 +180,10 @@ internal class TonConnectOperations(
         val walletId = event.walletId ?: throw WalletKitBridgeException(ERROR_WALLET_ID_REQUIRED)
 
         // Send array [event, response] - walletkit expects: approveTransactionRequest(event, response?)
-        val argsArray = JSONArray()
-            .put(json.toJSONObject(event))
-            .put(if (response != null) json.toJSONObject(response) else JSONObject.NULL)
+        val argsArray = buildBridgeJsonArray(
+            json.encodeToJsonElement(event),
+            response?.let { json.encodeToJsonElement(it) } ?: JsonNull,
+        )
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_TRANSACTION_REQUEST, argsArray)
     }
 
@@ -186,14 +192,15 @@ internal class TonConnectOperations(
 
         // Send array [event, reason] - walletkit expects: rejectTransactionRequest(event, reason?)
         // reason can be string or {code, message} object
-        val reasonValue: Any = if (errorCode != null) {
-            json.toJSONObject(RejectionReasonBody(code = errorCode, message = reason ?: ""))
+        val reasonElement: JsonElement = if (errorCode != null) {
+            json.encodeToJsonElement(RejectionReasonBody(code = errorCode, message = reason ?: ""))
         } else {
-            reason ?: JSONObject.NULL
+            reason?.let { JsonPrimitive(it) } ?: JsonNull
         }
-        val argsArray = JSONArray()
-            .put(json.toJSONObject(event))
-            .put(reasonValue)
+        val argsArray = buildBridgeJsonArray(
+            json.encodeToJsonElement(event),
+            reasonElement,
+        )
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_TRANSACTION_REQUEST, argsArray)
     }
 
@@ -207,9 +214,10 @@ internal class TonConnectOperations(
         val walletId = event.walletId ?: throw WalletKitBridgeException(ERROR_WALLET_ID_REQUIRED)
 
         // Send array [event, response] - walletkit expects: approveSignDataRequest(event, response?)
-        val argsArray = JSONArray()
-            .put(json.toJSONObject(event))
-            .put(if (response != null) json.toJSONObject(response) else JSONObject.NULL)
+        val argsArray = buildBridgeJsonArray(
+            json.encodeToJsonElement(event),
+            response?.let { json.encodeToJsonElement(it) } ?: JsonNull,
+        )
         rpcClient.call(BridgeMethodConstants.METHOD_APPROVE_SIGN_DATA_REQUEST, argsArray)
     }
 
@@ -217,9 +225,10 @@ internal class TonConnectOperations(
         ensureInitialized()
 
         // Send array [event, reason] - walletkit expects: rejectSignDataRequest(event, reason?)
-        val argsArray = JSONArray()
-            .put(json.toJSONObject(event))
-            .put(reason ?: JSONObject.NULL)
+        val argsArray = buildBridgeJsonArray(
+            json.encodeToJsonElement(event),
+            reason?.let { JsonPrimitive(it) } ?: JsonNull,
+        )
         rpcClient.call(BridgeMethodConstants.METHOD_REJECT_SIGN_DATA_REQUEST, argsArray)
     }
 
@@ -263,6 +272,17 @@ internal class TonConnectOperations(
 
         // Send just the sessionId string - walletkit expects: disconnect(sessionId?: string)
         rpcClient.call(BridgeMethodConstants.METHOD_DISCONNECT_SESSION, sessionId)
+    }
+
+    /**
+     * Build a `JSONArray` whose elements are typed [JsonElement]s. This replaces
+     * hand-rolled `JSONArray().put(...)` chains for positional bridge call args
+     * (`[event, response]`, `[event, reason, errorCode]`, …). The wire format is
+     * a JSON array literal, byte-identical to the legacy chain.
+     */
+    private fun buildBridgeJsonArray(vararg elements: JsonElement): JSONArray {
+        val array = JsonArray(elements.toList())
+        return JSONArray(json.encodeToString(JsonArray.serializer(), array))
     }
 
     private fun resolveDomain(url: String?): String {
