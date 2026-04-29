@@ -35,12 +35,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.DataObject
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -68,6 +63,11 @@ import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.ui.components.NetworkBadge
+import io.ton.walletkit.demo.presentation.ui.icons.AccountBalanceWallet
+import io.ton.walletkit.demo.presentation.ui.icons.Code
+import io.ton.walletkit.demo.presentation.ui.icons.DataObject
+import io.ton.walletkit.demo.presentation.ui.icons.Link
+import io.ton.walletkit.demo.presentation.ui.icons.LinkOff
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 import java.text.SimpleDateFormat
 import java.util.Date

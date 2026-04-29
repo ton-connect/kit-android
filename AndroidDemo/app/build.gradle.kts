@@ -106,7 +106,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -138,7 +139,10 @@ dependencies {
     implementation(platform(libs.androidxComposeBom))
     implementation(libs.androidxComposeUi)
     implementation(libs.androidxComposeMaterial3)
-    implementation(libs.androidxComposeMaterialIconsExtended)
+    // material-icons-core (~50 icons) replaces material-icons-extended (~11,000 icons,
+    // ~40 MB of DEX). The 15 icons the demo uses that aren't in `core` are defined locally
+    // in io.ton.walletkit.demo.presentation.ui.icons.DemoIcons.
+    implementation(libs.androidxComposeMaterialIconsCore)
     implementation(libs.androidxComposeUiToolingPreview)
     debugImplementation(libs.androidxComposeUiTooling)
     implementation(libs.androidxLifecycleRuntimeKtx)

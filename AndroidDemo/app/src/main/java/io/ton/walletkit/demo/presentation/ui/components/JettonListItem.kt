@@ -34,7 +34,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import io.ton.walletkit.demo.presentation.model.JettonSummary
+import io.ton.walletkit.demo.presentation.ui.icons.AccountBalanceWallet
 import io.ton.walletkit.demo.presentation.util.JettonFormatters
 
 /**

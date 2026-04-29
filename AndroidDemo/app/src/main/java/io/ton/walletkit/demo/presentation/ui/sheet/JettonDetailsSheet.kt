@@ -39,7 +39,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -70,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.JettonDetails
+import io.ton.walletkit.demo.presentation.ui.icons.ContentCopy
 import io.ton.walletkit.demo.presentation.util.JettonFormatters
 
 @OptIn(ExperimentalMaterial3Api::class)

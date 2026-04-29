@@ -33,7 +33,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
@@ -56,6 +55,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.WalletSummary
+import io.ton.walletkit.demo.presentation.ui.icons.ContentCopy
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 import io.ton.walletkit.demo.presentation.util.TestTags
 import io.ton.walletkit.demo.presentation.util.abbreviated

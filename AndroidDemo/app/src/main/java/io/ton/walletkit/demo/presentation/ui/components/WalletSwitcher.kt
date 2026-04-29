@@ -36,13 +36,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -71,6 +69,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.WalletSummary
+import io.ton.walletkit.demo.presentation.ui.icons.AccountBalanceWallet
+import io.ton.walletkit.demo.presentation.ui.icons.SwapHoriz
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 
 @Composable

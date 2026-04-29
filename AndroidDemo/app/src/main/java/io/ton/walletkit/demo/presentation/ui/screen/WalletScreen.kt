@@ -33,10 +33,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -86,6 +83,8 @@ import io.ton.walletkit.demo.presentation.ui.components.StatusHeader
 import io.ton.walletkit.demo.presentation.ui.components.WalletSwitcher
 import io.ton.walletkit.demo.presentation.ui.dialog.SignerConfirmationDialog
 import io.ton.walletkit.demo.presentation.ui.dialog.UrlPromptDialog
+import io.ton.walletkit.demo.presentation.ui.icons.Language
+import io.ton.walletkit.demo.presentation.ui.icons.Link
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 import io.ton.walletkit.demo.presentation.ui.sections.EventLogSection
 import io.ton.walletkit.demo.presentation.ui.sections.JettonsSection
