@@ -21,6 +21,8 @@
  */
 package io.ton.walletkit.engine.operations.requests
 
+import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignatureDomain
 import kotlinx.serialization.Serializable
 
 /**
@@ -38,4 +40,41 @@ internal data class AddressRequest(
 @Serializable
 internal data class WalletIdRequest(
     val walletId: String,
+)
+
+@Serializable
+internal data class CreateSignerFromMnemonicRequest(
+    val mnemonic: List<String>,
+    val mnemonicType: String,
+)
+
+@Serializable
+internal data class CreateSignerFromSecretKeyRequest(
+    val secretKey: String,
+)
+
+@Serializable
+internal data class CreateSignerFromCustomRequest(
+    val signerId: String,
+    val publicKey: String,
+)
+
+/**
+ * `createV5R1Adapter` / `createV4R2Adapter` request shape. [TONSignatureDomain] is
+ * already `@Serializable` with a custom serializer that emits the same
+ * `{type:"l2", globalId:N}` / `{type:"empty"}` shape the old hand-rolled
+ * `signatureDomainToJson` helper produced, so we route it straight through.
+ */
+@Serializable
+internal data class CreateAdapterRequest(
+    val signerId: String,
+    val network: TONNetwork,
+    val workchain: Int,
+    val walletId: Long,
+    val domain: TONSignatureDomain? = null,
+)
+
+@Serializable
+internal data class AddWalletRequest(
+    val adapterId: String,
 )

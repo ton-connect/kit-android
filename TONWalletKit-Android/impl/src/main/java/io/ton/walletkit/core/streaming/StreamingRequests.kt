@@ -19,70 +19,55 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.engine.operations.requests
+package io.ton.walletkit.core.streaming
 
-import io.ton.walletkit.api.generated.TONPagination
+import io.ton.walletkit.api.generated.TONNetwork
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
 /**
- * Internal bridge request models for asset operations (NFTs and Jettons).
- * These DTOs represent the exact JSON structure sent to the JavaScript bridge.
+ * Internal bridge request models for streaming operations. These DTOs replace the
+ * hand-rolled `JSONObject().apply { put(...) }` payloads that previously served the
+ * register / connect / watch / unwatch RPCs. Encode through `json.toJSONObject(...)`
+ * at the bridge boundary; the wire format is identical to what the manual builders
+ * produced.
  *
  * @suppress Internal bridge communication only.
  */
 
 @Serializable
-internal data class GetNftsRequest(
-    val walletId: String,
-    val pagination: TONPagination,
+internal data class StreamingNetworkRequest(val network: TONNetwork)
+
+@Serializable
+internal data class StreamingProviderRequest(val providerId: String)
+
+@Serializable
+internal data class StreamingProviderNetworkRequest(
+    val providerId: String,
+    val network: TONNetwork,
 )
 
 @Serializable
-internal data class GetNftRequest(
+internal data class StreamingWatchRequest(
+    val network: TONNetwork,
     val address: String,
 )
 
 @Serializable
-internal data class CreateTransferNftRequest(
-    val walletId: String,
-    val nftAddress: String,
-    val transferAmount: String? = null,
-    val recipientAddress: String,
-    val comment: String? = null,
+internal data class StreamingWatchTypesRequest(
+    val network: TONNetwork,
+    val address: String,
+    val types: List<String>,
 )
 
 @Serializable
-internal data class CreateTransferNftRawRequest(
-    val walletId: String,
-    val nftAddress: String,
-    val transferAmount: String,
-    val message: JsonElement,
-)
+internal data class StreamingSubscriptionRequest(val subscriptionId: String)
 
+/**
+ * Wraps a generated streaming-provider config (TonCenter / TonApi / etc.) for the
+ * `startStreamingProvider` / `startWebViewStreamingProvider` core entry points.
+ * The config is passed pre-encoded as [JsonElement] so this DTO doesn't need to
+ * know every concrete config subclass.
+ */
 @Serializable
-internal data class GetJettonsRequest(
-    val walletId: String,
-    val pagination: TONPagination,
-)
-
-@Serializable
-internal data class CreateTransferJettonRequest(
-    val walletId: String,
-    val recipientAddress: String,
-    val jettonAddress: String,
-    val transferAmount: String,
-    val comment: String? = null,
-)
-
-@Serializable
-internal data class GetJettonBalanceRequest(
-    val walletId: String,
-    val jettonAddress: String,
-)
-
-@Serializable
-internal data class GetJettonWalletAddressRequest(
-    val walletId: String,
-    val jettonAddress: String,
-)
+internal data class StartStreamingProviderRequest(val config: JsonElement)

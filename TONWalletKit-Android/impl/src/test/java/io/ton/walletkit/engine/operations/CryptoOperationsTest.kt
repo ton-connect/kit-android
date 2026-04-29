@@ -22,8 +22,16 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.testfixtures.TestKeyPairArrays
+import io.ton.walletkit.testfixtures.TestKeyPairIndexedObjects
+import io.ton.walletkit.testfixtures.TestPublicKeyOnly
+import io.ton.walletkit.testfixtures.TestSecretKeyOnly
+import io.ton.walletkit.testfixtures.TestSignatureBody
+import io.ton.walletkit.testfixtures.TestStringItemsBody
+import io.ton.walletkit.testfixtures.jsonObjectOf
+import io.ton.walletkit.testfixtures.jsonObjectOfExplicitNulls
 import kotlinx.coroutines.runBlocking
-import org.json.JSONArray
+import kotlinx.serialization.Serializable
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Before
@@ -58,16 +66,7 @@ class CryptoOperationsTest : OperationsTestBase() {
     @Test
     fun createTonMnemonic_parsesItemsArray() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "items",
-                    JSONArray().apply {
-                        put("word1")
-                        put("word2")
-                        put("word3")
-                    },
-                )
-            },
+            jsonObjectOf(TestStringItemsBody(items = listOf("word1", "word2", "word3"))),
         )
 
         val result = cryptoOperations.createTonMnemonic(3)
@@ -90,16 +89,7 @@ class CryptoOperationsTest : OperationsTestBase() {
     @Test
     fun createTonMnemonic_handles24Words() = runBlocking {
         val words = (1..24).map { "word$it" }
-        givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "items",
-                    JSONArray().apply {
-                        words.forEach { put(it) }
-                    },
-                )
-            },
-        )
+        givenBridgeReturns(jsonObjectOf(TestStringItemsBody(items = words)))
 
         val result = cryptoOperations.createTonMnemonic(24)
 
@@ -114,20 +104,12 @@ class CryptoOperationsTest : OperationsTestBase() {
     fun mnemonicToKeyPair_parsesKeyPairFromArrays() = runBlocking {
         // Keys as JSONArray (Uint8Array serialization)
         givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "publicKey",
-                    JSONArray().apply {
-                        repeat(32) { put(it) } // 0, 1, 2, ..., 31
-                    },
-                )
-                put(
-                    "secretKey",
-                    JSONArray().apply {
-                        repeat(64) { put(it + 100) } // 100, 101, ..., 163
-                    },
-                )
-            },
+            jsonObjectOf(
+                TestKeyPairArrays(
+                    publicKey = (0..31).toList(),
+                    secretKey = (0..63).map { it + 100 },
+                ),
+            ),
         )
 
         val result = cryptoOperations.mnemonicToKeyPair(listOf("test", "words"))
@@ -142,21 +124,15 @@ class CryptoOperationsTest : OperationsTestBase() {
     @Test
     fun mnemonicToKeyPair_parsesKeyPairFromIndexedObject() = runBlocking {
         // Keys as JSONObject with indexed keys (alternative Uint8Array serialization)
+        val publicKeyMap = (0..31).associate { it.toString() to it * 2 }
+        val secretKeyMap = (0..63).associate { it.toString() to it + 50 }
         givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "publicKey",
-                    JSONObject().apply {
-                        repeat(32) { put(it.toString(), it * 2) }
-                    },
-                )
-                put(
-                    "secretKey",
-                    JSONObject().apply {
-                        repeat(64) { put(it.toString(), it + 50) }
-                    },
-                )
-            },
+            jsonObjectOf(
+                TestKeyPairIndexedObjects(
+                    publicKey = publicKeyMap,
+                    secretKey = secretKeyMap,
+                ),
+            ),
         )
 
         val result = cryptoOperations.mnemonicToKeyPair(listOf("test"))
@@ -171,10 +147,7 @@ class CryptoOperationsTest : OperationsTestBase() {
     fun mnemonicToKeyPair_throwsIfPublicKeyMissing() {
         runBlocking {
             givenBridgeReturns(
-                JSONObject().apply {
-                    put("secretKey", JSONArray().apply { repeat(64) { put(it) } })
-                    // No publicKey!
-                },
+                jsonObjectOf(TestSecretKeyOnly(secretKey = (0..63).toList())),
             )
 
             assertThrows(WalletKitBridgeException::class.java) {
@@ -187,10 +160,7 @@ class CryptoOperationsTest : OperationsTestBase() {
     fun mnemonicToKeyPair_throwsIfSecretKeyMissing() {
         runBlocking {
             givenBridgeReturns(
-                JSONObject().apply {
-                    put("publicKey", JSONArray().apply { repeat(32) { put(it) } })
-                    // No secretKey!
-                },
+                jsonObjectOf(TestPublicKeyOnly(publicKey = (0..31).toList())),
             )
 
             assertThrows(WalletKitBridgeException::class.java) {
@@ -204,11 +174,7 @@ class CryptoOperationsTest : OperationsTestBase() {
     @Test
     fun sign_parsesHexSignature() = runBlocking {
         // Signature as hex string
-        givenBridgeReturns(
-            jsonOf(
-                "signature" to "abcd1234ef567890",
-            ),
-        )
+        givenBridgeReturns(jsonObjectOf(TestSignatureBody(signature = "abcd1234ef567890")))
 
         val result = cryptoOperations.sign(
             data = byteArrayOf(1, 2, 3),
@@ -223,11 +189,7 @@ class CryptoOperationsTest : OperationsTestBase() {
 
     @Test
     fun sign_parsesHexSignatureFromValueField() = runBlocking {
-        givenBridgeReturns(
-            jsonOf(
-                "value" to "0xdeadbeef",
-            ),
-        )
+        givenBridgeReturns(jsonObjectOf(TestSignValueBody(value = "0xdeadbeef")))
 
         val result = cryptoOperations.sign(
             data = byteArrayOf(1, 2, 3),
@@ -243,11 +205,7 @@ class CryptoOperationsTest : OperationsTestBase() {
 
     @Test
     fun sign_handlesHexWithPrefix() = runBlocking {
-        givenBridgeReturns(
-            jsonOf(
-                "signature" to "0xdeadbeef",
-            ),
-        )
+        givenBridgeReturns(jsonObjectOf(TestSignatureBody(signature = "0xdeadbeef")))
 
         val result = cryptoOperations.sign(
             data = byteArrayOf(1),
@@ -263,7 +221,7 @@ class CryptoOperationsTest : OperationsTestBase() {
         runBlocking {
             // When bridge returns result with "signature" key present but null value
             // The takeIf { it != "null" } check should catch this
-            givenBridgeReturns(jsonOf("signature" to JSONObject.NULL))
+            givenBridgeReturns(jsonObjectOfExplicitNulls(TestNullableSignatureBody(signature = null)))
 
             assertThrows(WalletKitBridgeException::class.java) {
                 runBlocking {
@@ -280,7 +238,7 @@ class CryptoOperationsTest : OperationsTestBase() {
     fun sign_throwsIfSignatureEmpty() {
         runBlocking {
             // Empty string signature should throw
-            givenBridgeReturns(jsonOf("signature" to ""))
+            givenBridgeReturns(jsonObjectOf(TestSignatureBody(signature = "")))
 
             assertThrows(WalletKitBridgeException::class.java) {
                 runBlocking {
@@ -292,4 +250,12 @@ class CryptoOperationsTest : OperationsTestBase() {
             }
         }
     }
+
+    /** `{ "value": "<hex>" }` — alternate signature wrapper (legacy `value` key). */
+    @Serializable
+    private data class TestSignValueBody(val value: String)
+
+    /** `{ "signature": null }` — explicit JSON-null signature for the missing-value test. */
+    @Serializable
+    private data class TestNullableSignatureBody(val signature: String?)
 }

@@ -22,7 +22,14 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.api.generated.TONTransferRequest
+import io.ton.walletkit.testfixtures.TestPreviewResultBody
+import io.ton.walletkit.testfixtures.TestTransferMessage
+import io.ton.walletkit.testfixtures.TestTransferResponse
+import io.ton.walletkit.testfixtures.jsonObjectOf
+import io.ton.walletkit.testfixtures.testFixtureJson
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.encodeToJsonElement
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Before
@@ -61,21 +68,15 @@ class TransactionOperationsTest : OperationsTestBase() {
 
     @Test
     fun createTransferTonTransaction_returnsTransactionJson() = runBlocking {
+        val messages = testFixtureJson.encodeToJsonElement(
+            listOf(
+                TestTransferMessage(address = TEST_TO_ADDRESS, amount = "1000000000"),
+            ),
+        )
         givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "messages",
-                    org.json.JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("address", TEST_TO_ADDRESS)
-                                put("amount", "1000000000")
-                            },
-                        )
-                    },
-                )
-                put("fromAddress", TEST_ADDRESS)
-            },
+            jsonObjectOf(
+                TestTransferResponse(messages = messages, fromAddress = TEST_ADDRESS),
+            ),
         )
 
         val params = TONTransferRequest(
@@ -93,10 +94,9 @@ class TransactionOperationsTest : OperationsTestBase() {
     @Test
     fun createTransferTonTransaction_passesCorrectParams() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
-                put("messages", org.json.JSONArray())
-                put("fromAddress", TEST_ADDRESS)
-            },
+            jsonObjectOf(
+                TestTransferResponse(messages = JsonArray(emptyList()), fromAddress = TEST_ADDRESS),
+            ),
         )
 
         val params = TONTransferRequest(
@@ -114,34 +114,23 @@ class TransactionOperationsTest : OperationsTestBase() {
 
     @Test
     fun createTransferMultiTonTransaction_returnsTransactionJson() = runBlocking {
+        val messages = testFixtureJson.encodeToJsonElement(
+            listOf(
+                TestTransferMessage(address = TEST_TO_ADDRESS, amount = "1000000000"),
+                TestTransferMessage(address = TEST_ADDRESS, amount = "2000000000"),
+            ),
+        )
         givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "messages",
-                    org.json.JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("address", TEST_TO_ADDRESS)
-                                put("amount", "1000000000")
-                            },
-                        )
-                        put(
-                            JSONObject().apply {
-                                put("address", TEST_ADDRESS)
-                                put("amount", "2000000000")
-                            },
-                        )
-                    },
-                )
-                put("fromAddress", TEST_ADDRESS)
-            },
+            jsonObjectOf(
+                TestTransferResponse(messages = messages, fromAddress = TEST_ADDRESS),
+            ),
         )
 
-        val messages = listOf(
+        val msgs = listOf(
             TONTransferRequest(recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_TO_ADDRESS), transferAmount = "1000000000"),
             TONTransferRequest(recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_ADDRESS), transferAmount = "2000000000"),
         )
-        val result = transactionOperations.createTransferMultiTonTransaction(TEST_ADDRESS, messages)
+        val result = transactionOperations.createTransferMultiTonTransaction(TEST_ADDRESS, msgs)
 
         assertTrue(result.contains("messages"))
         assertTrue(result.contains("fromAddress"))
@@ -208,11 +197,7 @@ class TransactionOperationsTest : OperationsTestBase() {
 
     @Test
     fun getTransactionPreview_parsesSuccessPreview() = runBlocking {
-        givenBridgeReturns(
-            JSONObject().apply {
-                put("result", "success")
-            },
-        )
+        givenBridgeReturns(jsonObjectOf(TestPreviewResultBody(result = "success")))
 
         val result = transactionOperations.getTransactionPreview(TEST_ADDRESS, """{"messages":[]}""")
 

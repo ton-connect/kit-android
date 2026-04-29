@@ -22,6 +22,7 @@
 package io.ton.walletkit.session
 
 import io.ton.walletkit.api.generated.TONDAppInfo
+import kotlinx.serialization.Serializable
 
 /**
  * Abstraction for session management in TONConnect protocol.
@@ -90,6 +91,7 @@ interface TONConnectSessionManager {
 /**
  * Filter for querying sessions.
  */
+@Serializable
 data class SessionFilter(
     val walletId: String? = null,
     val domain: String? = null,

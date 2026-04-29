@@ -55,11 +55,13 @@ import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.WalletKitEngineKind
+import io.ton.walletkit.core.streaming.StreamingProviderRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.InitializationManager
 import io.ton.walletkit.engine.infrastructure.MessageDispatcher
 import io.ton.walletkit.engine.infrastructure.StorageManager
 import io.ton.walletkit.engine.infrastructure.WebViewManager
+import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.engine.operations.AssetOperations
 import io.ton.walletkit.engine.operations.CryptoOperations
@@ -68,6 +70,7 @@ import io.ton.walletkit.engine.operations.SwapOperations
 import io.ton.walletkit.engine.operations.TonConnectOperations
 import io.ton.walletkit.engine.operations.TransactionOperations
 import io.ton.walletkit.engine.operations.WalletOperations
+import io.ton.walletkit.engine.operations.requests.RegisterKotlinStakingProviderRequest
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.EventRouter
@@ -93,7 +96,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -493,7 +495,7 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun registerKotlinSwapProvider(providerId: String) {
         callBridgeMethod(
             io.ton.walletkit.internal.constants.BridgeMethodConstants.METHOD_REGISTER_KOTLIN_SWAP_PROVIDER,
-            JSONObject().apply { put("providerId", providerId) },
+            json.toJSONObject(StreamingProviderRequest(providerId = providerId)),
         )
     }
 
@@ -519,12 +521,15 @@ internal class WebViewWalletKitEngine private constructor(
         stakingOperations.hasStakingProvider(providerId)
 
     override suspend fun registerKotlinStakingProvider(providerId: String, supportedUnstakeModesJson: String) {
+        val unstakeModes = json.parseToJsonElement(supportedUnstakeModesJson) as kotlinx.serialization.json.JsonArray
         callBridgeMethod(
             io.ton.walletkit.internal.constants.BridgeMethodConstants.METHOD_REGISTER_KOTLIN_STAKING_PROVIDER,
-            JSONObject().apply {
-                put("providerId", providerId)
-                put("supportedUnstakeModes", JSONArray(supportedUnstakeModesJson))
-            },
+            json.toJSONObject(
+                RegisterKotlinStakingProviderRequest(
+                    providerId = providerId,
+                    supportedUnstakeModes = unstakeModes,
+                ),
+            ),
         )
     }
 

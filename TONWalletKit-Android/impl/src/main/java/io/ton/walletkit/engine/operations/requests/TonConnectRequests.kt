@@ -52,6 +52,41 @@ internal data class ProcessInternalBrowserRequest(
     val url: String? = null,
 )
 
+/**
+ * First positional arg of `METHOD_PROCESS_INTERNAL_BROWSER_REQUEST`. Wire shape:
+ * `{ "messageId": "...", "tabId": "...", "domain": "...", "walletId"?: "..." }`.
+ */
+@Serializable
+internal data class ProcessRequestMessageInfo(
+    val messageId: String,
+    val tabId: String,
+    val domain: String,
+    val walletId: String? = null,
+)
+
+/**
+ * Second positional arg of `METHOD_PROCESS_INTERNAL_BROWSER_REQUEST`. Wire shape:
+ * `{ "id": "...", "method": "...", "params": ... }`. `params` is a [JsonElement] so
+ * it preserves the dApp-supplied shape (object for `connect`, array for others).
+ */
+@Serializable
+internal data class ProcessRequestBody(
+    val id: String,
+    val method: String,
+    val params: JsonElement,
+)
+
+/**
+ * Body of a TonConnect rejection that carries an error code. Wire shape:
+ * `{ "code": N, "message": "..." }`. Used as the `reason` arg of
+ * `rejectTransactionRequest` when callers supply both a message and an error code.
+ */
+@Serializable
+internal data class RejectionReasonBody(
+    val code: Int,
+    val message: String,
+)
+
 @Serializable
 internal data class ApproveConnectRequest(
     @Contextual

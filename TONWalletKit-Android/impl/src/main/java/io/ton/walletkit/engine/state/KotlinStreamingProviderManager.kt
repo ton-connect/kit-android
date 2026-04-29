@@ -22,6 +22,7 @@
 package io.ton.walletkit.engine.state
 
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
+import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.streaming.ITONStreamingProvider
@@ -30,9 +31,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
 /** Manages custom Kotlin [ITONStreamingProvider] instances registered into the JS bridge. */
@@ -111,10 +112,7 @@ internal class KotlinStreamingProviderManager(
             val updateJson = json.encodeToString(value)
             rpcClient.call(
                 BridgeMethodConstants.METHOD_KOTLIN_PROVIDER_DISPATCH,
-                JSONObject().apply {
-                    put("subId", subId)
-                    put("updateJson", updateJson)
-                },
+                json.toJSONObject(KotlinProviderDispatchRequest(subId = subId, updateJson = updateJson)),
             )
         } catch (_: Exception) {
         }
@@ -128,3 +126,16 @@ internal class KotlinStreamingProviderManager(
         const val TYPE_CONNECTION_CHANGE = "connectionChange"
     }
 }
+
+/**
+ * Wire DTO for `METHOD_KOTLIN_PROVIDER_DISPATCH`. Carries a Kotlin streaming
+ * provider's update from the SDK back into the JS bridge for fan-out. Wire shape:
+ * `{ "subId": "...", "updateJson": "<pre-serialised T>" }`.
+ *
+ * @suppress Internal bridge plumbing only.
+ */
+@Serializable
+internal data class KotlinProviderDispatchRequest(
+    val subId: String,
+    val updateJson: String,
+)

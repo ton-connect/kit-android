@@ -27,8 +27,12 @@ import io.ton.walletkit.api.generated.TONConnectionRequestEventPreview
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.model.TONUserFriendlyAddress
+import io.ton.walletkit.testfixtures.TestResultBody
+import io.ton.walletkit.testfixtures.TestSessionDAppInfo
+import io.ton.walletkit.testfixtures.TestSessionEntry
+import io.ton.walletkit.testfixtures.TestSessionItemsResponse
+import io.ton.walletkit.testfixtures.jsonObjectOf
 import kotlinx.coroutines.runBlocking
-import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Before
@@ -66,38 +70,56 @@ class TonConnectOperationsTest : OperationsTestBase() {
         )
     }
 
+    /** Build a minimal session entry; tests vary the fields they care about. */
+    private fun sessionEntry(
+        sessionId: String,
+        dAppName: String,
+        dAppUrl: String? = null,
+        dAppIconUrl: String? = null,
+    ): TestSessionEntry {
+        return TestSessionEntry(
+            sessionId = sessionId,
+            walletId = "-239:$TEST_ADDRESS",
+            walletAddress = TEST_ADDRESS,
+            createdAt = "",
+            lastActivityAt = "",
+            privateKey = "",
+            publicKey = "",
+            domain = "",
+            dAppInfo = TestSessionDAppInfo(
+                name = dAppName,
+                url = dAppUrl,
+                iconUrl = dAppIconUrl,
+            ),
+        )
+    }
+
     // --- listSessions tests ---
 
     @Test
     fun listSessions_parsesSessionArray() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "items",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("sessionId", TEST_SESSION_ID)
-                                put("walletId", "-239:$TEST_ADDRESS")
-                                put("walletAddress", TEST_ADDRESS)
-                                put("createdAt", "2025-01-01T00:00:00Z")
-                                put("lastActivityAt", "2025-01-02T12:00:00Z")
-                                put("privateKey", "test-private-key")
-                                put("publicKey", "test-public-key")
-                                put("domain", "example.com")
-                                put(
-                                    "dAppInfo",
-                                    JSONObject().apply {
-                                        put("name", "Test dApp")
-                                        put("url", TEST_DAPP_URL)
-                                        put("iconUrl", "https://example.com/icon.png")
-                                    },
-                                )
-                            },
-                        )
-                    },
-                )
-            },
+            jsonObjectOf(
+                TestSessionItemsResponse(
+                    items = listOf(
+                        TestSessionEntry(
+                            sessionId = TEST_SESSION_ID,
+                            walletId = "-239:$TEST_ADDRESS",
+                            walletAddress = TEST_ADDRESS,
+                            createdAt = "2025-01-01T00:00:00Z",
+                            lastActivityAt = "2025-01-02T12:00:00Z",
+                            privateKey = "test-private-key",
+                            publicKey = "test-public-key",
+                            domain = "example.com",
+                            dAppInfo = TestSessionDAppInfo(
+                                name = "Test dApp",
+                                url = TEST_DAPP_URL,
+                                iconUrl = "https://example.com/icon.png",
+                            ),
+                        ),
+                    ),
+                ),
+            ),
         )
 
         val result = tonConnectOperations.listSessions()
@@ -112,11 +134,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
     @Test
     fun listSessions_returnsEmptyListIfNoSessions() = runBlocking {
-        givenBridgeReturns(
-            JSONObject().apply {
-                put("items", JSONArray())
-            },
-        )
+        givenBridgeReturns(jsonObjectOf(TestSessionItemsResponse(items = emptyList())))
 
         val result = tonConnectOperations.listSessions()
 
@@ -126,32 +144,11 @@ class TonConnectOperationsTest : OperationsTestBase() {
     @Test
     fun listSessions_handlesNullOptionalFields() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "items",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("sessionId", TEST_SESSION_ID)
-                                put("walletId", "-239:$TEST_ADDRESS")
-                                put("walletAddress", TEST_ADDRESS)
-                                put("createdAt", "")
-                                put("lastActivityAt", "")
-                                put("privateKey", "")
-                                put("publicKey", "")
-                                put("domain", "")
-                                put(
-                                    "dAppInfo",
-                                    JSONObject().apply {
-                                        put("name", "Minimal dApp")
-                                        // No optional url/iconUrl fields
-                                    },
-                                )
-                            },
-                        )
-                    },
-                )
-            },
+            jsonObjectOf(
+                TestSessionItemsResponse(
+                    items = listOf(sessionEntry(TEST_SESSION_ID, dAppName = "Minimal dApp")),
+                ),
+            ),
         )
 
         val result = tonConnectOperations.listSessions()
@@ -165,67 +162,15 @@ class TonConnectOperationsTest : OperationsTestBase() {
     @Test
     fun listSessions_handlesMultipleSessions() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
-                put(
-                    "items",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("sessionId", "session-1")
-                                put("walletId", "-239:$TEST_ADDRESS")
-                                put("walletAddress", TEST_ADDRESS)
-                                put("createdAt", "")
-                                put("lastActivityAt", "")
-                                put("privateKey", "")
-                                put("publicKey", "")
-                                put("domain", "")
-                                put(
-                                    "dAppInfo",
-                                    JSONObject().apply {
-                                        put("name", "dApp 1")
-                                    },
-                                )
-                            },
-                        )
-                        put(
-                            JSONObject().apply {
-                                put("sessionId", "session-2")
-                                put("walletId", "-239:$TEST_ADDRESS")
-                                put("walletAddress", TEST_ADDRESS)
-                                put("createdAt", "")
-                                put("lastActivityAt", "")
-                                put("privateKey", "")
-                                put("publicKey", "")
-                                put("domain", "")
-                                put(
-                                    "dAppInfo",
-                                    JSONObject().apply {
-                                        put("name", "dApp 2")
-                                    },
-                                )
-                            },
-                        )
-                        put(
-                            JSONObject().apply {
-                                put("sessionId", "session-3")
-                                put("walletId", "-239:$TEST_ADDRESS")
-                                put("walletAddress", TEST_ADDRESS)
-                                put("createdAt", "")
-                                put("lastActivityAt", "")
-                                put("privateKey", "")
-                                put("publicKey", "")
-                                put("domain", "")
-                                put(
-                                    "dAppInfo",
-                                    JSONObject().apply {
-                                        put("name", "dApp 3")
-                                    },
-                                )
-                            },
-                        )
-                    },
-                )
-            },
+            jsonObjectOf(
+                TestSessionItemsResponse(
+                    items = listOf(
+                        sessionEntry("session-1", dAppName = "dApp 1"),
+                        sessionEntry("session-2", dAppName = "dApp 2"),
+                        sessionEntry("session-3", dAppName = "dApp 3"),
+                    ),
+                ),
+            ),
         )
 
         val result = tonConnectOperations.listSessions()
@@ -363,9 +308,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
 
     @Test
     fun handleTonConnectRequest_callsResponseCallback() = runBlocking {
-        val responseJson = JSONObject().apply {
-            put("result", "success")
-        }
+        val responseJson = jsonObjectOf(TestResultBody(result = "success"))
         givenBridgeReturns(responseJson)
 
         var callbackInvoked = false

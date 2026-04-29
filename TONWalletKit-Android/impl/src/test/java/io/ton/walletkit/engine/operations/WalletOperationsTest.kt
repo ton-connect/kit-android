@@ -30,8 +30,11 @@ import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.WalletAdapterInfo
+import io.ton.walletkit.testfixtures.TestWalletEntry
+import io.ton.walletkit.testfixtures.TestWalletInner
+import io.ton.walletkit.testfixtures.TestWalletItemsResponse
+import io.ton.walletkit.testfixtures.jsonObjectOf
 import kotlinx.coroutines.runBlocking
-import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Before
@@ -165,37 +168,28 @@ class WalletOperationsTest : OperationsTestBase() {
                     val walletId = (secondArg<Any?>() as? JSONObject)?.optString("walletId") ?: ""
                     jsonOf("value" to if (walletId.contains("wallet-1")) TEST_ADDRESS_1 else TEST_ADDRESS_2)
                 }
-                else -> JSONObject().apply {
-                    put(
-                        "items",
-                        JSONArray().apply {
-                            put(
-                                JSONObject().apply {
-                                    put("walletId", "-239:wallet-1")
-                                    put(
-                                        "wallet",
-                                        JSONObject().apply {
-                                            put("publicKey", "0xpub1")
-                                            put("version", WalletVersions.V5R1)
-                                        },
-                                    )
-                                },
-                            )
-                            put(
-                                JSONObject().apply {
-                                    put("walletId", "-3:wallet-2")
-                                    put(
-                                        "wallet",
-                                        JSONObject().apply {
-                                            put("publicKey", "pub2") // no 0x prefix
-                                            put("version", WalletVersions.V4R2)
-                                        },
-                                    )
-                                },
-                            )
-                        },
-                    )
-                }
+                else -> jsonObjectOf(
+                    TestWalletItemsResponse(
+                        items = listOf(
+                            TestWalletEntry(
+                                walletId = "-239:wallet-1",
+                                wallet = TestWalletInner(
+                                    publicKey = "0xpub1",
+                                    version = WalletVersions.V5R1,
+                                ),
+                            ),
+                            // pub2 deliberately ships without the 0x prefix to exercise the
+                            // hex-prefix stripping fallback in WalletOperations.
+                            TestWalletEntry(
+                                walletId = "-3:wallet-2",
+                                wallet = TestWalletInner(
+                                    publicKey = "pub2",
+                                    version = WalletVersions.V4R2,
+                                ),
+                            ),
+                        ),
+                    ),
+                )
             }
         }
 
@@ -221,24 +215,16 @@ class WalletOperationsTest : OperationsTestBase() {
             capturedParams = secondArg()
             when (method) {
                 "getWalletAddress" -> jsonOf("value" to TEST_ADDRESS_1)
-                else -> JSONObject().apply {
-                    put(
-                        "items",
-                        JSONArray().apply {
-                            put(
-                                JSONObject().apply {
-                                    put("walletId", "-239:wallet-1")
-                                    put(
-                                        "wallet",
-                                        JSONObject().apply {
-                                            put("publicKey", "directKey")
-                                        },
-                                    )
-                                },
-                            )
-                        },
-                    )
-                }
+                else -> jsonObjectOf(
+                    TestWalletItemsResponse(
+                        items = listOf(
+                            TestWalletEntry(
+                                walletId = "-239:wallet-1",
+                                wallet = TestWalletInner(publicKey = "directKey"),
+                            ),
+                        ),
+                    ),
+                )
             }
         }
 
@@ -266,24 +252,17 @@ class WalletOperationsTest : OperationsTestBase() {
             capturedParams = secondArg()
             when (method) {
                 "getWalletAddress" -> jsonOf("value" to TEST_ADDRESS_1)
-                else -> JSONObject().apply {
-                    put(
-                        "items",
-                        JSONArray().apply {
-                            put(
-                                JSONObject().apply {
-                                    put("walletId", "-239:wallet-1")
-                                    put(
-                                        "wallet",
-                                        JSONObject().apply {
-                                            // No publicKey - should be null
-                                        },
-                                    )
-                                },
-                            )
-                        },
-                    )
-                }
+                else -> jsonObjectOf(
+                    TestWalletItemsResponse(
+                        items = listOf(
+                            // No publicKey on inner wallet — exercises the null-publicKey branch.
+                            TestWalletEntry(
+                                walletId = "-239:wallet-1",
+                                wallet = TestWalletInner(),
+                            ),
+                        ),
+                    ),
+                )
             }
         }
 
@@ -305,12 +284,14 @@ class WalletOperationsTest : OperationsTestBase() {
             capturedParams = secondArg()
             when (method) {
                 "getWalletAddress" -> jsonOf("value" to TEST_ADDRESS_1)
-                else -> jsonOf(
-                    "walletId" to "-239:$TEST_ADDRESS_1",
-                    "wallet" to JSONObject().apply {
-                        put("publicKey", "0xsinglekey")
-                        put("version", WalletVersions.V5R1)
-                    },
+                else -> jsonObjectOf(
+                    TestWalletEntry(
+                        walletId = "-239:$TEST_ADDRESS_1",
+                        wallet = TestWalletInner(
+                            publicKey = "0xsinglekey",
+                            version = WalletVersions.V5R1,
+                        ),
+                    ),
                 )
             }
         }
@@ -341,12 +322,14 @@ class WalletOperationsTest : OperationsTestBase() {
             capturedParams = secondArg()
             when (method) {
                 "getWalletAddress" -> jsonOf("value" to "") // Empty address
-                else -> jsonOf(
-                    "walletId" to "-239:missing",
-                    "wallet" to JSONObject().apply {
-                        put("publicKey", "0xkey")
-                        put("version", WalletVersions.V4R2)
-                    },
+                else -> jsonObjectOf(
+                    TestWalletEntry(
+                        walletId = "-239:missing",
+                        wallet = TestWalletInner(
+                            publicKey = "0xkey",
+                            version = WalletVersions.V4R2,
+                        ),
+                    ),
                 )
             }
         }
@@ -438,12 +421,14 @@ class WalletOperationsTest : OperationsTestBase() {
             capturedParams = secondArg()
             when (method) {
                 "getWalletAddress" -> jsonOf("value" to TEST_ADDRESS_1)
-                else -> jsonOf(
-                    "walletId" to "-239:$TEST_ADDRESS_1",
-                    "wallet" to JSONObject().apply {
-                        put("publicKey", "0xnewkey")
-                        put("version", WalletVersions.V5R1)
-                    },
+                else -> jsonObjectOf(
+                    TestWalletEntry(
+                        walletId = "-239:$TEST_ADDRESS_1",
+                        wallet = TestWalletInner(
+                            publicKey = "0xnewkey",
+                            version = WalletVersions.V5R1,
+                        ),
+                    ),
                 )
             }
         }
@@ -469,9 +454,11 @@ class WalletOperationsTest : OperationsTestBase() {
             capturedParams = secondArg()
             when (method) {
                 "getWalletAddress" -> jsonOf("value" to TEST_ADDRESS_1)
-                else -> jsonOf(
-                    "walletId" to "-239:$TEST_ADDRESS_1",
-                    "wallet" to JSONObject(),
+                else -> jsonObjectOf(
+                    TestWalletEntry(
+                        walletId = "-239:$TEST_ADDRESS_1",
+                        wallet = TestWalletInner(),
+                    ),
                 )
             }
         }

@@ -32,6 +32,7 @@ import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
 import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.config.TONWalletKitConfiguration
+import io.ton.walletkit.core.streaming.StartStreamingProviderRequest
 import io.ton.walletkit.core.streaming.TONStreamingManager
 import io.ton.walletkit.core.streaming.TONStreamingProviderImpl
 import io.ton.walletkit.engine.WalletKitEngine
@@ -53,7 +54,7 @@ import io.ton.walletkit.swap.dedust.TONDeDustSwapProviderIdentifier
 import io.ton.walletkit.swap.omniston.TONOmnistonSwapProvider
 import io.ton.walletkit.swap.omniston.TONOmnistonSwapProviderIdentifier
 import kotlinx.serialization.json.Json
-import org.json.JSONObject
+import kotlinx.serialization.json.encodeToJsonElement
 
 /**
  * Main entry point for TON Wallet Kit SDK.
@@ -142,8 +143,7 @@ internal class TONWalletKit private constructor(
     @Volatile
     private var isDestroyed = false
 
-    @Suppress("PropertyName")
-    private val _stakingManager: ITONStakingManager by lazy { TONStakingManager(engine) }
+    private val stakingManagerImpl: ITONStakingManager by lazy { TONStakingManager(engine) }
 
     /**
      * Add an event handler to receive SDK events.
@@ -175,7 +175,7 @@ internal class TONWalletKit private constructor(
         config: io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig,
     ): io.ton.walletkit.streaming.ITONStreamingProvider {
         checkNotDestroyed()
-        val args = JSONObject().apply { put("config", json.toJSONObject(config)) }
+        val args = json.toJSONObject(StartStreamingProviderRequest(config = json.encodeToJsonElement(config)))
         val result = engine.callBridgeMethod(BridgeMethodConstants.METHOD_CREATE_TON_CENTER_STREAMING_PROVIDER, args)
         return TONStreamingProviderImpl(engine = engine, network = config.network, id = result.getString("providerId"))
     }
@@ -184,7 +184,7 @@ internal class TONWalletKit private constructor(
         config: io.ton.walletkit.api.generated.TONTonApiStreamingProviderConfig,
     ): io.ton.walletkit.streaming.ITONStreamingProvider {
         checkNotDestroyed()
-        val args = JSONObject().apply { put("config", json.toJSONObject(config)) }
+        val args = json.toJSONObject(StartStreamingProviderRequest(config = json.encodeToJsonElement(config)))
         val result = engine.callBridgeMethod(BridgeMethodConstants.METHOD_CREATE_TON_API_STREAMING_PROVIDER, args)
         return TONStreamingProviderImpl(engine = engine, network = config.network, id = result.getString("providerId"))
     }
@@ -467,7 +467,7 @@ internal class TONWalletKit private constructor(
 
     override fun staking(): ITONStakingManager {
         checkNotDestroyed()
-        return _stakingManager
+        return stakingManagerImpl
     }
 
     override suspend fun tonStakersStakingProvider(

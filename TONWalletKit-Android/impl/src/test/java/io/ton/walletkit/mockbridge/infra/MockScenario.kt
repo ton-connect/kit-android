@@ -35,6 +35,8 @@ import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSignerInfo
+import io.ton.walletkit.testfixtures.TestSuccessFlag
+import io.ton.walletkit.testfixtures.jsonObjectOf
 import org.json.JSONObject
 
 /**
@@ -134,7 +136,7 @@ interface MockScenario {
      * This is a fallback for methods not explicitly handled above.
      */
     fun handleRpcCall(method: String, params: JSONObject?): JSONObject {
-        return JSONObject().put("success", true)
+        return jsonObjectOf(TestSuccessFlag(success = true))
     }
 }
 
