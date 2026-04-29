@@ -45,12 +45,35 @@ internal val testFixtureJson: Json = Json {
     ignoreUnknownKeys = true
     isLenient = true
     encodeDefaults = true
-    explicitNulls = true
+    explicitNulls = false
 }
 
 /** Convert any `@Serializable` value to a [JSONObject] for test fixture wiring. */
 internal inline fun <reified T> jsonObjectOf(value: T): JSONObject {
     return JSONObject(testFixtureJson.encodeToString(value))
+}
+
+/**
+ * Sibling [Json] that emits explicit JSON `null` for nullable fields with `null` value.
+ * The default [testFixtureJson] omits them — production code distinguishes "key absent"
+ * from "key present with JSON null", and a few tests (e.g. the
+ * `it != "null"` filters in CryptoOperations.sign) specifically need to exercise the
+ * latter branch.
+ */
+internal val testFixtureJsonExplicitNulls: Json = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+    encodeDefaults = true
+    explicitNulls = true
+}
+
+/**
+ * Like [jsonObjectOf] but emits explicit JSON `null` for nullable fields. Use this only
+ * when the test under verification cares about the difference between
+ * `{"key": null}` and `{}` on the wire.
+ */
+internal inline fun <reified T> jsonObjectOfExplicitNulls(value: T): JSONObject {
+    return JSONObject(testFixtureJsonExplicitNulls.encodeToString(value))
 }
 
 // ─── Bridge envelope shapes ───────────────────────────────────────────────────

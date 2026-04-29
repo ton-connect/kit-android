@@ -29,6 +29,7 @@ import io.ton.walletkit.testfixtures.TestSecretKeyOnly
 import io.ton.walletkit.testfixtures.TestSignatureBody
 import io.ton.walletkit.testfixtures.TestStringItemsBody
 import io.ton.walletkit.testfixtures.jsonObjectOf
+import io.ton.walletkit.testfixtures.jsonObjectOfExplicitNulls
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import org.json.JSONObject
@@ -220,7 +221,7 @@ class CryptoOperationsTest : OperationsTestBase() {
         runBlocking {
             // When bridge returns result with "signature" key present but null value
             // The takeIf { it != "null" } check should catch this
-            givenBridgeReturns(jsonObjectOf(TestNullableSignatureBody(signature = null)))
+            givenBridgeReturns(jsonObjectOfExplicitNulls(TestNullableSignatureBody(signature = null)))
 
             assertThrows(WalletKitBridgeException::class.java) {
                 runBlocking {
