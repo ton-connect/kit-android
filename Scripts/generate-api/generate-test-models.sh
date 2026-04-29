@@ -48,7 +48,7 @@ echo "📦 Installing walletkit deps (if needed)..."
 pnpm install --silent
 
 OUTPUT_DIR="${SCRIPT_DIR}/generated/test-openapi"
-CONFIG_FILE="${SCRIPT_DIR}/generate-test-models-config.json"
+CONFIG_FILE="${SCRIPT_DIR}/generate-api-models-config.json"
 TEMPLATES_DIR="${SCRIPT_DIR}/templates"
 DEST_DIR="${PROJECT_ROOT}/TONWalletKit-Android/api/src/test/java/io/ton/walletkit/api/generatedtest"
 
@@ -71,6 +71,10 @@ openapi-generator generate \
     -o "$OUTPUT_DIR" \
     -c "$CONFIG_FILE" \
     -t "$TEMPLATES_DIR" \
+    --package-name "io.ton.walletkit.api.generatedtest" \
+    --model-package "io.ton.walletkit.api.generatedtest" \
+    --additional-properties=modelNamePrefix= \
+    --type-mappings number=kotlin.Int \
     --skip-validate-spec \
     --global-property models,modelDocs=false,modelTests=false,apis=false,apiDocs=false,apiTests=false,supportingFiles=false
 
