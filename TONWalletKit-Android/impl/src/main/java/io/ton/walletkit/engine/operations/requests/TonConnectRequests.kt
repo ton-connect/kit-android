@@ -78,7 +78,7 @@ internal data class ApproveTransactionRequest(
 internal data class RejectTransactionRequest(
     @Contextual
     val event: TONSendTransactionRequestEvent,
-    val reason: kotlinx.serialization.json.JsonElement? = null,
+    val reason: JsonElement? = null,
 )
 
 @Serializable

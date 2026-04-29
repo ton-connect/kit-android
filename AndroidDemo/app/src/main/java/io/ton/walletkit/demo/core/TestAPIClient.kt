@@ -39,6 +39,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 /**
  * Test implementation of TONAPIClient for demonstration purposes.
@@ -125,7 +127,7 @@ class TestAPIClient(
         Log.d(tag, "getMasterchainInfo called on network: ${network.chainId}")
         val baseUrl = if (network == TONNetwork.MAINNET) "https://toncenter.com" else "https://testnet.toncenter.com"
         return withContext(Dispatchers.IO) {
-            val conn = java.net.URL("$baseUrl/api/v3/masterchainInfo").openConnection() as java.net.HttpURLConnection
+            val conn = URL("$baseUrl/api/v3/masterchainInfo").openConnection() as HttpURLConnection
             conn.connectTimeout = 10_000
             conn.readTimeout = 10_000
             try {
@@ -192,7 +194,7 @@ class ToncenterAPIClient(
         Log.d(tag, "💰 [Toncenter] getBalance on ${network.chainId}")
         val baseUrl = if (network == TONNetwork.MAINNET) "https://toncenter.com" else "https://testnet.toncenter.com"
         return withContext(Dispatchers.IO) {
-            val conn = java.net.URL("$baseUrl/api/v3/addressInformation?address=${address.value}").openConnection() as java.net.HttpURLConnection
+            val conn = URL("$baseUrl/api/v3/addressInformation?address=${address.value}").openConnection() as HttpURLConnection
             conn.connectTimeout = 10_000
             conn.readTimeout = 10_000
             conn.setRequestProperty("Accept", "application/json")
@@ -209,7 +211,7 @@ class ToncenterAPIClient(
         Log.d(tag, "🔗 [Toncenter] getMasterchainInfo on ${network.chainId}")
         val baseUrl = if (network == TONNetwork.MAINNET) "https://toncenter.com" else "https://testnet.toncenter.com"
         return withContext(Dispatchers.IO) {
-            val conn = java.net.URL("$baseUrl/api/v3/masterchainInfo").openConnection() as java.net.HttpURLConnection
+            val conn = URL("$baseUrl/api/v3/masterchainInfo").openConnection() as HttpURLConnection
             conn.connectTimeout = 10_000
             conn.readTimeout = 10_000
             conn.setRequestProperty("Accept", "application/json")
@@ -279,7 +281,7 @@ class TonAPIClient(
             else -> "https://testnet.tonapi.io"
         }
         return withContext(Dispatchers.IO) {
-            val conn = java.net.URL("$baseUrl/v2/blockchain/masterchain-head").openConnection() as java.net.HttpURLConnection
+            val conn = URL("$baseUrl/v2/blockchain/masterchain-head").openConnection() as HttpURLConnection
             conn.connectTimeout = 10_000
             conn.readTimeout = 10_000
             if (apiKey.isNotEmpty()) conn.setRequestProperty("Authorization", "Bearer $apiKey")

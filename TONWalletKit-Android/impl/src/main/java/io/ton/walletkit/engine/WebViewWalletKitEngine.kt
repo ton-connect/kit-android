@@ -70,13 +70,21 @@ import io.ton.walletkit.engine.operations.WalletOperations
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.EventRouter
+import io.ton.walletkit.engine.state.KotlinStakingProviderManager
 import io.ton.walletkit.engine.state.KotlinStreamingProviderManager
+import io.ton.walletkit.engine.state.KotlinSwapProviderManager
+import io.ton.walletkit.engine.state.SignerManager
+import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.NetworkConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
+import io.ton.walletkit.model.TONHex
+import io.ton.walletkit.model.TONWalletAdapter
+import io.ton.walletkit.model.WalletSigner
+import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.session.TONConnectSession
 import io.ton.walletkit.session.TONConnectSessionManager
@@ -132,14 +140,14 @@ internal class WebViewWalletKitEngine private constructor(
     @Volatile private var tonApiKey: String? = null
 
     private val adapterManager = AdapterManager()
-    private val signerManager = io.ton.walletkit.engine.state.SignerManager()
+    private val signerManager = SignerManager()
     override val kotlinStreamingProviderManager: KotlinStreamingProviderManager
     private val eventRouter = EventRouter()
     private val storageManager = StorageManager(storageAdapter) { persistentStorageEnabled }
     override val kotlinSwapProviderManager =
-        io.ton.walletkit.engine.state.KotlinSwapProviderManager(json)
+        KotlinSwapProviderManager(json)
     override val kotlinStakingProviderManager =
-        io.ton.walletkit.engine.state.KotlinStakingProviderManager(json)
+        KotlinStakingProviderManager(json)
 
     private val webViewManager: WebViewManager
     private val rpcClient: BridgeRpcClient
@@ -318,30 +326,30 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun createTonMnemonic(wordCount: Int): List<String> =
         cryptoOperations.createTonMnemonic(wordCount)
 
-    override suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount =
+    override suspend fun addWallet(adapter: TONWalletAdapter): WalletAccount =
         walletOperations.addWallet(adapter)
 
     override suspend fun createSignerFromMnemonic(
         mnemonic: List<String>,
         mnemonicType: String,
-    ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType)
+    ): WalletSignerInfo = walletOperations.createSignerFromMnemonic(mnemonic, mnemonicType)
 
     override suspend fun createSignerFromSecretKey(
         secretKeyHex: String,
-    ): io.ton.walletkit.model.WalletSignerInfo = walletOperations.createSignerFromSecretKey(secretKeyHex)
+    ): WalletSignerInfo = walletOperations.createSignerFromSecretKey(secretKeyHex)
 
-    override suspend fun createSignerFromCustom(signer: io.ton.walletkit.model.WalletSigner): io.ton.walletkit.model.WalletSignerInfo =
+    override suspend fun createSignerFromCustom(signer: WalletSigner): WalletSignerInfo =
         walletOperations.createSignerFromCustom(signer)
 
     override suspend fun createAdapter(
         signerId: String,
-        publicKey: io.ton.walletkit.model.TONHex,
+        publicKey: TONHex,
         version: String,
         network: TONNetwork?,
         workchain: Int,
         walletId: Long,
         domain: TONSignatureDomain?,
-    ): io.ton.walletkit.model.TONWalletAdapter = walletOperations.createAdapter(signerId, publicKey, version, network, workchain, walletId, domain)
+    ): TONWalletAdapter = walletOperations.createAdapter(signerId, publicKey, version, network, workchain, walletId, domain)
 
     override suspend fun getWallets(): List<WalletAccount> = walletOperations.getWallets()
 
@@ -490,7 +498,7 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun registerKotlinSwapProvider(providerId: String) {
         callBridgeMethod(
-            io.ton.walletkit.internal.constants.BridgeMethodConstants.METHOD_REGISTER_KOTLIN_SWAP_PROVIDER,
+            BridgeMethodConstants.METHOD_REGISTER_KOTLIN_SWAP_PROVIDER,
             JSONObject().apply { put("providerId", providerId) },
         )
     }
@@ -518,7 +526,7 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun registerKotlinStakingProvider(providerId: String, supportedUnstakeModesJson: String) {
         callBridgeMethod(
-            io.ton.walletkit.internal.constants.BridgeMethodConstants.METHOD_REGISTER_KOTLIN_STAKING_PROVIDER,
+            BridgeMethodConstants.METHOD_REGISTER_KOTLIN_STAKING_PROVIDER,
             JSONObject().apply {
                 put("providerId", providerId)
                 put("supportedUnstakeModes", JSONArray(supportedUnstakeModesJson))

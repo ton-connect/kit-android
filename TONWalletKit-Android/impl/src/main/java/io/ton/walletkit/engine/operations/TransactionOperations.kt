@@ -36,6 +36,7 @@ import io.ton.walletkit.internal.constants.ResponseConstants
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import org.json.JSONException
 
 /**
  * Groups TON transaction related bridge operations including creation, preview,
@@ -112,7 +113,7 @@ internal class TransactionOperations(
         return when {
             result.has(ResponseConstants.KEY_BOC) -> result.getString(ResponseConstants.KEY_BOC)
             result.has(ResponseConstants.KEY_SIGNED_BOC) -> result.getString(ResponseConstants.KEY_SIGNED_BOC)
-            else -> throw org.json.JSONException("No value for boc or signedBoc")
+            else -> throw JSONException("No value for boc or signedBoc")
         }
     }
 

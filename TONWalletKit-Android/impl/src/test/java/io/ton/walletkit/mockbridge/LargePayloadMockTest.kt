@@ -22,10 +22,15 @@
 package io.ton.walletkit.mockbridge
 
 import io.ton.walletkit.api.generated.TONNFT
+import io.ton.walletkit.api.generated.TONNFTsRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
+import io.ton.walletkit.api.generated.TONPagination
+import io.ton.walletkit.api.generated.TONTokenImage
+import io.ton.walletkit.api.generated.TONTokenInfo
 import io.ton.walletkit.mockbridge.infra.DefaultMockScenario
 import io.ton.walletkit.mockbridge.infra.MockBridgeTestBase
 import io.ton.walletkit.mockbridge.infra.MockScenario
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Test
@@ -59,18 +64,18 @@ class LargePayloadMockTest : MockBridgeTestBase() {
                 val actualIndex = offset + i
                 nfts.add(
                     TONNFT(
-                        address = io.ton.walletkit.model.TONUserFriendlyAddress("EQD${actualIndex.toString().padStart(46, '0')}"),
+                        address = TONUserFriendlyAddress("EQD${actualIndex.toString().padStart(46, '0')}"),
                         index = actualIndex.toString(),
-                        info = io.ton.walletkit.api.generated.TONTokenInfo(
+                        info = TONTokenInfo(
                             name = "NFT Item #$actualIndex",
                             description = "This is a test NFT item number $actualIndex with some metadata that makes the payload larger.",
-                            image = io.ton.walletkit.api.generated.TONTokenImage(
+                            image = TONTokenImage(
                                 url = "https://example.com/nft/$actualIndex.png",
                             ),
                         ),
                         isInited = true,
                         isOnSale = actualIndex % 10 == 0,
-                        ownerAddress = io.ton.walletkit.model.TONUserFriendlyAddress("EQOwner${actualIndex.toString().padStart(40, '0')}"),
+                        ownerAddress = TONUserFriendlyAddress("EQOwner${actualIndex.toString().padStart(40, '0')}"),
                     ),
                 )
             }
@@ -90,8 +95,8 @@ class LargePayloadMockTest : MockBridgeTestBase() {
 
         // Mock returns 150 NFTs (large payload)
         val response = wallet.nfts(
-            io.ton.walletkit.api.generated.TONNFTsRequest(
-                pagination = io.ton.walletkit.api.generated.TONPagination(limit = 150),
+            TONNFTsRequest(
+                pagination = TONPagination(limit = 150),
             ),
         )
 
@@ -117,8 +122,8 @@ class LargePayloadMockTest : MockBridgeTestBase() {
         var totalNfts = 0
         repeat(3) { iteration ->
             val response = wallet.nfts(
-                io.ton.walletkit.api.generated.TONNFTsRequest(
-                    pagination = io.ton.walletkit.api.generated.TONPagination(
+                TONNFTsRequest(
+                    pagination = TONPagination(
                         limit = 100,
                         offset = iteration * 100,
                     ),

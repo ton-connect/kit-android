@@ -22,7 +22,11 @@
 package io.ton.walletkit.engine.infrastructure
 
 import android.os.Handler
+import android.webkit.WebView
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.generated.TONPreparedSignData
+import io.ton.walletkit.api.generated.TONProofMessage
+import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.core.streaming.StreamingEvent
 import io.ton.walletkit.engine.parsing.EventParser
@@ -50,6 +54,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
+import java.util.UUID
 
 /**
  * Routes messages coming from the JavaScript bridge to the appropriate engine components.
@@ -203,7 +208,7 @@ internal class MessageDispatcher(
                 val fakeSignature = params.optBoolean("fakeSignature", false)
                 val adapter = adapterManager.getAdapter(adapterId)
                     ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONTransactionRequest>(inputJson)
+                val request = json.decodeFromString<TONTransactionRequest>(inputJson)
                 adapter.signedSendTransaction(request, fakeSignature).value
             }
 
@@ -213,7 +218,7 @@ internal class MessageDispatcher(
                 val fakeSignature = params.optBoolean("fakeSignature", false)
                 val adapter = adapterManager.getAdapter(adapterId)
                     ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONPreparedSignData>(inputJson)
+                val request = json.decodeFromString<TONPreparedSignData>(inputJson)
                 adapter.signedSignData(request, fakeSignature).value
             }
 
@@ -223,7 +228,7 @@ internal class MessageDispatcher(
                 val fakeSignature = params.optBoolean("fakeSignature", false)
                 val adapter = adapterManager.getAdapter(adapterId)
                     ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                val request = json.decodeFromString<io.ton.walletkit.api.generated.TONProofMessage>(inputJson)
+                val request = json.decodeFromString<TONProofMessage>(inputJson)
                 adapter.signedTonProof(request, fakeSignature).value
             }
 
@@ -384,7 +389,7 @@ internal class MessageDispatcher(
     private fun handleEvent(event: JSONObject) {
         val type = event.optString(JsonConstants.KEY_TYPE, EventTypeConstants.EVENT_TYPE_UNKNOWN)
         val data = event.optJSONObject(ResponseConstants.KEY_DATA) ?: JSONObject()
-        val eventId = event.optString(JsonConstants.KEY_ID, java.util.UUID.randomUUID().toString())
+        val eventId = event.optString(JsonConstants.KEY_ID, UUID.randomUUID().toString())
 
         // Streaming events are routed through the dedicated streaming channel
         val streamingEvent = eventParser.parseStreamingEvent(type, data)
@@ -535,6 +540,6 @@ internal class MessageDispatcher(
 
 private const val TAG_TON_CONNECT_INJECTOR = "tonconnect_injector"
 
-private fun android.webkit.WebView.getTonConnectInjector(): TonConnectInjector? {
+private fun WebView.getTonConnectInjector(): TonConnectInjector? {
     return getTag(TAG_TON_CONNECT_INJECTOR.hashCode()) as? TonConnectInjector
 }

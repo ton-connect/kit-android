@@ -22,7 +22,6 @@
 package io.ton.walletkit.demo.presentation.state
 
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
-import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionDetailUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi

@@ -175,7 +175,7 @@ internal class InitializationManager(
                 // Pass all configured networks (matching iOS bridge format: networkConfigurations)
                 put(
                     "networkConfigurations",
-                    org.json.JSONArray().apply {
+                    JSONArray().apply {
                         for (networkConfig in configuration.networkConfigurations) {
                             put(
                                 JSONObject().apply {

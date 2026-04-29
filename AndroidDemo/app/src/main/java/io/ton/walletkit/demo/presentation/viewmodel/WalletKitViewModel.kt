@@ -29,15 +29,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONSignData
+import io.ton.walletkit.api.generated.TONSignDataPreview
 import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.api.generated.TONStreamingUpdateStatus
 import io.ton.walletkit.api.isTetra
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.core.RequestErrorTracker
+import io.ton.walletkit.demo.core.TONWalletKitHelper
 import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.WalletRecord
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
@@ -55,6 +59,7 @@ import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.util.TonFormatter
 import io.ton.walletkit.demo.presentation.util.TransactionDetailMapper
 import io.ton.walletkit.event.TONWalletKitEvent
+import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
@@ -73,6 +78,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.math.BigInteger
 import javax.inject.Inject
 import kotlin.collections.ArrayDeque
 import kotlin.collections.firstOrNull
@@ -101,7 +108,7 @@ class WalletKitViewModel @Inject constructor(
     private var streamingJettonsJob: Job? = null
     private var currentStreamingWalletAddress: String? = null
     private var currentStreamingNetwork: TONNetwork? = null
-    private var walletKit: io.ton.walletkit.ITONWalletKit? = null
+    private var walletKit: ITONWalletKit? = null
 
     private val lifecycleManager = WalletLifecycleManager(
         storage = storage,
@@ -176,9 +183,9 @@ class WalletKitViewModel @Inject constructor(
     /**
      * Get the shared ITONWalletKit instance used across the demo.
      */
-    private suspend fun getKit(): io.ton.walletkit.ITONWalletKit {
+    private suspend fun getKit(): ITONWalletKit {
         walletKit?.let { return it }
-        val kit = io.ton.walletkit.demo.core.TONWalletKitHelper.mainnet(application)
+        val kit = TONWalletKitHelper.mainnet(application)
         walletKit = kit
         return kit
     }
@@ -1272,7 +1279,7 @@ class WalletKitViewModel @Inject constructor(
                 )
             },
             requestedItems = preview.permissions.mapNotNull { it.name },
-            raw = org.json.JSONObject(), // Not needed with this API
+            raw = JSONObject(), // Not needed with this API
             connectRequest = request, // Store for direct approve/reject
         )
 
@@ -1302,7 +1309,7 @@ class WalletKitViewModel @Inject constructor(
                 try {
                     val balance = wallet.balance()
                     val totalAmount = txRequest.messages.sumOf { msg ->
-                        msg.amount.toBigIntegerOrNull() ?: java.math.BigInteger.ZERO
+                        msg.amount.toBigIntegerOrNull() ?: BigInteger.ZERO
                     }
                     Log.d(LOG_TAG, "Balance check: balance=${balance.value}, totalAmount=$totalAmount")
 
@@ -1350,7 +1357,7 @@ class WalletKitViewModel @Inject constructor(
                 validUntil = txRequest.validUntil?.toLong(),
                 messages = messages,
                 preview = null,
-                raw = org.json.JSONObject(),
+                raw = JSONObject(),
                 transactionRequest = request,
             )
 
@@ -1379,7 +1386,7 @@ class WalletKitViewModel @Inject constructor(
             payloadType = payloadType,
             payloadContent = payloadContent,
             preview = previewContent,
-            raw = org.json.JSONObject(),
+            raw = JSONObject(),
             signDataRequest = request,
         )
 
@@ -1388,16 +1395,16 @@ class WalletKitViewModel @Inject constructor(
         eventLogger.log(R.string.wallet_event_sign_data_request, eventDAppName)
     }
 
-    private fun extractSignDataPayloadContent(data: io.ton.walletkit.api.generated.TONSignData): String = when (data) {
-        is io.ton.walletkit.api.generated.TONSignData.Text -> data.value.content
-        is io.ton.walletkit.api.generated.TONSignData.Binary -> data.value.content.value
-        is io.ton.walletkit.api.generated.TONSignData.Cell -> data.value.content.value
+    private fun extractSignDataPayloadContent(data: TONSignData): String = when (data) {
+        is TONSignData.Text -> data.value.content
+        is TONSignData.Binary -> data.value.content.value
+        is TONSignData.Cell -> data.value.content.value
     }
 
-    private fun extractSignDataPreviewContent(data: io.ton.walletkit.api.generated.TONSignDataPreview): String? = when (data) {
-        is io.ton.walletkit.api.generated.TONSignDataPreview.Text -> data.value.content
-        is io.ton.walletkit.api.generated.TONSignDataPreview.Binary -> data.value.content.value
-        is io.ton.walletkit.api.generated.TONSignDataPreview.Cell -> data.value.parsed?.toString() ?: data.value.content.value
+    private fun extractSignDataPreviewContent(data: TONSignDataPreview): String? = when (data) {
+        is TONSignDataPreview.Text -> data.value.content
+        is TONSignDataPreview.Binary -> data.value.content.value
+        is TONSignDataPreview.Cell -> data.value.parsed?.toString() ?: data.value.content.value
     }
 
     override fun onCleared() {
@@ -1620,9 +1627,9 @@ class WalletKitViewModel @Inject constructor(
         // Create and return custom signer backed by the provided mnemonic
         // so the demo app can satisfy TonProof/transaction signatures.
         return object : WalletSigner {
-            override fun publicKey(): io.ton.walletkit.model.TONHex = io.ton.walletkit.model.TONHex(publicKey)
+            override fun publicKey(): TONHex = TONHex(publicKey)
 
-            override suspend fun sign(data: ByteArray): io.ton.walletkit.model.TONHex {
+            override suspend fun sign(data: ByteArray): TONHex {
                 Log.d(
                     LOG_TAG,
                     "Demo signer signing ${data.size} bytes for wallet=$walletName (used for TonProof/transactions)",
@@ -1632,7 +1639,7 @@ class WalletKitViewModel @Inject constructor(
                 val keyPair = kit.mnemonicToKeyPair(signerMnemonic, "ton")
                 // Sign the data with the secret key
                 val signature = kit.sign(data, keyPair.secretKey)
-                return io.ton.walletkit.model.TONHex.fromData(signature)
+                return TONHex.fromData(signature)
             }
         }
     }

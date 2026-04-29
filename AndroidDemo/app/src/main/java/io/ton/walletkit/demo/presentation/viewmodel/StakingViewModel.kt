@@ -35,6 +35,7 @@ import io.ton.walletkit.api.generated.TONStakingQuote
 import io.ton.walletkit.api.generated.TONStakingQuoteDirection
 import io.ton.walletkit.api.generated.TONStakingQuoteParams
 import io.ton.walletkit.api.generated.TONUnstakeMode
+import io.ton.walletkit.demo.BuildConfig
 import io.ton.walletkit.demo.core.DemoApiConfig
 import io.ton.walletkit.staking.ITONStakingManager
 import kotlinx.coroutines.Job
@@ -262,7 +263,7 @@ class StakingViewModel(
             val message =
                 if (DemoApiConfig.toncenterApiKey.isEmpty()) {
                     "Configure walletkitToncenterApiKey in local.properties, then rebuild the demo app."
-                } else if (io.ton.walletkit.demo.BuildConfig.TONAPI_API_KEY.trim().isNotEmpty() && DemoApiConfig.tonApiKey.isEmpty()) {
+                } else if (BuildConfig.TONAPI_API_KEY.trim().isNotEmpty() && DemoApiConfig.tonApiKey.isEmpty()) {
                     "walletkitTonApiKey is a placeholder value. Set a real TonAPI key or leave it blank, then rebuild the demo app."
                 } else {
                     e.message ?: "Failed to load staking data"

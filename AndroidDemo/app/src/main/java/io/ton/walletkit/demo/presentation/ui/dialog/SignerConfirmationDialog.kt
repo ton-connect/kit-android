@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
+import org.json.JSONObject
 
 @Composable
 fun SignerConfirmationDialog(
@@ -77,7 +78,7 @@ private fun SignerConfirmationDialogPreview() {
             payloadType = "Cell",
             payloadContent = "te6ccg...",
             preview = "Preview data",
-            raw = org.json.JSONObject(),
+            raw = JSONObject(),
         ),
         onConfirm = {},
         onCancel = {},
