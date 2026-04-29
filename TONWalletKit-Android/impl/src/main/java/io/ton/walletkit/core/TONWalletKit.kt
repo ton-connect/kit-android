@@ -35,6 +35,7 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.streaming.TONStreamingManager
 import io.ton.walletkit.core.streaming.TONStreamingProviderImpl
 import io.ton.walletkit.engine.WalletKitEngine
+import io.ton.walletkit.engine.WebViewWalletKitEngine
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.listener.TONBridgeEventsHandler
@@ -124,13 +125,14 @@ internal class TONWalletKit private constructor(
             context: Context,
             configuration: TONWalletKitConfiguration,
         ): ITONWalletKit {
-            // Create engine with configuration using the WebView implementation
-            val newEngine = WalletKitEngineFactory.create(
-                kind = WalletKitEngineKind.WEBVIEW,
+            // Network-based caching prevents multiple WebView instances per network —
+            // multiple WebViews with the same JS bridge interface name conflict, and
+            // mainnet / testnet need their own engine. [init] is idempotent.
+            val newEngine = WebViewWalletKitEngine.getOrCreate(
                 context = context,
                 configuration = configuration,
                 eventsHandler = null,
-            )
+            ).apply { init(configuration) }
 
             return TONWalletKit(newEngine)
         }

@@ -50,7 +50,6 @@ import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.config.TONWalletKitConfiguration
-import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.core.streaming.StreamingEvent
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.engine.state.KotlinStreamingProviderManager
@@ -65,8 +64,7 @@ import kotlinx.serialization.json.JsonElement
 
 /**
  * Abstraction over a runtime that can execute the WalletKit JavaScript bundle and expose
- * the wallet APIs to Android callers. Implementations may back the runtime with a WebView or
- * an embedded JavaScript engine such as QuickJS.
+ * the wallet APIs to Android callers. The runtime is backed by an Android WebView.
  *
  * **Auto-Initialization:**
  * All methods that require WalletKit initialization will automatically initialize the SDK
@@ -80,7 +78,6 @@ import kotlinx.serialization.json.JsonElement
  * @suppress Internal engine abstraction. Use TONWalletKit and TONWallet public API instead.
  */
 internal interface WalletKitEngine : RequestHandler {
-    val kind: WalletKitEngineKind
     val streamingEvents: SharedFlow<StreamingEvent>
     val kotlinStreamingProviderManager: KotlinStreamingProviderManager
 

@@ -30,7 +30,6 @@ import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.TONWalletKit
-import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
@@ -103,7 +102,6 @@ internal object TestWalletKitFactory {
         val mockEngine = mockk<WalletKitEngine>(relaxed = true)
 
         // Setup basic engine properties
-        every { mockEngine.kind } returns WalletKitEngineKind.WEBVIEW
         every { mockEngine.getConfiguration() } returns null
 
         // Track handlers for event dispatch (thread-safe for concurrent registration)

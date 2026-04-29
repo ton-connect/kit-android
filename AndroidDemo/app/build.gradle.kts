@@ -155,7 +155,7 @@ dependencies {
     // TONWalletKit SDK
 //    implementation(libs.walletkitAndroid)
     // TONWalletKit SDK - Use local AAR file
-    // Build and copy with: cd ../TONWalletKit-Android && ./gradlew buildAndCopyWebviewToDemo
+    // Build and copy with: cd ../TONWalletKit-Android && ./gradlew buildAndCopyToDemo
     implementation(files("libs/tonwalletkit-release.aar"))
     // Required transitive dependencies when using AAR:
     implementation(libs.androidxWebkit)
