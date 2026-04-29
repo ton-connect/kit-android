@@ -18,10 +18,6 @@ subprojects {
                 // Kotlin template formatting clashes with ktlint, and any fix would be wiped
                 // on the next regen. The authored test (generationtests/) is NOT excluded.
                 "**/generatedtest/**/*.kt",
-                // Frozen reference snapshot for GeneratedModelsSnapshotTest. Must stay
-                // byte-identical to what the generator produces — formatting it would
-                // make the snapshot test fail on every regen.
-                "**/reference-test-models/**/*.kt",
             )
             licenseHeaderFile(rootProject.file("../LICENSE_HEADER"))
             ktlint("1.0.1")

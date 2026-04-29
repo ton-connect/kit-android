@@ -17,9 +17,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 WALLETKIT_PATH=${1}
+# Second arg (optional) overrides where the generated .kt files are copied.
+# When unset, output goes to the committed snapshot under api/src/test/java/.
+# GeneratedModelsSnapshotTest passes a build-dir path here so it can diff a
+# fresh generation against the committed snapshot without overwriting it.
+DEST_DIR_OVERRIDE=${2}
 if [ -z "$WALLETKIT_PATH" ]; then
     echo "Error: walletkit path not provided"
-    echo "Usage: ./generate-test-models.sh <path-to-walletkit>"
+    echo "Usage: ./generate-test-models.sh <path-to-walletkit> [output-dir]"
     echo "Example: ./generate-test-models.sh /path/to/kit/packages/walletkit"
     exit 1
 fi
@@ -50,7 +55,7 @@ pnpm install --silent
 OUTPUT_DIR="${SCRIPT_DIR}/generated/test-openapi"
 CONFIG_FILE="${SCRIPT_DIR}/generate-api-models-config.json"
 TEMPLATES_DIR="${SCRIPT_DIR}/templates"
-DEST_DIR="${PROJECT_ROOT}/TONWalletKit-Android/api/src/test/java/io/ton/walletkit/api/generatedtest"
+DEST_DIR="${DEST_DIR_OVERRIDE:-${PROJECT_ROOT}/TONWalletKit-Android/api/src/test/java/io/ton/walletkit/api/generatedtest}"
 
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"

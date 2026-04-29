@@ -24,16 +24,18 @@ package io.ton.walletkit.api.generationtests
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
 
 /**
- * Byte-level snapshot of the generator output.
+ * Drift detector for the generator pipeline.
  *
- * Each `.kt` written by `Scripts/generate-api/generate-test-models.sh` into
- * `api/src/test/java/io/ton/walletkit/api/generatedtest/` is compared against a
- * checked-in reference at `api/src/test/resources/reference-test-models/`.
- * Whitespace is stripped from both before comparison so cosmetic churn from an
+ * Runs `Scripts/generate-api/generate-test-models.sh` against the walletkit fixture
+ * at test time, into a build-only directory, then compares the freshly produced
+ * `.kt` files to the committed snapshot under
+ * `api/src/test/java/io/ton/walletkit/api/generatedtest/`. Whitespace is stripped
+ * from both sides before the equality check so cosmetic churn from an
  * openapi-generator version bump (extra blank lines, indentation tweaks) does
  * not flake the suite — only structural changes (added imports, reordered
  * fields, renamed properties, removed annotations) cause a failure.
@@ -41,74 +43,105 @@ import java.io.File
  * This complements the reflection-based `GeneratedModelsTest`: that file pins
  * specific shape invariants per fixture pattern; this one pins the full text.
  *
- * **Workflow when this test fails after a regeneration:**
+ * **Opt-in via `WALLETKIT_PATH`.** Running the pipeline needs `pnpm` +
+ * `openapi-generator` + a clone of the kit monorepo, so we don't force every
+ * dev box to install them. Set `WALLETKIT_PATH` (env var or
+ * `-Dwalletkit.path=…` system property) to the absolute path of
+ * `<kit-checkout>/packages/walletkit`. When unset, the test is skipped via
+ * JUnit's `Assume`.
  *
- *   1. Run `Scripts/generate-api/generate-test-models.sh <kit-path>` — this
- *      overwrites `generatedtest/` with the new generator output.
- *   2. This test fails, listing the drifted files.
- *   3. Diff the two directories to see what changed:
- *        diff -ru \
- *          api/src/test/resources/reference-test-models \
- *          api/src/test/java/io/ton/walletkit/api/generatedtest
- *   4. If the change is intentional (template update, fixture change, accepted
- *      generator upgrade), promote the new output by copying every regenerated
- *      `.kt` from `api/src/test/java/io/ton/walletkit/api/generatedtest/` over
- *      to `api/src/test/resources/reference-test-models/`. Commit both
- *      directories together so reviewers see the diff.
- *   5. If the change is unintentional, fix the fixture, template, or generator
- *      config — do NOT update the reference.
+ * **When this test fails after a regeneration:**
+ *
+ *   1. Inspect the diff between fresh and committed: `diff -ru` the build dir
+ *      printed in the failure message against the committed `generatedtest/`.
+ *   2. If the change is intentional (template update, fixture change, accepted
+ *      generator upgrade), refresh the snapshot:
+ *        Scripts/generate-api/generate-test-models.sh <kit-walletkit-path>
+ *      Commit the updated `generatedtest/`.
+ *   3. If the change is unintentional, fix the fixture, template, or generator
+ *      config — do NOT regenerate.
  */
 class GeneratedModelsSnapshotTest {
 
-    private val generatedDir = File("src/test/java/io/ton/walletkit/api/generatedtest")
-    private val referenceDir = File("src/test/resources/reference-test-models")
+    private val committedDir = File("src/test/java/io/ton/walletkit/api/generatedtest")
+    private val freshDir = File("build/generated-test-models-fresh")
+    private val scriptPath = File("../../Scripts/generate-api/generate-test-models.sh")
 
     @Test
-    fun `generated and reference directories contain the same set of files`() {
-        val genFiles = generatedDir.listKotlinFileNames()
-        val refFiles = referenceDir.listKotlinFileNames()
-        assertEquals(
-            "File set under generatedtest/ does not match reference-test-models/. " +
-                "Either a new model was generated without updating the reference, or " +
-                "a reference was committed without a matching generated file.",
-            refFiles,
-            genFiles,
+    fun `freshly generated models match the committed snapshot`() {
+        val walletkitPath = resolveWalletkitPath()
+        assumeTrue(
+            "Set WALLETKIT_PATH (env) or -Dwalletkit.path=<kit>/packages/walletkit to run; " +
+                "skipped because the snapshot test needs the kit monorepo, pnpm, and openapi-generator.",
+            walletkitPath != null,
         )
-    }
+        requireNotNull(walletkitPath)
 
-    @Test
-    fun `each generated file matches its reference after whitespace normalization`() {
-        val drifted = mutableListOf<String>()
-        val genFiles = generatedDir.kotlinFiles()
         assertTrue(
-            "Expected generated test models in $generatedDir; run generate-test-models.sh.",
-            genFiles.isNotEmpty(),
+            "Generator script not found at ${scriptPath.absolutePath} — repo layout shifted?",
+            scriptPath.exists(),
         )
-        for (genFile in genFiles) {
-            val refFile = File(referenceDir, genFile.name)
-            if (!refFile.exists()) {
-                drifted += "${genFile.name} (no reference file)"
-                continue
-            }
-            if (genFile.readText().normalize() != refFile.readText().normalize()) {
-                drifted += genFile.name
+
+        if (freshDir.exists()) freshDir.deleteRecursively()
+        freshDir.mkdirs()
+
+        runGenerator(walletkitPath, freshDir.absoluteFile)
+
+        val freshFiles = freshDir.kotlinFiles().associateBy { it.name }
+        val committedFiles = committedDir.kotlinFiles().associateBy { it.name }
+        assertEquals(
+            "File set under build/generated-test-models-fresh/ does not match " +
+                "the committed generatedtest/ snapshot. " +
+                "A model was added or removed without regenerating the snapshot.",
+            committedFiles.keys.sorted(),
+            freshFiles.keys.sorted(),
+        )
+
+        val drifted = mutableListOf<String>()
+        for ((name, fresh) in freshFiles) {
+            val committed = committedFiles.getValue(name)
+            if (fresh.readText().normalize() != committed.readText().normalize()) {
+                drifted += name
             }
         }
         if (drifted.isNotEmpty()) {
             fail(
-                "Generated test models drifted from the reference snapshot:\n  - " +
+                "Generator output drifted from the committed snapshot:\n  - " +
                     drifted.joinToString("\n  - ") +
-                    "\n\nReview the diff and, if the change is intentional, promote it by " +
-                    "copying generatedtest/ over reference-test-models/. See class KDoc " +
-                    "for the full workflow.",
+                    "\n\nFresh: ${freshDir.absolutePath}" +
+                    "\nCommitted: ${committedDir.absolutePath}" +
+                    "\n\nIf the change is intentional, regenerate by running\n" +
+                    "  ${scriptPath.absoluteFile.normalize()} $walletkitPath\n" +
+                    "and commit the updated generatedtest/. Otherwise fix the " +
+                    "fixture, template, or generator config.",
             )
         }
     }
 
+    private fun resolveWalletkitPath(): String? =
+        System.getProperty("walletkit.path")?.takeIf { it.isNotBlank() }
+            ?: System.getenv("WALLETKIT_PATH")?.takeIf { it.isNotBlank() }
+
+    private fun runGenerator(walletkitPath: String, destDir: File) {
+        val process = ProcessBuilder(
+            "bash",
+            scriptPath.absolutePath,
+            walletkitPath,
+            destDir.absolutePath,
+        )
+            .redirectErrorStream(true)
+            .start()
+        val output = process.inputStream.bufferedReader().readText()
+        val exit = process.waitFor()
+        assertEquals(
+            "Generator script exited with $exit. Output:\n$output",
+            0,
+            exit,
+        )
+    }
+
     private fun File.kotlinFiles(): List<File> =
         (listFiles { f -> f.isFile && f.extension == "kt" } ?: emptyArray()).sortedBy { it.name }
-
-    private fun File.listKotlinFileNames(): List<String> = kotlinFiles().map { it.name }
 
     private fun String.normalize(): String = this.filterNot { it.isWhitespace() }
 }
