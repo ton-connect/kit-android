@@ -30,6 +30,7 @@ import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.engine.operations.requests.WalletIdRequest
+import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
@@ -55,7 +56,7 @@ internal class WalletOperations(
     private val ensureInitialized: suspend () -> Unit,
     private val rpcClient: BridgeRpcClient,
     private val signerManager: SignerManager,
-    private val adapterManager: io.ton.walletkit.engine.state.AdapterManager,
+    private val adapterManager: AdapterManager,
     private val currentNetworkProvider: () -> String,
     private val json: Json,
 ) {

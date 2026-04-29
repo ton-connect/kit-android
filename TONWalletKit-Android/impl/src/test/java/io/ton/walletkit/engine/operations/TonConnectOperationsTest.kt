@@ -22,10 +22,15 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.ChainIds
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONConnectionRequestEventPreview
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONResult
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSendTransactionRequestEventPreview
+import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
+import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
@@ -53,7 +58,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
         const val TEST_SESSION_ID = "session-123"
         const val TEST_DAPP_URL = "https://example.com"
         const val TEST_WALLET_ID = "test-wallet-id-123"
-        val TEST_NETWORK: TONNetwork = TONNetwork(chainId = io.ton.walletkit.api.ChainIds.TESTNET)
+        val TEST_NETWORK: TONNetwork = TONNetwork(chainId = ChainIds.TESTNET)
     }
 
     @Before
@@ -438,12 +443,12 @@ class TonConnectOperationsTest : OperationsTestBase() {
             id = id,
             walletAddress = walletAddress,
             walletId = walletId,
-            preview = io.ton.walletkit.api.generated.TONSendTransactionRequestEventPreview(
-                data = io.ton.walletkit.api.generated.TONTransactionEmulatedPreview(
-                    result = io.ton.walletkit.api.generated.TONResult.success,
+            preview = TONSendTransactionRequestEventPreview(
+                data = TONTransactionEmulatedPreview(
+                    result = TONResult.success,
                 ),
             ),
-            request = io.ton.walletkit.api.generated.TONTransactionRequest(
+            request = TONTransactionRequest(
                 messages = emptyList(),
             ),
         )

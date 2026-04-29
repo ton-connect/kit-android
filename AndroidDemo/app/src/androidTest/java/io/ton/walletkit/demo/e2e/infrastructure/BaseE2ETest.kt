@@ -21,8 +21,13 @@
  */
 package io.ton.walletkit.demo.e2e.infrastructure
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
+import android.util.Log
+import android.webkit.CookieManager
+import android.webkit.WebStorage
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onRoot
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
@@ -31,6 +36,7 @@ import io.qameta.allure.kotlin.Epic
 import io.qameta.allure.kotlin.Feature
 import io.qameta.allure.kotlin.Step
 import io.ton.walletkit.demo.core.RequestErrorTracker
+import io.ton.walletkit.demo.core.TONWalletKitHelper
 import io.ton.walletkit.demo.e2e.dapp.JsDAppController
 import io.ton.walletkit.demo.e2e.wallet.WalletController
 import org.junit.Before
@@ -95,16 +101,16 @@ abstract class BaseE2ETest {
          */
         val TEST_MNEMONIC: List<String> by lazy {
             val mnemonicArg = InstrumentationRegistry.getArguments().getString("testMnemonic")
-            android.util.Log.d("BaseE2ETest", "testMnemonic from instrumentation args: ${mnemonicArg?.take(30)}...")
+            Log.d("BaseE2ETest", "testMnemonic from instrumentation args: ${mnemonicArg?.take(30)}...")
             if (mnemonicArg.isNullOrBlank()) {
-                android.util.Log.e("BaseE2ETest", "Test mnemonic is missing! Available args: ${InstrumentationRegistry.getArguments()}")
+                Log.e("BaseE2ETest", "Test mnemonic is missing! Available args: ${InstrumentationRegistry.getArguments()}")
                 throw IllegalStateException(
                     "Test mnemonic is required. Set via instrumentation arg: -e testMnemonic \"word1 word2 ...\"\n" +
                         "In CI, ensure WALLET_MNEMONIC secret is configured.",
                 )
             }
             val words = mnemonicArg.split(" ").filter { it.isNotBlank() }
-            android.util.Log.d("BaseE2ETest", "Parsed ${words.size} mnemonic words")
+            Log.d("BaseE2ETest", "Parsed ${words.size} mnemonic words")
             words
         }
 
@@ -129,7 +135,7 @@ abstract class BaseE2ETest {
          */
         @JvmStatic
         fun cleanupAllData() {
-            android.util.Log.d("BaseE2ETest", "cleanupAllData - clearing all app data for fresh start")
+            Log.d("BaseE2ETest", "cleanupAllData - clearing all app data for fresh start")
             val context = ApplicationProvider.getApplicationContext<Context>()
 
             // 1. Clear SharedPreferences
@@ -149,7 +155,7 @@ abstract class BaseE2ETest {
                         prefsFile.delete()
                     }
                 } catch (e: Exception) {
-                    android.util.Log.w("BaseE2ETest", "Failed to clear prefs $prefName: ${e.message}")
+                    Log.w("BaseE2ETest", "Failed to clear prefs $prefName: ${e.message}")
                 }
             }
 
@@ -165,9 +171,9 @@ abstract class BaseE2ETest {
 
             // 4. Clear WebView data (localStorage, sessionStorage, cookies, cache)
             try {
-                android.webkit.CookieManager.getInstance().removeAllCookies(null)
-                android.webkit.CookieManager.getInstance().flush()
-                android.webkit.WebStorage.getInstance().deleteAllData()
+                CookieManager.getInstance().removeAllCookies(null)
+                CookieManager.getInstance().flush()
+                WebStorage.getInstance().deleteAllData()
 
                 // Clear WebView cache directory
                 val webViewCacheDir = File(context.cacheDir, "WebView")
@@ -179,10 +185,10 @@ abstract class BaseE2ETest {
                     webViewDataDir.deleteRecursively()
                 }
             } catch (e: Exception) {
-                android.util.Log.w("BaseE2ETest", "Failed to clear WebView data: ${e.message}")
+                Log.w("BaseE2ETest", "Failed to clear WebView data: ${e.message}")
             }
 
-            android.util.Log.d("BaseE2ETest", "cleanupAllData completed")
+            Log.d("BaseE2ETest", "cleanupAllData completed")
         }
     }
 
@@ -192,7 +198,7 @@ abstract class BaseE2ETest {
 
         // Enable disableNetworkSend for testing (transactions simulated but not sent)
         // This must be set BEFORE the SDK is initialized
-        io.ton.walletkit.demo.core.TONWalletKitHelper.disableNetworkSend = shouldDisableNetworkSend()
+        TONWalletKitHelper.disableNetworkSend = shouldDisableNetworkSend()
 
         // Initialize Allure client if token is available
         getAllureConfig()?.let { config ->
@@ -211,11 +217,11 @@ abstract class BaseE2ETest {
      * Call this after initializing controllers to ensure wallet is on home screen.
      */
     protected fun ensureWalletReady() {
-        android.util.Log.d("BaseE2ETest", "ensureWalletReady called with mnemonic (${TEST_MNEMONIC.size} words)")
-        android.util.Log.d("BaseE2ETest", "First few words: ${TEST_MNEMONIC.take(3).joinToString(" ")}...")
+        Log.d("BaseE2ETest", "ensureWalletReady called with mnemonic (${TEST_MNEMONIC.size} words)")
+        Log.d("BaseE2ETest", "First few words: ${TEST_MNEMONIC.take(3).joinToString(" ")}...")
         walletController.setupWallet(TEST_MNEMONIC, TEST_PASSWORD)
         walletController.waitForWalletHome()
-        android.util.Log.d("BaseE2ETest", "Wallet is ready on home screen")
+        Log.d("BaseE2ETest", "Wallet is ready on home screen")
     }
 
     /**
@@ -227,10 +233,10 @@ abstract class BaseE2ETest {
      * @param initialDelayMs Initial delay after waitForIdle to let Activity stabilize
      */
     protected fun waitForActivityReady(
-        composeTestRule: androidx.compose.ui.test.junit4.ComposeTestRule,
+        composeTestRule: ComposeTestRule,
         initialDelayMs: Long = 3000,
     ) {
-        android.util.Log.d("BaseE2ETest", "Waiting for Activity to launch...")
+        Log.d("BaseE2ETest", "Waiting for Activity to launch...")
         composeTestRule.waitForIdle()
 
         // Give the Activity extra time to fully initialize on slow emulators
@@ -248,12 +254,12 @@ abstract class BaseE2ETest {
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.w("BaseE2ETest", "Timeout waiting for Compose hierarchy: ${e.message}")
+            Log.w("BaseE2ETest", "Timeout waiting for Compose hierarchy: ${e.message}")
             // Don't throw - proceed and let the test fail with a more specific error if needed
         }
 
         composeTestRule.waitForIdle()
-        android.util.Log.d("BaseE2ETest", "Activity is ready")
+        Log.d("BaseE2ETest", "Activity is ready")
     }
 
     /**
@@ -287,7 +293,7 @@ abstract class BaseE2ETest {
      * Note: This method requires passing the ComposeTestRule from the test class.
      * Consider using the Allure screenshot annotation instead.
      */
-    protected fun takeScreenshot(name: String, activity: android.app.Activity) {
+    protected fun takeScreenshot(name: String, activity: Activity) {
         val rootView = activity.window.decorView.rootView
         rootView.isDrawingCacheEnabled = true
         val bitmap = rootView.drawingCache
@@ -325,9 +331,9 @@ abstract class BaseE2ETest {
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
 
-        android.util.Log.d("SendTxTest", "Test data for $allureId:")
-        android.util.Log.d("SendTxTest", "  precondition length: ${precondition.length}")
-        android.util.Log.d("SendTxTest", "  expectedResult length: ${expectedResult.length}")
+        Log.d("SendTxTest", "Test data for $allureId:")
+        Log.d("SendTxTest", "  precondition length: ${precondition.length}")
+        Log.d("SendTxTest", "  expectedResult length: ${expectedResult.length}")
 
         // Clear error tracker before test if expecting SDK to auto-reject
         if (!expectWalletPrompt) {
@@ -340,11 +346,11 @@ abstract class BaseE2ETest {
             dAppController.openBrowser()
             dAppController.waitForDAppPage()
             if (precondition.isNotBlank()) {
-                android.util.Log.d("SendTxTest", "Filling precondition...")
+                Log.d("SendTxTest", "Filling precondition...")
                 dAppController.fillSendTxPrecondition(precondition)
             }
             if (expectedResult.isNotBlank()) {
-                android.util.Log.d("SendTxTest", "Filling expectedResult...")
+                Log.d("SendTxTest", "Filling expectedResult...")
                 dAppController.fillSendTxExpectedResult(expectedResult)
             }
         }
@@ -375,7 +381,7 @@ abstract class BaseE2ETest {
             if (expectSdkError) {
                 step("Verify SDK received RequestError event for sendTransaction") {
                     val error = RequestErrorTracker.waitForError(timeoutMs = SDK_ERROR_EVENT_TIMEOUT_MS, method = "sendTransaction")
-                    android.util.Log.d("SendTxTest", "RequestError received: $error")
+                    Log.d("SendTxTest", "RequestError received: $error")
                     assert(error != null) { "Expected SDK to receive RequestError event for sendTransaction, but none received" }
                     assert(error!!.method == "sendTransaction") { "Expected method 'sendTransaction', got '${error.method}'" }
                 }
@@ -417,7 +423,7 @@ abstract class BaseE2ETest {
         val testData = TestCaseDataProvider.getTestCaseData(allureId, allureClient)
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
-        android.util.Log.d("ConnectTest", "Test $allureId - precondition: ${precondition.take(100)}")
+        Log.d("ConnectTest", "Test $allureId - precondition: ${precondition.take(100)}")
 
         // Clear error tracker before test if expecting SDK to auto-reject
         if (!expectConnectSheet) {
@@ -457,7 +463,7 @@ abstract class BaseE2ETest {
         } else {
             step("Verify no connect sheet shown (wallet app auto-rejected)") {
                 val connectSheetVisible = walletController.isConnectRequestVisible()
-                android.util.Log.d("ConnectTest", "Connect sheet visible: $connectSheetVisible")
+                Log.d("ConnectTest", "Connect sheet visible: $connectSheetVisible")
                 assert(!connectSheetVisible) { "Connect sheet should NOT be visible - wallet should auto-reject manifest error" }
             }
         }
@@ -470,7 +476,7 @@ abstract class BaseE2ETest {
 
             val validationPassed = dAppController.verifyConnectionValidation()
             val validationText = dAppController.getConnectValidationResult()
-            android.util.Log.d("ConnectTest", "Validation result: $validationText")
+            Log.d("ConnectTest", "Validation result: $validationText")
 
             dAppController.closeBrowserFully()
             assert(validationPassed) { "Validation failed - got: $validationText" }
@@ -486,7 +492,7 @@ abstract class BaseE2ETest {
         val testData = TestCaseDataProvider.getTestCaseData(allureId, allureClient)
         val precondition = testData?.precondition ?: ""
         val expectedResult = testData?.expectedResult ?: ""
-        android.util.Log.d("ConnectTest", "Test $allureId - precondition: ${precondition.take(100)}")
+        Log.d("ConnectTest", "Test $allureId - precondition: ${precondition.take(100)}")
 
         step("Open dApp with TonConnect injection") {
             dAppController.openBrowser(injectTonConnect = true)
@@ -519,7 +525,7 @@ abstract class BaseE2ETest {
 
             val validationPassed = dAppController.verifyConnectionValidation()
             val validationText = dAppController.getConnectValidationResult()
-            android.util.Log.d("ConnectTest", "Injected validation result: $validationText")
+            Log.d("ConnectTest", "Injected validation result: $validationText")
 
             dAppController.closeBrowserFully()
             assert(validationPassed) { "Validation failed - got: $validationText" }

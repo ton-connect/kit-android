@@ -22,6 +22,7 @@
 package io.ton.walletkit.engine.infrastructure
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Looper
 import android.view.ViewGroup
@@ -57,6 +58,7 @@ import io.ton.walletkit.session.SessionFilter
 import io.ton.walletkit.session.TONConnectSessionManager
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
@@ -189,7 +191,7 @@ internal class WebViewManager(
                         }
                     }
 
-                    override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                         super.onPageStarted(view, url, favicon)
                         Logger.d(TAG, "WebView page started loading: $url")
                     }
@@ -291,7 +293,7 @@ internal class WebViewManager(
 
         @JavascriptInterface
         fun storageGet(key: String): String? {
-            return kotlinx.coroutines.runBlocking {
+            return runBlocking {
                 storageManager.get(key)
             }
         }
@@ -301,27 +303,27 @@ internal class WebViewManager(
             key: String,
             value: String,
         ) {
-            kotlinx.coroutines.runBlocking {
+            runBlocking {
                 storageManager.set(key, value)
             }
         }
 
         @JavascriptInterface
         fun storageRemove(key: String) {
-            kotlinx.coroutines.runBlocking {
+            runBlocking {
                 storageManager.remove(key)
             }
         }
 
         @JavascriptInterface
         fun storageClear() {
-            kotlinx.coroutines.runBlocking {
+            runBlocking {
                 storageManager.clear()
             }
         }
 
         @JavascriptInterface
-        fun adapterCallSync(method: String, paramsJson: String): String = kotlinx.coroutines.runBlocking {
+        fun adapterCallSync(method: String, paramsJson: String): String = runBlocking {
             withTimeout(1000) {
                 val params = JSONObject(paramsJson)
                 val adapterId = params.getString("adapterId")
@@ -360,7 +362,7 @@ internal class WebViewManager(
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
-            return kotlinx.coroutines.runBlocking {
+            return runBlocking {
                 try {
                     Logger.d(TAG, "sessionCreate: sessionId=$sessionId, dAppInfo=$dAppInfoJson")
 
@@ -393,7 +395,7 @@ internal class WebViewManager(
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
-            return kotlinx.coroutines.runBlocking {
+            return runBlocking {
                 try {
                     Logger.d(TAG, "sessionGet: sessionId=$sessionId")
                     val session = manager.getSession(sessionId)
@@ -410,7 +412,7 @@ internal class WebViewManager(
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
-            return kotlinx.coroutines.runBlocking {
+            return runBlocking {
                 try {
                     val filter = parseSessionFilter(filterJson)
                     val sessions = manager.getSessions(filter)
@@ -427,7 +429,7 @@ internal class WebViewManager(
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
-            kotlinx.coroutines.runBlocking {
+            runBlocking {
                 try {
                     manager.removeSession(sessionId)
                 } catch (e: Exception) {
@@ -441,7 +443,7 @@ internal class WebViewManager(
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
-            kotlinx.coroutines.runBlocking {
+            runBlocking {
                 try {
                     val filter = parseSessionFilter(filterJson)
                     manager.removeSessions(filter)
@@ -456,7 +458,7 @@ internal class WebViewManager(
             val manager = sessionManager
                 ?: throw IllegalStateException("Session manager not configured")
 
-            kotlinx.coroutines.runBlocking {
+            runBlocking {
                 try {
                     Logger.d(TAG, "sessionClear")
                     manager.clearSessions()
@@ -488,7 +490,7 @@ internal class WebViewManager(
             val client = apiClients.find { it.network == network }
                 ?: throw IllegalArgumentException("No API client configured for network: $network")
 
-            return kotlinx.coroutines.runBlocking {
+            return runBlocking {
                 try {
                     Logger.d(TAG, "apiSendBoc: network=$network")
                     client.sendBoc(TONBase64(boc))
@@ -511,7 +513,7 @@ internal class WebViewManager(
             val client = apiClients.find { it.network == network }
                 ?: throw IllegalArgumentException("No API client configured for network: $network")
 
-            return kotlinx.coroutines.runBlocking {
+            return runBlocking {
                 try {
                     Logger.d(TAG, "apiRunGetMethod: network=$network, address=$address, method=$method")
                     val stack = stackJson?.let { json.decodeFromString<List<TONRawStackItem>>(it) }
@@ -535,7 +537,7 @@ internal class WebViewManager(
             val client = apiClients.find { it.network == network }
                 ?: throw IllegalArgumentException("No API client configured for network: $network")
 
-            return kotlinx.coroutines.runBlocking {
+            return runBlocking {
                 try {
                     Logger.d(TAG, "apiGetBalance: network=$network, address=$address")
                     val seqnoArg = if (seqno == -1) null else seqno
@@ -553,7 +555,7 @@ internal class WebViewManager(
             val client = apiClients.find { it.network == network }
                 ?: throw IllegalArgumentException("No API client configured for network: $network")
 
-            return kotlinx.coroutines.runBlocking {
+            return runBlocking {
                 try {
                     Logger.d(TAG, "apiGetMasterchainInfo: network=$network")
                     val result = client.getMasterchainInfo()
@@ -575,7 +577,7 @@ internal class WebViewManager(
 
         private fun parseSessionFilter(filterJson: String): SessionFilter? {
             return try {
-                val jsonObj = org.json.JSONObject(filterJson)
+                val jsonObj = JSONObject(filterJson)
                 if (jsonObj.length() == 0) {
                     null
                 } else {

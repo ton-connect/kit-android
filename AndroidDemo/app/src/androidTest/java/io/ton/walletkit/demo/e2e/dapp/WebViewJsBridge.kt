@@ -22,6 +22,7 @@
 package io.ton.walletkit.demo.e2e.dapp
 
 import android.app.Activity
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.ValueCallback
@@ -74,7 +75,7 @@ class WebViewJsBridge {
             }
         }
 
-        android.util.Log.d(TAG, "Looking for WebView...")
+        Log.d(TAG, "Looking for WebView...")
 
         // Try to find WebView using multiple strategies
         var webView: WebView? = null
@@ -86,7 +87,7 @@ class WebViewJsBridge {
                 val rootView = activity.window?.decorView?.rootView
                 webView = rootView?.let { findWebViewInHierarchy(it) }
                 if (webView != null) {
-                    android.util.Log.d(TAG, "Found WebView via activity root view")
+                    Log.d(TAG, "Found WebView via activity root view")
                 }
             }
 
@@ -99,7 +100,7 @@ class WebViewJsBridge {
 
                     val getViewsMethod = windowManager.getMethod("getViewRootNames")
                     val views = getViewsMethod.invoke(instance) as? Array<*>
-                    android.util.Log.d(TAG, "Found ${views?.size ?: 0} windows")
+                    Log.d(TAG, "Found ${views?.size ?: 0} windows")
 
                     val getRootViewMethod = windowManager.getDeclaredMethod("getRootView", String::class.java)
                     getRootViewMethod.isAccessible = true
@@ -110,13 +111,13 @@ class WebViewJsBridge {
                             val foundWebView = findWebViewInHierarchy(rootView)
                             if (foundWebView != null) {
                                 webView = foundWebView
-                                android.util.Log.d(TAG, "Found WebView in window: $viewName")
+                                Log.d(TAG, "Found WebView in window: $viewName")
                                 return@forEach
                             }
                         }
                     }
                 } catch (e: Exception) {
-                    android.util.Log.w(TAG, "Failed to search windows: ${e.message}")
+                    Log.w(TAG, "Failed to search windows: ${e.message}")
                 }
             }
 
@@ -125,20 +126,20 @@ class WebViewJsBridge {
                 try {
                     val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
                     val windows = uiAutomation.windows
-                    android.util.Log.d(TAG, "UiAutomation found ${windows.size} windows")
+                    Log.d(TAG, "UiAutomation found ${windows.size} windows")
 
                     for (window in windows) {
                         try {
                             val rootNode = window.root
                             if (rootNode != null) {
-                                android.util.Log.d(TAG, "  Window: ${rootNode.className}, pkg=${rootNode.packageName}")
+                                Log.d(TAG, "  Window: ${rootNode.className}, pkg=${rootNode.packageName}")
                             }
                         } catch (e: Exception) {
                             // Skip
                         }
                     }
                 } catch (e: Exception) {
-                    android.util.Log.w(TAG, "UiAutomation search failed: ${e.message}")
+                    Log.w(TAG, "UiAutomation search failed: ${e.message}")
                 }
             }
         }
@@ -146,7 +147,7 @@ class WebViewJsBridge {
         if (webView != null) {
             cachedWebView = webView
         } else {
-            android.util.Log.w(TAG, "No WebView found!")
+            Log.w(TAG, "No WebView found!")
         }
 
         return webView
@@ -181,11 +182,11 @@ class WebViewJsBridge {
         val indent = "  ".repeat(depth)
 
         if (depth < 5) { // Only log first few levels to avoid spam
-            android.util.Log.d(TAG, "$indent- ${view.javaClass.simpleName} (${view.width}x${view.height})")
+            Log.d(TAG, "$indent- ${view.javaClass.simpleName} (${view.width}x${view.height})")
         }
 
         if (view is WebView) {
-            android.util.Log.d(TAG, "$indent  >>> FOUND WebView!")
+            Log.d(TAG, "$indent  >>> FOUND WebView!")
             return view
         }
 
@@ -217,19 +218,19 @@ class WebViewJsBridge {
      * @return The WebView if found, null if timeout
      */
     fun waitForWebView(timeoutMs: Long = 10000, pollIntervalMs: Long = 500): WebView? {
-        android.util.Log.d(TAG, "Waiting for WebView to appear...")
+        Log.d(TAG, "Waiting for WebView to appear...")
         val startTime = System.currentTimeMillis()
 
         while (System.currentTimeMillis() - startTime < timeoutMs) {
             val webView = findWebView()
             if (webView != null) {
-                android.util.Log.d(TAG, "WebView found after ${System.currentTimeMillis() - startTime}ms")
+                Log.d(TAG, "WebView found after ${System.currentTimeMillis() - startTime}ms")
                 return webView
             }
             Thread.sleep(pollIntervalMs)
         }
 
-        android.util.Log.e(TAG, "WebView not found within ${timeoutMs}ms")
+        Log.e(TAG, "WebView not found within ${timeoutMs}ms")
         return null
     }
 
@@ -245,7 +246,7 @@ class WebViewJsBridge {
     fun evaluateJs(script: String, timeoutMs: Long = DEFAULT_TIMEOUT_MS): String? {
         val webView = findWebView()
         if (webView == null) {
-            android.util.Log.e(TAG, "WebView not found!")
+            Log.e(TAG, "WebView not found!")
             return null
         }
 
@@ -266,12 +267,12 @@ class WebViewJsBridge {
         val completed = latch.await(timeoutMs, TimeUnit.MILLISECONDS)
 
         if (!completed) {
-            android.util.Log.w(TAG, "JavaScript evaluation timed out: ${script.take(100)}...")
+            Log.w(TAG, "JavaScript evaluation timed out: ${script.take(100)}...")
             return null
         }
 
         val result = resultHolder.get()
-        android.util.Log.d(TAG, "JS result: $result (for: ${script.take(50)}...)")
+        Log.d(TAG, "JS result: $result (for: ${script.take(50)}...)")
         return result
     }
 
@@ -298,7 +299,7 @@ class WebViewJsBridge {
             Thread.sleep(pollIntervalMs)
         }
 
-        android.util.Log.w(TAG, "Condition did not become true within ${timeoutMs}ms: $condition")
+        Log.w(TAG, "Condition did not become true within ${timeoutMs}ms: $condition")
         return false
     }
 
@@ -338,7 +339,7 @@ class WebViewJsBridge {
         )
 
         if (!appeared) {
-            android.util.Log.w(TAG, "Element not found: $selector")
+            Log.w(TAG, "Element not found: $selector")
             return false
         }
 
@@ -503,9 +504,9 @@ class WebViewJsBridge {
             })()
         """.trimIndent()
 
-        android.util.Log.d(TAG, "fillInput selector: $escapedSelector, value length: ${value.length}")
+        Log.d(TAG, "fillInput selector: $escapedSelector, value length: ${value.length}")
         val result = evaluateJs(script)
-        android.util.Log.d(TAG, "fillInput result: $result")
+        Log.d(TAG, "fillInput result: $result")
         return result?.startsWith("success") == true
     }
 
@@ -536,7 +537,7 @@ class WebViewJsBridge {
     fun readClipboard(): String? {
         // Note: navigator.clipboard.readText() is async and requires user gesture
         // For testing, we'll need to use a different approach
-        android.util.Log.w(TAG, "JavaScript clipboard read not implemented - use Android ClipboardManager instead")
+        Log.w(TAG, "JavaScript clipboard read not implemented - use Android ClipboardManager instead")
         return null
     }
 
@@ -562,6 +563,6 @@ class WebViewJsBridge {
         """.trimIndent()
 
         val result = evaluateJs(script)
-        android.util.Log.d(TAG, "Elements matching '$selector': $result")
+        Log.d(TAG, "Elements matching '$selector': $result")
     }
 }

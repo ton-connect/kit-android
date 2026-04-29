@@ -22,6 +22,7 @@
 package io.ton.walletkit.demo.core
 
 import android.app.Application
+import android.os.Bundle
 import android.util.Log
 import coil3.ImageLoader
 import coil3.PlatformContext
@@ -40,6 +41,7 @@ import io.ton.walletkit.api.TETRA
 import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSignatureDomain
+import io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig
 import io.ton.walletkit.api.isTetra
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -56,6 +58,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okio.Path.Companion.toOkioPath
 
@@ -182,7 +185,7 @@ class WalletKitDemoApp :
 
 object TONWalletKitHelper {
     private var mainnetInstance: ITONWalletKit? = null
-    private val mutex = kotlinx.coroutines.sync.Mutex()
+    private val mutex = Mutex()
 
     @Volatile
     var disableNetworkSend: Boolean = false
@@ -199,7 +202,7 @@ object TONWalletKitHelper {
     private fun checkInstrumentationDisableNetworkSend(): Boolean = try {
         val registryClass = Class.forName("androidx.test.platform.app.InstrumentationRegistry")
         val getArgumentsMethod = registryClass.getMethod("getArguments")
-        val arguments = getArgumentsMethod.invoke(null) as? android.os.Bundle
+        val arguments = getArgumentsMethod.invoke(null) as? Bundle
         val value = arguments?.getString("disableNetworkSend")
         val result = value?.equals("true", ignoreCase = true) == true
         if (result) {
@@ -310,7 +313,7 @@ object TONWalletKitHelper {
                 listOf(TONNetwork.MAINNET, TONNetwork.TESTNET, TONNetwork.TETRA).forEach { network ->
                     try {
                         val streamingProvider = kit.createStreamingProvider(
-                            io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig(
+                            TONTonCenterStreamingProviderConfig(
                                 network = network,
                                 apiKey = tonCenterApiKey,
                             ),

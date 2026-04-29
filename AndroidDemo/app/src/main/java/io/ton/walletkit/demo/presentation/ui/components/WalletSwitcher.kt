@@ -62,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -261,7 +262,7 @@ fun WalletSwitcher(
                                             Text(
                                                 text = formatAddress(wallet.address),
                                                 style = MaterialTheme.typography.bodySmall,
-                                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                                fontFamily = FontFamily.Monospace,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                             wallet.balance?.let { balance ->
@@ -324,7 +325,7 @@ fun WalletSwitcher(
                     Text(
                         text = formatAddress(wallet.address),
                         style = MaterialTheme.typography.bodySmall,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        fontFamily = FontFamily.Monospace,
                     )
                     if (wallet.address == activeWalletAddress && wallets.size > 1) {
                         Spacer(modifier = Modifier.height(DIALOG_SPACING))

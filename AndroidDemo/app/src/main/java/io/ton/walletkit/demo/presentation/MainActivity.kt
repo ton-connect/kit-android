@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import dagger.hilt.android.AndroidEntryPoint
+import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.demo.core.TONWalletKitHelper
 import io.ton.walletkit.demo.core.WalletKitDemoApp
 import io.ton.walletkit.demo.presentation.actions.WalletActionsImpl
@@ -76,7 +77,7 @@ private fun AppNavigation(
 
     // Get wallet kit instance for browser sheet
     val context = LocalContext.current
-    val walletKit = remember { mutableStateOf<io.ton.walletkit.ITONWalletKit?>(null) }
+    val walletKit = remember { mutableStateOf<ITONWalletKit?>(null) }
 
     LaunchedEffect(Unit) {
         val app = context.applicationContext as WalletKitDemoApp

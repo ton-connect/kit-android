@@ -28,6 +28,7 @@ import io.ton.walletkit.api.generated.TONTonStakersChainConfig
 import io.ton.walletkit.api.generated.TONUnstakeMode
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 /**
  * Internal bridge request models for staking operations.
@@ -59,7 +60,7 @@ internal data class GetStakingQuoteRequest(
     val userAddress: String? = null,
     val network: TONNetwork? = null,
     val unstakeMode: TONUnstakeMode? = null,
-    @Contextual val providerOptions: kotlinx.serialization.json.JsonElement? = null,
+    @Contextual val providerOptions: JsonElement? = null,
     val providerId: String? = null,
 )
 
@@ -67,7 +68,7 @@ internal data class GetStakingQuoteRequest(
 internal data class BuildStakeTransactionRequest(
     val quote: TONStakingQuote,
     val userAddress: String,
-    @Contextual val providerOptions: kotlinx.serialization.json.JsonElement? = null,
+    @Contextual val providerOptions: JsonElement? = null,
     val providerId: String? = null,
 )
 

@@ -23,7 +23,9 @@ package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
+import io.ton.walletkit.api.generated.TONNFTRawTransferRequestMessage
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -239,8 +241,8 @@ class AssetOperationsTest : OperationsTestBase() {
         givenBridgeReturns(JSONObject(transactionContent))
 
         val params = TONNFTTransferRequest(
-            nftAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_NFT_ADDRESS),
-            recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_ADDRESS),
+            nftAddress = TONUserFriendlyAddress(TEST_NFT_ADDRESS),
+            recipientAddress = TONUserFriendlyAddress(TEST_ADDRESS),
             comment = "Test transfer",
         )
         val result = assetOperations.createTransferNftTransaction(TEST_ADDRESS, params)
@@ -256,11 +258,11 @@ class AssetOperationsTest : OperationsTestBase() {
         givenBridgeReturns(JSONObject(transactionContent))
 
         val params = TONNFTRawTransferRequest(
-            nftAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_NFT_ADDRESS),
+            nftAddress = TONUserFriendlyAddress(TEST_NFT_ADDRESS),
             transferAmount = "50000000",
-            message = io.ton.walletkit.api.generated.TONNFTRawTransferRequestMessage(
+            message = TONNFTRawTransferRequestMessage(
                 queryId = "0",
-                newOwner = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_ADDRESS),
+                newOwner = TONUserFriendlyAddress(TEST_ADDRESS),
                 forwardAmount = "1",
             ),
         )
@@ -277,8 +279,8 @@ class AssetOperationsTest : OperationsTestBase() {
         givenBridgeReturns(JSONObject(transactionContent))
 
         val params = TONJettonsTransferRequest(
-            recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_ADDRESS),
-            jettonAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_JETTON_ADDRESS),
+            recipientAddress = TONUserFriendlyAddress(TEST_ADDRESS),
+            jettonAddress = TONUserFriendlyAddress(TEST_JETTON_ADDRESS),
             transferAmount = "1000000000",
             comment = "Jetton transfer",
         )

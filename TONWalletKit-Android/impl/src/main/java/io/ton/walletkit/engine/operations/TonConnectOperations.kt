@@ -40,6 +40,7 @@ import io.ton.walletkit.session.TONConnectSession
 import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
+import java.net.URL
 
 /**
  * Wraps TON Connect bridge calls such as processing URLs, responding to connect/sign
@@ -105,7 +106,7 @@ internal class TonConnectOperations(
                     "domain",
                     url?.let {
                         try {
-                            val parsedUrl = java.net.URL(it)
+                            val parsedUrl = URL(it)
                             "${parsedUrl.protocol}://${parsedUrl.host}" + (if (parsedUrl.port != -1 && parsedUrl.port != parsedUrl.defaultPort) ":${parsedUrl.port}" else "")
                         } catch (e: Exception) {
                             "internal-browser"

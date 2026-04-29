@@ -25,6 +25,7 @@ import android.content.Context
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.Continuation
 
 /**
  * Internal factory for creating ITONWalletKit instances.
@@ -53,7 +54,7 @@ internal object TONWalletKitFactory {
             "initialize",
             Context::class.java,
             TONWalletKitConfiguration::class.java,
-            kotlin.coroutines.Continuation::class.java,
+            Continuation::class.java,
         )
         method.isAccessible = true
 
