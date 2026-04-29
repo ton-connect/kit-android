@@ -26,6 +26,7 @@ import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.internal.constants.EventTypeConstants
 import kotlinx.serialization.json.Json
+import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Before
@@ -236,11 +237,11 @@ class EventParserTest {
         val data = JSONObject().apply {
             put("id", "conn-req-123")
             put("sessionId", "connect-session-123")
-            put("requestedItems", org.json.JSONArray())
+            put("requestedItems", JSONArray())
             put(
                 "preview",
                 JSONObject().apply {
-                    put("permissions", org.json.JSONArray())
+                    put("permissions", JSONArray())
                     put(
                         "dAppInfo",
                         JSONObject().apply {
@@ -265,11 +266,11 @@ class EventParserTest {
         val data = JSONObject().apply {
             put("id", "conn-req-norm")
             put("sessionId", "session-123")
-            put("requestedItems", org.json.JSONArray())
+            put("requestedItems", JSONArray())
             put(
                 "preview",
                 JSONObject().apply {
-                    put("permissions", org.json.JSONArray())
+                    put("permissions", JSONArray())
                     put(
                         "dAppInfo",
                         JSONObject().apply {
@@ -296,11 +297,11 @@ class EventParserTest {
         val data = JSONObject().apply {
             put("id", "conn-req-empty")
             put("sessionId", "session-123")
-            put("requestedItems", org.json.JSONArray())
+            put("requestedItems", JSONArray())
             put(
                 "preview",
                 JSONObject().apply {
-                    put("permissions", org.json.JSONArray()) // Empty array
+                    put("permissions", JSONArray()) // Empty array
                     put(
                         "dAppInfo",
                         JSONObject().apply {
@@ -325,11 +326,11 @@ class EventParserTest {
         val data = JSONObject().apply {
             put("id", "conn-req-no-preview")
             put("sessionId", "session-no-preview")
-            put("requestedItems", org.json.JSONArray())
+            put("requestedItems", JSONArray())
             put(
                 "preview",
                 JSONObject().apply {
-                    put("permissions", org.json.JSONArray())
+                    put("permissions", JSONArray())
                 },
             )
         }
@@ -363,7 +364,7 @@ class EventParserTest {
             put(
                 "request",
                 JSONObject().apply {
-                    put("messages", org.json.JSONArray())
+                    put("messages", JSONArray())
                 },
             )
         }

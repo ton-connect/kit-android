@@ -41,6 +41,7 @@ androidxComposeBom = { module = "androidx.compose:compose-bom", version.ref = "c
 androidxComposeUi = { module = "androidx.compose.ui:ui" }
 androidxComposeMaterial3 = { module = "androidx.compose.material3:material3" }
 androidxComposeMaterialIconsExtended = { module = "androidx.compose.material:material-icons-extended" }
+androidxComposeMaterialIconsCore = { module = "androidx.compose.material:material-icons-core" }
 androidxComposeUiToolingPreview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidxComposeUiTooling = { module = "androidx.compose.ui:ui-tooling" }
 androidxLifecycleRuntimeKtx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }

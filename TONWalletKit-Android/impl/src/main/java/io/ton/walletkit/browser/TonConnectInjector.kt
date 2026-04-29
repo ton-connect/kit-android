@@ -25,6 +25,7 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -301,7 +302,7 @@ internal class TonConnectInjector(
             override fun onReceivedError(
                 view: WebView?,
                 request: WebResourceRequest?,
-                error: android.webkit.WebResourceError?,
+                error: WebResourceError?,
             ) {
                 super.onReceivedError(view, request, error)
                 val errorMessage = error?.description?.toString() ?: "Unknown error"

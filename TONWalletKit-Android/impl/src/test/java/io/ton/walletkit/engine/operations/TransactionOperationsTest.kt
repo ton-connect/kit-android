@@ -22,7 +22,10 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.api.generated.TONTransferRequest
+import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.runBlocking
+import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Before
@@ -65,7 +68,7 @@ class TransactionOperationsTest : OperationsTestBase() {
             JSONObject().apply {
                 put(
                     "messages",
-                    org.json.JSONArray().apply {
+                    JSONArray().apply {
                         put(
                             JSONObject().apply {
                                 put("address", TEST_TO_ADDRESS)
@@ -79,7 +82,7 @@ class TransactionOperationsTest : OperationsTestBase() {
         )
 
         val params = TONTransferRequest(
-            recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_TO_ADDRESS),
+            recipientAddress = TONUserFriendlyAddress(TEST_TO_ADDRESS),
             transferAmount = "1000000000",
             comment = "Test",
         )
@@ -94,13 +97,13 @@ class TransactionOperationsTest : OperationsTestBase() {
     fun createTransferTonTransaction_passesCorrectParams() = runBlocking {
         givenBridgeReturns(
             JSONObject().apply {
-                put("messages", org.json.JSONArray())
+                put("messages", JSONArray())
                 put("fromAddress", TEST_ADDRESS)
             },
         )
 
         val params = TONTransferRequest(
-            recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_TO_ADDRESS),
+            recipientAddress = TONUserFriendlyAddress(TEST_TO_ADDRESS),
             transferAmount = "1000000000",
         )
         transactionOperations.createTransferTonTransaction(TEST_ADDRESS, params)
@@ -118,7 +121,7 @@ class TransactionOperationsTest : OperationsTestBase() {
             JSONObject().apply {
                 put(
                     "messages",
-                    org.json.JSONArray().apply {
+                    JSONArray().apply {
                         put(
                             JSONObject().apply {
                                 put("address", TEST_TO_ADDRESS)
@@ -138,8 +141,8 @@ class TransactionOperationsTest : OperationsTestBase() {
         )
 
         val messages = listOf(
-            TONTransferRequest(recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_TO_ADDRESS), transferAmount = "1000000000"),
-            TONTransferRequest(recipientAddress = io.ton.walletkit.model.TONUserFriendlyAddress(TEST_ADDRESS), transferAmount = "2000000000"),
+            TONTransferRequest(recipientAddress = TONUserFriendlyAddress(TEST_TO_ADDRESS), transferAmount = "1000000000"),
+            TONTransferRequest(recipientAddress = TONUserFriendlyAddress(TEST_ADDRESS), transferAmount = "2000000000"),
         )
         val result = transactionOperations.createTransferMultiTonTransaction(TEST_ADDRESS, messages)
 
@@ -196,7 +199,7 @@ class TransactionOperationsTest : OperationsTestBase() {
 
     @Test
     fun sendTransaction_throwsIfSignedBocAndBocMissing() {
-        assertThrows(org.json.JSONException::class.java) {
+        assertThrows(JSONException::class.java) {
             runBlocking {
                 givenBridgeReturns(JSONObject())
                 transactionOperations.sendTransaction(TEST_ADDRESS, """{"messages":[]}""")

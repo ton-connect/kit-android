@@ -63,17 +63,17 @@ jobs:
 
       - name: Run unit tests
         working-directory: TONWalletKit-Android
-        run: ./gradlew :impl:testWebviewDebugUnitTest
+        run: ./gradlew :impl:testDebugUnitTest
 
-      - name: Build WebView variant (Release)
+      - name: Build SDK (Release)
         working-directory: TONWalletKit-Android
-        run: ./gradlew buildWebviewRelease
+        run: ./gradlew buildSdkRelease
 
-      - name: Upload WebView AAR
+      - name: Upload SDK AAR
         uses: actions/upload-artifact@v4
         with:
-          name: sdk-webview-aar
-          path: TONWalletKit-Android/impl/build/outputs/aar/impl-webview-release.aar
+          name: sdk-aar
+          path: TONWalletKit-Android/impl/build/outputs/aar/impl-release.aar
           retention-days: 7
 
       - name: Publish and Release to Maven Central

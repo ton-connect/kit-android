@@ -21,14 +21,20 @@
  */
 package io.ton.walletkit.demo.e2e.dapp
 
+import android.content.ClipboardManager
+import android.util.Log
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
 import io.qameta.allure.kotlin.Step
 import io.ton.walletkit.demo.presentation.MainActivity
+import io.ton.walletkit.demo.presentation.util.TestTags
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * JavaScript-based controller for interacting with the Allure Test Runner dApp.
@@ -118,7 +124,7 @@ class JsDAppController {
             composeTestRule.onNodeWithContentDescription("Open TonConnect Browser")
                 .performClick()
         } else {
-            composeTestRule.onNodeWithTag(io.ton.walletkit.demo.presentation.util.TestTags.BROWSER_NO_INJECT_BUTTON)
+            composeTestRule.onNodeWithTag(TestTags.BROWSER_NO_INJECT_BUTTON)
                 .performClick()
         }
 
@@ -126,7 +132,7 @@ class JsDAppController {
 
         // Wait for WebView to load
 
-        android.util.Log.d("JsDAppController", "Browser opened, waiting for WebView...")
+        Log.d("JsDAppController", "Browser opened, waiting for WebView...")
     }
 
     /**
@@ -135,8 +141,8 @@ class JsDAppController {
      */
     @Step("Close browser")
     fun closeBrowser() {
-        android.util.Log.d("JsDAppController", "Closing browser (pressing back)...")
-        val device = androidx.test.uiautomator.UiDevice.getInstance(
+        Log.d("JsDAppController", "Closing browser (pressing back)...")
+        val device = UiDevice.getInstance(
             InstrumentationRegistry.getInstrumentation(),
         )
 
@@ -146,7 +152,7 @@ class JsDAppController {
         composeTestRule.waitForIdle()
 
         jsBridge.clearCache()
-        android.util.Log.d("JsDAppController", "Back pressed")
+        Log.d("JsDAppController", "Back pressed")
     }
 
     /**
@@ -154,8 +160,8 @@ class JsDAppController {
      */
     @Step("Close browser fully")
     fun closeBrowserFully() {
-        android.util.Log.d("JsDAppController", "Closing browser fully...")
-        val device = androidx.test.uiautomator.UiDevice.getInstance(
+        Log.d("JsDAppController", "Closing browser fully...")
+        val device = UiDevice.getInstance(
             InstrumentationRegistry.getInstrumentation(),
         )
 
@@ -166,7 +172,7 @@ class JsDAppController {
 
         composeTestRule.waitForIdle()
         jsBridge.clearCache()
-        android.util.Log.d("JsDAppController", "Browser closed fully")
+        Log.d("JsDAppController", "Browser closed fully")
     }
 
     /**
@@ -176,7 +182,7 @@ class JsDAppController {
      */
     @Step("Clear dApp storage (disconnect all sessions)")
     fun clearDAppStorage() {
-        android.util.Log.d("JsDAppController", "Clearing dApp localStorage and sessionStorage...")
+        Log.d("JsDAppController", "Clearing dApp localStorage and sessionStorage...")
 
         val result = jsBridge.evaluateJs(
             """
@@ -192,7 +198,7 @@ class JsDAppController {
             """.trimIndent(),
         )
 
-        android.util.Log.d("JsDAppController", "Clear dApp storage result: $result")
+        Log.d("JsDAppController", "Clear dApp storage result: $result")
     }
 
     /**
@@ -202,7 +208,7 @@ class JsDAppController {
      */
     @Step("Ensure dApp is disconnected")
     fun ensureDisconnected() {
-        android.util.Log.d("JsDAppController", "Ensuring dApp is disconnected...")
+        Log.d("JsDAppController", "Ensuring dApp is disconnected...")
 
         // Clear storage to remove any existing sessions
         clearDAppStorage()
@@ -220,12 +226,12 @@ class JsDAppController {
             })()
             """.trimIndent(),
         )
-        android.util.Log.d("JsDAppController", "Reload result: $reloadResult")
+        Log.d("JsDAppController", "Reload result: $reloadResult")
 
         // Wait for page to reload and TonConnect to reinitialize
         waitForDAppPage(timeoutMs = 15000)
 
-        android.util.Log.d("JsDAppController", "dApp disconnected and reloaded")
+        Log.d("JsDAppController", "dApp disconnected and reloaded")
     }
 
     /**
@@ -234,7 +240,7 @@ class JsDAppController {
      */
     @Step("Close TonConnect modal if open")
     fun closeTonConnectModal() {
-        android.util.Log.d("JsDAppController", "Closing TonConnect modal if open...")
+        Log.d("JsDAppController", "Closing TonConnect modal if open...")
 
         // Try to close modal by clicking the X button (data-tc-icon-button)
         val closeScript = """
@@ -264,7 +270,7 @@ class JsDAppController {
         """.trimIndent()
 
         val result = jsBridge.evaluateJs(closeScript)
-        android.util.Log.d("JsDAppController", "Close modal result: $result")
+        Log.d("JsDAppController", "Close modal result: $result")
 
         // If modal was found but click didn't work, use tap via coordinates
         if (result?.contains("modal_found") == true || result?.contains("closed") == true) {
@@ -281,24 +287,24 @@ class JsDAppController {
             """.trimIndent()
 
             val coordResult = jsBridge.evaluateJs(coordScript)
-            android.util.Log.d("JsDAppController", "Button coordinates: $coordResult")
+            Log.d("JsDAppController", "Button coordinates: $coordResult")
 
             if (coordResult != null && coordResult != "null") {
                 try {
                     // Parse coordinates and tap
-                    val coords = org.json.JSONObject(coordResult)
+                    val coords = JSONObject(coordResult)
                     val x = coords.getDouble("x").toInt()
                     val y = coords.getDouble("y").toInt()
 
                     // Tap using UIAutomator (add offset for WebView position in screen)
-                    val device = androidx.test.uiautomator.UiDevice.getInstance(
+                    val device = UiDevice.getInstance(
                         InstrumentationRegistry.getInstrumentation(),
                     )
                     // WebView has some offset from top, approximate tap location
                     device.click(x, y + 200) // Add offset for status bar + toolbar
-                    android.util.Log.d("JsDAppController", "Tapped close button at ($x, ${y + 200})")
+                    Log.d("JsDAppController", "Tapped close button at ($x, ${y + 200})")
                 } catch (e: Exception) {
-                    android.util.Log.w("JsDAppController", "Failed to tap: ${e.message}")
+                    Log.w("JsDAppController", "Failed to tap: ${e.message}")
                 }
             }
         }
@@ -314,12 +320,12 @@ class JsDAppController {
      */
     @Step("Wait for dApp page to load")
     fun waitForDAppPage(timeoutMs: Long = 20000) {
-        android.util.Log.d("JsDAppController", "Waiting for dApp page to load...")
+        Log.d("JsDAppController", "Waiting for dApp page to load...")
 
         // First, wait for the WebView to be created and ready
         val webView = jsBridge.waitForWebView(timeoutMs = 10000)
         if (webView == null) {
-            android.util.Log.e("JsDAppController", "WebView not found!")
+            Log.e("JsDAppController", "WebView not found!")
             throw IllegalStateException("WebView not found after opening browser")
         }
 
@@ -332,7 +338,7 @@ class JsDAppController {
         )
 
         if (tcButtonAppeared) {
-            android.util.Log.d("JsDAppController", "dApp page loaded - TonConnect button found")
+            Log.d("JsDAppController", "dApp page loaded - TonConnect button found")
         } else {
             // Try an alternative check - maybe the connect-button test ID
             val testButtonAppeared = jsBridge.waitForCondition(
@@ -340,9 +346,9 @@ class JsDAppController {
                 timeoutMs = 5000,
             )
             if (testButtonAppeared) {
-                android.util.Log.d("JsDAppController", "dApp page loaded - test connect button found")
+                Log.d("JsDAppController", "dApp page loaded - test connect button found")
             } else {
-                android.util.Log.w("JsDAppController", "TonConnect button not found, but continuing...")
+                Log.w("JsDAppController", "TonConnect button not found, but continuing...")
             }
         }
     }
@@ -357,7 +363,7 @@ class JsDAppController {
      */
     @Step("Wait for Connect button to be available")
     fun waitForConnectButton(timeoutMs: Long = 15000): Boolean {
-        android.util.Log.d("JsDAppController", "Waiting for Connect button to be available and TonConnect ready...")
+        Log.d("JsDAppController", "Waiting for Connect button to be available and TonConnect ready...")
 
         // Wait for TonConnect SDK to be fully initialized and button to be ready
         val buttonAvailable = jsBridge.waitForCondition(
@@ -383,7 +389,7 @@ class JsDAppController {
             timeoutMs = timeoutMs,
         )
 
-        android.util.Log.d("JsDAppController", "Connect button available: $buttonAvailable")
+        Log.d("JsDAppController", "Connect button available: $buttonAvailable")
         return buttonAvailable
     }
 
@@ -394,7 +400,7 @@ class JsDAppController {
      */
     @Step("Click Connect Wallet button")
     fun clickConnectButton() {
-        android.util.Log.d("JsDAppController", "Clicking Connect button in e2e block...")
+        Log.d("JsDAppController", "Clicking Connect button in e2e block...")
 
         // Wait for the connect button to be available first
         val buttonReady = waitForConnectButton(timeoutMs = 40000)
@@ -422,7 +428,7 @@ class JsDAppController {
             """.trimIndent(),
         )
 
-        android.util.Log.d("JsDAppController", "Scroll result: $scrollAndClick")
+        Log.d("JsDAppController", "Scroll result: $scrollAndClick")
         // Wait for scroll
 
         // Now click the connect button inside the e2e block
@@ -446,10 +452,10 @@ class JsDAppController {
             """.trimIndent(),
         )
 
-        android.util.Log.d("JsDAppController", "Click result: $clicked")
+        Log.d("JsDAppController", "Click result: $clicked")
 
         if (clicked?.contains("clicked") == true) {
-            android.util.Log.d("JsDAppController", "Clicked e2e connect button")
+            Log.d("JsDAppController", "Clicked e2e connect button")
             // Wait for modal to open
             return
         }
@@ -467,7 +473,7 @@ class JsDAppController {
      */
     @Step("Click Connect via Injected button")
     fun clickConnectViaInjectedButton() {
-        android.util.Log.d("JsDAppController", "Clicking Connect via Injected button...")
+        Log.d("JsDAppController", "Clicking Connect via Injected button...")
 
         // First scroll to the e2e connect block
         val scrollResult = jsBridge.evaluateJs(
@@ -487,7 +493,7 @@ class JsDAppController {
             """.trimIndent(),
         )
 
-        android.util.Log.d("JsDAppController", "Scroll result: $scrollResult")
+        Log.d("JsDAppController", "Scroll result: $scrollResult")
 
         // Try to find and click the "Connect via Injected" button
         // This button should be in the dApp's e2e test section
@@ -527,7 +533,7 @@ class JsDAppController {
             """.trimIndent(),
         )
 
-        android.util.Log.d("JsDAppController", "Click result: $clicked")
+        Log.d("JsDAppController", "Click result: $clicked")
 
         if (clicked?.contains("clicked") != true) {
             throw IllegalStateException("Could not find Connect via Injected button: $clicked")
@@ -547,7 +553,7 @@ class JsDAppController {
      */
     @Step("Copy TonConnect URL from modal")
     fun clickCopyLinkInModal(): String {
-        android.util.Log.d("JsDAppController", "Looking for copy URL button in modal...")
+        Log.d("JsDAppController", "Looking for copy URL button in modal...")
 
         // Wait for modal to be visible
         val modalVisible = jsBridge.waitForCondition(
@@ -556,7 +562,7 @@ class JsDAppController {
         )
 
         if (!modalVisible) {
-            android.util.Log.w("JsDAppController", "Modal not visible!")
+            Log.w("JsDAppController", "Modal not visible!")
             return ""
         }
 
@@ -602,10 +608,10 @@ class JsDAppController {
             """.trimIndent(),
         )
 
-        android.util.Log.d("JsDAppController", "QR icon click result: $qrClickResult")
+        Log.d("JsDAppController", "QR icon click result: $qrClickResult")
 
         if (qrClickResult?.contains("clicked") != true) {
-            android.util.Log.e("JsDAppController", "Failed to click QR icon button")
+            Log.e("JsDAppController", "Failed to click QR icon button")
             return ""
         }
 
@@ -680,7 +686,7 @@ class JsDAppController {
             """.trimIndent(),
         )
 
-        android.util.Log.d("JsDAppController", "Copy link click result: $result")
+        Log.d("JsDAppController", "Copy link click result: $result")
 
         // Wait for clipboard hook to capture the URL
 
@@ -694,7 +700,7 @@ class JsDAppController {
         )
 
         val cleanUrl = interceptedUrl?.trim('"') ?: ""
-        android.util.Log.d("JsDAppController", "Intercepted URL: '$cleanUrl'")
+        Log.d("JsDAppController", "Intercepted URL: '$cleanUrl'")
 
         if (cleanUrl.isNotBlank() && (cleanUrl.startsWith("tc://") || cleanUrl.contains("ton-connect"))) {
             return cleanUrl
@@ -711,9 +717,9 @@ class JsDAppController {
     fun getClipboardUrl(): String {
         // First try Android clipboard
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val clipboardManager = context.getSystemService(android.content.ClipboardManager::class.java)
+        val clipboardManager = context.getSystemService(ClipboardManager::class.java)
         val androidUrl = clipboardManager?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-        android.util.Log.d("JsDAppController", "Android Clipboard URL: '$androidUrl'")
+        Log.d("JsDAppController", "Android Clipboard URL: '$androidUrl'")
 
         if (androidUrl.isNotBlank() && (androidUrl.startsWith("tc://") || androidUrl.contains("ton-connect"))) {
             return androidUrl
@@ -732,7 +738,7 @@ class JsDAppController {
             })()
             """.trimIndent(),
         )
-        android.util.Log.d("JsDAppController", "JS Clipboard check: $jsUrl")
+        Log.d("JsDAppController", "JS Clipboard check: $jsUrl")
 
         return androidUrl
     }
@@ -746,7 +752,7 @@ class JsDAppController {
      */
     @Step("Scroll to connect validation")
     fun scrollToConnectValidation() {
-        android.util.Log.d("JsDAppController", "Scrolling to connect validation...")
+        Log.d("JsDAppController", "Scrolling to connect validation...")
         jsBridge.evaluateJs(
             """
             (function() {
@@ -820,7 +826,7 @@ class JsDAppController {
      */
     @Step("Wait for validation result")
     fun waitForValidationPassed(timeoutMs: Long = 30000): Boolean {
-        android.util.Log.d("JsDAppController", "Waiting for validation result...")
+        Log.d("JsDAppController", "Waiting for validation result...")
 
         // First check for official "Validation Passed"
         val passed = jsBridge.waitForElementText(
@@ -830,20 +836,20 @@ class JsDAppController {
         )
 
         if (passed) {
-            android.util.Log.d("JsDAppController", "SUCCESS: Validation Passed!")
+            Log.d("JsDAppController", "SUCCESS: Validation Passed!")
             return true
         }
 
         // Check what the validation actually says
         val validationText = jsBridge.getElementText(CONNECT_VALIDATION) ?: ""
-        android.util.Log.d("JsDAppController", "Validation result: $validationText")
+        Log.d("JsDAppController", "Validation result: $validationText")
 
         // If we see a connect event in the result, that means connection worked!
         // The format is: value: expected "undefined", got "{"event":"connect",...}"
         if (validationText.contains("\"event\":\"connect\"") ||
             validationText.contains("event.*connect".toRegex())
         ) {
-            android.util.Log.d("JsDAppController", "SUCCESS: Connect event received in validation!")
+            Log.d("JsDAppController", "SUCCESS: Connect event received in validation!")
             return true
         }
 
@@ -851,7 +857,7 @@ class JsDAppController {
             return true
         }
 
-        android.util.Log.w("JsDAppController", "Validation did not pass: $validationText")
+        Log.w("JsDAppController", "Validation did not pass: $validationText")
         return false
     }
 
@@ -876,10 +882,10 @@ class JsDAppController {
      */
     @Step("Get TonConnect URL (keep browser open)")
     fun getTonConnectUrlKeepBrowserOpen(): String {
-        android.util.Log.d("JsDAppController", "=== Starting getTonConnectUrl flow ===")
+        Log.d("JsDAppController", "=== Starting getTonConnectUrl flow ===")
 
         for (attempt in 1..3) {
-            android.util.Log.d("JsDAppController", "--- Attempt $attempt ---")
+            Log.d("JsDAppController", "--- Attempt $attempt ---")
 
             try {
                 // Wait for compose to be ready
@@ -893,27 +899,27 @@ class JsDAppController {
 
                 // First check if we extracted URL from DOM
                 if (extractedUrl.isNotBlank()) {
-                    android.util.Log.d("JsDAppController", "Got URL from DOM extraction: '$extractedUrl'")
+                    Log.d("JsDAppController", "Got URL from DOM extraction: '$extractedUrl'")
                     return extractedUrl
                 }
 
                 // Fall back to clipboard
                 val clipboardUrl = getClipboardUrl()
-                android.util.Log.d("JsDAppController", "Got TonConnect URL from clipboard: '$clipboardUrl'")
+                Log.d("JsDAppController", "Got TonConnect URL from clipboard: '$clipboardUrl'")
 
                 // Validate URL
                 val isValidUrl = clipboardUrl.isNotBlank() &&
                     (clipboardUrl.startsWith("tc://") || clipboardUrl.contains("ton-connect") || clipboardUrl.contains("connect.tonhub"))
 
                 if (isValidUrl) {
-                    android.util.Log.d("JsDAppController", "Valid TonConnect URL obtained!")
+                    Log.d("JsDAppController", "Valid TonConnect URL obtained!")
                     return clipboardUrl
                 }
 
-                android.util.Log.w("JsDAppController", "Invalid or empty URL, retrying...")
+                Log.w("JsDAppController", "Invalid or empty URL, retrying...")
                 closeBrowserFully()
             } catch (e: Exception) {
-                android.util.Log.e("JsDAppController", "Error in attempt $attempt: ${e.message}", e)
+                Log.e("JsDAppController", "Error in attempt $attempt: ${e.message}", e)
                 try {
                     closeBrowserFully()
                 } catch (closeError: Exception) {}
@@ -997,7 +1003,7 @@ class JsDAppController {
         if (success) {
             // Verify the value was set
             val actualValue = jsBridge.getInputValue(CONNECT_PRECONDITION)
-            android.util.Log.d("JsDAppController", "Precondition filled, actual length: ${actualValue?.length ?: 0}")
+            Log.d("JsDAppController", "Precondition filled, actual length: ${actualValue?.length ?: 0}")
         }
     }
 
@@ -1010,7 +1016,7 @@ class JsDAppController {
         if (success) {
             // Verify the value was set
             val actualValue = jsBridge.getInputValue(CONNECT_EXPECTED_RESULT)
-            android.util.Log.d("JsDAppController", "ExpectedResult filled, actual length: ${actualValue?.length ?: 0}")
+            Log.d("JsDAppController", "ExpectedResult filled, actual length: ${actualValue?.length ?: 0}")
         }
     }
 
@@ -1050,7 +1056,7 @@ class JsDAppController {
 
         // evaluateJavascript returns JSON-encoded strings, so strip the surrounding quotes
         val text = rawText.removeSurrounding("\"")
-        android.util.Log.d("JsDAppController", "Send Transaction button text: $text")
+        Log.d("JsDAppController", "Send Transaction button text: $text")
         return text
     }
 
@@ -1113,13 +1119,13 @@ class JsDAppController {
      */
     @Step("Fill send transaction precondition")
     fun fillSendTxPrecondition(value: String) {
-        android.util.Log.d("JsDAppController", "Filling sendTx precondition, value length: ${value.length}")
+        Log.d("JsDAppController", "Filling sendTx precondition, value length: ${value.length}")
         val success = jsBridge.fillInput(SEND_TX_PRECONDITION, value)
         if (success) {
             val actualValue = jsBridge.getInputValue(SEND_TX_PRECONDITION)
-            android.util.Log.d("JsDAppController", "SendTx precondition filled, actual length: ${actualValue?.length ?: 0}")
+            Log.d("JsDAppController", "SendTx precondition filled, actual length: ${actualValue?.length ?: 0}")
         } else {
-            android.util.Log.e("JsDAppController", "Failed to fill sendTx precondition")
+            Log.e("JsDAppController", "Failed to fill sendTx precondition")
         }
     }
 
@@ -1128,13 +1134,13 @@ class JsDAppController {
      */
     @Step("Fill send transaction expected result")
     fun fillSendTxExpectedResult(value: String) {
-        android.util.Log.d("JsDAppController", "Filling sendTx expectedResult, value length: ${value.length}")
+        Log.d("JsDAppController", "Filling sendTx expectedResult, value length: ${value.length}")
         val success = jsBridge.fillInput(SEND_TX_EXPECTED_RESULT, value)
         if (success) {
             val actualValue = jsBridge.getInputValue(SEND_TX_EXPECTED_RESULT)
-            android.util.Log.d("JsDAppController", "SendTx expectedResult filled, actual length: ${actualValue?.length ?: 0}")
+            Log.d("JsDAppController", "SendTx expectedResult filled, actual length: ${actualValue?.length ?: 0}")
         } else {
-            android.util.Log.e("JsDAppController", "Failed to fill sendTx expectedResult")
+            Log.e("JsDAppController", "Failed to fill sendTx expectedResult")
         }
     }
 
@@ -1162,7 +1168,7 @@ class JsDAppController {
      */
     @Step("Wait for send transaction response")
     fun waitForSendTxResponse(timeoutMs: Long = 15000): Boolean {
-        android.util.Log.d("JsDAppController", "Waiting for send transaction response...")
+        Log.d("JsDAppController", "Waiting for send transaction response...")
         val startTime = System.currentTimeMillis()
 
         while (System.currentTimeMillis() - startTime < timeoutMs) {
@@ -1191,17 +1197,17 @@ class JsDAppController {
                 """.trimIndent(),
             ) ?: "error"
 
-            android.util.Log.d("JsDAppController", "waitForSendTxResponse: $result")
+            Log.d("JsDAppController", "waitForSendTxResponse: $result")
 
             if (result.contains("response_received")) {
-                android.util.Log.d("JsDAppController", "Send transaction response received")
+                Log.d("JsDAppController", "Send transaction response received")
                 return true
             }
 
             Thread.sleep(500)
         }
 
-        android.util.Log.w("JsDAppController", "Timed out waiting for send transaction response")
+        Log.w("JsDAppController", "Timed out waiting for send transaction response")
         return false
     }
 
@@ -1245,7 +1251,7 @@ class JsDAppController {
             )?.toBoolean() ?: false
 
             if (elementExists) {
-                android.util.Log.d("JsDAppController", "Validation element found after ${System.currentTimeMillis() - startTime}ms")
+                Log.d("JsDAppController", "Validation element found after ${System.currentTimeMillis() - startTime}ms")
                 break
             }
             Thread.sleep(500)
@@ -1255,14 +1261,14 @@ class JsDAppController {
 
         // Check the validation text content directly - most reliable method
         val validationText = getSendTxValidationResult()
-        android.util.Log.d("JsDAppController", "Validation text: $validationText")
+        Log.d("JsDAppController", "Validation text: $validationText")
 
         // Check for "Validation Passed" text
         val textPassed = validationText.contains("Validation Passed", ignoreCase = true) ||
             validationText.contains("Passed", ignoreCase = true)
 
         if (textPassed) {
-            android.util.Log.d("JsDAppController", "SendTx validation PASSED (text match)")
+            Log.d("JsDAppController", "SendTx validation PASSED (text match)")
             return true
         }
 
@@ -1307,20 +1313,20 @@ class JsDAppController {
             """.trimIndent(),
         ) ?: "error"
 
-        android.util.Log.d("JsDAppController", "verifySendTxValidation border check result: $result")
+        Log.d("JsDAppController", "verifySendTxValidation border check result: $result")
 
         if (result == "passed") {
-            android.util.Log.d("JsDAppController", "SendTx validation PASSED (green border)")
+            Log.d("JsDAppController", "SendTx validation PASSED (green border)")
             return true
         }
 
         if (result == "failed") {
-            android.util.Log.e("JsDAppController", "SendTx validation FAILED (red border): $validationText")
+            Log.e("JsDAppController", "SendTx validation FAILED (red border): $validationText")
             return false
         }
 
         // If we got here, validation is unclear
-        android.util.Log.w("JsDAppController", "SendTx validation unclear: text=$validationText, borderCheck=$result")
+        Log.w("JsDAppController", "SendTx validation unclear: text=$validationText, borderCheck=$result")
         return false
     }
 
@@ -1360,7 +1366,7 @@ class JsDAppController {
 
         // evaluateJavascript returns JSON-encoded strings, so strip the surrounding quotes
         val text = rawText.removeSurrounding("\"")
-        android.util.Log.d("JsDAppController", "Sign Data button text: $text")
+        Log.d("JsDAppController", "Sign Data button text: $text")
         return text
     }
 
@@ -1458,7 +1464,7 @@ class JsDAppController {
      */
     @Step("Wait for sign data response")
     fun waitForSignDataResponse(timeoutMs: Long = 15000): Boolean {
-        android.util.Log.d("JsDAppController", "Waiting for sign data response...")
+        Log.d("JsDAppController", "Waiting for sign data response...")
         val startTime = System.currentTimeMillis()
 
         while (System.currentTimeMillis() - startTime < timeoutMs) {
@@ -1487,17 +1493,17 @@ class JsDAppController {
                 """.trimIndent(),
             ) ?: "error"
 
-            android.util.Log.d("JsDAppController", "waitForSignDataResponse: $result")
+            Log.d("JsDAppController", "waitForSignDataResponse: $result")
 
             if (result.contains("response_received")) {
-                android.util.Log.d("JsDAppController", "Sign data response received")
+                Log.d("JsDAppController", "Sign data response received")
                 return true
             }
 
             Thread.sleep(500)
         }
 
-        android.util.Log.w("JsDAppController", "Timed out waiting for sign data response")
+        Log.w("JsDAppController", "Timed out waiting for sign data response")
         return false
     }
 
@@ -1534,7 +1540,7 @@ class JsDAppController {
         // First check for errors in the errors container
         if (hasSignDataValidationErrors()) {
             val errors = getSignDataValidationErrors()
-            android.util.Log.e("JsDAppController", "Sign Data Validation FAILED - errors found: $errors")
+            Log.e("JsDAppController", "Sign Data Validation FAILED - errors found: $errors")
             return false
         }
 
@@ -1609,7 +1615,7 @@ class JsDAppController {
             """.trimIndent(),
         ) ?: "error"
 
-        android.util.Log.d("JsDAppController", "hasValidationErrors($containerId): $result")
+        Log.d("JsDAppController", "hasValidationErrors($containerId): $result")
         return result.startsWith("has_errors") || result.startsWith("has_alert_error")
     }
 
@@ -1640,11 +1646,11 @@ class JsDAppController {
         ) ?: "[]"
 
         return try {
-            org.json.JSONArray(result).let { arr ->
+            JSONArray(result).let { arr ->
                 (0 until arr.length()).map { arr.getString(it) }
             }
         } catch (e: Exception) {
-            android.util.Log.e("JsDAppController", "Failed to parse validation errors: $result", e)
+            Log.e("JsDAppController", "Failed to parse validation errors: $result", e)
             emptyList()
         }
     }

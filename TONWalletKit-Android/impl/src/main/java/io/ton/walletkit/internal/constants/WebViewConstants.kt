@@ -44,11 +44,6 @@ internal object WebViewConstants {
     const val DEFAULT_ASSET_PATH = "walletkit/index.html"
 
     /**
-     * Default asset directory for QuickJS engine.
-     */
-    const val DEFAULT_QUICKJS_ASSET_DIR = "walletkit"
-
-    /**
      * Asset loader domain for WebView.
      *
      * Used to create secure URLs like: https://appassets.androidplatform.net/assets/

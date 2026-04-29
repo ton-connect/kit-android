@@ -43,6 +43,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -68,7 +69,12 @@ fun TransferJettonSheet(
     onTransfer: (recipient: String, amount: String, comment: String) -> Unit,
     isLoading: Boolean = false,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        // Block swipe-down / scrim-drag dismissal — scrolling a long jetton-transfer form
+        // shouldn't close it. Only the explicit close button triggers [onDismiss].
+        confirmValueChange = { it != SheetValue.Hidden },
+    )
     var recipient by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var comment by remember { mutableStateOf("") }

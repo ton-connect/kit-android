@@ -22,6 +22,7 @@
 package io.ton.walletkit.mockbridge.infra
 
 import io.ton.walletkit.ITONWalletKit
+import io.ton.walletkit.api.ChainIds
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -88,7 +89,7 @@ abstract class MockBridgeTestBase {
      * Create a test configuration for SDK initialization
      */
     protected fun createTestConfig(
-        network: TONNetwork = TONNetwork(chainId = io.ton.walletkit.api.ChainIds.TESTNET),
+        network: TONNetwork = TONNetwork(chainId = ChainIds.TESTNET),
     ): TONWalletKitConfiguration {
         return TONWalletKitConfiguration(
             networkConfigurations = setOf(

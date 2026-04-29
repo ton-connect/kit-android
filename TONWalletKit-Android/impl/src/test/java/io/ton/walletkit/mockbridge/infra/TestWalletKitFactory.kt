@@ -30,11 +30,12 @@ import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.TONWalletKit
-import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
+import io.ton.walletkit.model.TONWalletAdapter
 import org.json.JSONObject
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Test-specific factory for creating TONWalletKit instances with mocked engine.
@@ -103,11 +104,10 @@ internal object TestWalletKitFactory {
         val mockEngine = mockk<WalletKitEngine>(relaxed = true)
 
         // Setup basic engine properties
-        every { mockEngine.kind } returns WalletKitEngineKind.WEBVIEW
         every { mockEngine.getConfiguration() } returns null
 
         // Track handlers for event dispatch (thread-safe for concurrent registration)
-        val handlers = java.util.concurrent.CopyOnWriteArrayList<TONBridgeEventsHandler>()
+        val handlers = CopyOnWriteArrayList<TONBridgeEventsHandler>()
         coEvery { mockEngine.addEventsHandler(any()) } answers {
             handlers.add(firstArg())
         }
@@ -145,8 +145,8 @@ internal object TestWalletKitFactory {
         }
 
         // Setup addWallet
-        coEvery { mockEngine.addWallet(any<io.ton.walletkit.model.TONWalletAdapter>()) } answers {
-            val adapter = firstArg<io.ton.walletkit.model.TONWalletAdapter>()
+        coEvery { mockEngine.addWallet(any<TONWalletAdapter>()) } answers {
+            val adapter = firstArg<TONWalletAdapter>()
             scenario.handleAddWallet(adapter.identifier())
         }
 

@@ -35,12 +35,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.DataObject
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -50,8 +45,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +63,11 @@ import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.ui.components.NetworkBadge
+import io.ton.walletkit.demo.presentation.ui.icons.AccountBalanceWallet
+import io.ton.walletkit.demo.presentation.ui.icons.Code
+import io.ton.walletkit.demo.presentation.ui.icons.DataObject
+import io.ton.walletkit.demo.presentation.ui.icons.Link
+import io.ton.walletkit.demo.presentation.ui.icons.LinkOff
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -77,7 +79,12 @@ fun WalletDetailsSheet(
     wallet: WalletSummary,
     onDismiss: () -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    val sheetState = rememberModalBottomSheetState(
+        // Block swipe-down / scrim-drag dismissal — the details view scrolls, so user
+        // overscroll shouldn't hide it. Close via [onDismiss] (the explicit close button).
+        confirmValueChange = { it != SheetValue.Hidden },
+    )
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

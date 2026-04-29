@@ -22,12 +22,15 @@
 package io.ton.walletkit
 
 import android.content.Context
+import android.webkit.WebView
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TONTonStakersProviderConfig
 import io.ton.walletkit.api.generated.TONDeDustSwapProviderConfig
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
 import io.ton.walletkit.api.generated.TONSignatureDomain
+import io.ton.walletkit.api.generated.TONTonApiStreamingProviderConfig
+import io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
@@ -36,8 +39,11 @@ import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.TONWalletConnectionRequest
+import io.ton.walletkit.session.TONConnectSession
 import io.ton.walletkit.staking.ITONStakingManager
 import io.ton.walletkit.staking.tonstakers.TONTonStakersStakingProvider
+import io.ton.walletkit.streaming.ITONStreamingManager
+import io.ton.walletkit.streaming.ITONStreamingProvider
 import io.ton.walletkit.swap.ITONSwapManager
 import io.ton.walletkit.swap.dedust.TONDeDustSwapProvider
 import io.ton.walletkit.swap.omniston.TONOmnistonSwapProvider
@@ -164,14 +170,14 @@ interface ITONWalletKit {
      */
     suspend fun connectionEventFromUrl(url: String): TONWalletConnectionRequest
 
-    suspend fun listSessions(): List<io.ton.walletkit.session.TONConnectSession>
+    suspend fun listSessions(): List<TONConnectSession>
 
     suspend fun disconnectSession(sessionId: String)
 
     /**
      * Create WebView TON Connect injector.
      */
-    fun createWebViewInjector(webView: android.webkit.WebView, walletId: String? = null): WebViewTonConnectInjector
+    fun createWebViewInjector(webView: WebView, walletId: String? = null): WebViewTonConnectInjector
 
     // ── Swap ──
 
@@ -218,15 +224,15 @@ interface ITONWalletKit {
     /**
      * Get the streaming manager.
      */
-    fun streaming(): io.ton.walletkit.streaming.ITONStreamingManager
+    fun streaming(): ITONStreamingManager
 
     suspend fun createStreamingProvider(
-        config: io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig,
-    ): io.ton.walletkit.streaming.ITONStreamingProvider
+        config: TONTonCenterStreamingProviderConfig,
+    ): ITONStreamingProvider
 
     suspend fun createStreamingProvider(
-        config: io.ton.walletkit.api.generated.TONTonApiStreamingProviderConfig,
-    ): io.ton.walletkit.streaming.ITONStreamingProvider
+        config: TONTonApiStreamingProviderConfig,
+    ): ITONStreamingProvider
 }
 
 interface WebViewTonConnectInjector {

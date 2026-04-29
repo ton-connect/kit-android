@@ -34,8 +34,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.CallMade
-import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -59,6 +57,8 @@ import io.ton.walletkit.demo.presentation.model.getPrimaryAmount
 import io.ton.walletkit.demo.presentation.model.getUniqueId
 import io.ton.walletkit.demo.presentation.model.isOutgoing
 import io.ton.walletkit.demo.presentation.ui.components.EmptyStateCard
+import io.ton.walletkit.demo.presentation.ui.icons.CallMade
+import io.ton.walletkit.demo.presentation.ui.icons.CallReceived
 import java.math.BigDecimal
 import java.text.SimpleDateFormat
 import java.util.Date

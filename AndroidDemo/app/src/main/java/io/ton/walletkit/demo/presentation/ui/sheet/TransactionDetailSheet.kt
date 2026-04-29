@@ -37,9 +37,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.CallMade
-import androidx.compose.material.icons.automirrored.filled.CallReceived
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -49,8 +46,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +62,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.demo.R
 import io.ton.walletkit.demo.presentation.model.TransactionDetailUi
+import io.ton.walletkit.demo.presentation.ui.icons.CallMade
+import io.ton.walletkit.demo.presentation.ui.icons.CallReceived
+import io.ton.walletkit.demo.presentation.ui.icons.OpenInNew
 import io.ton.walletkit.demo.presentation.ui.preview.PreviewData
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -75,8 +77,13 @@ fun TransactionDetailSheet(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
+    val sheetState = rememberModalBottomSheetState(
+        // Block swipe-down / scrim-drag dismissal — the long transaction detail view is
+        // scrollable, and users shouldn't lose it by overscrolling. Close via [onDismiss].
+        confirmValueChange = { it != SheetValue.Hidden },
+    )
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

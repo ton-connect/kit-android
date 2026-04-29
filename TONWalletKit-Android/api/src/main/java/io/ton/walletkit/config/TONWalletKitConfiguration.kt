@@ -24,9 +24,11 @@ package io.ton.walletkit.config
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.internal.constants.JsonConsts
+import io.ton.walletkit.session.TONConnectSessionManager
 import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 /**
  * Configuration for TONWalletKit initialization.
@@ -49,19 +51,19 @@ data class TONWalletKitConfiguration(
     val walletManifest: Manifest,
     val bridge: Bridge,
     val features: List<Feature>,
-    @kotlinx.serialization.Transient
+    @Transient
     val storageType: TONWalletKitStorageType = TONWalletKitStorageType.Encrypted,
-    @kotlinx.serialization.Transient
+    @Transient
     val deviceInfo: DeviceInfo? = null,
     /**
      * Custom session manager implementation.
      * If not provided, a default storage-backed session manager will be used.
      */
-    @kotlinx.serialization.Transient
-    val sessionManager: io.ton.walletkit.session.TONConnectSessionManager? = null,
-    @kotlinx.serialization.Transient
+    @Transient
+    val sessionManager: TONConnectSessionManager? = null,
+    @Transient
     val dev: DevOptions? = null,
-    @kotlinx.serialization.Transient
+    @Transient
     val eventsConfiguration: EventsConfiguration? = null,
 ) {
     /**
@@ -179,7 +181,7 @@ data class TONWalletKitConfiguration(
         @SerialName("apiClient")
         val apiClientConfiguration: APIClientConfiguration? = null,
         val apiClientType: APIClientType = APIClientType.DEFAULT,
-        @kotlinx.serialization.Transient
+        @Transient
         val apiClient: TONAPIClient? = null,
     ) {
         /**

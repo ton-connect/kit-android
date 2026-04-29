@@ -22,7 +22,9 @@
 package io.ton.walletkit.demo.presentation.ui.sheet
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
@@ -196,7 +198,7 @@ fun BrowserSheet(
 
 @SuppressLint("SetJavaScriptEnabled")
 private fun createTabWebView(
-    context: android.content.Context,
+    context: Context,
     url: String,
     injectTonConnect: Boolean,
     walletKit: ITONWalletKit,
@@ -245,7 +247,7 @@ private fun createTabWebView(
  */
 private fun stableProfileName(url: String): String {
     val host = try {
-        android.net.Uri.parse(url).host?.lowercase() ?: "default"
+        Uri.parse(url).host?.lowercase() ?: "default"
     } catch (_: Exception) {
         "default"
     }

@@ -170,7 +170,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
         }
 
         // Last resort - try unlock as fallback
-        android.util.Log.w("WalletController", "No auth screen detected after $maxAttempts attempts, trying unlock")
+        Log.w("WalletController", "No auth screen detected after $maxAttempts attempts, trying unlock")
         unlockWalletSafe(password)
     }
 
@@ -194,7 +194,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             // Wait for transition
             composeTestRule.waitForIdle()
         } catch (e: Exception) {
-            android.util.Log.w("WalletController", "setupPasswordSafe failed: ${e.message}")
+            Log.w("WalletController", "setupPasswordSafe failed: ${e.message}")
         }
     }
 
@@ -216,7 +216,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             // Give extra time for app to finish state transition
             Log.d("WalletController", "Unlock completed, waiting for app to stabilize...")
         } catch (e: Exception) {
-            android.util.Log.w("WalletController", "unlockWalletSafe failed: ${e.message}")
+            Log.w("WalletController", "unlockWalletSafe failed: ${e.message}")
         }
     }
 
@@ -256,7 +256,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
                 .performScrollTo()
             Log.d("WalletController", "Scrolled to import button")
         } catch (e: Exception) {
-            android.util.Log.w("WalletController", "Could not scroll to import button: ${e.message}")
+            Log.w("WalletController", "Could not scroll to import button: ${e.message}")
         }
 
         composeTestRule.waitForIdle()
@@ -269,7 +269,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
                 .performClick()
             Log.d("WalletController", "Import button clicked successfully")
         } catch (e: Exception) {
-            android.util.Log.e("WalletController", "Failed to click import button: ${e.message}")
+            Log.e("WalletController", "Failed to click import button: ${e.message}")
             throw e
         }
 
@@ -378,7 +378,7 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
         }
 
         // Fallback: try to import wallet anyway (this may fail)
-        android.util.Log.w("WalletController", "No expected screen detected after 10 checks, attempting import as fallback")
+        Log.w("WalletController", "No expected screen detected after 10 checks, attempting import as fallback")
         importWallet(mnemonic)
     }
 

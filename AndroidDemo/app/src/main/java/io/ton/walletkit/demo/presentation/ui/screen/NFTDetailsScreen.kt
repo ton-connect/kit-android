@@ -62,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -83,7 +84,7 @@ fun NFTDetailsScreen(
     onTransferSuccess: () -> Unit = {},
 ) {
     // Get the wallet instance from walletKit asynchronously
-    var wallet by remember { mutableStateOf<io.ton.walletkit.ITONWallet?>(null) }
+    var wallet by remember { mutableStateOf<ITONWallet?>(null) }
     var isLoadingWallet by remember { mutableStateOf(true) }
 
     LaunchedEffect(walletAddress) {
@@ -389,7 +390,7 @@ fun NFTDetailsScreen(
                     Text(
                         text = successTxHash,
                         style = MaterialTheme.typography.bodySmall,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        fontFamily = FontFamily.Monospace,
                     )
                 }
             },
@@ -442,9 +443,9 @@ private fun InfoSection(
             text = content,
             style = MaterialTheme.typography.bodyLarge,
             fontFamily = if (monospace) {
-                androidx.compose.ui.text.font.FontFamily.Monospace
+                FontFamily.Monospace
             } else {
-                androidx.compose.ui.text.font.FontFamily.Default
+                FontFamily.Default
             },
         )
     }

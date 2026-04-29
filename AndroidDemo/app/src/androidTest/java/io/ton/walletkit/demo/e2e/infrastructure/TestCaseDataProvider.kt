@@ -21,6 +21,8 @@
  */
 package io.ton.walletkit.demo.e2e.infrastructure
 
+import android.util.Log
+
 /**
  * Provides test case data for E2E tests.
  *
@@ -50,7 +52,7 @@ object TestCaseDataProvider {
             try {
                 return client.getTestCaseData(allureId)
             } catch (e: Exception) {
-                android.util.Log.w("TestCaseDataProvider", "Failed to fetch from Allure API: ${e.message}")
+                Log.w("TestCaseDataProvider", "Failed to fetch from Allure API: ${e.message}")
             }
         }
 

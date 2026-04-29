@@ -50,23 +50,27 @@ import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.config.TONWalletKitConfiguration
-import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.core.streaming.StreamingEvent
 import io.ton.walletkit.engine.model.WalletAccount
+import io.ton.walletkit.engine.state.KotlinStakingProviderManager
 import io.ton.walletkit.engine.state.KotlinStreamingProviderManager
+import io.ton.walletkit.engine.state.KotlinSwapProviderManager
+import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo
 import io.ton.walletkit.request.RequestHandler
+import io.ton.walletkit.request.TONWalletConnectionRequest
+import io.ton.walletkit.session.TONConnectSession
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.serialization.json.JsonElement
+import org.json.JSONObject
 
 /**
  * Abstraction over a runtime that can execute the WalletKit JavaScript bundle and expose
- * the wallet APIs to Android callers. Implementations may back the runtime with a WebView or
- * an embedded JavaScript engine such as QuickJS.
+ * the wallet APIs to Android callers. The runtime is backed by an Android WebView.
  *
  * **Auto-Initialization:**
  * All methods that require WalletKit initialization will automatically initialize the SDK
@@ -80,7 +84,6 @@ import kotlinx.serialization.json.JsonElement
  * @suppress Internal engine abstraction. Use TONWalletKit and TONWallet public API instead.
  */
 internal interface WalletKitEngine : RequestHandler {
-    val kind: WalletKitEngineKind
     val streamingEvents: SharedFlow<StreamingEvent>
     val kotlinStreamingProviderManager: KotlinStreamingProviderManager
 
@@ -169,7 +172,7 @@ internal interface WalletKitEngine : RequestHandler {
         domain: TONSignatureDomain? = null,
     ): TONWalletAdapter
 
-    suspend fun addWallet(adapter: io.ton.walletkit.model.TONWalletAdapter): WalletAccount
+    suspend fun addWallet(adapter: TONWalletAdapter): WalletAccount
 
     suspend fun getWallets(): List<WalletAccount>
 
@@ -203,7 +206,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @return A connection request that can be approved or rejected
      * @throws WalletKitBridgeException if URL parsing fails
      */
-    suspend fun connectionEventFromUrl(url: String): io.ton.walletkit.request.TONWalletConnectionRequest
+    suspend fun connectionEventFromUrl(url: String): TONWalletConnectionRequest
 
     /**
      * Handle a TonConnect request from a dApp (via internal browser or extension).
@@ -220,7 +223,7 @@ internal interface WalletKitEngine : RequestHandler {
         method: String,
         paramsJson: String?,
         url: String? = null,
-        responseCallback: (org.json.JSONObject) -> Unit,
+        responseCallback: (JSONObject) -> Unit,
         walletId: String? = null,
     )
 
@@ -356,7 +359,7 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @return List of active sessions
      */
-    suspend fun listSessions(): List<io.ton.walletkit.session.TONConnectSession>
+    suspend fun listSessions(): List<TONConnectSession>
 
     /**
      * Disconnect a TON Connect session.
@@ -500,7 +503,7 @@ internal interface WalletKitEngine : RequestHandler {
      * Registry for Kotlin-implemented [io.ton.walletkit.swap.ITONSwapProvider] instances. Reverse-RPC
      * calls from JS's `ProxySwapProvider` are routed here by [io.ton.walletkit.engine.infrastructure.MessageDispatcher].
      */
-    val kotlinSwapProviderManager: io.ton.walletkit.engine.state.KotlinSwapProviderManager
+    val kotlinSwapProviderManager: KotlinSwapProviderManager
 
     /**
      * Tell the JS side to create a `ProxySwapProvider` bound to [providerId] and register it
@@ -539,7 +542,7 @@ internal interface WalletKitEngine : RequestHandler {
      * Registry for Kotlin-implemented [io.ton.walletkit.staking.ITONStakingProvider] instances. Reverse-RPC
      * calls from JS's `ProxyStakingProvider` are routed here by [io.ton.walletkit.engine.infrastructure.MessageDispatcher].
      */
-    val kotlinStakingProviderManager: io.ton.walletkit.engine.state.KotlinStakingProviderManager
+    val kotlinStakingProviderManager: KotlinStakingProviderManager
 
     /**
      * Tell the JS side to create a `ProxyStakingProvider` bound to [providerId] and register it
@@ -584,7 +587,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @return The JSON response from the bridge
      * @throws WalletKitBridgeException if the call fails
      */
-    suspend fun callBridgeMethod(method: String, params: org.json.JSONObject? = null): org.json.JSONObject
+    suspend fun callBridgeMethod(method: String, params: JSONObject? = null): JSONObject
 
     /**
      * Add an event handler to receive SDK events.
@@ -594,14 +597,14 @@ internal interface WalletKitEngine : RequestHandler {
      *
      * @param eventsHandler Handler for SDK events
      */
-    suspend fun addEventsHandler(eventsHandler: io.ton.walletkit.listener.TONBridgeEventsHandler)
+    suspend fun addEventsHandler(eventsHandler: TONBridgeEventsHandler)
 
     /**
      * Remove a previously added event handler.
      *
      * @param eventsHandler Handler to remove
      */
-    suspend fun removeEventsHandler(eventsHandler: io.ton.walletkit.listener.TONBridgeEventsHandler)
+    suspend fun removeEventsHandler(eventsHandler: TONBridgeEventsHandler)
 
     /**
      * Destroy the engine and release all resources.
