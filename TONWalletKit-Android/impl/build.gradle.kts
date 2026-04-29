@@ -18,8 +18,6 @@ val coverageExclusions =
         "**/engine/infrastructure/MessageDispatcher*",
         // WebViewWalletKitEngine: Top-level orchestrator, creates WebViewManager in constructor
         "**/engine/WebViewWalletKitEngine*",
-        // QuickJsWalletKitEngine: Deprecated, replaced by WebView implementation
-        "**/engine/QuickJsWalletKitEngine*",
         // WalletKitEngine: Interface with no executable code
         "**/engine/WalletKitEngine.class",
         "**/engine/WalletKitEngine\$*.class",
@@ -43,10 +41,6 @@ val coverageExclusions =
         "**/walletkit/core/TONWallet*.class",
         // TONWalletKit: Main SDK facade, all methods delegate to WalletKitEngine
         "**/walletkit/core/TONWalletKit*.class",
-        // WalletKitEngineFactory: Requires Android Context, creates WebView-dependent engines
-        "**/walletkit/core/WalletKitEngineFactory*.class",
-        // WalletKitEngineKind: Simple enum with no executable logic
-        "**/walletkit/core/WalletKitEngineKind*.class",
         // === internal package ===
         // Logger: Uses android.util.Log, requires Android runtime
         "**/internal/util/Logger*",
@@ -65,38 +59,6 @@ android {
 
         // Default log level (can be overridden per build type)
         buildConfigField("String", "LOG_LEVEL", "\"DEBUG\"")
-    }
-
-    flavorDimensions += "engine"
-    productFlavors {
-        create("webview") {
-            dimension = "engine"
-            // WebView-only: lighter AAR, no native libs, no OkHttp
-        }
-        create("full") {
-            dimension = "engine"
-            // Both engines: includes QuickJS with native libs + OkHttp
-
-            @Suppress("UnstableApiUsage")
-            externalNativeBuild {
-                cmake {
-                    arguments += listOf("-DANDROID_STL=c++_shared")
-                }
-            }
-
-            ndk {
-                abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
-            }
-        }
-    }
-
-    androidComponents {
-        onVariants { variant ->
-            // Exclude native libs from webview variant only
-            if (variant.flavorName == "webview") {
-                variant.packaging.jniLibs.excludes.add("**/*.so")
-            }
-        }
     }
 
     buildTypes {
@@ -123,19 +85,6 @@ android {
 
     buildFeatures {
         buildConfig = true
-    }
-
-    // Only build native libs for full variant
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-        }
-    }
-
-    packaging {
-        jniLibs {
-            useLegacyPackaging = false
-        }
     }
 
     testOptions {
@@ -179,12 +128,6 @@ val walletKitDistDir: File =
         .resolve("../dist-android")
         .normalize()
         .toFile()
-val walletKitQuickJsDistDir: File =
-    rootProject.rootDir
-        .toPath()
-        .resolve("../dist-android-quickjs")
-        .normalize()
-        .toFile()
 val walletKitAssetsDir: File = layout.projectDirectory.dir("src/main/assets/walletkit").asFile
 
 // Task to copy WebView bundle
@@ -210,11 +153,9 @@ val syncWalletKitWebViewAssets =
 
             // Clean old structure before copying new files
             if (walletKitAssetsDir.exists()) {
-                // Remove old messy files
                 walletKitAssetsDir.resolve("assets").deleteRecursively()
                 walletKitAssetsDir.resolve(".vite").deleteRecursively()
                 walletKitAssetsDir.resolve("index.html").delete()
-                // Keep quickjs folder (handled by separate task)
             } else {
                 walletKitAssetsDir.mkdirs()
             }
@@ -238,35 +179,14 @@ val syncWalletKitWebViewAssets =
         }
     }
 
-// Task to copy QuickJS bundle
-val syncWalletKitQuickJsAssets =
-    tasks.register<Copy>("syncWalletKitQuickJsAssets") {
-        group = "walletkit"
-        description = "Copy WalletKit QuickJS bundle from dist-android-quickjs into impl module assets (packaged in AAR)."
-        from(walletKitQuickJsDistDir) {
-            include("walletkit.quickjs.js")
-            rename("walletkit.quickjs.js", "index.js")
-        }
-        into(walletKitAssetsDir.resolve("quickjs"))
-        doFirst {
-            if (!walletKitQuickJsDistDir.exists()) {
-                logger.warn(
-                    "QuickJS bundle not found at $walletKitQuickJsDistDir. Skipping asset copy.",
-                )
-                // Don't throw exception, just skip
-                throw StopActionException()
-            }
-        }
-    }
-
-// Ensure bundles are built and copied before assembling the AAR (but not for tests)
+// Ensure the WebView bundle is copied before assembling the AAR (but not for tests).
 tasks.matching { it.name.contains("assemble") && !it.name.contains("Test") }.configureEach {
-    dependsOn(syncWalletKitWebViewAssets, syncWalletKitQuickJsAssets)
+    dependsOn(syncWalletKitWebViewAssets)
 }
 
-// Fix implicit dependency warnings by explicitly declaring dependencies on merge tasks
+// Fix implicit dependency warnings by explicitly declaring dependencies on merge tasks.
 tasks.matching { it.name.contains("merge") && it.name.contains("Assets") }.configureEach {
-    dependsOn(syncWalletKitWebViewAssets, syncWalletKitQuickJsAssets)
+    dependsOn(syncWalletKitWebViewAssets)
 }
 
 dependencies {
@@ -280,9 +200,6 @@ dependencies {
     implementation(libs.kotlinxCoroutinesAndroid)
     implementation(libs.kotlinxSerializationJson)
     implementation(libs.androidxWebkit)
-
-    // OkHttp only for Full variant (includes QuickJS)
-    "fullImplementation"(libs.okhttp)
 
     // Storage classes are now included in this module (merged from storage module)
     implementation(libs.androidxDatastorePreferences)
@@ -314,12 +231,12 @@ mavenPublishing {
         signAllPublications()
     }
 
-    // Publish the webview release variant by default
+    // Publish the release variant by default
     // Disable Javadoc for now due to Dokka compatibility issues
     // This publishes the FAT AAR that includes merged API + impl classes
     configure(
         com.vanniktech.maven.publish.AndroidSingleVariantLibrary(
-            variant = "webviewRelease",
+            variant = "release",
             sourcesJar = true,
             publishJavadocJar = false,
         ),
@@ -421,7 +338,7 @@ afterEvaluate {
             }
 
             // Get the output AAR that was just created
-            // Variant name is like "WebviewRelease", AAR name is like "impl-webview-release.aar"
+            // Variant name is like "Release", AAR name is like "impl-release.aar"
             val aarName = "impl-${variantName.replace(Regex("([a-z])([A-Z])"), "$1-$2").lowercase()}.aar"
             val outputAar =
                 layout.buildDirectory
@@ -490,7 +407,7 @@ afterEvaluate {
 
     // Merge API sources into the sources JAR for better IDE experience
     // This ensures developers can see documentation and source code for all public API classes
-    tasks.matching { it.name == "sourceWebviewReleaseJar" }.configureEach {
+    tasks.matching { it.name == "sourceReleaseJar" }.configureEach {
         val sourcesTask = this as? org.gradle.jvm.tasks.Jar ?: return@configureEach
 
         // Add API module sources to the sources JAR
@@ -504,27 +421,11 @@ afterEvaluate {
     }
 }
 
-// Disable all CMake tasks for webview variants (no native code needed)
-// This prevents CMake configuration errors when QuickJS sources are missing
-tasks.configureEach {
-    val taskNameLower = name.lowercase()
-    val isWebviewVariant = taskNameLower.contains("webview")
-    val isCMakeTask =
-        taskNameLower.contains("cmake") ||
-            taskNameLower.contains("nativebuild") ||
-            taskNameLower.contains("externalNative".lowercase())
-
-    if (isWebviewVariant && isCMakeTask) {
-        enabled = false
-        logger.info("Disabled CMake task for webview variant: $name")
-    }
-}
-
 // JaCoCo coverage report with exclusions
 // Run: ./gradlew :impl:jacocoTestReport
 // Report: impl/build/reports/jacoco/jacocoTestReport/html/index.html
 tasks.register<JacocoReport>("jacocoTestReport") {
-    dependsOn("testWebviewDebugUnitTest")
+    dependsOn("testDebugUnitTest")
 
     reports {
         xml.required.set(true)
@@ -532,7 +433,7 @@ tasks.register<JacocoReport>("jacocoTestReport") {
     }
 
     val debugTree =
-        fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/webviewDebug") {
+        fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
             exclude(coverageExclusions)
         }
 
@@ -540,16 +441,16 @@ tasks.register<JacocoReport>("jacocoTestReport") {
     sourceDirectories.setFrom(files("src/main/java", "src/main/kotlin"))
     executionData.setFrom(
         fileTree(layout.buildDirectory) {
-            include("outputs/unit_test_code_coverage/webviewDebugUnitTest/testWebviewDebugUnitTest.exec")
+            include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
         },
     )
 }
 
 // Configure the built-in Android coverage report task to use exclusions
-tasks.matching { it.name == "createWebviewDebugUnitTestCoverageReport" }.configureEach {
+tasks.matching { it.name == "createDebugUnitTestCoverageReport" }.configureEach {
     if (this is JacocoReport) {
         classDirectories.setFrom(
-            fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/webviewDebug") {
+            fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
                 exclude(coverageExclusions)
             },
         )

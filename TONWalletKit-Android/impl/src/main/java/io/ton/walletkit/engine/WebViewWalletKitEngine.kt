@@ -54,7 +54,6 @@ import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.TONWalletKitConfiguration
-import io.ton.walletkit.core.WalletKitEngineKind
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.InitializationManager
 import io.ton.walletkit.engine.infrastructure.MessageDispatcher
@@ -111,7 +110,7 @@ import org.json.JSONObject
  * The public behaviour and logging semantics remain identical to the legacy monolithic
  * implementation to guarantee backward compatibility.
  *
- * @suppress Internal implementation class. Use [WalletKitEngineFactory.create] instead.
+ * @suppress Internal implementation class. Created by [io.ton.walletkit.core.TONWalletKit.initialize].
  */
 internal class WebViewWalletKitEngine private constructor(
     context: Context,
@@ -121,7 +120,6 @@ internal class WebViewWalletKitEngine private constructor(
     private val apiClients: List<TONAPIClient>,
     private val assetPath: String = WebViewConstants.DEFAULT_ASSET_PATH,
 ) : WalletKitEngine {
-    override val kind: WalletKitEngineKind = WalletKitEngineKind.WEBVIEW
     override val streamingEvents get() = messageDispatcher.streamingEvents
 
     private val appContext = context.applicationContext

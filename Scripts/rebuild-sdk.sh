@@ -20,32 +20,38 @@ echo "kit:         $KIT_DIR"
 echo "kit-android: $KIT_ANDROID_DIR"
 
 # 1. Build TypeScript bridge bundle
-echo -e "\n${GREEN}[1/4] Building TypeScript bridge...${NC}"
+echo -e "\n${GREEN}[1/5] Building TypeScript bridge...${NC}"
 
 cd "$KIT_DIR"
 pnpm build --force --filter walletkit-android-bridge
 
 # 2. Copy bundle
-echo -e "\n${GREEN}[2/4] Copying bundle to dist-android...${NC}"
+echo -e "\n${GREEN}[2/5] Copying bundle to dist-android...${NC}"
 mkdir -p "$KIT_ANDROID_DIR/dist-android/"
 cp packages/walletkit-android-bridge/dist/* "$KIT_ANDROID_DIR/dist-android/"
 
 # 3. Regenerate OpenAPI models (opt-in)
 if [[ "$*" == *"--regen-models"* ]]; then
-    echo -e "\n${GREEN}[3/4] Regenerating OpenAPI models...${NC}"
+    echo -e "\n${GREEN}[3/5] Regenerating OpenAPI models...${NC}"
     "$KIT_ANDROID_DIR/Scripts/generate-api/generate-api-models.sh" "$KIT_DIR/packages/walletkit"
     cd "$KIT_ANDROID_DIR/TONWalletKit-Android"
     ./gradlew spotlessApply
 else
-    echo -e "\n${YELLOW}[3/4] Skipping model regeneration (pass --regen-models to regenerate)${NC}"
+    echo -e "\n${YELLOW}[3/5] Skipping model regeneration (pass --regen-models to regenerate)${NC}"
 fi
 
-# 4. Build SDK AAR and install demo app
-echo -e "\n${GREEN}[4/4] Building SDK and installing demo app...${NC}"
+# 4. Build SDK AAR
+echo -e "\n${GREEN}[4/5] Building SDK and copying to demo libs...${NC}"
 cd "$KIT_ANDROID_DIR/TONWalletKit-Android"
-./gradlew syncWalletKitWebViewAssets buildAndCopyWebviewToDemo --rerun-tasks
+./gradlew syncWalletKitWebViewAssets buildAndCopyToDemo --rerun-tasks
 
-cd "$KIT_ANDROID_DIR/AndroidDemo"
-./gradlew :app:clean :app:installDebug --rerun-tasks
+# 5. Install demo app (opt-in)
+if [[ "$*" == *"--install-demo"* ]]; then
+    echo -e "\n${GREEN}[5/5] Installing demo app...${NC}"
+    cd "$KIT_ANDROID_DIR/AndroidDemo"
+    ./gradlew :app:clean :app:installDebug --rerun-tasks
+else
+    echo -e "\n${YELLOW}[5/5] Skipping demo install (pass --install-demo to install)${NC}"
+fi
 
 echo -e "\n${GREEN}=== Done ===${NC}"

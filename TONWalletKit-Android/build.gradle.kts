@@ -8,14 +8,11 @@ plugins {
 // Apply Spotless formatting to all subprojects
 subprojects {
     apply(plugin = "com.diffplug.spotless")
-    
+
     configure<com.diffplug.gradle.spotless.SpotlessExtension> {
         kotlin {
             target("**/*.kt")
-            targetExclude(
-                "**/build/**/*.kt",
-                "**/WalletKitEngineFactoryTest.kt",
-            )
+            targetExclude("**/build/**/*.kt")
             licenseHeaderFile(rootProject.file("../LICENSE_HEADER"))
             ktlint("1.0.1")
                 .editorConfigOverride(
@@ -32,124 +29,80 @@ subprojects {
     }
 }
 
-// Task to build WebView variant (Debug)
-tasks.register("buildWebview") {
+// Build the SDK AAR (debug).
+tasks.register("buildSdk") {
     group = "build"
-    description = "Build WebView SDK variant (no QuickJS) - DEBUG with logs"
-    
-    dependsOn(":impl:bundleWebviewDebugAar")
-    
+    description = "Build the SDK AAR (debug, with logs)"
+
+    dependsOn(":impl:bundleDebugAar")
+
     doLast {
-        println("✅ WebView variant built: impl-webview-debug.aar (2.7M)")
-        println("   Includes API + implementation, no QuickJS native libs")
+        println("✅ SDK debug AAR built: impl-debug.aar")
         println("   🐛 DEBUG build with full logging enabled")
     }
 }
 
-// Task to build WebView variant (Release)
-tasks.register("buildWebviewRelease") {
+// Build the SDK AAR (release).
+tasks.register("buildSdkRelease") {
     group = "build"
-    description = "Build WebView SDK variant (no QuickJS) - RELEASE"
-    
-    dependsOn(":impl:bundleWebviewReleaseAar")
-    
+    description = "Build the SDK AAR (release)"
+
+    dependsOn(":impl:bundleReleaseAar")
+
     doLast {
-        println("✅ WebView variant built: impl-webview-release.aar")
-        println("   Includes API + implementation, no QuickJS native libs")
-        println("   📦 RELEASE build")
+        println("✅ SDK release AAR built: impl-release.aar")
     }
 }
 
-// Task to build Full variant with QuickJS
-tasks.register("buildFull") {
+// Build the SDK AAR and copy it into the demo app's libs/.
+tasks.register<Copy>("buildAndCopyToDemo") {
     group = "build"
-    description = "Build Full SDK variant (includes QuickJS) - DEBUG with logs"
-    
-    dependsOn(":impl:bundleFullDebugAar")
-    
-    doLast {
-        println("✅ Full variant built: impl-full-debug.aar (4.3M)")
-        println("   Includes API + implementation + QuickJS native libs")
-        println("   🐛 DEBUG build with full logging enabled")
-    }
-}
+    description = "Build the SDK debug AAR and copy it into AndroidDemo/app/libs"
 
-// Task to build both variants
-tasks.register("buildAllVariants") {
-    group = "build"
-    description = "Build all SDK variants (webview, full)"
-    
-    dependsOn("buildWebview", "buildFull")
-}
+    dependsOn(":api:build", ":impl:bundleDebugAar", ":api:sourcesJar")
 
-// Task to build and copy WebView variant to demo (default, recommended)
-tasks.register<Copy>("buildAndCopyWebviewToDemo") {
-    group = "build"
-    description = "Build WebView SDK variant and copy to AndroidDemo/app/libs - DEBUG with logs"
-    
-    dependsOn(":api:build", ":impl:bundleWebviewDebugAar", ":api:sourcesJar")
-    
-    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-webview-debug.aar"))
+    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-debug.aar"))
     from(layout.projectDirectory.file("api/build/libs/api-sources.jar"))
     into(layout.projectDirectory.dir("../AndroidDemo/app/libs"))
-    rename("impl-webview-debug.aar", "tonwalletkit-release.aar")
+    rename("impl-debug.aar", "tonwalletkit-release.aar")
     rename("api-sources.jar", "tonwalletkit-release-sources.jar")
-    
+
     doLast {
-        println("✅ WebView DEBUG variant copied to AndroidDemo/app/libs/tonwalletkit-release.aar")
+        println("✅ Debug AAR copied to AndroidDemo/app/libs/tonwalletkit-release.aar")
         println("✅ Sources JAR copied to AndroidDemo/app/libs/tonwalletkit-release-sources.jar")
-        println("   Size: ~2.7M (fat AAR with API + impl, no QuickJS)")
-        println("   🐛 DEBUG build - full logging enabled!")
-        println("   Demo app uses: WebView engine only")
+        println("   🐛 DEBUG build — full logging enabled")
         println("   💡 Sources JAR enables KDoc viewing in Android Studio")
     }
 }
 
-// Task to build and copy Full variant to demo
-tasks.register<Copy>("buildAndCopyFullToDemo") {
+// Copy the existing AAR without rebuilding.
+tasks.register<Copy>("copyToDemo") {
     group = "build"
-    description = "Build Full SDK variant (with QuickJS) and copy to AndroidDemo/app/libs - DEBUG with logs"
-    
-    dependsOn(":api:build", ":impl:bundleFullDebugAar", ":api:sourcesJar")
-    
-    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-full-debug.aar"))
-    from(layout.projectDirectory.file("api/build/libs/api-sources.jar"))
-    into(layout.projectDirectory.dir("../AndroidDemo/app/libs"))
-    rename("impl-full-debug.aar", "tonwalletkit-release.aar")
-    rename("api-sources.jar", "tonwalletkit-release-sources.jar")
-    
-    doLast {
-        println("✅ Full DEBUG variant copied to AndroidDemo/app/libs/tonwalletkit-release.aar")
-        println("✅ Sources JAR copied to AndroidDemo/app/libs/tonwalletkit-release-sources.jar")
-        println("   Size: ~4.3M (fat AAR with API + impl + QuickJS)")
-        println("   🐛 DEBUG build - full logging enabled!")
-        println("   Demo app uses: WebView + QuickJS engines")
-        println("   💡 Sources JAR enables KDoc viewing in Android Studio")
-    }
-}
+    description = "Copy the existing debug AAR to AndroidDemo/app/libs (no rebuild)"
 
-// Alias for backward compatibility (uses webview by default)
-tasks.register("buildAndCopyToDemo") {
-    group = "build"
-    description = "Build and copy WebView variant to demo (alias for buildAndCopyWebviewToDemo)"
-    
-    dependsOn("buildAndCopyWebviewToDemo")
+    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-debug.aar"))
+    into(layout.projectDirectory.dir("../AndroidDemo/app/libs"))
+    rename("impl-debug.aar", "tonwalletkit-release.aar")
+
+    doLast {
+        println("✅ Copied existing debug AAR to AndroidDemo/app/libs/tonwalletkit-release.aar")
+    }
 }
 
 // Maven Central Publishing Validation Tasks
 tasks.register("checkSigningConfiguration") {
     group = "publishing"
     description = "Check that signing configuration is properly set up for Maven Central"
-    
+
     doLast {
         val requiredProps = listOf(
             "signing.keyId" to System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyId"),
             "signing.password" to System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKeyPassword"),
             "signing.key" to System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey")
         )
-        
+
         val missingProps = requiredProps.filter { it.second.isNullOrEmpty() }
-        
+
         if (missingProps.isNotEmpty()) {
             println("⚠️  Missing signing configuration:")
             missingProps.forEach { println("   - ${it.first}") }
@@ -166,16 +119,16 @@ tasks.register("checkSigningConfiguration") {
 tasks.register("checkPomFileForMavenPublication") {
     group = "publishing"
     description = "Check that POM files meet Maven Central requirements"
-    
+
     doLast {
         val requiredPomFields = listOf(
             "GROUP" to project.findProperty("GROUP"),
             "VERSION_NAME" to project.findProperty("VERSION_NAME"),
             "POM_ARTIFACT_ID" to project.findProperty("POM_ARTIFACT_ID")
         )
-        
+
         val missingFields = requiredPomFields.filter { it.second == null }
-        
+
         if (missingFields.isNotEmpty()) {
             println("❌ Missing required POM fields in gradle.properties:")
             missingFields.forEach { println("   - ${it.first}") }
@@ -192,39 +145,11 @@ tasks.register("checkPomFileForMavenPublication") {
 tasks.register("validatePublishingSetup") {
     group = "publishing"
     description = "Validate all publishing requirements before releasing to Maven Central"
-    
+
     dependsOn("checkSigningConfiguration", "checkPomFileForMavenPublication")
-    
+
     doLast {
         println("\n✅ Publishing setup validation complete!")
         println("   Ready to publish to Maven Central")
-    }
-}
-
-// Task to just copy existing WebView AAR without rebuilding
-tasks.register<Copy>("copyWebviewToDemo") {
-    group = "build"
-    description = "Copy existing WebView DEBUG AAR to demo (no rebuild)"
-    
-    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-webview-debug.aar"))
-    into(layout.projectDirectory.dir("../AndroidDemo/app/libs"))
-    rename("impl-webview-debug.aar", "tonwalletkit-release.aar")
-    
-    doLast {
-        println("✅ Copied existing DEBUG AAR to AndroidDemo/app/libs/tonwalletkit-release.aar")
-    }
-}
-
-// Task to just copy existing Full AAR without rebuilding
-tasks.register<Copy>("copyFullToDemo") {
-    group = "build"
-    description = "Copy existing Full DEBUG AAR to demo (no rebuild)"
-    
-    from(layout.projectDirectory.file("impl/build/outputs/aar/impl-full-debug.aar"))
-    into(layout.projectDirectory.dir("../AndroidDemo/app/libs"))
-    rename("impl-full-debug.aar", "tonwalletkit-release.aar")
-    
-    doLast {
-        println("✅ Copied existing DEBUG AAR to AndroidDemo/app/libs/tonwalletkit-release.aar")
     }
 }
