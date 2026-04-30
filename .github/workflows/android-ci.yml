@@ -69,6 +69,14 @@ jobs:
       - name: Checkout kit-android code
         uses: actions/checkout@v4
 
+      - name: Checkout kit monorepo
+        uses: actions/checkout@v4
+        with:
+          repository: ton-connect/kit
+          # TODO: bump to `main` once the kit-side TON-850 fixture lands.
+          ref: feature/ton-850-schema-generator-tests
+          path: kit
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -78,6 +86,30 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install codegen tooling
+        env:
+          OPENAPI_GENERATOR_VERSION: "7.17.0"
+        run: |
+          npm install -g @openapi-contrib/json-schema-to-openapi-schema
+          jar_url="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/${OPENAPI_GENERATOR_VERSION}/openapi-generator-cli-${OPENAPI_GENERATOR_VERSION}.jar"
+          sudo curl -fsSL -o /usr/local/lib/openapi-generator-cli.jar "$jar_url"
+          sudo tee /usr/local/bin/openapi-generator > /dev/null <<'WRAP'
+          #!/bin/bash
+          exec java -jar /usr/local/lib/openapi-generator-cli.jar "$@"
+          WRAP
+          sudo chmod +x /usr/local/bin/openapi-generator
+          openapi-generator version
 
       - name: Populate dist-android from committed assets
         run: |
@@ -90,7 +122,12 @@ jobs:
 
       - name: Run unit tests
         working-directory: TONWalletKit-Android
-        run: ./gradlew :impl:testDebugUnitTest
+        env:
+          # Picked up by GeneratedModelsSnapshotTest under :api to regenerate models from the
+          # kit fixture and diff against the committed snapshot. Without this, that test
+          # self-skips via JUnit Assume.
+          WALLETKIT_PATH: ${{ github.workspace }}/kit/packages/walletkit
+        run: ./gradlew :api:testDebugUnitTest :impl:testDebugUnitTest
 
       - name: Build SDK (Release)
         working-directory: TONWalletKit-Android
@@ -108,7 +145,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-results
-          path: TONWalletKit-Android/impl/build/test-results/
+          path: |
+            TONWalletKit-Android/api/build/test-results/
+            TONWalletKit-Android/impl/build/test-results/
           retention-days: 7
 
   # Build Demo App (reused by E2E tests)

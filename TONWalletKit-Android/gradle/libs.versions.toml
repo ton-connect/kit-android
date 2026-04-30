@@ -40,6 +40,7 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 shadowsFramework = { module = "org.robolectric:shadows-framework", version.ref = "robolectric" }
 kotlinxCoroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 tonKotlinBlockTlb = { module = "org.ton.kotlin:ton-kotlin-block-tlb", version.ref = "tonKotlinCrypto" }
+kotlinReflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 
 [plugins]
 androidLibrary = { id = "com.android.library", version.ref = "agp" }

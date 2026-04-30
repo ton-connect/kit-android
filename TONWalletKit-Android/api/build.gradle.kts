@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
@@ -39,6 +41,33 @@ kotlin {
     }
 }
 
+// Forward `walletkit.path` from local.properties (or the WALLETKIT_PATH env var) to the test
+// JVM so GeneratedModelsSnapshotTest can find the kit monorepo. Unset → the test self-skips.
+tasks.withType<Test>().configureEach {
+    val localPropsFile = rootProject.file("local.properties")
+    val fromLocal: String? =
+        if (localPropsFile.exists()) {
+            val props = Properties()
+            localPropsFile.inputStream().use { props.load(it) }
+            props.getProperty("walletkit.path")
+        } else {
+            null
+        }
+    val resolved: String? = fromLocal?.takeIf { it.isNotBlank() } ?: System.getenv("WALLETKIT_PATH")
+    if (!resolved.isNullOrBlank()) environment("WALLETKIT_PATH", resolved)
+
+    // Surface the full assertion message + stdout/stderr on failure so CI logs are useful
+    // without downloading the test-results artifact (the snapshot test packs the generator's
+    // captured output into its AssertionError, which Gradle's default logging hides).
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStandardStreams = true
+        showCauses = true
+        showStackTraces = true
+    }
+}
+
 // Generate sources JAR with KDocs for better IDE experience
 val sourcesJar =
     tasks.register<Jar>("sourcesJar") {
@@ -68,4 +97,8 @@ dependencies {
     // Test dependencies
     testImplementation(libs.junit)
     testImplementation(libs.kotlinxCoroutinesTest)
+    // kotlin-reflect is used by GeneratedModelsTest to introspect the shape of
+    // models generated from the walletkit fixture (primary constructor params,
+    // sealed subclasses, etc.). Test-only — kept out of the published API.
+    testImplementation(libs.kotlinReflect)
 }
