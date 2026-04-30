@@ -98,10 +98,13 @@ jobs:
           version: 9
 
       - name: Install codegen tooling
+        env:
+          OPENAPI_GENERATOR_VERSION: "7.17.0"
         run: |
           npm install -g \
             @openapitools/openapi-generator-cli \
             @openapi-contrib/json-schema-to-openapi-schema
+          openapi-generator-cli version-manager set "$OPENAPI_GENERATOR_VERSION"
           cli_path="$(command -v openapi-generator-cli)"
           sudo ln -sf "$cli_path" "$(dirname "$cli_path")/openapi-generator"
           openapi-generator version
