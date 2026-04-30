@@ -42,6 +42,7 @@ import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.engine.WebViewWalletKitEngine
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
+import io.ton.walletkit.internal.util.WalletKitUtils
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONWalletAdapter
@@ -240,7 +241,7 @@ internal class TONWalletKit private constructor(
         secretKey: ByteArray,
     ): WalletSignerInfo {
         checkNotDestroyed()
-        val hex = io.ton.walletkit.internal.util.WalletKitUtils.byteArrayToHexNoPrefix(secretKey)
+        val hex = WalletKitUtils.byteArrayToHexNoPrefix(secretKey)
         return engine.createSignerFromSecretKey(hex)
     }
 
