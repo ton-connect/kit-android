@@ -4,6 +4,7 @@ kotlin = "2.2.20"
 ksp = "2.2.20-2.0.4"
 leakcanaryAndroid = "2.14"
 spotless = "8.1.0"
+firebaseAppdistribution = "5.2.1"
 androidxCoreKtx = "1.17.0"
 androidxAppcompat = "1.7.1"
 material = "1.13.0"
@@ -85,3 +86,4 @@ kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", versio
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hiltAndroid = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+firebaseAppdistribution = { id = "com.google.firebase.appdistribution", version.ref = "firebaseAppdistribution" }

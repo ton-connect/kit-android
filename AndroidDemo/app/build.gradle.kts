@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hiltAndroid)
+    alias(libs.plugins.firebaseAppdistribution)
 }
 
 // Force OkHttp version to avoid conflicts between app dependencies and test dependencies
@@ -47,8 +48,8 @@ android {
         applicationId = "io.ton.walletkit.demo"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
+        versionName = findProperty("DEMO_VERSION_NAME") as String? ?: "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Pass instrumentation arguments from gradle properties or environment
@@ -104,11 +105,26 @@ android {
         buildConfigField("String", "TETRA_API_KEY", escapedBuildConfigString(tetraApiKey))
     }
 
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
+            firebaseAppDistribution {
+                appId = System.getenv("FIREBASE_APP_ID") ?: ""
+                releaseNotes = System.getenv("FIREBASE_RELEASE_NOTES") ?: "Build from CI"
+                groups = "testers"
+            }
         }
     }
 
