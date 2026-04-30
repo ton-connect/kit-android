@@ -130,6 +130,8 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":designsystem"))
+
     implementation(libs.androidxCoreKtx)
     implementation(libs.androidxAppcompat)
     implementation(libs.googleMaterial)
