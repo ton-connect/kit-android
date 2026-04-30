@@ -156,8 +156,6 @@ dependencies {
     implementation(libs.hiltAndroid)
     ksp(libs.hiltCompiler)
 
-    // TONWalletKit SDK
-//    implementation(libs.walletkitAndroid)
     // TONWalletKit SDK - Use local AAR file
     // Build and copy with: cd ../TONWalletKit-Android && ./gradlew buildAndCopyToDemo
     implementation(files("libs/tonwalletkit-release.aar"))

@@ -20,20 +20,7 @@ local-maven-repo/
 build/
 .cxx/
 *.iml
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/gradle.xml
-.idea/assetWizardSettings.xml
-.idea/dictionaries
-.idea/libraries
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/misc.xml
-.idea/.gitignore
-.idea/caches
-.idea/modules.xml
-.idea/navEditor.xml
-.idea/deploymentTargetDropDown.xml
+.idea/
 
 # Local configuration files
 local.properties
@@ -58,10 +45,3 @@ build-js-bundles.sh
 
 # Source maps (generated, can be regenerated from build)
 *.map
-sdk-test-utility/.idea/
-.idea/AndroidProjectSystem.xml
-.idea/deploymentTargetSelector.xml
-.idea/deviceManager.xml
-.idea/markdown.xml
-.idea/migrations.xml
-.idea/vcs.xml
