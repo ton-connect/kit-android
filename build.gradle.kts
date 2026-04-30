@@ -32,3 +32,23 @@ tasks.register("testAll") {
         gradle.includedBuild("AndroidDemo").task(":app:testDebugUnitTest"),
     )
 }
+
+tasks.register("spotlessApply") {
+    group = "formatting"
+    description = "Run spotlessApply across the SDK and demo."
+    dependsOn(
+        gradle.includedBuild("TONWalletKit-Android").task(":api:spotlessApply"),
+        gradle.includedBuild("TONWalletKit-Android").task(":impl:spotlessApply"),
+        gradle.includedBuild("AndroidDemo").task(":spotlessApply"),
+    )
+}
+
+tasks.register("spotlessCheck") {
+    group = "verification"
+    description = "Run spotlessCheck across the SDK and demo."
+    dependsOn(
+        gradle.includedBuild("TONWalletKit-Android").task(":api:spotlessCheck"),
+        gradle.includedBuild("TONWalletKit-Android").task(":impl:spotlessCheck"),
+        gradle.includedBuild("AndroidDemo").task(":spotlessCheck"),
+    )
+}
