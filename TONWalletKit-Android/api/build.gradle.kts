@@ -45,13 +45,14 @@ kotlin {
 // JVM so GeneratedModelsSnapshotTest can find the kit monorepo. Unset → the test self-skips.
 tasks.withType<Test>().configureEach {
     val localPropsFile = rootProject.file("local.properties")
-    val fromLocal: String? = if (localPropsFile.exists()) {
-        val props = Properties()
-        localPropsFile.inputStream().use { props.load(it) }
-        props.getProperty("walletkit.path")
-    } else {
-        null
-    }
+    val fromLocal: String? =
+        if (localPropsFile.exists()) {
+            val props = Properties()
+            localPropsFile.inputStream().use { props.load(it) }
+            props.getProperty("walletkit.path")
+        } else {
+            null
+        }
     val resolved: String? = fromLocal?.takeIf { it.isNotBlank() } ?: System.getenv("WALLETKIT_PATH")
     if (!resolved.isNullOrBlank()) environment("WALLETKIT_PATH", resolved)
 }
