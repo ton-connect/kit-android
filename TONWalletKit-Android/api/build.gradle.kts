@@ -55,6 +55,17 @@ tasks.withType<Test>().configureEach {
         }
     val resolved: String? = fromLocal?.takeIf { it.isNotBlank() } ?: System.getenv("WALLETKIT_PATH")
     if (!resolved.isNullOrBlank()) environment("WALLETKIT_PATH", resolved)
+
+    // Surface the full assertion message + stdout/stderr on failure so CI logs are useful
+    // without downloading the test-results artifact (the snapshot test packs the generator's
+    // captured output into its AssertionError, which Gradle's default logging hides).
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStandardStreams = true
+        showCauses = true
+        showStackTraces = true
+    }
 }
 
 // Generate sources JAR with KDocs for better IDE experience
