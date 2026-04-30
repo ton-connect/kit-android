@@ -101,12 +101,14 @@ jobs:
         env:
           OPENAPI_GENERATOR_VERSION: "7.17.0"
         run: |
-          npm install -g \
-            @openapitools/openapi-generator-cli \
-            @openapi-contrib/json-schema-to-openapi-schema
-          openapi-generator-cli version-manager set "$OPENAPI_GENERATOR_VERSION"
-          cli_path="$(command -v openapi-generator-cli)"
-          sudo ln -sf "$cli_path" "$(dirname "$cli_path")/openapi-generator"
+          npm install -g @openapi-contrib/json-schema-to-openapi-schema
+          jar_url="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/${OPENAPI_GENERATOR_VERSION}/openapi-generator-cli-${OPENAPI_GENERATOR_VERSION}.jar"
+          sudo curl -fsSL -o /usr/local/lib/openapi-generator-cli.jar "$jar_url"
+          sudo tee /usr/local/bin/openapi-generator > /dev/null <<'WRAP'
+          #!/bin/bash
+          exec java -jar /usr/local/lib/openapi-generator-cli.jar "$@"
+          WRAP
+          sudo chmod +x /usr/local/bin/openapi-generator
           openapi-generator version
 
       - name: Populate dist-android from committed assets
