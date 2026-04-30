@@ -30,7 +30,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ton.walletkit.ITONWalletKit
-import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.WalletVersions
 import io.ton.walletkit.api.generated.TONNetwork
@@ -58,6 +57,8 @@ import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.util.TonFormatter
 import io.ton.walletkit.demo.presentation.util.TransactionDetailMapper
+import io.ton.walletkit.demo.presentation.util.hexToByteArray
+import io.ton.walletkit.demo.presentation.util.toHex
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.WalletSigner
@@ -199,7 +200,7 @@ class WalletKitViewModel @Inject constructor(
             val mnemonic = kit.createTonMnemonic()
             val keyPair = kit.mnemonicToKeyPair(mnemonic)
             // keyPair.secretKey is 64 bytes (seed || pubkey); take only the 32-byte seed for import
-            val secretKeyHex = WalletKitUtils.byteArrayToHex(keyPair.secretKey.sliceArray(0 until 32))
+            val secretKeyHex = keyPair.secretKey.sliceArray(0 until 32).toHex()
             Log.d("SecretKeyTest", "mnemonic: $mnemonic")
             Log.d("SecretKeyTest", "secretKey: $secretKeyHex")
         }
@@ -608,8 +609,8 @@ class WalletKitViewModel @Inject constructor(
                 // Accept 32-byte seed (64 hex chars) or tweetnacl's 64-byte extended key
                 // (128 hex chars = seed || pubkey). mnemonicToKeyPair returns the latter;
                 // the JS bridge needs only the seed, so we slice to the first 32 bytes below.
-                val trimmed = WalletKitUtils.stripHexPrefix(secretKeyHex.trim())
-                if (!trimmed.matches(Regex("^[0-9a-fA-F]{64}([0-9a-fA-F]{64})?$"))) {
+                val trimmed = secretKeyHex.trim()
+                if (!trimmed.matches(Regex("^(?:0x|0X)?[0-9a-fA-F]{64}([0-9a-fA-F]{64})?$"))) {
                     _state.update { it.copy(error = uiString(R.string.wallet_error_invalid_secret_key)) }
                     return
                 }
@@ -650,7 +651,7 @@ class WalletKitViewModel @Inject constructor(
                         // If caller passed tweetnacl's 64-byte extended key (seed || pubkey),
                         // take only the first 32 bytes — the JS bridge uses keyPairFromSeed.
                         val secretKeyBytes = try {
-                            val bytes = WalletKitUtils.hexToByteArray(secretKeyHex.trim())
+                            val bytes = secretKeyHex.trim().hexToByteArray()
                             if (bytes.size == 64) bytes.sliceArray(0 until 32) else bytes
                         } catch (e: Exception) {
                             _state.update { it.copy(error = uiString(R.string.wallet_error_invalid_secret_key)) }
@@ -1618,7 +1619,7 @@ class WalletKitViewModel @Inject constructor(
         val kit = getKit()
         val keyPair = kit.mnemonicToKeyPair(mnemonic)
         // Use byteArrayToHex to get hex with 0x prefix (required by JavaScript bridge)
-        val publicKey = WalletKitUtils.byteArrayToHex(keyPair.publicKey)
+        val publicKey = keyPair.publicKey.toHex()
 
         Log.d(LOG_TAG, "Derived public key for signer wallet: ${publicKey.take(18)}...")
 

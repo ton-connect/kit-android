@@ -19,16 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit
-
-import android.util.Base64
+package io.ton.walletkit.internal.util
 
 /**
- * Utility functions for TON Wallet Kit.
- *
- * Provides helpers for hex encoding/decoding and base64 conversions.
+ * Internal utility functions for the TON Wallet Kit SDK — hex / base64 helpers used by
+ * bridge operations, signer plumbing, and address model code. Kept inside [impl] so it
+ * is not part of the public SDK surface.
  */
-object WalletKitUtils {
+internal object WalletKitUtils {
     private val HEX_CHARS = "0123456789abcdef".toCharArray()
 
     /**
@@ -118,51 +116,6 @@ object WalletKitUtils {
             result[i * 2 + 1] = HEX_CHARS[v and 0x0F]
         }
         return String(result)
-    }
-
-    /**
-     * Convert a Base64 string to hex (without 0x prefix).
-     * Returns null if conversion fails.
-     *
-     * @param base64 The Base64 encoded string to convert
-     * @return Hex string (lowercase, no prefix) or null on error
-     *
-     * Example:
-     * ```kotlin
-     * val base64 = "EjRWeA=="
-     * val hex = WalletKitUtils.base64ToHex(base64)
-     * // hex = "12345678"
-     * ```
-     */
-    fun base64ToHex(base64: String?): String? {
-        if (base64.isNullOrBlank()) return null
-
-        return try {
-            val bytes = Base64.decode(base64, Base64.NO_WRAP)
-            byteArrayToHexNoPrefix(bytes)
-        } catch (e: IllegalArgumentException) {
-            null
-        }
-    }
-
-    /**
-     * Convert a hex string to Base64.
-     * Accepts hex with or without 0x prefix.
-     *
-     * @param hex The hex string to convert
-     * @return Base64 encoded string
-     * @throws IllegalArgumentException if hex string is invalid
-     *
-     * Example:
-     * ```kotlin
-     * val hex = "12345678"
-     * val base64 = WalletKitUtils.hexToBase64(hex)
-     * // base64 = "EjRWeA=="
-     * ```
-     */
-    fun hexToBase64(hex: String): String {
-        val bytes = hexToByteArray(hex)
-        return Base64.encodeToString(bytes, Base64.NO_WRAP)
     }
 
     /**

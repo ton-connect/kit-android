@@ -22,7 +22,6 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.WalletKitBridgeException
-import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.engine.adapter.BridgeWalletAdapter
@@ -34,6 +33,7 @@ import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.SignerManager
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
+import io.ton.walletkit.internal.util.WalletKitUtils
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.TONWalletAdapter

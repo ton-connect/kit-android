@@ -22,6 +22,7 @@
 package io.ton.walletkit
 
 import io.mockk.*
+import io.ton.walletkit.internal.util.WalletKitUtils
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.WalletSigner
 import io.ton.walletkit.model.WalletSignerInfo

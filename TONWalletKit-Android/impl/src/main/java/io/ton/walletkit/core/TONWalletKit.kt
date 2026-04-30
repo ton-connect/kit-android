@@ -25,7 +25,6 @@ import android.content.Context
 import android.webkit.WebView
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.ITONWalletKit
-import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.WebViewTonConnectInjector
 import io.ton.walletkit.api.TONTonStakersProviderConfig
 import io.ton.walletkit.api.WalletVersions
@@ -43,6 +42,7 @@ import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.engine.WebViewWalletKitEngine
 import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
+import io.ton.walletkit.internal.util.WalletKitUtils
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.KeyPair
 import io.ton.walletkit.model.TONWalletAdapter

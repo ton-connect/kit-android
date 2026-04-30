@@ -21,7 +21,7 @@
  */
 package io.ton.walletkit.engine.state
 
-import io.ton.walletkit.WalletKitUtils
+import io.ton.walletkit.internal.util.WalletKitUtils
 import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.WalletSigner
 import kotlinx.coroutines.async

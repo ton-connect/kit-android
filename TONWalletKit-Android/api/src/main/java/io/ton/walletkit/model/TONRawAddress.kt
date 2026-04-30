@@ -21,7 +21,6 @@
  */
 package io.ton.walletkit.model
 
-import io.ton.walletkit.WalletKitUtils
 import kotlinx.serialization.Serializable
 import org.ton.block.AddrStd
 
@@ -48,7 +47,7 @@ data class TONRawAddress(
      * Raw address string representation: "workchain:hash"
      */
     val string: String
-        get() = "${workchain.toInt()}:${WalletKitUtils.byteArrayToHexNoPrefix(hash)}"
+        get() = "${workchain.toInt()}:${TONHex.fromData(hash, withPrefix = false).value}"
 
     /**
      * Creates a TONRawAddress from a string representation.

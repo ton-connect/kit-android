@@ -26,8 +26,8 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import io.ton.walletkit.WalletKitUtils
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
+import io.ton.walletkit.demo.presentation.util.toHexNoPrefix
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -191,7 +191,7 @@ class SecureDemoAppStorage(context: Context) : DemoAppStorage {
     private fun hashPassword(password: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val hashBytes = digest.digest(password.toByteArray())
-        return WalletKitUtils.byteArrayToHexNoPrefix(hashBytes)
+        return hashBytes.toHexNoPrefix()
     }
 
     private fun walletKey(address: String) = "$WALLET_PREFIX$address"
