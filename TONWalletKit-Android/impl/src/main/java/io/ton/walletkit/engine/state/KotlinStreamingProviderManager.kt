@@ -32,7 +32,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
 /** Manages custom Kotlin [ITONStreamingProvider] instances registered into the JS bridge. */
@@ -111,10 +110,7 @@ internal class KotlinStreamingProviderManager(
             val updateJson = json.encodeToString(value)
             rpcClient.call(
                 BridgeMethodConstants.METHOD_KOTLIN_PROVIDER_DISPATCH,
-                JSONObject().apply {
-                    put("subId", subId)
-                    put("updateJson", updateJson)
-                },
+                mapOf("subId" to subId, "updateJson" to updateJson),
             )
         } catch (_: Exception) {
         }

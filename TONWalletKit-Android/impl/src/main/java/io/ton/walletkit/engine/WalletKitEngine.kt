@@ -587,7 +587,7 @@ internal interface WalletKitEngine : RequestHandler {
      * @return The JSON response from the bridge
      * @throws WalletKitBridgeException if the call fails
      */
-    suspend fun callBridgeMethod(method: String, params: JSONObject? = null): JSONObject
+    suspend fun callBridgeMethod(method: String, params: Any? = null): JSONObject
 
     /**
      * Add an event handler to receive SDK events.

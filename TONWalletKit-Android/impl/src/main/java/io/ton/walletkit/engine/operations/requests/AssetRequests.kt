@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.engine.operations.requests
 
+import io.ton.walletkit.api.generated.TONNFTRawTransferRequestMessage
 import io.ton.walletkit.api.generated.TONPagination
 import kotlinx.serialization.Serializable
 
@@ -56,8 +57,7 @@ internal data class CreateTransferNftRawRequest(
     val walletId: String,
     val nftAddress: String,
     val transferAmount: String,
-    /** Serialized JSON of TONNFTRawTransferRequestMessage — sent as nested object to bridge */
-    val message: String,
+    val message: TONNFTRawTransferRequestMessage,
 )
 
 @Serializable

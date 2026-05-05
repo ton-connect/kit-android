@@ -26,7 +26,6 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.engine.adapter.BridgeWalletAdapter
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
-import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.engine.operations.requests.WalletIdRequest
 import io.ton.walletkit.engine.state.AdapterManager
@@ -261,7 +260,7 @@ internal class WalletOperations(
         ensureInitialized()
 
         val request = WalletIdRequest(walletId = walletId)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_WALLET, json.toJSONObject(request))
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_WALLET, request)
         if (result.length() == 0) return null
 
         val returnedWalletId = result.optString("walletId").takeIf { it.isNotEmpty() } ?: walletId
@@ -287,7 +286,7 @@ internal class WalletOperations(
         ensureInitialized()
 
         val request = WalletIdRequest(walletId = walletId)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_REMOVE_WALLET, json.toJSONObject(request))
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_REMOVE_WALLET, request)
 
         val removed =
             when {
@@ -306,7 +305,7 @@ internal class WalletOperations(
         ensureInitialized()
 
         val request = WalletIdRequest(walletId = walletId)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_BALANCE, json.toJSONObject(request))
+        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_BALANCE, request)
 
         return when {
             result.has(ResponseConstants.KEY_BALANCE) -> result.optString(ResponseConstants.KEY_BALANCE)

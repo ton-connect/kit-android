@@ -40,7 +40,6 @@ import io.ton.walletkit.core.streaming.TONStreamingManager
 import io.ton.walletkit.core.streaming.TONStreamingProviderImpl
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.engine.WebViewWalletKitEngine
-import io.ton.walletkit.engine.infrastructure.toJSONObject
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.util.WalletKitUtils
 import io.ton.walletkit.listener.TONBridgeEventsHandler
@@ -65,7 +64,6 @@ import io.ton.walletkit.swap.dedust.TONDeDustSwapProviderIdentifier
 import io.ton.walletkit.swap.omniston.TONOmnistonSwapProvider
 import io.ton.walletkit.swap.omniston.TONOmnistonSwapProviderIdentifier
 import kotlinx.serialization.json.Json
-import org.json.JSONObject
 
 /**
  * Main entry point for TON Wallet Kit SDK.
@@ -188,8 +186,7 @@ internal class TONWalletKit private constructor(
         config: TONTonCenterStreamingProviderConfig,
     ): ITONStreamingProvider {
         checkNotDestroyed()
-        val args = JSONObject().apply { put("config", json.toJSONObject(config)) }
-        val result = engine.callBridgeMethod(BridgeMethodConstants.METHOD_CREATE_TON_CENTER_STREAMING_PROVIDER, args)
+        val result = engine.callBridgeMethod(BridgeMethodConstants.METHOD_CREATE_TON_CENTER_STREAMING_PROVIDER, mapOf("config" to config))
         return TONStreamingProviderImpl(engine = engine, network = config.network, id = result.getString("providerId"))
     }
 
@@ -197,8 +194,7 @@ internal class TONWalletKit private constructor(
         config: TONTonApiStreamingProviderConfig,
     ): ITONStreamingProvider {
         checkNotDestroyed()
-        val args = JSONObject().apply { put("config", json.toJSONObject(config)) }
-        val result = engine.callBridgeMethod(BridgeMethodConstants.METHOD_CREATE_TON_API_STREAMING_PROVIDER, args)
+        val result = engine.callBridgeMethod(BridgeMethodConstants.METHOD_CREATE_TON_API_STREAMING_PROVIDER, mapOf("config" to config))
         return TONStreamingProviderImpl(engine = engine, network = config.network, id = result.getString("providerId"))
     }
 

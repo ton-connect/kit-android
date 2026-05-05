@@ -290,7 +290,7 @@ internal class WebViewWalletKitEngine private constructor(
         messageDispatcher.ensureEventListenersSetUp()
     }
 
-    private suspend fun call(method: String, params: JSONObject? = null): JSONObject {
+    private suspend fun call(method: String, params: Any? = null): JSONObject {
         if (isDestroyed) {
             throw WalletKitBridgeException("Cannot call method '$method' - SDK has been destroyed")
         }
@@ -560,7 +560,7 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun getSupportedUnstakeModes(providerId: String?): List<TONUnstakeMode> =
         stakingOperations.getSupportedUnstakeModes(providerId)
 
-    override suspend fun callBridgeMethod(method: String, params: JSONObject?): JSONObject {
+    override suspend fun callBridgeMethod(method: String, params: Any?): JSONObject {
         return call(method, params)
     }
 
