@@ -37915,15 +37915,6 @@ function bigIntReplacer(_key, value) {
 * LICENSE file in the root directory of this source tree.
 *
 */
-/**
-* WebMessagePort transport between Kotlin (Android WebViewCompat) and the JS bundle.
-*
-* Replaces the previous combination of `window.WalletKitNative.postMessage(json)` (JS→Kotlin)
-* and `window.__walletkitCall / __walletkitResponse` script-injection (Kotlin→JS) with a
-* single symmetrical port. The port is handed off by Kotlin via
-* `WebViewCompat.postWebMessage(view, WebMessageCompat("__walletkit_bridge_init", [jsPort]))`
-* once `WebViewClient.onPageFinished` fires; we capture it from `window.onmessage`.
-*/
 var HANDSHAKE_TAG = "__walletkit_bridge_init";
 var port = null;
 var inboundCallback = null;
@@ -37934,9 +37925,6 @@ function flushPending(p) {
 		p.postMessage(next);
 	}
 }
-/**
-* Send a JSON envelope to Kotlin. Buffers if the port hasn't been handed off yet.
-*/
 function sendToNative(json) {
 	if (port) {
 		port.postMessage(json);
@@ -37944,18 +37932,9 @@ function sendToNative(json) {
 	}
 	pendingOutbound.push(json);
 }
-/**
-* Register the inbound callback. Invoked with the raw JSON string from each
-* `port.onmessage` event so the caller can dispatch to existing JSON-shape handlers.
-*/
 function setInboundCallback(callback) {
 	inboundCallback = callback;
 }
-/**
-* Install the `window.message` listener that picks up the port handoff from Kotlin.
-* Must be called before `WebViewClient.onPageFinished` fires on the native side —
-* imported from `bridge.ts` at top-level so it runs synchronously during bundle parse.
-*/
 function installPortHandshake() {
 	window.addEventListener("message", (event) => {
 		if (event.data !== HANDSHAKE_TAG) {
@@ -37989,19 +37968,11 @@ function installPortHandshake() {
 //#region src/transport/nativeBridge.ts
 init_dist();
 var pendingRequests = /* @__PURE__ */ new Map();
-/**
-* Synchronous bridge call via @JavascriptInterface (WalletKitNative.adapterCallSync).
-* Used for sync WalletAdapter getters that cannot be async. Stays on the legacy
-* channel — sync WebView calls cannot use the async WebMessagePort.
-*/
 function bridgeRequestSync(method, params) {
 	const native = window.WalletKitNative;
 	if (!native || typeof native.adapterCallSync !== "function") throw new Error("WalletKitNative.adapterCallSync not available");
 	return native.adapterCallSync(method, JSON.stringify(params));
 }
-/**
-* Send a request to Kotlin via the WebMessagePort and wait for a response.
-*/
 function bridgeRequest(method, params) {
 	const id = v7();
 	return new Promise((resolve, reject) => {
@@ -38017,9 +37988,6 @@ function bridgeRequest(method, params) {
 		});
 	});
 }
-/**
-* Resolve a pending JS-side request with a result coming back from Kotlin.
-*/
 function handleNativeResponse(id, resultJson, errorJson) {
 	const entry = pendingRequests.get(id);
 	if (!entry) {
@@ -38046,9 +38014,6 @@ function handleNativeResponse(id, resultJson, errorJson) {
 	}
 	entry.resolve(resultJson);
 }
-/**
-* Sends a payload to the native bridge via the WebMessagePort transport.
-*/
 function postToNative(payload) {
 	if (payload === null || typeof payload !== "object" && typeof payload !== "function") {
 		error("[walletkitBridge] postToNative received non-object payload", {
@@ -38101,10 +38066,6 @@ async function handleCall(id, method, params) {
 		respond(id, void 0, { message });
 	}
 }
-/**
-* Handle an inbound `{kind:'call'}` envelope dispatched from Kotlin via the port.
-* Replaces the legacy `window.__walletkitCall` global.
-*/
 function handleNativeCall(id, method, params) {
 	handleCall(id, method, params);
 }

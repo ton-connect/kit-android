@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.engine.infrastructure
 
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.ton.walletkit.WalletKitBridgeException
@@ -50,11 +51,13 @@ class BridgeRpcClientTest {
 
     @Before
     fun setup() {
-        // Create a mock WebViewManager with completed deferreds
+        // Mock WebViewManager — webViewInitialized + a transport whose readiness gate
+        // is already complete (the only two awaits in `BridgeRpcClient.call`).
         webViewManager = mockk(relaxed = true)
         every { webViewManager.webViewInitialized } returns CompletableDeferred(Unit).apply { complete(Unit) }
-        every { webViewManager.bridgeLoaded } returns CompletableDeferred(Unit).apply { complete(Unit) }
-        every { webViewManager.jsBridgeReady } returns CompletableDeferred(Unit).apply { complete(Unit) }
+        val readyTransport = mockk<io.ton.walletkit.bridge.transport.BridgeTransport>(relaxed = true)
+        coEvery { readyTransport.awaitReady() } returns Unit
+        every { webViewManager.transport } returns readyTransport
 
         rpcClient = BridgeRpcClient(webViewManager)
     }

@@ -37,20 +37,19 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 import io.ton.walletkit.WalletKitBridgeException
-import io.ton.walletkit.bridge.transport.BridgeTransport
-import io.ton.walletkit.bridge.transport.WebMessagePortBridgeTransport
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.api.isTestnet
 import io.ton.walletkit.bridge.BuildConfig
+import io.ton.walletkit.bridge.transport.BridgeTransport
+import io.ton.walletkit.bridge.transport.WebMessagePortBridgeTransport
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
-import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
@@ -59,9 +58,7 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.session.SessionFilter
 import io.ton.walletkit.session.TONConnectSessionManager
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -99,16 +96,8 @@ internal class WebViewManager(
     private lateinit var webView: WebView
 
     val webViewInitialized = CompletableDeferred<Unit>()
-    val bridgeLoaded = CompletableDeferred<Unit>()
-    val jsBridgeReady = CompletableDeferred<Unit>()
 
     private lateinit var transportImpl: WebMessagePortBridgeTransport
-
-    /**
-     * The bridge transport (WebMessagePort-backed). Lifecycle: created lazily on the
-     * main thread once the WebView is initialized; handed off to JS in
-     * `WebViewClient.onPageFinished`.
-     */
     val transport: BridgeTransport
         get() = transportImpl
 
@@ -140,12 +129,6 @@ internal class WebViewManager(
         webView.destroy()
     }
 
-    fun markJsBridgeReady() {
-        if (!jsBridgeReady.isCompleted) {
-            jsBridgeReady.complete(Unit)
-        }
-    }
-
     private fun initializeWebView() {
         try {
             Logger.d(TAG, "Initializing WebView on thread: ${Thread.currentThread().name}")
@@ -158,9 +141,6 @@ internal class WebViewManager(
             webView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             webView.addJavascriptInterface(JsBinding(), WebViewConstants.JS_INTERFACE_NAME)
 
-            // The bridge transport is the WebMessagePort channel between Kotlin and JS.
-            // Inbound messages come up as JSON strings; the engine wires `setOnMessage`
-            // before `onPageFinished` triggers the port handoff.
             transportImpl = WebMessagePortBridgeTransport(
                 webView = webView,
                 mainHandler = mainHandler,
@@ -178,14 +158,12 @@ internal class WebViewManager(
                 }
             }
 
-            // Set WebChromeClient to suppress console logs in release builds
             webView.webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                    // Only show console logs when logging is enabled
                     if (BuildConfig.LOG_LEVEL != "OFF") {
                         Logger.d(TAG, "[JS Console] ${consoleMessage.message()} (${consoleMessage.sourceId()}:${consoleMessage.lineNumber()})")
                     }
-                    return true // Suppress default logging
+                    return true
                 }
             }
 
@@ -219,23 +197,11 @@ internal class WebViewManager(
                         super.onPageFinished(view, url)
                         Logger.d(TAG, "WebView page finished loading: $url")
 
-                        // Set log level for JavaScript bridge.
-                        // Levels: OFF, ERROR, WARN, INFO, DEBUG
-                        // Release: WARN (errors + warnings), Debug: DEBUG (everything)
                         val logLevel = BuildConfig.LOG_LEVEL
                         view?.evaluateJavascript("window.__WALLETKIT_LOG_LEVEL__ = '$logLevel';") {
                             Logger.d(TAG, "Log level set: __WALLETKIT_LOG_LEVEL__ = $logLevel")
                         }
 
-                        if (!bridgeLoaded.isCompleted) {
-                            bridgeLoaded.complete(Unit)
-                        }
-
-                        // Hand the JS end of the WebMessagePort pair to the bundle. The
-                        // bundle has executed (page-finished) and installed its
-                        // `window.addEventListener('message', …)` listener. Once JS picks
-                        // up the port and posts a `ready` envelope, MessageDispatcher
-                        // calls markJsBridgeReady() and the bridge is live.
                         try {
                             transportImpl.handOffPortToJs()
                         } catch (err: Throwable) {
@@ -243,7 +209,7 @@ internal class WebViewManager(
                             val exception = WalletKitBridgeException(
                                 "Failed to hand off bridge port: ${err.message}",
                             )
-                            failBridgeFutures(exception)
+                            transportImpl.fail(exception)
                             onBridgeError(exception, null)
                         }
                     }
@@ -267,8 +233,7 @@ internal class WebViewManager(
         } catch (e: Exception) {
             Logger.e(TAG, MSG_FAILED_INITIALIZE_WEBVIEW, e)
             webViewInitialized.completeExceptionally(e)
-            bridgeLoaded.completeExceptionally(e)
-            jsBridgeReady.completeExceptionally(e)
+            if (::transportImpl.isInitialized) transportImpl.fail(e)
             onBridgeError(
                 WalletKitBridgeException(
                     WebViewConstants.ERROR_BUNDLE_LOAD_FAILED + MSG_OPEN_PAREN + (e.message ?: ResponseConstants.VALUE_UNKNOWN) + MSG_CLOSE_PAREN_PERIOD_SPACE + WebViewConstants.BUILD_INSTRUCTION,
@@ -279,20 +244,10 @@ internal class WebViewManager(
     }
 
     private fun failBridgeFutures(exception: WalletKitBridgeException) {
-        if (!bridgeLoaded.isCompleted) {
-            bridgeLoaded.completeExceptionally(exception)
-        }
-        if (!jsBridgeReady.isCompleted) {
-            jsBridgeReady.completeExceptionally(exception)
-        }
+        if (::transportImpl.isInitialized) transportImpl.fail(exception)
     }
 
     private inner class JsBinding {
-        // Bridge messages (events, requests, responses) flow through the WebMessagePort
-        // transport, not @JavascriptInterface. The remaining methods below are
-        // synchronous host calls that the JS bundle invokes for side-effecting access
-        // to native services (storage, sessions, API clients).
-
         @JavascriptInterface
         fun storageGet(key: String): String? {
             return runBlocking {

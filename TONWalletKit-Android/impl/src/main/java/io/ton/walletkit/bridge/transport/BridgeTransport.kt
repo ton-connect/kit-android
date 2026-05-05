@@ -1,33 +1,31 @@
 /*
  * Copyright (c) 2025 TonTech
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 package io.ton.walletkit.bridge.transport
 
-/**
- * Carries JSON-encoded bridge envelopes between Kotlin and the JS bundle running in a
- * WebView. Replaces the previous combination of `evaluateJavascript("__walletkitCall(...)")`
- * script injection and `@JavascriptInterface postMessage(...)` callback with a single
- * symmetrical channel.
- *
- * Implementations are responsible for handing the channel off to JS during WebView page
- * load and surfacing inbound messages via [setOnMessage].
- */
 internal interface BridgeTransport {
-    /** Send a JSON-encoded envelope to JS. Throws if the channel is not yet ready. */
     fun send(json: String)
-
-    /**
-     * Install the inbound callback. The callback is invoked on an arbitrary thread —
-     * implementations dispatch to the appropriate one.
-     */
     fun setOnMessage(callback: (json: String) -> Unit)
-
-    /** Whether the channel has been handed off to JS and is usable. */
+    suspend fun awaitReady()
     val isReady: Boolean
-
-    /** Tear down the channel; subsequent [send] calls fail. */
+    fun fail(cause: Throwable)
     fun close()
 }

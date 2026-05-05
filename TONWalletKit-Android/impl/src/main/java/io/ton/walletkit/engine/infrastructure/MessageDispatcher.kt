@@ -53,7 +53,6 @@ import io.ton.walletkit.internal.constants.EventTypeConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
-import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -109,7 +108,7 @@ internal class MessageDispatcher(
     @Volatile private var areEventListenersSetUp = false
 
     private val requestRegistry: BridgeRequestRegistry = BridgeRequestRegistry(json).apply {
-        // signWithCustomSigner: `data` arrives as a JSON array of byte ints — decode manually.
+        // `data` is a JSON array of byte ints; kotlinx default ByteArray serializer is base64.
         register(REQUEST_METHOD_SIGN_WITH_CUSTOM_SIGNER) { params ->
             val obj = params.jsonObject
             val signerId = obj.getValue(ResponseConstants.KEY_SIGNER_ID).jsonPrimitive.content
@@ -268,12 +267,6 @@ internal class MessageDispatcher(
 
     fun areEventListenersSetUp(): Boolean = areEventListenersSetUp
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // Reverse-RPC: JS sends {kind:"request", id, method, params} to invoke
-    // adapter/signer operations on the Kotlin side.  The result (or error) is
-    // delivered back via  window.__walletkitResponse(id, resultJson, errorJson).
-    // ──────────────────────────────────────────────────────────────────────────
-
     private fun handleRequest(payload: JSONObject) {
         val id = payload.optString(ResponseConstants.KEY_ID)
         val method = payload.optString(ResponseConstants.KEY_METHOD)
@@ -296,18 +289,10 @@ internal class MessageDispatcher(
     }
 
     private suspend fun executeNativeRequest(method: String, params: JSONObject): String {
-        // org.json.JSONObject doesn't talk to kotlinx.serialization directly — re-parse
-        // through the canonical Json. Cheap and removes the type-laundering that the old
-        // hand-rolled `params.getString(...)` calls were doing implicitly.
         val element: JsonElement = json.parseToJsonElement(params.toString())
         return requestRegistry.dispatch(method, element)
     }
 
-    /**
-     * Delivers a reverse-RPC response back to JS as a `{kind:'response', id, result|error}`
-     * envelope through the WebMessagePort transport. Result and error are passed as
-     * already-encoded JSON strings — JS parses them with a single `JSON.parse`.
-     */
     private fun respondToJs(id: String, result: String?, errorMessage: String?) {
         val envelope = JSONObject().apply {
             put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_RESPONSE)
@@ -318,10 +303,6 @@ internal class MessageDispatcher(
                     JSONObject().put(ResponseConstants.KEY_MESSAGE, errorMessage),
                 )
             } else if (result != null) {
-                // The handler returned a JSON-encoded string; pass it as a string in the
-                // envelope. JS-side handler does `JSON.parse(result)` to lift it back into
-                // an object — same contract as before, just delivered without the
-                // evaluateJavascript escape gymnastics.
                 put(ResponseConstants.KEY_RESULT, result)
             }
         }
@@ -335,10 +316,6 @@ internal class MessageDispatcher(
         val apiBaseUrl = payload.optNullableString(ResponseConstants.KEY_TON_API_URL)
         initManager.updateApiBaseUrl(apiBaseUrl)
         onApiBaseUrlChanged(apiBaseUrl)
-        if (!webViewManager.bridgeLoaded.isCompleted) {
-            webViewManager.bridgeLoaded.complete(Unit)
-        }
-        webViewManager.markJsBridgeReady()
 
         val wasAlreadyReady = rpcClient.isReady()
 

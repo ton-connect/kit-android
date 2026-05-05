@@ -615,12 +615,7 @@ internal class WebViewWalletKitEngine private constructor(
     }
 
     private fun failBridgeFutures(exception: WalletKitBridgeException) {
-        if (!webViewManager.bridgeLoaded.isCompleted) {
-            webViewManager.bridgeLoaded.completeExceptionally(exception)
-        }
-        if (!webViewManager.jsBridgeReady.isCompleted) {
-            webViewManager.jsBridgeReady.completeExceptionally(exception)
-        }
+        webViewManager.transport.fail(exception)
         rpcClient.failAll(exception)
     }
 

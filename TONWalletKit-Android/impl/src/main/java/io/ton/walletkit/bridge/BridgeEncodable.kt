@@ -1,43 +1,30 @@
 /*
  * Copyright (c) 2025 TonTech
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 package io.ton.walletkit.bridge
 
-import org.json.JSONArray
-import org.json.JSONObject
-
-/**
- * Mirror of iOS's `JSValueEncodable` protocol — types that know how to render themselves
- * for the JS bridge. The bridge codec walks values, calling `encodeForBridge()` on anything
- * that implements this so the bridge layer never special-cases domain types.
- *
- * Allowed return shapes (anything else throws at codec time):
- *   - kotlin primitives: String, Int, Long, Double, Float, Short, Byte, Boolean
- *   - null
- *   - org.json.JSONObject / JSONArray
- *   - List<Any?> / Map<String, Any?> (the codec recurses, applying encodeForBridge again)
- *   - Another BridgeEncodable (the codec re-applies)
- */
 interface BridgeEncodable {
     fun encodeForBridge(): Any?
 }
 
-/**
- * Mirror of iOS's `JSValueDecodable` protocol — companion-object factory that knows how
- * to lift a value coming back from JS into the typed Kotlin domain object. `raw` is the
- * codec's already-unwrapped representation: String / Number / Boolean / JSONObject /
- * JSONArray / Map / List / null. Returns null if the shape doesn't match (mirrors the
- * Swift `from` returning `Self?`).
- */
 interface BridgeDecodable<T> {
     fun decodeFromBridge(raw: Any?): T?
 }
-
-/** Marker used by the codec when an object encodes to a JSON tree. */
-typealias BridgeJson = JSONObject
-
-/** Marker used by the codec when an object encodes to a JSON array. */
-typealias BridgeJsonArray = JSONArray

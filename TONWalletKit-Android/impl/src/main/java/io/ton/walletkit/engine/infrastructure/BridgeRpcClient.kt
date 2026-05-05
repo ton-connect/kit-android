@@ -32,34 +32,18 @@ import org.json.JSONObject
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Performs RPC-style invocations against the JavaScript bridge and coordinates pending requests.
- *
- * The implementation mirrors the behaviour of the legacy `call`/`handleResponse` pair to ensure
- * identical logging, error handling, and payload normalisation.
- *
- * @suppress Internal component. Use through [WebViewWalletKitEngine].
- */
 internal class BridgeRpcClient(
     private val webViewManager: WebViewManager,
 ) {
     private val pending = ConcurrentHashMap<String, CompletableDeferred<BridgeResponse>>()
     private val ready = CompletableDeferred<Unit>()
 
-    /**
-     * Calls a bridge method with optional parameters.
-     *
-     * @param method The method name to invoke.
-     * @param params Optional parameters - can be JSONObject, JSONArray, String, or null.
-     * @return The result as a JSONObject.
-     */
     suspend fun call(
         method: String,
         params: Any? = null,
     ): JSONObject {
         webViewManager.webViewInitialized.await()
-        webViewManager.bridgeLoaded.await()
-        webViewManager.jsBridgeReady.await()
+        webViewManager.transport.awaitReady()
         if (method != BridgeMethodConstants.METHOD_INIT) {
             ready.await()
         }
