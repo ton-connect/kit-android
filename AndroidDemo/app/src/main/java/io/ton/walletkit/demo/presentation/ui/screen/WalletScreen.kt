@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.demo.presentation.ui.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -409,6 +410,10 @@ fun WalletScreen(
         subScreen = HomeSubScreen.None
     }
     if (subScreen != HomeSubScreen.None) {
+        // Map system back / predictive-back gesture to "leave the sub-screen" so it
+        // matches the chevron's behavior. Without this the activity would handle
+        // back itself and finish, closing the app.
+        BackHandler { subScreen = HomeSubScreen.None }
         when (val current = subScreen) {
             HomeSubScreen.AllAssets -> {
                 AllAssetsScreen(
@@ -531,6 +536,9 @@ fun WalletScreen(
                     actions.onAddWalletClick()
                 },
                 onDelete = { wallet ->
+                    // Close the picker first so the user gets immediate feedback and
+                    // any subsequent error snackbar isn't hidden behind this sheet.
+                    showWalletsSheet = false
                     actions.onRemoveWallet(wallet.address)
                 },
                 onClose = { showWalletsSheet = false },
