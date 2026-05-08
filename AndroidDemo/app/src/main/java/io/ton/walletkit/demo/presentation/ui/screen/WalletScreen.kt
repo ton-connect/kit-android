@@ -301,6 +301,8 @@ fun WalletScreen(
                     request = sheet.request,
                     onApprove = { actions.onApproveSignData(sheet.request) },
                     onReject = { actions.onRejectSignData(sheet.request) },
+                    wallet = state.wallets.firstOrNull { it.address == sheet.request.walletAddress }
+                        ?: activeWallet,
                 )
 
                 is SheetState.WalletDetails -> WalletDetailsSheet(

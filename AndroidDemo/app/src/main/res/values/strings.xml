@@ -116,12 +116,28 @@
     <string name="connect_request_title">Connect Request</string>
     <string name="connect_request_requested_permissions">Requested permissions</string>
     <string name="connect_request_select_wallet">Select wallet</string>
+    <string name="connect_request_title_leading">Connect to </string>
+    <string name="connect_request_title_trailing">?</string>
+    <string name="connect_request_subtitle_format">%1$s is requesting access to your wallet address:</string>
+    <string name="connect_request_section_permissions">Requested permissions</string>
+    <string name="connect_request_action">Connect wallet</string>
+    <string name="connect_request_disclaimer">Only connect to trusted applications. This will give the dApp access to your wallet address and allow it to request transactions.</string>
+    <string name="connect_permission_ton_addr_title">TON Address</string>
+    <string name="connect_permission_ton_addr_description">Gives dApp information about your TON address</string>
+    <string name="connect_permission_ton_proof_title">TON Proof</string>
+    <string name="connect_permission_ton_proof_description">Gives dApp signature, that can be used to verify your access to private key</string>
 
     <!-- Sign request -->
     <string name="sign_request_title">Sign Data Request</string>
     <string name="sign_request_from_format">From: %1$s</string>
     <string name="sign_request_wallet_format">Wallet: %1$s</string>
     <string name="sign_request_type_format">Type: %1$s</string>
+    <string name="sign_request_title_leading">Sign data for </string>
+    <string name="sign_request_title_trailing">?</string>
+    <string name="sign_request_subtitle">dApp wants you to sign data with your wallet:</string>
+    <string name="sign_request_section_data">Data to sign</string>
+    <string name="sign_request_action_hold">Hold to sign</string>
+    <string name="sign_request_disclaimer">Only sign data if you trust the requesting dApp and understand what you\'re signing. Signing data can have security implications.</string>
     <string name="sign_request_data_hint">Data to Sign (tap to copy)</string>
 
     <!-- Transaction request -->

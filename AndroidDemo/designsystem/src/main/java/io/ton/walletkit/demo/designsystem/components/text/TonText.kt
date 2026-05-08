@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import io.ton.walletkit.demo.designsystem.theme.TonTheme
@@ -53,6 +54,32 @@ fun TonText(
             // padding pushes it below the baseline. With Trim.Both the lineHeight
             // pads symmetrically around the baseline and price64 + price40 sit on
             // the same line, matching iOS's `.lastTextBaseline` HStack.
+            lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.None,
+            ),
+        ),
+        textAlign = textAlign,
+        maxLines = maxLines,
+        overflow = overflow,
+    )
+}
+
+@Composable
+fun TonText(
+    text: AnnotatedString,
+    style: TonTextStyleSpec,
+    modifier: Modifier = Modifier,
+    color: Color = TonTheme.colors.textPrimary,
+    textAlign: TextAlign? = null,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip,
+) {
+    Text(
+        text = text,
+        modifier = modifier,
+        color = color,
+        style = style.style.copy(
             lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
                 alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
                 trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.None,
