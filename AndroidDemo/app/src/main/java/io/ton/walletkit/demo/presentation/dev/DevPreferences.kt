@@ -65,4 +65,16 @@ object DevPreferences {
         _useLegacyMainScreen.value = next
         return next
     }
+
+    fun reset(context: Context) {
+        synchronized(this) {
+            context.applicationContext
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .clear()
+                .commit()
+            _useLegacyMainScreen.value = false
+            loaded = false
+        }
+    }
 }

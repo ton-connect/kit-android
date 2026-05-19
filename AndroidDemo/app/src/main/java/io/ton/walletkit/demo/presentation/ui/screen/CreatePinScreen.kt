@@ -96,7 +96,8 @@ fun CreatePinScreen(
                 }
             }
         },
-        modifier = modifier.testTag(TestTags.CREATE_PIN_FIELD),
+        modifier = modifier,
+        fieldModifier = Modifier.testTag(TestTags.CREATE_PIN_FIELD),
         trailing = {
             if (phase is CreatePinPhase.Confirming) {
                 TonButton(

@@ -54,6 +54,7 @@ fun TonPinField(
     isError: Boolean,
     onComplete: (String) -> Unit,
     modifier: Modifier = Modifier,
+    fieldModifier: Modifier = Modifier,
     length: Int = 4,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -83,7 +84,8 @@ fun TonPinField(
             modifier = Modifier
                 .size(1.dp)
                 .alpha(0f)
-                .focusRequester(focusRequester),
+                .focusRequester(focusRequester)
+                .then(fieldModifier),
         )
 
         TonPinDots(pin = pin, length = length, isError = isError)

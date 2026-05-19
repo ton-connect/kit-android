@@ -27,11 +27,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.demo.designsystem.components.text.TonText
 import io.ton.walletkit.demo.designsystem.theme.TonTheme
 import io.ton.walletkit.demo.presentation.dev.devToggleTaps
+import io.ton.walletkit.demo.presentation.util.TestTags
 
 // "Balance" label + price-style total ("123.456 TON"). Integer part renders in price64,
 // fraction (".456") and the trailing " TON" suffix render in price40 — same baseline
@@ -52,7 +54,9 @@ fun WalletHomeBalance(
         Modifier
     }
     Column(
-        modifier = modifier.then(gestureModifier),
+        modifier = modifier
+            .then(gestureModifier)
+            .testTag(TestTags.WALLET_BALANCE),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {

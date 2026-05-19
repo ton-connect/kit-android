@@ -100,7 +100,8 @@ fun UnlockPinScreen(
                 pin = ""
             }
         },
-        modifier = modifier.testTag(TestTags.UNLOCK_PIN_FIELD),
+        modifier = modifier,
+        fieldModifier = Modifier.testTag(TestTags.UNLOCK_PIN_FIELD),
         trailing = {
             Box(
                 modifier = Modifier
