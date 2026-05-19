@@ -1151,9 +1151,16 @@ class WalletKitViewModel @Inject constructor(
 
     fun removeWallet(address: String) {
         viewModelScope.launch {
-            // Use the new SDK method instead of manual removal
+            // The SDK keys wallets by walletId, not by address. The cache maps
+            // address → ITONWallet, so resolve here.
+            val walletId = lifecycleManager.tonWallets[address]?.id
+            if (walletId == null) {
+                _state.update { it.copy(error = uiString(R.string.wallet_error_wallet_not_found)) }
+                return@launch
+            }
+
             val kit = getKit()
-            val removeResult = runCatching { kit.removeWallet(address) }
+            val removeResult = runCatching { kit.removeWallet(walletId) }
 
             if (removeResult.isFailure) {
                 val fallback = uiString(R.string.wallet_error_remove_wallet)
@@ -1727,18 +1734,32 @@ class WalletKitViewModel @Inject constructor(
     fun unlockWallet(password: String): Boolean {
         val verified = securityController.verifyPassword(password)
         if (verified) {
-            viewModelScope.launch {
-                // Wait until the initial wallet load cycle in bootstrap() has fully completed
-                // before deciding whether to open the "add wallet" sheet.
-                _state.first { it.walletsBootstrapped }
-                if (_state.value.wallets.isEmpty()) {
-                    uiCoordinator.openAddWalletSheet()
-                }
-            }
+            onUnlocked()
             return true
         }
         _state.update { it.copy(error = uiString(R.string.wallet_error_incorrect_password)) }
         return false
+    }
+
+    /**
+     * Biometric bypass — caller has already authenticated via BiometricPrompt.
+     * Mirrors iOS `UnlockPinView`'s `tryBiometryAuthentication() → appStateManager.unlock()`
+     * which flips state without revalidating the PIN.
+     */
+    fun unlockWithBiometric() {
+        securityController.unlockWithBiometric()
+        onUnlocked()
+    }
+
+    private fun onUnlocked() {
+        viewModelScope.launch {
+            // Wait until the initial wallet load cycle in bootstrap() has fully completed
+            // before deciding whether to open the "add wallet" sheet.
+            _state.first { it.walletsBootstrapped }
+            if (_state.value.wallets.isEmpty()) {
+                uiCoordinator.openAddWalletSheet()
+            }
+        }
     }
 
     fun lockWallet() {
@@ -1748,11 +1769,12 @@ class WalletKitViewModel @Inject constructor(
     fun resetWallet() {
         viewModelScope.launch {
             try {
-                // Remove all wallets from SDK first
+                // Remove all wallets from SDK first. removeWallet expects a walletId,
+                // not an address — pull the id off each cached ITONWallet.
                 val kit = getKit()
-                val allWalletAddresses = lifecycleManager.tonWallets.keys.toList()
-                allWalletAddresses.forEach { walletAddress ->
-                    runCatching { kit.removeWallet(walletAddress) }.onFailure {
+                val allWalletIds = lifecycleManager.tonWallets.values.map { it.id }
+                allWalletIds.forEach { walletId ->
+                    runCatching { kit.removeWallet(walletId) }.onFailure {
                         Log.w(LOG_TAG, "Failed to remove wallet during reset", it)
                     }
                 }

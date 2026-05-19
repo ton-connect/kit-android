@@ -26,7 +26,6 @@ import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.engine.WalletKitEngine
-import io.ton.walletkit.engine.infrastructure.decodeTransactionRequest
 import kotlinx.serialization.json.Json
 
 /**
@@ -73,6 +72,6 @@ internal class BuiltInSwapProvider<TQuoteOptions, TSwapOptions>(
             deadline = params.deadline,
             providerOptions = jsonOptions,
         )
-        return decodeTransactionRequest(engine.buildSwapTransaction(jsonParams))
+        return engine.buildSwapTransaction(jsonParams)
     }
 }

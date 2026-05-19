@@ -19,29 +19,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.engine.infrastructure
+package io.ton.walletkit.demo.designsystem.tokens
 
-import kotlinx.serialization.json.Json
-import org.json.JSONObject
+import androidx.compose.ui.graphics.Color
 
-/**
- * Bridge serialization utilities for converting Kotlin data classes to JSONObject
- * instances used by the JavaScript bridge RPC layer.
- *
- * This centralizes the conversion pattern and ensures type-safe bridge communication.
- *
- * @suppress Internal utility for bridge operations.
- */
+// Primitive palette — only [TonColors] semantic tokens should reach this object.
+// Mirrors iOS `Tokens/TONColors.swift`.
+object TonPrimitiveColors {
+    // Text & Icon
+    val tonBlack = Color(0xFF000000)
+    val tonGray = Color(0xFF93939D)
+    val tonDarkGray = Color(0xFF787881)
+    val tonAccentBlue = Color(0xFF007AFF)
+    val tonGreen = Color(0xFF2ABD4F)
+    val tonRed = Color(0xFFFF3B30)
+    val tonWhite = Color(0xFFFFFFFF)
 
-/**
- * Serialize any @Serializable value to JSONObject for bridge communication.
- *
- * This replaces manual JSONObject().apply { put(...) } patterns with type-safe
- * data class serialization.
- *
- * @param value The @Serializable value to encode
- * @return JSONObject ready for bridge RPC calls
- */
-internal inline fun <reified T> Json.toJSONObject(value: T): JSONObject {
-    return JSONObject(encodeToString(value))
+    // Background
+    val tonBgWhite = Color(0xFFFFFFFF)
+    val tonBgLightGray = Color(0xFFEDEDF3)
+
+    // 12% — Apple HIG tertiary fill
+    val tonBgTertiaryFill = Color(0x1F747480)
+
+    // 8% — Apple HIG quaternary fill (segmented track)
+    val tonBgQuaternaryFill = Color(0x14747480)
+    val tonBgBlack = Color(0xFF000000)
+    val tonBgSuperLightGray = Color(0xFFF7F8FA)
+    val tonBgLightBlue = Color(0xFFECF1FF)
+    val tonBgLightBlueSecondary = Color(0xFFD4E5FF)
+
+    // 10% accent blue (action button secondary)
+    val tonBgBrandFillSubtle = Color(0x1A007AFF)
 }

@@ -39,12 +39,6 @@ internal class SignerManager {
     private val signerCallbacks = ConcurrentHashMap<String, WalletSigner>()
     private val mutex = Mutex()
 
-    /**
-     * Register a signer instance and obtain a unique ID that can be shared with the bridge.
-     *
-     * The ID format matches the legacy implementation to guarantee interoperability with
-     * persisted bridge state.
-     */
     suspend fun registerSigner(signer: WalletSigner): String = mutex.withLock {
         val signerId = buildString {
             append("signer_")

@@ -779,108 +779,88 @@ var frameId = tonWindow.__tonconnect_frameId || (tonWindow.__tonconnect_frameId 
 var isAndroidWebView = typeof tonWindow.AndroidTonConnect !== "undefined";
 /**
 * Android WebView Transport Implementation
-* Uses BridgeInterface as message bus with postMessage for iframe communication
+*
+* Kotlin→JS: uses WebView.postWebMessage() — JS receives via window.addEventListener('message').
+* JS→Kotlin: uses @JavascriptInterface postMessage().
+* Iframe relay: main frame relays native messages down to child iframes via postMessage.
 */
 var AndroidWebViewTransport = class {
 	constructor() {
 		this.pendingRequests = /* @__PURE__ */ new Map();
 		this.eventCallbacks = [];
-		this.setupNotificationHandlers();
-		this.setupPostMessageRelay();
+		this.setupMessageListener();
 	}
-	setupNotificationHandlers() {
-		const bridge = tonWindow.AndroidTonConnect;
-		if (!bridge) return;
-		if (window === window.top) {
-			bridge.__notifyResponse = (messageId) => {
-				this.handleResponseNotification(messageId);
-			};
-			bridge.__notifyEvent = () => {
-				this.handleEventNotification();
-			};
-		}
-	}
-	setupPostMessageRelay() {
+	setupMessageListener() {
 		window.addEventListener("message", (event) => {
 			if (event.source === window) return;
-			if (event.data?.type === "ANDROID_BRIDGE_RESPONSE") {
-				this.pullAndDeliverResponse(event.data.messageId);
-				document.querySelectorAll("iframe").forEach((iframe) => {
-					try {
-						iframe.contentWindow?.postMessage(event.data, "*");
-					} catch (_e) {}
-				});
+			if (event.source === null) this.handleNativeMessage(event.data);
+			else if (event.data?.type === "ANDROID_BRIDGE_RESPONSE") {
+				this.parseAndDeliverResponse(event.data.data);
+				this.relayToSubframes(event.data);
 			} else if (event.data?.type === "ANDROID_BRIDGE_EVENT") {
-				this.pullAndDeliverEvent();
-				document.querySelectorAll("iframe").forEach((iframe) => {
-					try {
-						iframe.contentWindow?.postMessage(event.data, "*");
-					} catch (_e) {}
+				this.deliverEventFromData(event.data.data);
+				this.relayToSubframes(event.data);
+			}
+		});
+	}
+	handleNativeMessage(rawData) {
+		try {
+			const msg = JSON.parse(rawData);
+			if (msg.type === "TONCONNECT_BRIDGE_RESPONSE") {
+				this.parseAndDeliverResponse(rawData);
+				this.relayToSubframes({
+					type: "ANDROID_BRIDGE_RESPONSE",
+					data: rawData
+				});
+			} else if (msg.type === "TONCONNECT_BRIDGE_EVENT") {
+				this.deliverEventFromData(rawData);
+				this.relayToSubframes({
+					type: "ANDROID_BRIDGE_EVENT",
+					data: rawData
 				});
 			}
-		});
-	}
-	handleResponseNotification(messageId) {
-		this.pullAndDeliverResponse(messageId);
-		document.querySelectorAll("iframe").forEach((iframe) => {
-			try {
-				iframe.contentWindow?.postMessage({
-					type: "ANDROID_BRIDGE_RESPONSE",
-					messageId
-				}, "*");
-			} catch (_e) {}
-		});
-	}
-	handleEventNotification() {
-		this.pullAndDeliverEvent();
-		document.querySelectorAll("iframe").forEach((iframe) => {
-			try {
-				iframe.contentWindow?.postMessage({ type: "ANDROID_BRIDGE_EVENT" }, "*");
-			} catch (_e) {}
-		});
-	}
-	pullAndDeliverResponse(messageId) {
-		const pending = this.pendingRequests.get(messageId);
-		if (!pending) return;
-		try {
-			const bridge = tonWindow.AndroidTonConnect;
-			if (!bridge?.pullResponse) return;
-			const responseStr = bridge.pullResponse(messageId);
-			if (responseStr) {
-				const response = JSON.parse(responseStr);
-				clearTimeout(pending.timeout);
-				this.pendingRequests.delete(messageId);
-				if (response.error) pending.reject(new Error(response.error.message || "Failed"));
-				else pending.resolve(response.payload);
-			}
 		} catch (err) {
-			error("[AndroidTransport] Failed to pull/process response:", err);
-			pending.reject(err);
+			error("[AndroidTransport] Failed to handle native message:", err);
 		}
 	}
-	pullAndDeliverEvent() {
+	parseAndDeliverResponse(rawData) {
 		try {
-			const bridge = tonWindow.AndroidTonConnect;
-			if (!bridge?.pullEvent || !bridge?.hasEvent) return;
-			while (bridge.hasEvent(frameId)) {
-				const eventStr = bridge.pullEvent(frameId);
-				if (eventStr) {
-					const data = JSON.parse(eventStr);
-					if (data.type === "TONCONNECT_BRIDGE_EVENT" && data.event) {
-						const event = data.event;
-						this.eventCallbacks.forEach((callback) => {
-							try {
-								callback(event);
-							} catch (err) {
-								error("[AndroidTransport] Event callback error:", err);
-							}
-						});
+			const response = JSON.parse(rawData);
+			const messageId = response.messageId;
+			if (!messageId) return;
+			const pending = this.pendingRequests.get(messageId);
+			if (!pending) return;
+			clearTimeout(pending.timeout);
+			this.pendingRequests.delete(messageId);
+			if (response.error) pending.reject(new Error(response.error.message || "Failed"));
+			else pending.resolve(response.payload);
+		} catch (err) {
+			error("[AndroidTransport] Failed to parse/deliver response:", err);
+		}
+	}
+	deliverEventFromData(rawData) {
+		try {
+			const data = JSON.parse(rawData);
+			if (data.type === "TONCONNECT_BRIDGE_EVENT" && data.event) {
+				const event = data.event;
+				this.eventCallbacks.forEach((callback) => {
+					try {
+						callback(event);
+					} catch (err) {
+						error("[AndroidTransport] Event callback error:", err);
 					}
-				}
+				});
 			}
 		} catch (err) {
-			error("[AndroidTransport] Failed to pull/process event:", err);
+			error("[AndroidTransport] Failed to parse/deliver event:", err);
 		}
+	}
+	relayToSubframes(data) {
+		document.querySelectorAll("iframe").forEach((iframe) => {
+			try {
+				iframe.contentWindow?.postMessage(data, "*");
+			} catch (_e) {}
+		});
 	}
 	async send(request) {
 		const messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -932,11 +912,6 @@ var AndroidWebViewTransport = class {
 		});
 		this.pendingRequests.clear();
 		this.eventCallbacks = [];
-		const bridge = tonWindow.AndroidTonConnect;
-		if (bridge) {
-			delete bridge.__notifyResponse;
-			delete bridge.__notifyEvent;
-		}
 	}
 };
 /**

@@ -30,58 +30,31 @@ import io.ton.walletkit.api.generated.TONStakingQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.staking.ITONStakingProvider
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
 /**
- * Reverse-RPC registry for Kotlin-implemented [ITONStakingProvider] instances. When a developer
- * registers a custom Kotlin staking provider, JS creates a `ProxyStakingProvider` that routes
- * calls here (mirroring the Kotlin swap / wallet-adapter / streaming proxy pattern).
- *
- * Custom providers must implement `ITONStakingProvider<JsonElement, JsonElement>` because the
- * JS side transports provider options as JSON. Users can decode the [JsonElement] to concrete
- * types inside their implementation.
+ * Reverse-RPC registry for Kotlin-implemented [ITONStakingProvider] instances. JS routes calls
+ * from its `ProxyStakingProvider` here via the bridge dispatcher.
  *
  * @suppress Internal engine component.
  */
-internal class KotlinStakingProviderManager(
-    private val json: Json,
-) : KotlinProviderRegistry<ITONStakingProvider<JsonElement, JsonElement>>() {
+internal class KotlinStakingProviderManager :
+    KotlinProviderRegistry<ITONStakingProvider<JsonElement, JsonElement>>() {
 
     override val tag: String = "KotlinStakingProviderManager"
 
-    suspend fun getQuote(providerId: String, paramsJson: String): String {
-        val provider = require(providerId)
-        val params = json.decodeFromString(
-            TONStakingQuoteParams.serializer(JsonElement.serializer()),
-            paramsJson,
+    suspend fun getQuote(providerId: String, params: TONStakingQuoteParams<JsonElement>): TONStakingQuote =
+        require(providerId).getQuote(params)
+
+    suspend fun buildStakeTransaction(providerId: String, params: TONStakeParams<JsonElement>): TONTransactionRequest =
+        require(providerId).buildStakeTransaction(params)
+
+    suspend fun getStakedBalance(providerId: String, userAddress: String, networkChainId: String?): TONStakingBalance =
+        require(providerId).getStakedBalance(
+            TONUserFriendlyAddress.parse(userAddress),
+            networkChainId?.let { TONNetwork(chainId = it) },
         )
-        val quote = provider.getQuote(params)
-        return json.encodeToString(TONStakingQuote.serializer(), quote)
-    }
 
-    suspend fun buildStakeTransaction(providerId: String, paramsJson: String): String {
-        val provider = require(providerId)
-        val params = json.decodeFromString(
-            TONStakeParams.serializer(JsonElement.serializer()),
-            paramsJson,
-        )
-        val request = provider.buildStakeTransaction(params)
-        return json.encodeToString(TONTransactionRequest.serializer(), request)
-    }
-
-    suspend fun getStakedBalance(providerId: String, userAddress: String, networkChainId: String?): String {
-        val provider = require(providerId)
-        val parsed = TONUserFriendlyAddress.parse(userAddress)
-        val network = networkChainId?.let { TONNetwork(chainId = it) }
-        val balance = provider.getStakedBalance(parsed, network)
-        return json.encodeToString(TONStakingBalance.serializer(), balance)
-    }
-
-    suspend fun getStakingProviderInfo(providerId: String, networkChainId: String?): String {
-        val provider = require(providerId)
-        val network = networkChainId?.let { TONNetwork(chainId = it) }
-        val info = provider.getStakingProviderInfo(network)
-        return json.encodeToString(TONStakingProviderInfo.serializer(), info)
-    }
+    suspend fun getStakingProviderInfo(providerId: String, networkChainId: String?): TONStakingProviderInfo =
+        require(providerId).getStakingProviderInfo(networkChainId?.let { TONNetwork(chainId = it) })
 }

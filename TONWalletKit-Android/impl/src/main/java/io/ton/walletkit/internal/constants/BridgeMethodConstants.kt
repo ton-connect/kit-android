@@ -65,6 +65,11 @@ internal object BridgeMethodConstants {
     const val METHOD_GET_WALLET = "getWallet"
 
     /**
+     * Method name for getting a wallet's friendly address.
+     */
+    const val METHOD_GET_WALLET_ADDRESS = "getWalletAddress"
+
+    /**
      * Method name for removing a wallet.
      */
     const val METHOD_REMOVE_WALLET = "removeWallet"

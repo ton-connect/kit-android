@@ -26,8 +26,9 @@ import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
 import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
+import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
-import io.ton.walletkit.engine.infrastructure.toJSONObject
+import io.ton.walletkit.engine.infrastructure.callTyped
 import io.ton.walletkit.engine.operations.requests.BuildSwapTransactionRequest
 import io.ton.walletkit.engine.operations.requests.CreateDeDustSwapProviderRequest
 import io.ton.walletkit.engine.operations.requests.CreateOmnistonSwapProviderRequest
@@ -35,86 +36,62 @@ import io.ton.walletkit.engine.operations.requests.GetSwapQuoteRequest
 import io.ton.walletkit.engine.operations.requests.HasSwapProviderRequest
 import io.ton.walletkit.engine.operations.requests.RegisterSwapProviderRequest
 import io.ton.walletkit.engine.operations.requests.SetDefaultSwapProviderRequest
-import io.ton.walletkit.exceptions.JSValueConversionException
+import io.ton.walletkit.engine.operations.responses.HasProviderResponse
+import io.ton.walletkit.engine.operations.responses.ProviderIdResponse
+import io.ton.walletkit.engine.operations.responses.ProviderIdsResponse
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
-import io.ton.walletkit.internal.constants.ResponseConstants
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
-/**
- * Swap bridge operations: provider creation/registration and quote/transaction building.
- *
- * @suppress Internal component used by [WebViewWalletKitEngine].
- */
-internal class SwapOperations(
-    private val ensureInitialized: suspend () -> Unit,
-    private val rpcClient: BridgeRpcClient,
-    private val json: Json,
-) {
+internal suspend fun BridgeRpcClient.createOmnistonSwapProvider(config: TONOmnistonSwapProviderConfig?): String =
+    callTyped<ProviderIdResponse>(
+        BridgeMethodConstants.METHOD_CREATE_OMNISTON_SWAP_PROVIDER,
+        CreateOmnistonSwapProviderRequest(
+            config = config?.let { Json.encodeToJsonElement(TONOmnistonSwapProviderConfig.serializer(), it) },
+        ),
+    ).providerId
 
-    suspend fun createOmnistonSwapProvider(config: TONOmnistonSwapProviderConfig?): String {
-        ensureInitialized()
-        val configElement = config?.let { json.encodeToJsonElement(TONOmnistonSwapProviderConfig.serializer(), it) }
-        val request = CreateOmnistonSwapProviderRequest(config = configElement)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_OMNISTON_SWAP_PROVIDER, json.toJSONObject(request))
-        return result.getString(ResponseConstants.KEY_PROVIDER_ID)
-    }
+internal suspend fun BridgeRpcClient.createDeDustSwapProvider(config: TONDeDustSwapProviderConfig?): String =
+    callTyped<ProviderIdResponse>(
+        BridgeMethodConstants.METHOD_CREATE_DEDUST_SWAP_PROVIDER,
+        CreateDeDustSwapProviderRequest(
+            config = config?.let { Json.encodeToJsonElement(TONDeDustSwapProviderConfig.serializer(), it) },
+        ),
+    ).providerId
 
-    suspend fun createDeDustSwapProvider(config: TONDeDustSwapProviderConfig?): String {
-        ensureInitialized()
-        val configElement = config?.let { json.encodeToJsonElement(TONDeDustSwapProviderConfig.serializer(), it) }
-        val request = CreateDeDustSwapProviderRequest(config = configElement)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_DEDUST_SWAP_PROVIDER, json.toJSONObject(request))
-        return result.getString(ResponseConstants.KEY_PROVIDER_ID)
-    }
-
-    suspend fun registerSwapProvider(providerId: String) {
-        ensureInitialized()
-        val request = RegisterSwapProviderRequest(providerId = providerId)
-        rpcClient.call(BridgeMethodConstants.METHOD_REGISTER_SWAP_PROVIDER, json.toJSONObject(request))
-    }
-
-    suspend fun setDefaultSwapProvider(providerId: String) {
-        ensureInitialized()
-        val request = SetDefaultSwapProviderRequest(providerId = providerId)
-        rpcClient.call(BridgeMethodConstants.METHOD_SET_DEFAULT_SWAP_PROVIDER, json.toJSONObject(request))
-    }
-
-    suspend fun getRegisteredSwapProviders(): List<String> {
-        ensureInitialized()
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_REGISTERED_SWAP_PROVIDERS, null)
-        val array = result.getJSONArray("providerIds")
-        return List(array.length()) { array.getString(it) }
-    }
-
-    suspend fun hasSwapProvider(providerId: String): Boolean {
-        ensureInitialized()
-        val request = HasSwapProviderRequest(providerId = providerId)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_HAS_SWAP_PROVIDER, json.toJSONObject(request))
-        return result.getBoolean("result")
-    }
-
-    suspend fun getSwapQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote {
-        ensureInitialized()
-        val paramsElement = json.encodeToJsonElement(TONSwapQuoteParams.serializer(JsonElement.serializer()), params)
-        val request = GetSwapQuoteRequest(params = paramsElement, providerId = providerId)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_SWAP_QUOTE, json.toJSONObject(request))
-        return try {
-            json.decodeFromString(TONSwapQuote.serializer(), result.toString())
-        } catch (e: SerializationException) {
-            throw JSValueConversionException.DecodingError(
-                message = "Failed to decode TONSwapQuote: ${e.message}",
-                cause = e,
-            )
-        }
-    }
-
-    suspend fun buildSwapTransaction(params: TONSwapParams<JsonElement>): String {
-        ensureInitialized()
-        val paramsElement = json.encodeToJsonElement(TONSwapParams.serializer(JsonElement.serializer()), params)
-        val request = BuildSwapTransactionRequest(params = paramsElement)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_BUILD_SWAP_TRANSACTION, json.toJSONObject(request))
-        return result.toString()
-    }
+internal suspend fun BridgeRpcClient.registerSwapProvider(providerId: String) {
+    send(BridgeMethodConstants.METHOD_REGISTER_SWAP_PROVIDER, RegisterSwapProviderRequest(providerId))
 }
+
+internal suspend fun BridgeRpcClient.setDefaultSwapProvider(providerId: String) {
+    send(BridgeMethodConstants.METHOD_SET_DEFAULT_SWAP_PROVIDER, SetDefaultSwapProviderRequest(providerId))
+}
+
+internal suspend fun BridgeRpcClient.getRegisteredSwapProviders(): List<String> =
+    callTyped<ProviderIdsResponse>(BridgeMethodConstants.METHOD_GET_REGISTERED_SWAP_PROVIDERS).providerIds
+
+internal suspend fun BridgeRpcClient.hasSwapProvider(providerId: String): Boolean =
+    callTyped<HasProviderResponse>(
+        BridgeMethodConstants.METHOD_HAS_SWAP_PROVIDER,
+        HasSwapProviderRequest(providerId),
+    ).result
+
+internal suspend fun BridgeRpcClient.getSwapQuote(
+    params: TONSwapQuoteParams<JsonElement>,
+    providerId: String?,
+): TONSwapQuote = callTyped(
+    BridgeMethodConstants.METHOD_GET_SWAP_QUOTE,
+    GetSwapQuoteRequest(
+        params = json.encodeToJsonElement(TONSwapQuoteParams.serializer(JsonElement.serializer()), params),
+        providerId = providerId,
+    ),
+)
+
+internal suspend fun BridgeRpcClient.buildSwapTransaction(
+    params: TONSwapParams<JsonElement>,
+): TONTransactionRequest = callTyped(
+    BridgeMethodConstants.METHOD_BUILD_SWAP_TRANSACTION,
+    BuildSwapTransactionRequest(
+        params = json.encodeToJsonElement(TONSwapParams.serializer(JsonElement.serializer()), params),
+    ),
+)

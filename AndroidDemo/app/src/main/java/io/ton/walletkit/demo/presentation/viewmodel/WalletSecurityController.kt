@@ -55,6 +55,16 @@ class WalletSecurityController(
         return verified
     }
 
+    /**
+     * Bypass-by-biometric. The caller has already authenticated the user via
+     * [androidx.biometric.BiometricPrompt]; we trust that and flip the unlocked
+     * flag without touching the stored PIN. Mirrors iOS [appStateManager.unlock].
+     */
+    fun unlockWithBiometric() {
+        storage.setUnlocked(true)
+        _isUnlocked.value = true
+    }
+
     fun lock() {
         _isUnlocked.value = false
         storage.setUnlocked(false)

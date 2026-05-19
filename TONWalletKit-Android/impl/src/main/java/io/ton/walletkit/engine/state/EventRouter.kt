@@ -88,9 +88,6 @@ internal class EventRouter {
     suspend fun containsHandler(handler: TONBridgeEventsHandler): Boolean =
         mutex.withLock { eventHandlers.contains(handler) }
 
-    /**
-     * Dispatch an event to all registered handlers, preserving legacy logging semantics.
-     */
     suspend fun dispatchEvent(
         eventId: String,
         type: String,

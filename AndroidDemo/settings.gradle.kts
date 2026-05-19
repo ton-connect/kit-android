@@ -15,6 +15,7 @@ pluginManagement {
 rootProject.name = "AndroidDemo"
 
 include(":app")
+include(":designsystem")
 
 dependencyResolutionManagement {
     repositories {

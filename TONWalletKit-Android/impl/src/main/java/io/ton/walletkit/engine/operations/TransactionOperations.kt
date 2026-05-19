@@ -22,116 +22,66 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
+import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
-import io.ton.walletkit.engine.infrastructure.toJSONObject
+import io.ton.walletkit.engine.infrastructure.callTyped
 import io.ton.walletkit.engine.operations.requests.CreateTransferMultiTonRequest
 import io.ton.walletkit.engine.operations.requests.CreateTransferTonRequest
 import io.ton.walletkit.engine.operations.requests.GetTransactionPreviewRequest
 import io.ton.walletkit.engine.operations.requests.HandleNewTransactionRequest
 import io.ton.walletkit.engine.operations.requests.SendTransactionRequest
-import io.ton.walletkit.exceptions.JSValueConversionException
+import io.ton.walletkit.engine.operations.responses.SendTransactionResponse
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
-import io.ton.walletkit.internal.constants.ResponseConstants
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import org.json.JSONException
 
-/**
- * Groups TON transaction related bridge operations including creation, preview,
- * submission, and acknowledgement of newly created transactions.
- *
- * @property ensureInitialized Suspended callback that ensures the bridge is ready.
- * @property rpcClient Client used to invoke bridge methods.
- * @property json Kotlin serialization instance used for decoding bridge payloads.
- *
- * @suppress Internal component used by [WebViewWalletKitEngine].
- */
-internal class TransactionOperations(
-    private val ensureInitialized: suspend () -> Unit,
-    private val rpcClient: BridgeRpcClient,
-    private val json: Json,
-) {
-    private fun parseTransactionContent(transactionContent: String): JsonElement =
-        try {
-            json.parseToJsonElement(transactionContent)
-        } catch (e: SerializationException) {
-            throw JSValueConversionException.DecodingError(
-                message = "Failed to decode TONTransactionRequest: ${e.message}",
-                cause = e,
-            )
-        }
+internal suspend fun BridgeRpcClient.createTransferTonTransaction(
+    walletId: String,
+    params: TONTransferRequest,
+): TONTransactionRequest = callTyped(
+    BridgeMethodConstants.METHOD_CREATE_TRANSFER_TON_TRANSACTION,
+    CreateTransferTonRequest(
+        walletId = walletId,
+        recipientAddress = params.recipientAddress.value,
+        transferAmount = params.transferAmount,
+        comment = params.comment,
+        body = params.payload?.value,
+        stateInit = params.stateInit?.value,
+    ),
+)
 
-    suspend fun createTransferTonTransaction(
-        walletId: String,
-        params: TONTransferRequest,
-    ): String {
-        ensureInitialized()
+internal suspend fun BridgeRpcClient.createTransferMultiTonTransaction(
+    walletId: String,
+    messages: List<TONTransferRequest>,
+): TONTransactionRequest = callTyped(
+    BridgeMethodConstants.METHOD_CREATE_TRANSFER_MULTI_TON_TRANSACTION,
+    CreateTransferMultiTonRequest(walletId = walletId, messages = messages),
+)
 
-        val request = CreateTransferTonRequest(
-            walletId = walletId,
-            recipientAddress = params.recipientAddress.value,
-            transferAmount = params.transferAmount,
-            comment = params.comment,
-            body = params.payload?.value,
-            stateInit = params.stateInit?.value,
-        )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_TON_TRANSACTION, json.toJSONObject(request))
-        return result.toString()
-    }
-
-    suspend fun createTransferMultiTonTransaction(
-        walletId: String,
-        messages: List<TONTransferRequest>,
-    ): String {
-        ensureInitialized()
-
-        val request = CreateTransferMultiTonRequest(walletId = walletId, messages = messages)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_MULTI_TON_TRANSACTION, json.toJSONObject(request))
-        return result.toString()
-    }
-
-    suspend fun handleNewTransaction(walletId: String, transactionContent: String) {
-        ensureInitialized()
-
-        val request = HandleNewTransactionRequest(
-            walletId = walletId,
-            transactionContent = parseTransactionContent(transactionContent),
-        )
-        rpcClient.call(BridgeMethodConstants.METHOD_HANDLE_NEW_TRANSACTION, json.toJSONObject(request))
-    }
-
-    suspend fun sendTransaction(walletId: String, transactionContent: String): String {
-        ensureInitialized()
-
-        val request = SendTransactionRequest(
-            walletId = walletId,
-            transactionContent = parseTransactionContent(transactionContent),
-        )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_SEND_TRANSACTION, json.toJSONObject(request))
-        return when {
-            result.has(ResponseConstants.KEY_BOC) -> result.getString(ResponseConstants.KEY_BOC)
-            result.has(ResponseConstants.KEY_SIGNED_BOC) -> result.getString(ResponseConstants.KEY_SIGNED_BOC)
-            else -> throw JSONException("No value for boc or signedBoc")
-        }
-    }
-
-    suspend fun getTransactionPreview(walletId: String, transactionContent: String): TONTransactionEmulatedPreview {
-        ensureInitialized()
-
-        val request = GetTransactionPreviewRequest(
-            walletId = walletId,
-            transactionContent = parseTransactionContent(transactionContent),
-        )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW, json.toJSONObject(request))
-        return try {
-            json.decodeFromString(TONTransactionEmulatedPreview.serializer(), result.toString())
-        } catch (e: SerializationException) {
-            throw JSValueConversionException.DecodingError(
-                message = "Failed to decode TONTransactionEmulatedPreview: ${e.message}",
-                cause = e,
-            )
-        }
-    }
+internal suspend fun BridgeRpcClient.handleNewTransaction(walletId: String, transactionContent: TONTransactionRequest) {
+    send(
+        BridgeMethodConstants.METHOD_HANDLE_NEW_TRANSACTION,
+        HandleNewTransactionRequest(walletId = walletId, transactionContent = transactionContent),
+    )
 }
+
+internal suspend fun BridgeRpcClient.sendTransaction(
+    walletId: String,
+    transactionContent: TONTransactionRequest,
+): String {
+    val response: SendTransactionResponse = callTyped(
+        BridgeMethodConstants.METHOD_SEND_TRANSACTION,
+        SendTransactionRequest(walletId = walletId, transactionContent = transactionContent),
+    )
+    return response.boc
+        ?: response.signedBoc
+        ?: throw SerializationException("No value for boc or signedBoc")
+}
+
+internal suspend fun BridgeRpcClient.getTransactionPreview(
+    walletId: String,
+    transactionContent: TONTransactionRequest,
+): TONTransactionEmulatedPreview = callTyped(
+    BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW,
+    GetTransactionPreviewRequest(walletId = walletId, transactionContent = transactionContent),
+)

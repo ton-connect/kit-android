@@ -22,64 +22,59 @@
 package io.ton.walletkit.engine.operations
 
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
+import io.ton.walletkit.bridge.BridgeCodec
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import kotlinx.serialization.json.Json
-import org.json.JSONObject
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Before
 
-/**
- * Base class for Operations tests providing shared mock setup.
- *
- * All Operations classes follow the same pattern:
- * 1. Call ensureInitialized()
- * 2. Build request and call rpcClient.call(method, params)
- * 3. Parse response and return result
- *
- * This base class provides:
- * - Mock BridgeRpcClient that captures method/params and returns configured responses
- * - ensureInitialized stub that does nothing
- * - Json serializer for request/response encoding
- */
 abstract class OperationsTestBase {
 
-    // Use internal visibility since BridgeRpcClient is internal
     internal lateinit var rpcClient: BridgeRpcClient
     protected val json = Json { ignoreUnknownKeys = true }
-    protected val ensureInitialized: suspend () -> Unit = {}
 
-    // Captured values from rpcClient.call()
     protected var capturedMethod: String? = null
     protected var capturedParams: Any? = null
 
-    // Response to return from rpcClient.call()
-    private var mockResponse: JSONObject = JSONObject()
+    private var mockResponse: JsonObject = JsonObject(emptyMap())
+    private var mockRawResponse: JsonElement = JsonObject(emptyMap())
 
     @Before
     open fun setup() {
         rpcClient = mockk(relaxed = true)
-
-        // Use coEvery with any() matcher and coAnswers to return mockResponse
-        coEvery { rpcClient.call(any(), any()) } coAnswers {
-            capturedMethod = firstArg()
-            capturedParams = secondArg()
-            mockResponse
-        }
-
-        // Also handle call() with no params
-        coEvery { rpcClient.call(any()) } coAnswers {
-            capturedMethod = firstArg()
-            capturedParams = null
-            mockResponse
-        }
+        every { rpcClient.json } returns json
+        installMocks()
     }
 
-    /**
-     * Set the response that rpcClient.call() will return.
-     */
-    protected fun givenBridgeReturns(response: JSONObject) {
+    protected fun givenBridgeReturns(response: JsonObject) {
         mockResponse = response
-        // Re-setup mocks with new response
+        mockRawResponse = response
+        installMocks()
+    }
+
+    protected fun givenBridgeReturns(jsonString: String) {
+        givenBridgeReturns(json.parseToJsonElement(jsonString).let { it as JsonObject })
+    }
+
+    protected fun givenBridgeReturnsRaw(response: JsonElement) {
+        mockRawResponse = response
+        installMocks()
+    }
+
+    protected fun givenBridgeReturnsRaw(string: String) {
+        givenBridgeReturnsRaw(JsonPrimitive(string))
+    }
+
+    protected fun givenBridgeReturnsRawNull() {
+        givenBridgeReturnsRaw(JsonNull)
+    }
+
+    private fun installMocks() {
         coEvery { rpcClient.call(any(), any()) } coAnswers {
             capturedMethod = firstArg()
             capturedParams = secondArg()
@@ -90,16 +85,31 @@ abstract class OperationsTestBase {
             capturedParams = null
             mockResponse
         }
-    }
-
-    /**
-     * Build a JSONObject from pairs for concise test setup.
-     */
-    protected fun jsonOf(vararg pairs: Pair<String, Any?>): JSONObject {
-        return JSONObject().apply {
-            pairs.forEach { (key, value) ->
-                put(key, value)
-            }
+        coEvery { rpcClient.send(any(), any()) } coAnswers {
+            capturedMethod = firstArg()
+            capturedParams = secondArg()
+            mockRawResponse
+        }
+        coEvery { rpcClient.send(any()) } coAnswers {
+            capturedMethod = firstArg()
+            capturedParams = null
+            mockRawResponse
         }
     }
+
+    protected fun encodeCapturedParams(): JsonElement = BridgeCodec(json).encode(capturedParams)
+
+    protected fun jsonOf(vararg pairs: Pair<String, Any?>): JsonObject =
+        JsonObject(
+            pairs.associate { (key, value) ->
+                key to when (value) {
+                    null -> JsonNull
+                    is JsonElement -> value
+                    is String -> JsonPrimitive(value)
+                    is Boolean -> JsonPrimitive(value)
+                    is Number -> JsonPrimitive(value)
+                    else -> JsonPrimitive(value.toString())
+                }
+            },
+        )
 }

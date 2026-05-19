@@ -26,43 +26,22 @@ import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.swap.ITONSwapProvider
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
 /**
- * Reverse-RPC registry for Kotlin-implemented [ITONSwapProvider] instances. When a developer
- * registers a custom Kotlin swap provider, JS creates a `ProxySwapProvider` that routes calls
- * here (mirroring the Kotlin wallet-adapter / staking / streaming proxy pattern).
- *
- * Custom providers must implement `ITONSwapProvider<JsonElement, JsonElement>` because the JS
- * side transports provider options as JSON. Users can decode the [JsonElement] to concrete
- * types inside their implementation.
+ * Reverse-RPC registry for Kotlin-implemented [ITONSwapProvider] instances. JS routes calls from
+ * its `ProxySwapProvider` here via the bridge dispatcher.
  *
  * @suppress Internal engine component.
  */
-internal class KotlinSwapProviderManager(
-    private val json: Json,
-) : KotlinProviderRegistry<ITONSwapProvider<JsonElement, JsonElement>>() {
+internal class KotlinSwapProviderManager :
+    KotlinProviderRegistry<ITONSwapProvider<JsonElement, JsonElement>>() {
 
     override val tag: String = "KotlinSwapProviderManager"
 
-    suspend fun quote(providerId: String, paramsJson: String): String {
-        val provider = require(providerId)
-        val params = json.decodeFromString(
-            TONSwapQuoteParams.serializer(JsonElement.serializer()),
-            paramsJson,
-        )
-        val quote = provider.quote(params)
-        return json.encodeToString(TONSwapQuote.serializer(), quote)
-    }
+    suspend fun quote(providerId: String, params: TONSwapQuoteParams<JsonElement>): TONSwapQuote =
+        require(providerId).quote(params)
 
-    suspend fun buildSwapTransaction(providerId: String, paramsJson: String): String {
-        val provider = require(providerId)
-        val params = json.decodeFromString(
-            TONSwapParams.serializer(JsonElement.serializer()),
-            paramsJson,
-        )
-        val request = provider.buildSwapTransaction(params)
-        return json.encodeToString(TONTransactionRequest.serializer(), request)
-    }
+    suspend fun buildSwapTransaction(providerId: String, params: TONSwapParams<JsonElement>): TONTransactionRequest =
+        require(providerId).buildSwapTransaction(params)
 }

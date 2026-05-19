@@ -26,11 +26,9 @@ import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.storage.BridgeStorageAdapter
 
 /**
- * Mediates storage operations between the JavaScript bridge and the Android storage adapter.
- *
- * This component enforces the persistent storage flag and preserves legacy logging behaviour for
- * debugging. All operations must be invoked from a coroutine context; callers that need a blocking
- * API (e.g., JavaScript interfaces) should wrap the calls in `runBlocking`.
+ * Mediates storage operations between the JS bridge and the Android storage adapter, gating
+ * persistence on the runtime flag. All operations must be invoked from a coroutine context;
+ * callers that need a blocking API (e.g., JavaScript interfaces) should wrap with `runBlocking`.
  *
  * @suppress Internal component. Use through [WebViewWalletKitEngine].
  */

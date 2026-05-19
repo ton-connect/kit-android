@@ -81,42 +81,7 @@ internal object WebViewConstants {
     const val BUILD_INSTRUCTION = "Run `pnpm -w --filter androidkit build` and recompile."
 
     /**
-     * JavaScript function call template for WalletKit bridge.
-     */
-    const val JS_FUNCTION_WALLETKIT_CALL = "window.__walletkitCall"
-
-    /**
-     * JavaScript function call template for responding to reverse-RPC requests.
-     */
-    const val JS_FUNCTION_WALLETKIT_RESPONSE = "window.__walletkitResponse"
-
-    /**
-     * JavaScript function name for base64 decoding.
-     */
-    const val JS_FUNCTION_ATOB = "atob"
-
-    /**
-     * Null literal for JavaScript.
-     */
-    const val JS_NULL = "null"
-
-    /**
      * URL prefix for loading assets.
      */
     const val URL_PREFIX_HTTPS = "https://"
-
-    /**
-     * JavaScript snippet that checks whether the WalletKit bridge call function is installed.
-     */
-    const val JS_BRIDGE_READY_CHECK = "(typeof window.__walletkitCall === 'function')"
-
-    /**
-     * Serialized boolean true returned by evaluateJavascript.
-     */
-    const val JS_BOOLEAN_TRUE = "true"
-
-    /**
-     * Delay between bridge readiness polling attempts (in ms).
-     */
-    const val JS_BRIDGE_POLL_DELAY_MS = 32L
 }

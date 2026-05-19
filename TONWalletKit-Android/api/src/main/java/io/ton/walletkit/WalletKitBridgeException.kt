@@ -46,4 +46,4 @@ package io.ton.walletkit
  * @property message A descriptive error message explaining what went wrong
  * @see io.ton.walletkit.presentation.WalletKitEngine
  */
-class WalletKitBridgeException(message: String) : Exception(message)
+open class WalletKitBridgeException(message: String, cause: Throwable? = null) : Exception(message, cause)

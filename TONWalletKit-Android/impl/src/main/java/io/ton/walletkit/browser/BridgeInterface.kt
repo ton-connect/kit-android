@@ -22,9 +22,12 @@
 package io.ton.walletkit.browser
 
 import android.webkit.JavascriptInterface
+import io.ton.walletkit.bridge.optString
 import io.ton.walletkit.internal.constants.BrowserConstants
 import io.ton.walletkit.internal.util.Logger
-import org.json.JSONObject
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -37,9 +40,9 @@ import java.util.concurrent.ConcurrentHashMap
  * thanks to addJavascriptInterface() behavior.
  */
 internal class BridgeInterface(
-    private val onMessage: (message: JSONObject, type: String) -> Unit,
+    private val onMessage: (message: JsonObject, type: String) -> Unit,
     private val onError: (error: String) -> Unit,
-    private val onResponse: ((message: JSONObject) -> Unit)? = null,
+    private val onResponse: ((message: JsonObject) -> Unit)? = null,
 ) {
     // Thread-safe storage for responses that iframes can pull
     // Limit size to prevent unbounded growth if responses are never pulled
@@ -63,7 +66,7 @@ internal class BridgeInterface(
     @JavascriptInterface
     fun postMessage(message: String) {
         try {
-            val json = JSONObject(message)
+            val json = Json.parseToJsonElement(message).jsonObject
             val type = json.optString(BrowserConstants.KEY_TYPE)
 
             onMessage(json, type)
@@ -121,7 +124,7 @@ internal class BridgeInterface(
     @JavascriptInterface
     fun postResponse(message: String) {
         try {
-            val json = JSONObject(message)
+            val json = Json.parseToJsonElement(message).jsonObject
             onResponse?.invoke(json) ?: Logger.w(TAG, "No response handler configured")
         } catch (e: Exception) {
             Logger.e(TAG, "Failed to handle bridge response", e)
@@ -137,7 +140,8 @@ internal class BridgeInterface(
     @JavascriptInterface
     fun storeEvent(event: String) {
         try {
-            val json = JSONObject(event)
+            // Validate the event payload is well-formed JSON before queuing.
+            Json.parseToJsonElement(event)
             val eventId = "${System.currentTimeMillis()}-${event.hashCode()}"
 
             // Enforce max size limit for broadcast events

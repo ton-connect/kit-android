@@ -32,7 +32,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
 /** Manages custom Kotlin [ITONStreamingProvider] instances registered into the JS bridge. */
@@ -66,16 +65,16 @@ internal class KotlinStreamingProviderManager(
                 }
             }
         }
-        val subIdsToRemove = subscriptionJobs
+        val idsToRemove = subscriptionJobs
             .filterValues { it.providerId == providerId }
             .keys
             .toList()
-        subIdsToRemove.forEach { subId ->
-            subscriptionJobs.remove(subId)?.job?.cancel()
+        idsToRemove.forEach { subscriptionId ->
+            subscriptionJobs.remove(subscriptionId)?.job?.cancel()
         }
     }
 
-    fun watch(providerId: String, subId: String, type: String, address: String?) {
+    fun watch(providerId: String, subscriptionId: String, type: String, address: String?) {
         val provider = providers[providerId] ?: run {
             Logger.w(TAG, "kotlinProviderWatch: no provider for id=$providerId")
             return
@@ -83,21 +82,21 @@ internal class KotlinStreamingProviderManager(
         val job = scope.launch {
             try {
                 when (type) {
-                    TYPE_BALANCE -> provider.balance(address ?: return@launch).collect { dispatch(subId, it) }
-                    TYPE_TRANSACTIONS -> provider.transactions(address ?: return@launch).collect { dispatch(subId, it) }
-                    TYPE_JETTONS -> provider.jettons(address ?: return@launch).collect { dispatch(subId, it) }
-                    TYPE_CONNECTION_CHANGE -> provider.connectionChange().collect { dispatch(subId, it) }
+                    TYPE_BALANCE -> provider.balance(address ?: return@launch).collect { dispatch(subscriptionId, it) }
+                    TYPE_TRANSACTIONS -> provider.transactions(address ?: return@launch).collect { dispatch(subscriptionId, it) }
+                    TYPE_JETTONS -> provider.jettons(address ?: return@launch).collect { dispatch(subscriptionId, it) }
+                    TYPE_CONNECTION_CHANGE -> provider.connectionChange().collect { dispatch(subscriptionId, it) }
                     else -> Logger.w(TAG, "kotlinProviderWatch: unknown type=$type")
                 }
             } catch (e: Exception) {
-                Logger.w(TAG, "kotlinProviderWatch collection ended: subId=$subId", e)
+                Logger.w(TAG, "kotlinProviderWatch collection ended: subscriptionId=$subscriptionId", e)
             }
         }
-        subscriptionJobs.put(subId, SubscriptionEntry(providerId, job))?.job?.cancel()
+        subscriptionJobs.put(subscriptionId, SubscriptionEntry(providerId, job))?.job?.cancel()
     }
 
-    fun unwatch(subId: String) {
-        subscriptionJobs.remove(subId)?.job?.cancel()
+    fun unwatch(subscriptionId: String) {
+        subscriptionJobs.remove(subscriptionId)?.job?.cancel()
     }
 
     fun clear() {
@@ -106,15 +105,12 @@ internal class KotlinStreamingProviderManager(
         subscriptionJobs.clear()
     }
 
-    private suspend inline fun <reified T> dispatch(subId: String, value: T) {
+    private suspend inline fun <reified T> dispatch(subscriptionId: String, value: T) {
         try {
             val updateJson = json.encodeToString(value)
-            rpcClient.call(
+            rpcClient.send(
                 BridgeMethodConstants.METHOD_KOTLIN_PROVIDER_DISPATCH,
-                JSONObject().apply {
-                    put("subId", subId)
-                    put("updateJson", updateJson)
-                },
+                mapOf("subscriptionId" to subscriptionId, "updateJson" to updateJson),
             )
         } catch (_: Exception) {
         }

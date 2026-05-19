@@ -18,6 +18,7 @@ walletkitAndroid = "0.0.1"
 webkit = "1.15.0"
 datastorePreferences = "1.2.0"
 securityCrypto = "1.1.0"
+biometric = "1.2.0-alpha05"
 coil = "3.3.0"
 hilt = "2.57.2"
 # Testing
@@ -44,6 +45,7 @@ androidxComposeMaterialIconsExtended = { module = "androidx.compose.material:mat
 androidxComposeMaterialIconsCore = { module = "androidx.compose.material:material-icons-core" }
 androidxComposeUiToolingPreview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidxComposeUiTooling = { module = "androidx.compose.ui:ui-tooling" }
+androidxComposeUiTextGoogleFonts = { module = "androidx.compose.ui:ui-text-google-fonts" }
 androidxLifecycleRuntimeKtx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidxLifecycleViewmodelCompose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 kotlinxCoroutinesAndroid = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutinesAndroid" }
@@ -51,6 +53,7 @@ kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serializati
 androidxWebkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
 androidxDatastorePreferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidxSecurityCrypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
+androidxBiometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 leakcanaryAndroid = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanaryAndroid" }
 coilCompose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coilNetwork = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }

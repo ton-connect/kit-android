@@ -27,18 +27,15 @@ package io.ton.walletkit.demo.presentation.util
  * These tags mirror the testIds used in the web demo-wallet for consistency.
  */
 object TestTags {
-    // SetupPasswordScreen
-    const val PASSWORD_FIELD = "password"
-    const val PASSWORD_CONFIRM_FIELD = "password-confirm"
-    const val PASSWORD_SUBMIT_BUTTON = "password-submit"
-    const val SETUP_PASSWORD_TITLE = "title"
-    const val SETUP_PASSWORD_SUBTITLE = "subtitle"
+    // CreatePinScreen
+    const val CREATE_PIN_FIELD = "create-pin"
+    const val CREATE_PIN_SAVE_BUTTON = "create-pin-save"
 
-    // UnlockWalletScreen
-    const val UNLOCK_TITLE = "unlock-title"
-    const val UNLOCK_PASSWORD_FIELD = "unlock-password"
-    const val UNLOCK_SUBMIT_BUTTON = "unlock-submit"
-    const val UNLOCK_RESET_BUTTON = "unlock-reset"
+    // UnlockPinScreen
+    const val UNLOCK_PIN_FIELD = "unlock-pin"
+    const val UNLOCK_PIN_FORGOT_BUTTON = "unlock-pin-forgot"
+    const val FORGOT_PIN_RESET_BUTTON = "forgot-pin-reset"
+    const val FORGOT_PIN_CLOSE_BUTTON = "forgot-pin-close"
 
     // AddWalletSheet
     const val ADD_WALLET_TAB_IMPORT = "add-wallet-tab-import"

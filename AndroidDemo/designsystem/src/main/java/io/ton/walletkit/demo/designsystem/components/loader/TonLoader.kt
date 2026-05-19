@@ -19,25 +19,35 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.engine.infrastructure
+package io.ton.walletkit.demo.designsystem.components.loader
 
-import io.ton.walletkit.api.generated.TONTransactionRequest
-import io.ton.walletkit.exceptions.JSValueConversionException
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.designsystem.theme.TonTheme
 
-/**
- * Shared decoder for the JS bridge's [TONTransactionRequest] JSON envelope, used by both
- * [io.ton.walletkit.swap.BuiltInSwapProvider] and [io.ton.walletkit.staking.BuiltInStakingProvider].
- * A bridge method returning a transaction (swap / stake / unstake) hands back a JSON string that
- * callers then resubmit through the normal wallet transaction flow, so the failure mode is the
- * same for every caller: wrap [SerializationException] in [JSValueConversionException.DecodingError].
- */
-internal fun decodeTransactionRequest(json: String): TONTransactionRequest = try {
-    Json.decodeFromString(TONTransactionRequest.serializer(), json)
-} catch (e: SerializationException) {
-    throw JSValueConversionException.DecodingError(
-        message = "Failed to decode TONTransactionRequest: ${e.message}",
-        cause = e,
+@Composable
+fun TonLoader(
+    modifier: Modifier = Modifier,
+    size: Dp = 24.dp,
+    color: Color = TonTheme.colors.textBrand,
+) {
+    CircularProgressIndicator(
+        modifier = modifier.size(size),
+        color = color,
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun TonLoaderPreview() {
+    TonTheme {
+        TonLoader(modifier = Modifier.padding(16.dp))
+    }
 }
