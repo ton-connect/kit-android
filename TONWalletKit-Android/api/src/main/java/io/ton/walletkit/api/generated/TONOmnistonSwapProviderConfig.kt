@@ -41,6 +41,7 @@ import kotlinx.serialization.Serializable
  * @param defaultSlippageBps Default slippage tolerance in basis points (1 bp = 0.01%)
  * @param quoteTimeoutMs Timeout for quote requests in milliseconds
  * @param providerId Identifier for the provider
+ * @param metadata
  */
 @Serializable
 data class TONOmnistonSwapProviderConfig(
@@ -72,6 +73,9 @@ data class TONOmnistonSwapProviderConfig(
     /* Identifier for the provider */
     @SerialName(value = "providerId")
     val providerId: kotlin.String? = null,
+
+    @SerialName(value = "metadata")
+    val metadata: TONSwapProviderMetadataOverride? = null,
 
 ) {
 

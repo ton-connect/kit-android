@@ -28,25 +28,24 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONUserFriendlyAddress
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
  *
  *
- * @param contractAddress
- * @param tonApiToken
+ * @param tonApiToken optional TonAPI key for APY requests only. If not provided, APY will be available, but if you're using TonAPI, it's recommended to provide the key.
+ * @param metadata
  */
 @Serializable
 data class TONTonStakersChainConfig(
 
-    @Contextual @SerialName(value = "contractAddress")
-    val contractAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-
+    /* optional TonAPI key for APY requests only. If not provided, APY will be available, but if you're using TonAPI, it's recommended to provide the key. */
     @SerialName(value = "tonApiToken")
     val tonApiToken: kotlin.String? = null,
+
+    @SerialName(value = "metadata")
+    val metadata: TONStakingProviderMetadataOverride? = null,
 
 ) {
 

@@ -32,15 +32,15 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * Credit phase of transaction execution.
  *
- * @param fakeSignature
+ * @param credit
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONEmulationCreditPhase(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    @SerialName(value = "credit")
+    val credit: kotlin.String,
 
 ) {
 

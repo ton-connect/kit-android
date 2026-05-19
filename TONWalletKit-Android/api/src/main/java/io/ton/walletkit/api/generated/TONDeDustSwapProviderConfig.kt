@@ -43,6 +43,7 @@ import kotlinx.serialization.Serializable
  * @param maxSplits Maximum number of route splits
  * @param maxLength Maximum route length (hops)
  * @param minPoolUsdTvl Minimum pool TVL in USD
+ * @param metadata
  */
 @Serializable
 data class TONDeDustSwapProviderConfig(
@@ -82,6 +83,9 @@ data class TONDeDustSwapProviderConfig(
     /* Minimum pool TVL in USD */
     @SerialName(value = "minPoolUsdTvl")
     val minPoolUsdTvl: kotlin.String? = null,
+
+    @SerialName(value = "metadata")
+    val metadata: TONSwapProviderMetadataOverride? = null,
 
 ) {
 

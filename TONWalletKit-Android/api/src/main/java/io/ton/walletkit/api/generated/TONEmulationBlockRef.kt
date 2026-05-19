@@ -32,20 +32,26 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Fee information for swap
+ * Reference to a block in the TON blockchain.
  *
- * @param amount Amount of the fee
- * @param token
+ * @param workchain Workchain identifier
+ * @param shard Shard identifier
+ * @param seqno Block sequence number
  */
 @Serializable
-data class TONSwapFee(
+data class TONEmulationBlockRef(
 
-    /* Amount of the fee */
-    @SerialName(value = "amount")
-    val amount: kotlin.String,
+    /* Workchain identifier */
+    @SerialName(value = "workchain")
+    val workchain: kotlin.Int,
 
-    @SerialName(value = "token")
-    val token: TONSwapToken,
+    /* Shard identifier */
+    @SerialName(value = "shard")
+    val shard: kotlin.String,
+
+    /* Block sequence number */
+    @SerialName(value = "seqno")
+    val seqno: kotlin.Int,
 
 ) {
 

@@ -28,57 +28,49 @@
 
 package io.ton.walletkit.api.generated
 
-import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Blockchain state of an account at a given point in time.  The `status` field distinguishes four cases: - `active` — contract deployed, `code` and `data` present - `uninitialized` — has balance/history but no contract deployed; `code`/`data` omitted - `frozen` — frozen due to storage debt; `frozenHash` points at the pre-freeze state - `non-existing` — no on-chain record at all; balance is `'0'` and other fields omitted
+ * State of an account at a specific point in time.
  *
- * @param address
- * @param status
- * @param rawBalance
- * @param balance Balance formatted in TON (10^9 nanotons = 1 TON).
+ * @param balance
+ * @param hash The state hash of the account
  * @param extraCurrencies Map of extra currency IDs to their amounts. Extra currencies are additional tokens that can be attached to TON messages.
- * @param code Base64-encoded contract code BOC. Omitted if the contract is not deployed.
- * @param `data` Base64-encoded contract data BOC. Omitted if the contract is not deployed.
- * @param lastTransaction
- * @param frozenHash
+ * @param accountStatus
+ * @param frozenHash The hash of the frozen account state, if the account is frozen
+ * @param dataHash The hash of the contract's data section
+ * @param codeHash The hash of the smart contract code
  */
 @Serializable
-data class TONAccountState(
+data class TONTransactionAccountState(
 
-    @Contextual @SerialName(value = "address")
-    val address: io.ton.walletkit.model.TONUserFriendlyAddress,
-
-    @Contextual @SerialName(value = "status")
-    val status: TONAccountStatus,
-
-    @SerialName(value = "rawBalance")
-    val rawBalance: kotlin.String,
-
-    /* Balance formatted in TON (10^9 nanotons = 1 TON). */
     @SerialName(value = "balance")
     val balance: kotlin.String,
 
+    /* The state hash of the account */
+    @SerialName(value = "hash")
+    val hash: kotlin.String? = null,
+
     /* Map of extra currency IDs to their amounts. Extra currencies are additional tokens that can be attached to TON messages. */
     @SerialName(value = "extraCurrencies")
-    val extraCurrencies: kotlin.collections.Map<kotlin.String, kotlin.String>,
+    val extraCurrencies: kotlin.collections.Map<kotlin.String, kotlin.String>? = null,
 
-    /* Base64-encoded contract code BOC. Omitted if the contract is not deployed. */
-    @SerialName(value = "code")
-    val code: kotlin.String? = null,
+    @Contextual @SerialName(value = "accountStatus")
+    val accountStatus: TONAccountStatus? = null,
 
-    /* Base64-encoded contract data BOC. Omitted if the contract is not deployed. */
-    @SerialName(value = "data")
-    val `data`: kotlin.String? = null,
+    /* The hash of the frozen account state, if the account is frozen */
+    @SerialName(value = "frozenHash")
+    val frozenHash: kotlin.String? = null,
 
-    @SerialName(value = "lastTransaction")
-    val lastTransaction: TONTransactionId? = null,
+    /* The hash of the contract's data section */
+    @SerialName(value = "dataHash")
+    val dataHash: kotlin.String? = null,
 
-    @Contextual @SerialName(value = "frozenHash")
-    val frozenHash: io.ton.walletkit.model.TONHex? = null,
+    /* The hash of the smart contract code */
+    @SerialName(value = "codeHash")
+    val codeHash: kotlin.String? = null,
 
 ) {
 

@@ -46,7 +46,6 @@ import kotlinx.serialization.Serializable
  * @param network
  * @param providerId Identifier of the swap provider
  * @param priceImpact Price impact of the swap in basis points (100 = 1%)
- * @param fee Fees associated with the swap
  * @param expiresAt Unix timestamp in seconds when the quote expires
  * @param metadata Provider-specific metadata for the quote
  */
@@ -90,10 +89,6 @@ data class TONSwapQuote(
     /* Price impact of the swap in basis points (100 = 1%) */
     @SerialName(value = "priceImpact")
     val priceImpact: kotlin.Int? = null,
-
-    /* Fees associated with the swap */
-    @SerialName(value = "fee")
-    val fee: kotlin.collections.List<TONSwapFee>? = null,
 
     /* Unix timestamp in seconds when the quote expires */
     @SerialName(value = "expiresAt")

@@ -28,19 +28,41 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * Used in provider configuration to override fields of the provider's metadata.
  *
- * @param fakeSignature
+ * @param name
+ * @param stakeToken
+ * @param receiveToken
+ * @param contractAddress
+ * @param supportedUnstakeModes
+ * @param supportsReversedQuote
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONStakingProviderMetadataOverride(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    @SerialName(value = "name")
+    val name: kotlin.String? = null,
+
+    @SerialName(value = "stakeToken")
+    val stakeToken: TONStakingTokenInfo? = null,
+
+    @SerialName(value = "receiveToken")
+    val receiveToken: TONStakingTokenInfo? = null,
+
+    @Contextual @SerialName(value = "contractAddress")
+    val contractAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
+
+    @SerialName(value = "supportedUnstakeModes")
+    val supportedUnstakeModes: kotlin.collections.List<@Contextual TONUnstakeMode>? = null,
+
+    @SerialName(value = "supportsReversedQuote")
+    val supportsReversedQuote: kotlin.Boolean? = null,
 
 ) {
 

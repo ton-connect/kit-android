@@ -32,12 +32,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Staking information for a provider
+ * Dynamic staking information for a provider
  *
  * @param apy Annual Percentage Yield in basis points (100 = 1%)
- * @param providerId Identifier of the staking provider
  * @param rawInstantUnstakeAvailable
  * @param instantUnstakeAvailable Amount available for instant unstake
+ * @param exchangeRate Exchange rate between stakeToken and receiveToken (e.g. 1 TON = 0.95 tsTON). Undefined when there is no receiveToken (direct/custodial staking).
  */
 @Serializable
 data class TONStakingProviderInfo(
@@ -46,16 +46,16 @@ data class TONStakingProviderInfo(
     @SerialName(value = "apy")
     val apy: kotlin.Double,
 
-    /* Identifier of the staking provider */
-    @SerialName(value = "providerId")
-    val providerId: kotlin.String,
-
     @SerialName(value = "rawInstantUnstakeAvailable")
     val rawInstantUnstakeAvailable: kotlin.String? = null,
 
     /* Amount available for instant unstake */
     @SerialName(value = "instantUnstakeAvailable")
     val instantUnstakeAvailable: kotlin.String? = null,
+
+    /* Exchange rate between stakeToken and receiveToken (e.g. 1 TON = 0.95 tsTON). Undefined when there is no receiveToken (direct/custodial staking). */
+    @SerialName(value = "exchangeRate")
+    val exchangeRate: kotlin.String? = null,
 
 ) {
 

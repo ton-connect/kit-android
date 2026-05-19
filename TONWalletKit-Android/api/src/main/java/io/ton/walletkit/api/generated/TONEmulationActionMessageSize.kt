@@ -32,15 +32,21 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * Total size of messages created in the action phase.
  *
- * @param fakeSignature
+ * @param cells Number of cells used
+ * @param bits Number of bits used
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONEmulationActionMessageSize(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    /* Number of cells used */
+    @SerialName(value = "cells")
+    val cells: kotlin.Int,
+
+    /* Number of bits used */
+    @SerialName(value = "bits")
+    val bits: kotlin.Int,
 
 ) {
 

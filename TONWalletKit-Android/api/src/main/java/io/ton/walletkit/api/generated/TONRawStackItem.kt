@@ -198,48 +198,54 @@ sealed class TONRawStackItem {
             val jsonDecoder = decoder as? JsonDecoder
                 ?: throw SerializationException("TONRawStackItem can only be deserialized from JSON")
 
-            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val typeValue = jsonObject["type"]?.jsonPrimitive?.content
+            // Cases without an associated value arrive as bare strings on the wire
+            // (e.g. "active" rather than { "type": "active" }). Accept both shapes so the
+            // discriminated-union decode doesn't crash with "JsonLiteral is not a JsonObject".
+            val element = jsonDecoder.decodeJsonElement()
+            val asPrimitive = element as? JsonPrimitive
+            val jsonObject: JsonObject? = if (asPrimitive != null && asPrimitive.isString) null else element.jsonObject
+            val typeValue: String = jsonObject?.get("type")?.jsonPrimitive?.content
+                ?: asPrimitive?.content
                 ?: throw SerializationException("Missing 'type' discriminator for TONRawStackItem")
 
             return when (typeValue) {
                 "num" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONRawStackItem.Num")
                     Num(
                         jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.String>(), valueJson),
                     )
                 }
                 "cell" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONRawStackItem.Cell")
                     Cell(
                         jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.String>(), valueJson),
                     )
                 }
                 "slice" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONRawStackItem.Slice")
                     Slice(
                         jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.String>(), valueJson),
                     )
                 }
                 "builder" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONRawStackItem.Builder")
                     Builder(
                         jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.String>(), valueJson),
                     )
                 }
                 "tuple" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONRawStackItem.Tuple")
                     Tuple(
                         jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.collections.List<TONRawStackItem>>(), valueJson),
                     )
                 }
                 "list" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONRawStackItem.List")
                     List(
                         jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.collections.List<TONRawStackItem>>(), valueJson),

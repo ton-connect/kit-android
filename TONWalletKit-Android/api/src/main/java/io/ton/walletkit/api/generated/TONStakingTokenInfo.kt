@@ -32,15 +32,24 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  *
- * @param fakeSignature
+ *
+ * @param ticker
+ * @param decimals
+ * @param address 'ton' for native TON, otherwise contract address in friendly format
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONStakingTokenInfo(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    @SerialName(value = "ticker")
+    val ticker: kotlin.String,
+
+    @SerialName(value = "decimals")
+    val decimals: kotlin.Int,
+
+    /* 'ton' for native TON, otherwise contract address in friendly format */
+    @SerialName(value = "address")
+    val address: kotlin.String,
 
 ) {
 

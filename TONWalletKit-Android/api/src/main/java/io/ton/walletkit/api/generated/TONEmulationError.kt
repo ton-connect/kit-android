@@ -32,15 +32,21 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * Error returned when transaction emulation fails.
  *
- * @param fakeSignature
+ * @param code Numeric error code
+ * @param message Human-readable error message
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONEmulationError(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    /* Numeric error code */
+    @SerialName(value = "code")
+    val code: kotlin.Int,
+
+    /* Human-readable error message */
+    @SerialName(value = "message")
+    val message: kotlin.String,
 
 ) {
 

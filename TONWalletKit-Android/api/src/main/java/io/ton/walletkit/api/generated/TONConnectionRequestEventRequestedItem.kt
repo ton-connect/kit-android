@@ -122,20 +122,26 @@ sealed class TONConnectionRequestEventRequestedItem {
             val jsonDecoder = decoder as? JsonDecoder
                 ?: throw SerializationException("TONConnectionRequestEventRequestedItem can only be deserialized from JSON")
 
-            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val typeValue = jsonObject["type"]?.jsonPrimitive?.content
+            // Cases without an associated value arrive as bare strings on the wire
+            // (e.g. "active" rather than { "type": "active" }). Accept both shapes so the
+            // discriminated-union decode doesn't crash with "JsonLiteral is not a JsonObject".
+            val element = jsonDecoder.decodeJsonElement()
+            val asPrimitive = element as? JsonPrimitive
+            val jsonObject: JsonObject? = if (asPrimitive != null && asPrimitive.isString) null else element.jsonObject
+            val typeValue: String = jsonObject?.get("type")?.jsonPrimitive?.content
+                ?: asPrimitive?.content
                 ?: throw SerializationException("Missing 'type' discriminator for TONConnectionRequestEventRequestedItem")
 
             return when (typeValue) {
                 "ton_proof" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONConnectionRequestEventRequestedItem.TonProof")
                     TonProof(
                         jsonDecoder.json.decodeFromJsonElement(serializer<TONConnectionRequestTonProofRequestedItem>(), valueJson),
                     )
                 }
                 "unknown" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONConnectionRequestEventRequestedItem.Unknown")
                     Unknown(
                         jsonDecoder.json.decodeFromJsonElement(serializer<kotlinx.serialization.json.JsonElement>(), valueJson),

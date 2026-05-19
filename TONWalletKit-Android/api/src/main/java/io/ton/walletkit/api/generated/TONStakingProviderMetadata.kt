@@ -28,19 +28,44 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * Static metadata for a staking provider
  *
- * @param fakeSignature
+ * @param name Human-readable provider name (e.g. \"Tonstakers\")
+ * @param supportedUnstakeModes Supported unstake modes for this provider
+ * @param supportsReversedQuote Whether provider supports reversed quote format (e.g., passing TON instead of tsTON for unstake)
+ * @param stakeToken
+ * @param receiveToken
+ * @param contractAddress
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONStakingProviderMetadata(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    /* Human-readable provider name (e.g. \"Tonstakers\") */
+    @SerialName(value = "name")
+    val name: kotlin.String,
+
+    /* Supported unstake modes for this provider */
+    @SerialName(value = "supportedUnstakeModes")
+    val supportedUnstakeModes: kotlin.collections.List<@Contextual TONUnstakeMode>,
+
+    /* Whether provider supports reversed quote format (e.g., passing TON instead of tsTON for unstake) */
+    @SerialName(value = "supportsReversedQuote")
+    val supportsReversedQuote: kotlin.Boolean,
+
+    @SerialName(value = "stakeToken")
+    val stakeToken: TONStakingTokenInfo,
+
+    @SerialName(value = "receiveToken")
+    val receiveToken: TONStakingTokenInfo? = null,
+
+    @Contextual @SerialName(value = "contractAddress")
+    val contractAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
 
 ) {
 

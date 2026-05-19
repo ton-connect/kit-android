@@ -38,6 +38,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -131,27 +132,33 @@ sealed class TONSignDataPreview {
             val jsonDecoder = decoder as? JsonDecoder
                 ?: throw SerializationException("TONSignDataPreview can only be deserialized from JSON")
 
-            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val typeValue = jsonObject["type"]?.jsonPrimitive?.content
+            // Cases without an associated value arrive as bare strings on the wire
+            // (e.g. "active" rather than { "type": "active" }). Accept both shapes so the
+            // discriminated-union decode doesn't crash with "JsonLiteral is not a JsonObject".
+            val element = jsonDecoder.decodeJsonElement()
+            val asPrimitive = element as? JsonPrimitive
+            val jsonObject: JsonObject? = if (asPrimitive != null && asPrimitive.isString) null else element.jsonObject
+            val typeValue: String = jsonObject?.get("type")?.jsonPrimitive?.content
+                ?: asPrimitive?.content
                 ?: throw SerializationException("Missing 'type' discriminator for TONSignDataPreview")
 
             return when (typeValue) {
                 "text" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONSignDataPreview.Text")
                     Text(
                         jsonDecoder.json.decodeFromJsonElement(serializer<TONSignDataPreviewText>(), valueJson),
                     )
                 }
                 "binary" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONSignDataPreview.Binary")
                     Binary(
                         jsonDecoder.json.decodeFromJsonElement(serializer<TONSignDataPreviewBinary>(), valueJson),
                     )
                 }
                 "cell" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONSignDataPreview.Cell")
                     Cell(
                         jsonDecoder.json.decodeFromJsonElement(serializer<TONSignDataPreviewCell>(), valueJson),

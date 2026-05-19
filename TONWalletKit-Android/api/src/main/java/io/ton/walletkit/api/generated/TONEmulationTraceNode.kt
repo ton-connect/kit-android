@@ -28,19 +28,29 @@
 
 package io.ton.walletkit.api.generated
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * Node in the emulation execution tree.
  *
- * @param fakeSignature
+ * @param txHash
+ * @param children Child nodes representing spawned messages
+ * @param inMsgHash
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONEmulationTraceNode(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    @Contextual @SerialName(value = "txHash")
+    val txHash: io.ton.walletkit.model.TONHex,
+
+    /* Child nodes representing spawned messages */
+    @SerialName(value = "children")
+    val children: kotlin.collections.List<TONEmulationTraceNode>,
+
+    @Contextual @SerialName(value = "inMsgHash")
+    val inMsgHash: io.ton.walletkit.model.TONHex? = null,
 
 ) {
 

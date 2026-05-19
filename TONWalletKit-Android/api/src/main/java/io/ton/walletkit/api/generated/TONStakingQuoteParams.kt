@@ -40,6 +40,7 @@ import kotlinx.serialization.Serializable
  * @param userAddress
  * @param network
  * @param unstakeMode
+ * @param isReversed If true, for unstake requests the amount is specified in the staking coin (e.g. TON) instead of the Liquid Staking Token (e.g. tsTON).
  * @param providerOptions Provider-specific options
  */
 @Serializable
@@ -54,6 +55,8 @@ data class TONStakingQuoteParams<TProviderOptions>(
     val network: TONNetwork? = null,
     @SerialName("unstakeMode")
     val unstakeMode: TONUnstakeMode? = null,
+    @SerialName("isReversed")
+    val isReversed: kotlin.Boolean? = null,
     @SerialName("providerOptions")
     val providerOptions: TProviderOptions? = null,
 ) {

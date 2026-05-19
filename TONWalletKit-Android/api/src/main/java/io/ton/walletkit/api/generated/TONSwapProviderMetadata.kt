@@ -32,15 +32,23 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * Static metadata for a swap provider.
  *
- * @param fakeSignature
+ * @param name
+ * @param logo
+ * @param url
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONSwapProviderMetadata(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    @SerialName(value = "name")
+    val name: kotlin.String,
+
+    @SerialName(value = "logo")
+    val logo: kotlin.String? = null,
+
+    @SerialName(value = "url")
+    val url: kotlin.String? = null,
 
 ) {
 

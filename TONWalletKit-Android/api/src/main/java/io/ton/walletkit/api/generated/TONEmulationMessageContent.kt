@@ -28,19 +28,30 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONBase64
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * Decoded content of an emulation message body.
  *
- * @param fakeSignature
+ * @param hash
+ * @param body
+ * @param decoded Structured decoded representation of the message body, if available
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONEmulationMessageContent(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    @Contextual @SerialName(value = "hash")
+    val hash: io.ton.walletkit.model.TONHex? = null,
+
+    @Contextual @SerialName(value = "body")
+    val body: io.ton.walletkit.model.TONBase64? = null,
+
+    /* Structured decoded representation of the message body, if available */
+    @Contextual @SerialName(value = "decoded")
+    val decoded: kotlinx.serialization.json.JsonElement? = null,
 
 ) {
 

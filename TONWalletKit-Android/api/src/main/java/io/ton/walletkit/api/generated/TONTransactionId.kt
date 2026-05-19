@@ -28,19 +28,25 @@
 
 package io.ton.walletkit.api.generated
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * Canonical (lt, hash) pair identifying a transaction on the TON blockchain.
  *
- * @param fakeSignature
+ * @param lt Logical time of the transaction as a decimal string. Uniquely orders transactions within an account.
+ * @param hash
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONTransactionId(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    /* Logical time of the transaction as a decimal string. Uniquely orders transactions within an account. */
+    @SerialName(value = "lt")
+    val lt: kotlin.String,
+
+    @Contextual @SerialName(value = "hash")
+    val hash: io.ton.walletkit.model.TONHex,
 
 ) {
 

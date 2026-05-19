@@ -32,15 +32,19 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * Base interface shared by all provider types.
  *
- * @param fakeSignature
+ * @param providerId
+ * @param type
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONBaseProvider(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    @SerialName(value = "providerId")
+    val providerId: kotlin.String,
+
+    @SerialName(value = "type")
+    val type: kotlin.String,
 
 ) {
 

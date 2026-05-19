@@ -28,19 +28,45 @@
 
 package io.ton.walletkit.api.generated
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * State of an account at a specific point in an emulated transaction.
  *
- * @param fakeSignature
+ * @param balance
+ * @param accountStatus
+ * @param hash
+ * @param extraCurrencies Map of extra currency IDs to their amounts. Extra currencies are additional tokens that can be attached to TON messages.
+ * @param frozenHash
+ * @param dataHash
+ * @param codeHash
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONEmulationAccountState(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    @SerialName(value = "balance")
+    val balance: kotlin.String,
+
+    @Contextual @SerialName(value = "accountStatus")
+    val accountStatus: TONAccountStatus,
+
+    @Contextual @SerialName(value = "hash")
+    val hash: io.ton.walletkit.model.TONHex? = null,
+
+    /* Map of extra currency IDs to their amounts. Extra currencies are additional tokens that can be attached to TON messages. */
+    @SerialName(value = "extraCurrencies")
+    val extraCurrencies: kotlin.collections.Map<kotlin.String, kotlin.String>? = null,
+
+    @Contextual @SerialName(value = "frozenHash")
+    val frozenHash: io.ton.walletkit.model.TONHex? = null,
+
+    @Contextual @SerialName(value = "dataHash")
+    val dataHash: io.ton.walletkit.model.TONHex? = null,
+
+    @Contextual @SerialName(value = "codeHash")
+    val codeHash: io.ton.walletkit.model.TONHex? = null,
 
 ) {
 

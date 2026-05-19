@@ -38,6 +38,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -131,27 +132,33 @@ sealed class TONTransactionTokenInfo {
             val jsonDecoder = decoder as? JsonDecoder
                 ?: throw SerializationException("TONTransactionTokenInfo can only be deserialized from JSON")
 
-            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val typeValue = jsonObject["type"]?.jsonPrimitive?.content
+            // Cases without an associated value arrive as bare strings on the wire
+            // (e.g. "active" rather than { "type": "active" }). Accept both shapes so the
+            // discriminated-union decode doesn't crash with "JsonLiteral is not a JsonObject".
+            val element = jsonDecoder.decodeJsonElement()
+            val asPrimitive = element as? JsonPrimitive
+            val jsonObject: JsonObject? = if (asPrimitive != null && asPrimitive.isString) null else element.jsonObject
+            val typeValue: String = jsonObject?.get("type")?.jsonPrimitive?.content
+                ?: asPrimitive?.content
                 ?: throw SerializationException("Missing 'type' discriminator for TONTransactionTokenInfo")
 
             return when (typeValue) {
                 "jetton_wallets" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONTransactionTokenInfo.JettonWallets")
                     JettonWallets(
                         jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionTokenInfoJettonWallets>(), valueJson),
                     )
                 }
                 "jetton_masters" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONTransactionTokenInfo.JettonMasters")
                     JettonMasters(
                         jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionTokenInfoJettonMasters>(), valueJson),
                     )
                 }
                 "unknown" -> {
-                    val valueJson = jsonObject["value"]
+                    val valueJson = jsonObject?.get("value")
                         ?: throw SerializationException("Missing 'value' for TONTransactionTokenInfo.Unknown")
                     Unknown(
                         jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionTokenInfoBase>(), valueJson),

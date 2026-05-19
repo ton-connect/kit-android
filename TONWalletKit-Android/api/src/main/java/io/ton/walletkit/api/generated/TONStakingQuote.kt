@@ -42,7 +42,6 @@ import kotlinx.serialization.Serializable
  * @param amountOut Formatted estimated amount of tokens to be received
  * @param network
  * @param providerId Identifier of the staking provider
- * @param apy Annual Percentage Yield in basis points (100 = 1%)
  * @param unstakeMode
  * @param metadata Provider-specific metadata for the quote
  */
@@ -72,10 +71,6 @@ data class TONStakingQuote(
     /* Identifier of the staking provider */
     @SerialName(value = "providerId")
     val providerId: kotlin.String,
-
-    /* Annual Percentage Yield in basis points (100 = 1%) */
-    @SerialName(value = "apy")
-    val apy: kotlin.Double? = null,
 
     @Contextual @SerialName(value = "unstakeMode")
     val unstakeMode: TONUnstakeMode? = null,

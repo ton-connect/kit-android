@@ -342,9 +342,6 @@ private fun QuoteCard(
             LabeledValue("You send", "${formatTokenDisplay(quote.amountIn)} ${quote.direction.inputSymbol()}")
             LabeledValue("You receive", "${formatTokenDisplay(quote.amountOut)} $receiveTokenSymbol")
             LabeledValue("Provider", quote.providerId)
-            quote.apy?.let { apy ->
-                LabeledValue("Quote APY", formatApy(apy))
-            }
             quote.unstakeMode?.let { mode ->
                 LabeledValue("Unstake mode", mode.toDisplayLabel())
             }
@@ -409,5 +406,3 @@ private fun formatTokenDisplay(value: String?): String = runCatching {
         .stripTrailingZeros()
         .toPlainString()
 }.getOrDefault(value ?: "0")
-
-private fun formatApy(apyPercent: Number): String = String.format(Locale.US, "%.2f%%", apyPercent.toDouble())

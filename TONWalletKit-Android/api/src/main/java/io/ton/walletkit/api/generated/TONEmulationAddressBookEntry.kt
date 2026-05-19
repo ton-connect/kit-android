@@ -28,19 +28,31 @@
 
 package io.ton.walletkit.api.generated
 
+import io.ton.walletkit.model.TONUserFriendlyAddress
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+ * Address book entry providing human-readable metadata for an on-chain address.
  *
- * @param fakeSignature
+ * @param userFriendly
+ * @param interfaces List of known interfaces implemented by the contract
+ * @param domain DNS domain name associated with the address, if any
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONEmulationAddressBookEntry(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    @Contextual @SerialName(value = "userFriendly")
+    val userFriendly: io.ton.walletkit.model.TONUserFriendlyAddress,
+
+    /* List of known interfaces implemented by the contract */
+    @SerialName(value = "interfaces")
+    val interfaces: kotlin.collections.List<kotlin.String>,
+
+    /* DNS domain name associated with the address, if any */
+    @SerialName(value = "domain")
+    val domain: kotlin.String? = null,
 
 ) {
 

@@ -32,17 +32,43 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  *
- * @param fakeSignature
+ *
+ * Values: send,sign
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+enum class TONTransactionPreviewMode(val value: kotlin.String) {
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    @SerialName(value = "send")
+    send("send"),
 
-) {
+    @SerialName(value = "sign")
+    sign("sign"),
+    ;
 
-    companion object
+    /**
+     * Override [toString()] to avoid using the enum variable name as the value, and instead use
+     * the actual value defined in the API spec file.
+     *
+     * This solves a problem when the variable name and its value are different, and ensures that
+     * the client sends the correct enum values to the server always.
+     */
+    override fun toString(): kotlin.String = value
+
+    companion object {
+        /**
+         * Converts the provided [data] to a [String] on success, null otherwise.
+         */
+        fun encode(data: kotlin.Any?): kotlin.String? = if (data is TONTransactionPreviewMode) "$data" else null
+
+        /**
+         * Returns a valid [TONTransactionPreviewMode] for [data], null otherwise.
+         */
+        fun decode(data: kotlin.Any?): TONTransactionPreviewMode? = data?.let {
+            val normalizedData = "$it".lowercase()
+            values().firstOrNull { value ->
+                it == value || normalizedData == "$value".lowercase()
+            }
+        }
+    }
 }

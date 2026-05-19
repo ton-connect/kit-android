@@ -28,19 +28,24 @@
 
 package io.ton.walletkit.api.generated
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Copyright (c) TonTech.  This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
  *
- * @param fakeSignature
+ *
+ * @param mode
+ * @param relayGas
  */
 @Serializable
-data class TONSignedSendTransactionOptions(
+data class TONTransactionPreviewOptions(
 
-    @SerialName(value = "fakeSignature")
-    val fakeSignature: kotlin.Boolean? = null,
+    @Contextual @SerialName(value = "mode")
+    val mode: TONTransactionPreviewMode? = null,
+
+    @SerialName(value = "relayGas")
+    val relayGas: kotlin.Double? = null,
 
 ) {
 

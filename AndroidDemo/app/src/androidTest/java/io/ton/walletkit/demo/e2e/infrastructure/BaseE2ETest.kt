@@ -39,6 +39,7 @@ import io.ton.walletkit.demo.core.RequestErrorTracker
 import io.ton.walletkit.demo.core.TONWalletKitHelper
 import io.ton.walletkit.demo.e2e.dapp.JsDAppController
 import io.ton.walletkit.demo.e2e.wallet.WalletController
+import io.ton.walletkit.demo.presentation.dev.DevPreferences
 import org.junit.Before
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -142,6 +143,7 @@ abstract class BaseE2ETest {
             val prefsToDelete = listOf(
                 "walletkit_demo_wallets",
                 "walletkit_demo_prefs",
+                "dev_preferences",
             )
             for (prefName in prefsToDelete) {
                 try {
@@ -158,6 +160,13 @@ abstract class BaseE2ETest {
                     Log.w("BaseE2ETest", "Failed to clear prefs $prefName: ${e.message}")
                 }
             }
+
+            // 1b. Reset DevPreferences in-process state. Just deleting the prefs file isn't
+            // enough — the singleton caches the legacy-screen flag in a StateFlow plus a
+            // `loaded` flag and would keep serving the old value into the next test class,
+            // putting the demo back into legacy mode and re-triggering AddWalletSheet on
+            // tests that expect the modern main screen.
+            DevPreferences.reset(context)
 
             // 2. Clear files and cache
             context.filesDir?.deleteRecursively()

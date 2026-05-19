@@ -42,11 +42,11 @@ data class TONTransactionActionMessageSize(
 
     /* The total number of cells used */
     @SerialName(value = "cells")
-    val cells: kotlin.String? = null,
+    val cells: kotlin.Int? = null,
 
     /* The total number of bits used */
     @SerialName(value = "bits")
-    val bits: kotlin.String? = null,
+    val bits: kotlin.Int? = null,
 
 ) {
 

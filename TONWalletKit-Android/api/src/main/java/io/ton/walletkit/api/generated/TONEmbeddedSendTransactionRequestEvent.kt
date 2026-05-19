@@ -39,7 +39,7 @@ import kotlinx.serialization.Serializable
  * @param id Unique identifier for the bridge event
  * @param preview
  * @param request
- * @param connectionResult Opaque type holding the pre-built connection approval response. Created by approveConnectRequest when an embedded request is present. Passed through to the action approval method which attaches the action result and sends it.
+ * @param connectionResult
  * @param from
  * @param walletAddress
  * @param walletId Wallet identifier associated with the event
@@ -66,9 +66,8 @@ data class TONEmbeddedSendTransactionRequestEvent(
     @SerialName(value = "request")
     val request: TONTransactionRequest,
 
-    /* Opaque type holding the pre-built connection approval response. Created by approveConnectRequest when an embedded request is present. Passed through to the action approval method which attaches the action result and sends it. */
-    @Contextual @SerialName(value = "connectionResult")
-    val connectionResult: kotlinx.serialization.json.JsonElement?,
+    @SerialName("connectionResult")
+    private val connectionResult: kotlinx.serialization.json.JsonElement,
 
     @SerialName(value = "from")
     val from: kotlin.String? = null,
