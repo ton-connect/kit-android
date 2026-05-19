@@ -342,9 +342,6 @@ private fun QuoteCard(
             LabeledValue("You send", "${formatTokenDisplay(quote.amountIn)} ${quote.direction.inputSymbol()}")
             LabeledValue("You receive", "${formatTokenDisplay(quote.amountOut)} $receiveTokenSymbol")
             LabeledValue("Provider", quote.providerId)
-            quote.apy?.let { apy ->
-                LabeledValue("Quote APY", formatApy(apy))
-            }
             quote.unstakeMode?.let { mode ->
                 LabeledValue("Unstake mode", mode.toDisplayLabel())
             }
