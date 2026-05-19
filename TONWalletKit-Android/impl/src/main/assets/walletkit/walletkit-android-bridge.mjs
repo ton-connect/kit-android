@@ -38938,9 +38938,19 @@ var AndroidAPIClientAdapter = class {
 		const androidWindow = window;
 		if (!androidWindow.WalletKitNative) throw new Error("WalletKitNative bridge not available");
 		this.androidBridge = androidWindow.WalletKitNative;
+		this.registeredChainId = network.chainId;
 		this.network = network;
 	}
 	getNetwork() {
+		const lookup = this.androidBridge.apiGetNetworkForChainId;
+		if (typeof lookup === "function") try {
+			const json = lookup(this.registeredChainId);
+			const network = JSON.parse(json);
+			this.network = network;
+			return network;
+		} catch (err) {
+			error("[AndroidAPIClientAdapter] getNetwork live lookup failed, using cache:", err);
+		}
 		return this.network;
 	}
 	/**
