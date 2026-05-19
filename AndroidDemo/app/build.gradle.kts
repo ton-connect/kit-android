@@ -130,6 +130,8 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":designsystem"))
+
     implementation(libs.androidxCoreKtx)
     implementation(libs.androidxAppcompat)
     implementation(libs.googleMaterial)
@@ -149,6 +151,7 @@ dependencies {
     implementation(libs.androidxLifecycleViewmodelCompose)
     implementation(libs.kotlinxCoroutinesAndroid)
     implementation(libs.androidxSecurityCrypto)
+    implementation(libs.androidxBiometric)
     implementation(libs.coilCompose)
     implementation(libs.coilNetwork)
 
