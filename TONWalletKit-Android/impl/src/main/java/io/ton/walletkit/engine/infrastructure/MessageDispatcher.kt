@@ -26,7 +26,27 @@ import android.webkit.WebView
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.TONPreparedSignData
 import io.ton.walletkit.api.generated.TONProofMessage
+import io.ton.walletkit.api.generated.TONStakeParams
+import io.ton.walletkit.api.generated.TONStakingQuoteParams
+import io.ton.walletkit.api.generated.TONSwapParams
+import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
+import io.ton.walletkit.bridge.dispatch.AdapterByIdRequest
+import io.ton.walletkit.bridge.dispatch.AdapterSignDataRequest
+import io.ton.walletkit.bridge.dispatch.AdapterSignTonProofRequest
+import io.ton.walletkit.bridge.dispatch.AdapterSignTransactionRequest
+import io.ton.walletkit.bridge.dispatch.BridgeRequestRegistry
+import io.ton.walletkit.bridge.dispatch.KotlinProviderBuildRequest
+import io.ton.walletkit.bridge.dispatch.KotlinProviderIdRequest
+import io.ton.walletkit.bridge.dispatch.KotlinProviderQuoteRequest
+import io.ton.walletkit.bridge.dispatch.KotlinProviderUnwatchRequest
+import io.ton.walletkit.bridge.dispatch.KotlinProviderWatchRequest
+import io.ton.walletkit.bridge.dispatch.KotlinStakingGetProviderInfoRequest
+import io.ton.walletkit.bridge.dispatch.KotlinStakingGetStakedBalanceRequest
+import io.ton.walletkit.bridge.dispatch.SignWithCustomSignerRequest
+import io.ton.walletkit.bridge.optJsonObject
+import io.ton.walletkit.bridge.optString
+import io.ton.walletkit.bridge.optStringOrNull
 import io.ton.walletkit.browser.TonConnectInjector
 import io.ton.walletkit.core.streaming.StreamingEvent
 import io.ton.walletkit.engine.parsing.EventParser
@@ -41,7 +61,6 @@ import io.ton.walletkit.internal.constants.EventTypeConstants
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
-import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +72,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
-import org.json.JSONObject
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.util.UUID
 
 /**
@@ -80,8 +102,6 @@ internal class MessageDispatcher(
     private val kotlinStreamingProviderManager: KotlinStreamingProviderManager,
     private val json: Json,
     private val onInitialized: () -> Unit,
-    private val onNetworkChanged: (String?) -> Unit,
-    private val onApiBaseUrlChanged: (String?) -> Unit,
 ) {
     private val mainHandler: Handler = webViewManager.getMainHandler()
     private val eventListenersSetupMutex = Mutex()
@@ -91,13 +111,99 @@ internal class MessageDispatcher(
 
     @Volatile private var areEventListenersSetUp = false
 
-    fun dispatchMessage(payload: JSONObject) {
+    private val requestRegistry: BridgeRequestRegistry = BridgeRequestRegistry(json).apply {
+        registerTypedJson<SignWithCustomSignerRequest, String>(REQUEST_METHOD_SIGN_WITH_CUSTOM_SIGNER) { req ->
+            val signer = signerManager.getSigner(req.signerId)
+                ?: throw IllegalArgumentException("Custom signer not found: ${req.signerId}")
+            signer.sign(req.data).value
+        }
+
+        registerTypedJson<AdapterByIdRequest, String>(REQUEST_METHOD_ADAPTER_GET_STATE_INIT) { req ->
+            requireAdapter(req.adapterId).stateInit().value
+        }
+
+        registerTypedJson<AdapterSignTransactionRequest, String>(REQUEST_METHOD_ADAPTER_SIGN_TRANSACTION) { req ->
+            val request = json.decodeFromString<TONTransactionRequest>(req.input)
+            requireAdapter(req.adapterId).signedSendTransaction(request, req.fakeSignature ?: false).value
+        }
+
+        registerTypedJson<AdapterSignDataRequest, String>(REQUEST_METHOD_ADAPTER_SIGN_DATA) { req ->
+            val request = json.decodeFromString<TONPreparedSignData>(req.input)
+            requireAdapter(req.adapterId).signedSignData(request, req.fakeSignature ?: false).value
+        }
+
+        registerTypedJson<AdapterSignTonProofRequest, String>(REQUEST_METHOD_ADAPTER_SIGN_TON_PROOF) { req ->
+            val request = json.decodeFromString<TONProofMessage>(req.input)
+            requireAdapter(req.adapterId).signedTonProof(request, req.fakeSignature ?: false).value
+        }
+
+        registerTypedJson<KotlinProviderQuoteRequest, _>(REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_QUOTE) { req ->
+            kotlinSwapProviderManager.quote(req.providerId, decodeParams<TONSwapQuoteParams<JsonElement>>(req.params))
+        }
+
+        registerTypedJson<KotlinProviderBuildRequest, _>(REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_BUILD_SWAP_TRANSACTION) { req ->
+            kotlinSwapProviderManager.buildSwapTransaction(req.providerId, decodeParams<TONSwapParams<JsonElement>>(req.params))
+        }
+
+        registerTyped<KotlinProviderIdRequest>(REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_RELEASE) { req ->
+            kotlinSwapProviderManager.unregister(req.providerId)
+            EMPTY_JSON_OBJECT
+        }
+
+        registerTypedJson<KotlinProviderQuoteRequest, _>(REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_QUOTE) { req ->
+            kotlinStakingProviderManager.getQuote(req.providerId, decodeParams<TONStakingQuoteParams<JsonElement>>(req.params))
+        }
+
+        registerTypedJson<KotlinProviderBuildRequest, _>(REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_BUILD_STAKE_TRANSACTION) { req ->
+            kotlinStakingProviderManager.buildStakeTransaction(req.providerId, decodeParams<TONStakeParams<JsonElement>>(req.params))
+        }
+
+        registerTypedJson<KotlinStakingGetStakedBalanceRequest, _>(REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_STAKED_BALANCE) { req ->
+            kotlinStakingProviderManager.getStakedBalance(req.providerId, req.userAddress, req.networkChainId)
+        }
+
+        registerTypedJson<KotlinStakingGetProviderInfoRequest, _>(REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_STAKING_PROVIDER_INFO) { req ->
+            kotlinStakingProviderManager.getStakingProviderInfo(req.providerId, req.networkChainId)
+        }
+
+        registerTyped<KotlinProviderIdRequest>(REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_RELEASE) { req ->
+            kotlinStakingProviderManager.unregister(req.providerId)
+            EMPTY_JSON_OBJECT
+        }
+
+        registerTyped<KotlinProviderWatchRequest>(REQUEST_METHOD_KOTLIN_PROVIDER_WATCH) { req ->
+            kotlinStreamingProviderManager.watch(req.providerId, req.subscriptionId, req.type, req.address)
+            EMPTY_JSON_OBJECT
+        }
+
+        registerTyped<KotlinProviderUnwatchRequest>(REQUEST_METHOD_KOTLIN_PROVIDER_UNWATCH) { req ->
+            kotlinStreamingProviderManager.unwatch(req.subscriptionId)
+            EMPTY_JSON_OBJECT
+        }
+
+        registerTyped<KotlinProviderIdRequest>(REQUEST_METHOD_KOTLIN_PROVIDER_CONNECT) { req ->
+            kotlinStreamingProviderManager.getProvider(req.providerId)?.connect()
+            EMPTY_JSON_OBJECT
+        }
+
+        registerTyped<KotlinProviderIdRequest>(REQUEST_METHOD_KOTLIN_PROVIDER_DISCONNECT) { req ->
+            kotlinStreamingProviderManager.getProvider(req.providerId)?.disconnect()
+            EMPTY_JSON_OBJECT
+        }
+
+        registerTyped<KotlinProviderIdRequest>(REQUEST_METHOD_KOTLIN_PROVIDER_RELEASE) { req ->
+            kotlinStreamingProviderManager.unregister(req.providerId)
+            EMPTY_JSON_OBJECT
+        }
+    }
+
+    fun dispatchMessage(payload: JsonObject) {
         val kind = payload.optString(ResponseConstants.KEY_KIND)
 
         when (kind) {
             ResponseConstants.VALUE_KIND_READY -> handleReady(payload)
             ResponseConstants.VALUE_KIND_EVENT -> {
-                val event = payload.optJSONObject(ResponseConstants.KEY_EVENT)
+                val event = payload.optJsonObject(ResponseConstants.KEY_EVENT)
                 if (event != null) {
                     handleEvent(event)
                 } else {
@@ -128,7 +234,7 @@ internal class MessageDispatcher(
                 initManager.ensureInitialized()
                 onInitialized()
 
-                rpcClient.call(BridgeMethodConstants.METHOD_SET_EVENTS_LISTENERS, JSONObject())
+                rpcClient.send(BridgeMethodConstants.METHOD_SET_EVENTS_LISTENERS, JsonObject(emptyMap()))
                 areEventListenersSetUp = true
             } catch (err: Throwable) {
                 Logger.e(TAG, "Failed to set up event listeners", err)
@@ -142,7 +248,7 @@ internal class MessageDispatcher(
             return
         }
         try {
-            rpcClient.call(BridgeMethodConstants.METHOD_REMOVE_EVENT_LISTENERS, JSONObject())
+            rpcClient.send(BridgeMethodConstants.METHOD_REMOVE_EVENT_LISTENERS, JsonObject(emptyMap()))
             areEventListenersSetUp = false
             Logger.d(TAG, "Event listeners removed from JS bridge (no handlers remaining)")
         } catch (e: Exception) {
@@ -152,18 +258,12 @@ internal class MessageDispatcher(
 
     fun areEventListenersSetUp(): Boolean = areEventListenersSetUp
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // Reverse-RPC: JS sends {kind:"request", id, method, params} to invoke
-    // adapter/signer operations on the Kotlin side.  The result (or error) is
-    // delivered back via  window.__walletkitResponse(id, resultJson, errorJson).
-    // ──────────────────────────────────────────────────────────────────────────
-
-    private fun handleRequest(payload: JSONObject) {
+    private fun handleRequest(payload: JsonObject) {
         val id = payload.optString(ResponseConstants.KEY_ID)
         val method = payload.optString(ResponseConstants.KEY_METHOD)
-        val params = payload.optJSONObject(ResponseConstants.KEY_PARAMS) ?: JSONObject()
+        val params = payload.optJsonObject(ResponseConstants.KEY_PARAMS) ?: JsonObject(emptyMap())
 
-        if (id.isNullOrEmpty() || method.isNullOrEmpty()) {
+        if (id.isEmpty() || method.isEmpty()) {
             Logger.e(TAG, "Reverse-RPC request missing id or method")
             return
         }
@@ -179,175 +279,36 @@ internal class MessageDispatcher(
         }
     }
 
-    /**
-     * Dispatches a reverse-RPC method to the appropriate native manager.
-     *
-     * @return The result as a raw string (already a JSON-safe value).
-     */
-    private suspend fun executeNativeRequest(method: String, params: JSONObject): String {
-        return when (method) {
-            REQUEST_METHOD_SIGN_WITH_CUSTOM_SIGNER -> {
-                val signerId = params.getString(ResponseConstants.KEY_SIGNER_ID)
-                val dataArray = params.getJSONArray("data")
-                val bytes = ByteArray(dataArray.length()) { dataArray.getInt(it).toByte() }
-                val signer = signerManager.getSigner(signerId)
-                    ?: throw IllegalArgumentException("Custom signer not found: $signerId")
-                signer.sign(bytes).value
-            }
-
-            REQUEST_METHOD_ADAPTER_GET_STATE_INIT -> {
-                val adapterId = params.getString("adapterId")
-                val adapter = adapterManager.getAdapter(adapterId)
-                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                adapter.stateInit().value
-            }
-
-            REQUEST_METHOD_ADAPTER_SIGN_TRANSACTION -> {
-                val adapterId = params.getString("adapterId")
-                val inputJson = params.getString("input")
-                val fakeSignature = params.optBoolean("fakeSignature", false)
-                val adapter = adapterManager.getAdapter(adapterId)
-                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                val request = json.decodeFromString<TONTransactionRequest>(inputJson)
-                adapter.signedSendTransaction(request, fakeSignature).value
-            }
-
-            REQUEST_METHOD_ADAPTER_SIGN_DATA -> {
-                val adapterId = params.getString("adapterId")
-                val inputJson = params.getString("input")
-                val fakeSignature = params.optBoolean("fakeSignature", false)
-                val adapter = adapterManager.getAdapter(adapterId)
-                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                val request = json.decodeFromString<TONPreparedSignData>(inputJson)
-                adapter.signedSignData(request, fakeSignature).value
-            }
-
-            REQUEST_METHOD_ADAPTER_SIGN_TON_PROOF -> {
-                val adapterId = params.getString("adapterId")
-                val inputJson = params.getString("input")
-                val fakeSignature = params.optBoolean("fakeSignature", false)
-                val adapter = adapterManager.getAdapter(adapterId)
-                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                val request = json.decodeFromString<TONProofMessage>(inputJson)
-                adapter.signedTonProof(request, fakeSignature).value
-            }
-
-            REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_QUOTE -> {
-                val providerId = params.getString("providerId")
-                val paramsJson = params.getString("params")
-                kotlinSwapProviderManager.quote(providerId, paramsJson)
-            }
-
-            REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_BUILD_SWAP_TRANSACTION -> {
-                val providerId = params.getString("providerId")
-                val paramsJson = params.getString("params")
-                kotlinSwapProviderManager.buildSwapTransaction(providerId, paramsJson)
-            }
-
-            REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_RELEASE -> {
-                val providerId = params.getString("providerId")
-                kotlinSwapProviderManager.unregister(providerId)
-                emptyJsonObject()
-            }
-
-            REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_QUOTE -> {
-                val providerId = params.getString("providerId")
-                val paramsJson = params.getString("params")
-                kotlinStakingProviderManager.getQuote(providerId, paramsJson)
-            }
-
-            REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_BUILD_STAKE_TRANSACTION -> {
-                val providerId = params.getString("providerId")
-                val paramsJson = params.getString("params")
-                kotlinStakingProviderManager.buildStakeTransaction(providerId, paramsJson)
-            }
-
-            REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_STAKED_BALANCE -> {
-                val providerId = params.getString("providerId")
-                val userAddress = params.getString("userAddress")
-                val networkChainId = params.optString("networkChainId").takeUnless { it.isBlank() }
-                kotlinStakingProviderManager.getStakedBalance(providerId, userAddress, networkChainId)
-            }
-
-            REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_STAKING_PROVIDER_INFO -> {
-                val providerId = params.getString("providerId")
-                val networkChainId = params.optString("networkChainId").takeUnless { it.isBlank() }
-                kotlinStakingProviderManager.getStakingProviderInfo(providerId, networkChainId)
-            }
-
-            REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_RELEASE -> {
-                val providerId = params.getString("providerId")
-                kotlinStakingProviderManager.unregister(providerId)
-                emptyJsonObject()
-            }
-
-            REQUEST_METHOD_KOTLIN_PROVIDER_WATCH -> {
-                val providerId = params.getString("providerId")
-                val subId = params.getString("subId")
-                val type = params.getString("type")
-                val address = params.optString("address").takeUnless { it.isBlank() }
-                kotlinStreamingProviderManager.watch(providerId, subId, type, address)
-                emptyJsonObject()
-            }
-
-            REQUEST_METHOD_KOTLIN_PROVIDER_UNWATCH -> {
-                val subId = params.getString("subId")
-                kotlinStreamingProviderManager.unwatch(subId)
-                emptyJsonObject()
-            }
-
-            REQUEST_METHOD_KOTLIN_PROVIDER_CONNECT -> {
-                val providerId = params.getString("providerId")
-                kotlinStreamingProviderManager.getProvider(providerId)?.connect()
-                emptyJsonObject()
-            }
-
-            REQUEST_METHOD_KOTLIN_PROVIDER_DISCONNECT -> {
-                val providerId = params.getString("providerId")
-                kotlinStreamingProviderManager.getProvider(providerId)?.disconnect()
-                emptyJsonObject()
-            }
-
-            REQUEST_METHOD_KOTLIN_PROVIDER_RELEASE -> {
-                val providerId = params.getString("providerId")
-                kotlinStreamingProviderManager.unregister(providerId)
-                emptyJsonObject()
-            }
-
-            else -> throw IllegalArgumentException("Unknown reverse-RPC method: $method")
-        }
+    private suspend fun executeNativeRequest(method: String, params: JsonObject): String {
+        return requestRegistry.dispatch(method, params)
     }
 
-    private fun emptyJsonObject(): String = JSONObject().toString()
+    /** JS pre-stringifies generic provider params; decode them before handing off to the manager. */
+    private inline fun <reified T> decodeParams(paramsJson: String): T = json.decodeFromString(paramsJson)
 
-    /**
-     * Delivers a reverse-RPC response back to the JS side via
-     * `window.__walletkitResponse(id, resultJson, errorJson)`.
-     */
-    private suspend fun respondToJs(id: String, result: String?, errorMessage: String?) {
-        val idLiteral = JSONObject.quote(id)
-        val resultLiteral = if (result != null) JSONObject.quote(result) else "null"
-        val errorLiteral = if (errorMessage != null) {
-            val errorObj = JSONObject().put(ResponseConstants.KEY_MESSAGE, errorMessage)
-            JSONObject.quote(errorObj.toString())
-        } else {
-            "null"
+    private fun requireAdapter(adapterId: String) =
+        adapterManager.getAdapter(adapterId)
+            ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+
+    private fun respondToJs(id: String, result: String?, errorMessage: String?) {
+        val envelope = buildJsonObject {
+            put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_RESPONSE)
+            put(ResponseConstants.KEY_ID, id)
+            if (errorMessage != null) {
+                put(
+                    ResponseConstants.KEY_ERROR,
+                    buildJsonObject { put(ResponseConstants.KEY_MESSAGE, errorMessage) },
+                )
+            } else if (result != null) {
+                put(ResponseConstants.KEY_RESULT, result)
+            }
         }
-        val script = "${WebViewConstants.JS_FUNCTION_WALLETKIT_RESPONSE}($idLiteral,$resultLiteral,$errorLiteral)"
-        webViewManager.executeJavaScript(script)
+        webViewManager.transport.send(envelope.toString())
     }
 
-    private fun handleReady(payload: JSONObject) {
-        val network = payload.optNullableString(ResponseConstants.KEY_NETWORK)
-        initManager.updateNetwork(network)
-        onNetworkChanged(network)
-        val apiBaseUrl = payload.optNullableString(ResponseConstants.KEY_TON_API_URL)
-        initManager.updateApiBaseUrl(apiBaseUrl)
-        onApiBaseUrlChanged(apiBaseUrl)
-        if (!webViewManager.bridgeLoaded.isCompleted) {
-            webViewManager.bridgeLoaded.complete(Unit)
-        }
-        webViewManager.markJsBridgeReady()
+    private fun handleReady(payload: JsonObject) {
+        initManager.updateNetwork(payload.optStringOrNull(ResponseConstants.KEY_NETWORK))
+        initManager.updateApiBaseUrl(payload.optStringOrNull(ResponseConstants.KEY_TON_API_URL))
 
         val wasAlreadyReady = rpcClient.isReady()
 
@@ -367,28 +328,17 @@ internal class MessageDispatcher(
             }
         }
 
-        val data = JSONObject()
-        val keys = payload.keys()
-        while (keys.hasNext()) {
-            val key = keys.next()
-            if (key == ResponseConstants.KEY_KIND) continue
-            if (payload.isNull(key)) {
-                data.put(key, JSONObject.NULL)
-            } else {
-                data.put(key, payload.get(key))
-            }
+        val data = JsonObject(payload.filterKeys { it != ResponseConstants.KEY_KIND })
+        val readyEvent = buildJsonObject {
+            put(ResponseConstants.KEY_TYPE, ResponseConstants.VALUE_KIND_READY)
+            put(ResponseConstants.KEY_DATA, data)
         }
-        val readyEvent =
-            JSONObject().apply {
-                put(ResponseConstants.KEY_TYPE, ResponseConstants.VALUE_KIND_READY)
-                put(ResponseConstants.KEY_DATA, data)
-            }
         handleEvent(readyEvent)
     }
 
-    private fun handleEvent(event: JSONObject) {
+    private fun handleEvent(event: JsonObject) {
         val type = event.optString(JsonConstants.KEY_TYPE, EventTypeConstants.EVENT_TYPE_UNKNOWN)
-        val data = event.optJSONObject(ResponseConstants.KEY_DATA) ?: JSONObject()
+        val data = event.optJsonObject(ResponseConstants.KEY_DATA) ?: JsonObject(emptyMap())
         val eventId = event.optString(JsonConstants.KEY_ID, UUID.randomUUID().toString())
 
         // Streaming events are routed through the dedicated streaming channel
@@ -399,7 +349,7 @@ internal class MessageDispatcher(
         }
 
         val typedEvent = try {
-            eventParser.parseEvent(type, data, event)
+            eventParser.parseEvent(type, data)
         } catch (e: Exception) {
             Logger.e(TAG, "Exception thrown while parsing event type=$type", e)
             null
@@ -416,9 +366,9 @@ internal class MessageDispatcher(
         }
     }
 
-    private fun handleJsBridgeEvent(payload: JSONObject) {
+    private fun handleJsBridgeEvent(payload: JsonObject) {
         val sessionId = payload.optString("sessionId")
-        val event = payload.optJSONObject("event")
+        val event = payload.optJsonObject("event")
 
         if (event == null) {
             Logger.e(TAG, "No event object in ${ResponseConstants.VALUE_KIND_JS_BRIDGE_EVENT} payload")
@@ -428,7 +378,7 @@ internal class MessageDispatcher(
         mainHandler.post {
             try {
                 // If sessionId is empty (e.g., wallet-initiated disconnect), broadcast to all WebViews
-                if (sessionId.isNullOrEmpty()) {
+                if (sessionId.isEmpty()) {
                     TonConnectInjector.broadcastEventToAllWebViews(event)
                     return@post
                 }
@@ -469,12 +419,12 @@ internal class MessageDispatcher(
 
         if (callId != null) {
             // Create error response for this specific call
-            val errorResponse = JSONObject().apply {
+            val errorResponse = buildJsonObject {
                 put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_RESPONSE)
                 put(ResponseConstants.KEY_ID, callId)
                 put(
                     ResponseConstants.KEY_ERROR,
-                    JSONObject().apply {
+                    buildJsonObject {
                         put(ResponseConstants.KEY_MESSAGE, exception.message ?: "Bridge error")
                     },
                 )
@@ -503,18 +453,12 @@ internal class MessageDispatcher(
         }
     }
 
-    private fun JSONObject.optNullableString(key: String): String? {
-        val value = opt(key)
-        return when (value) {
-            null, JSONObject.NULL -> null
-            else -> value.toString()
-        }
-    }
-
     companion object {
         private const val TAG = LogConstants.TAG_WEBVIEW_ENGINE
         private const val MSG_FAILED_PARSE_TYPED_EVENT_PREFIX = "Failed to parse typed event for type: "
         private const val ERROR_FAILED_SET_UP_EVENT_LISTENERS = "Failed to set up event listeners: "
+
+        private const val EMPTY_JSON_OBJECT = "{}"
 
         // Reverse-RPC method names (must match the JS bridgeRequest() method strings)
         private const val REQUEST_METHOD_SIGN_WITH_CUSTOM_SIGNER = "signWithCustomSigner"

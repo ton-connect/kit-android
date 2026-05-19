@@ -42,13 +42,16 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.api.isTestnet
 import io.ton.walletkit.bridge.BuildConfig
+import io.ton.walletkit.bridge.optString
+import io.ton.walletkit.bridge.optStringOrNull
+import io.ton.walletkit.bridge.transport.BridgeTransport
+import io.ton.walletkit.bridge.transport.WebMessagePortBridgeTransport
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.internal.constants.JsonConstants
 import io.ton.walletkit.internal.constants.LogConstants
-import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
 import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
@@ -57,21 +60,21 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.session.SessionFilter
 import io.ton.walletkit.session.TONConnectSessionManager
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.json.JSONArray
-import org.json.JSONException
-import org.json.JSONObject
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 
 /**
  * Owns the WebView lifecycle, asset loading, and JavaScript bridge integration.
- *
- * The manager mirrors the legacy inline implementation to ensure behaviour (including logging)
- * remains unchanged while allowing the rest of the engine to interact through a focused API.
  *
  * @suppress Internal component. Use through [WebViewWalletKitEngine].
  */
@@ -83,7 +86,7 @@ internal class WebViewManager(
     private val apiClients: List<TONAPIClient>,
     private val adapterManager: AdapterManager,
     private val json: Json,
-    private val onMessage: (JSONObject) -> Unit,
+    private val onMessage: (JsonObject) -> Unit,
     private val onBridgeError: (WalletKitBridgeException, String?) -> Unit,
 ) {
     private val appContext = context.applicationContext
@@ -97,8 +100,10 @@ internal class WebViewManager(
     private lateinit var webView: WebView
 
     val webViewInitialized = CompletableDeferred<Unit>()
-    val bridgeLoaded = CompletableDeferred<Unit>()
-    val jsBridgeReady = CompletableDeferred<Unit>()
+
+    private lateinit var transportImpl: WebMessagePortBridgeTransport
+    val transport: BridgeTransport
+        get() = transportImpl
 
     init {
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -119,32 +124,13 @@ internal class WebViewManager(
 
     fun asView(): WebView = webView
 
-    suspend fun executeJavaScript(script: String) {
-        webViewInitialized.await()
-        withContext(Dispatchers.Main) {
-            webView.evaluateJavascript(script, null)
-        }
-    }
-
     fun destroy() {
         if (!::webView.isInitialized) return
+        if (::transportImpl.isInitialized) transportImpl.close()
         (webView.parent as? ViewGroup)?.removeView(webView)
         webView.removeJavascriptInterface(WebViewConstants.JS_INTERFACE_NAME)
         webView.stopLoading()
         webView.destroy()
-    }
-
-    fun startJsBridgeReadyPolling() {
-        if (jsBridgeReady.isCompleted) {
-            return
-        }
-        mainHandler.post { pollJsBridgeReady() }
-    }
-
-    fun markJsBridgeReady() {
-        if (!jsBridgeReady.isCompleted) {
-            jsBridgeReady.complete(Unit)
-        }
     }
 
     private fun initializeWebView() {
@@ -159,14 +145,29 @@ internal class WebViewManager(
             webView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             webView.addJavascriptInterface(JsBinding(), WebViewConstants.JS_INTERFACE_NAME)
 
-            // Set WebChromeClient to suppress console logs in release builds
+            transportImpl = WebMessagePortBridgeTransport(
+                webView = webView,
+                mainHandler = mainHandler,
+                callbackHandler = mainHandler,
+            )
+            transportImpl.setOnMessage { jsonString ->
+                try {
+                    onMessage(json.parseToJsonElement(jsonString).jsonObject)
+                } catch (err: SerializationException) {
+                    Logger.e(TAG, "SerializationException: " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
+                    onBridgeError(
+                        WalletKitBridgeException(LogConstants.ERROR_MALFORMED_PAYLOAD_PREFIX + err.message),
+                        jsonString,
+                    )
+                }
+            }
+
             webView.webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                    // Only show console logs when logging is enabled
                     if (BuildConfig.LOG_LEVEL != "OFF") {
                         Logger.d(TAG, "[JS Console] ${consoleMessage.message()} (${consoleMessage.sourceId()}:${consoleMessage.lineNumber()})")
                     }
-                    return true // Suppress default logging
+                    return true
                 }
             }
 
@@ -200,19 +201,21 @@ internal class WebViewManager(
                         super.onPageFinished(view, url)
                         Logger.d(TAG, "WebView page finished loading: $url")
 
-                        // Set log level for JavaScript bridge
-                        // Controls granular logging in the bridge JavaScript bundle
-                        // Levels: OFF, ERROR, WARN, INFO, DEBUG
-                        // Release: WARN (errors + warnings), Debug: DEBUG (everything)
                         val logLevel = BuildConfig.LOG_LEVEL
-                        view?.evaluateJavascript("window.__WALLETKIT_LOG_LEVEL__ = '$logLevel';") { result ->
+                        view?.evaluateJavascript("window.__WALLETKIT_LOG_LEVEL__ = '$logLevel';") {
                             Logger.d(TAG, "Log level set: __WALLETKIT_LOG_LEVEL__ = $logLevel")
                         }
 
-                        if (!bridgeLoaded.isCompleted) {
-                            bridgeLoaded.complete(Unit)
+                        try {
+                            transportImpl.handOffPortToJs()
+                        } catch (err: Throwable) {
+                            Logger.e(TAG, "Failed to hand off bridge port to JS", err)
+                            val exception = WalletKitBridgeException(
+                                "Failed to hand off bridge port: ${err.message}",
+                            )
+                            transportImpl.fail(exception)
+                            onBridgeError(exception, null)
                         }
-                        startJsBridgeReadyPolling()
                     }
 
                     override fun shouldInterceptRequest(
@@ -234,8 +237,7 @@ internal class WebViewManager(
         } catch (e: Exception) {
             Logger.e(TAG, MSG_FAILED_INITIALIZE_WEBVIEW, e)
             webViewInitialized.completeExceptionally(e)
-            bridgeLoaded.completeExceptionally(e)
-            jsBridgeReady.completeExceptionally(e)
+            if (::transportImpl.isInitialized) transportImpl.fail(e)
             onBridgeError(
                 WalletKitBridgeException(
                     WebViewConstants.ERROR_BUNDLE_LOAD_FAILED + MSG_OPEN_PAREN + (e.message ?: ResponseConstants.VALUE_UNKNOWN) + MSG_CLOSE_PAREN_PERIOD_SPACE + WebViewConstants.BUILD_INSTRUCTION,
@@ -245,52 +247,11 @@ internal class WebViewManager(
         }
     }
 
-    private fun pollJsBridgeReady() {
-        if (jsBridgeReady.isCompleted) {
-            return
-        }
-        try {
-            webView.evaluateJavascript(WebViewConstants.JS_BRIDGE_READY_CHECK) { result ->
-                val normalized = result?.trim()?.trim('"') ?: MiscConstants.EMPTY_STRING
-                if (normalized.equals(WebViewConstants.JS_BOOLEAN_TRUE, ignoreCase = true)) {
-                    markJsBridgeReady()
-                } else {
-                    mainHandler.postDelayed({ pollJsBridgeReady() }, WebViewConstants.JS_BRIDGE_POLL_DELAY_MS)
-                }
-            }
-        } catch (err: Throwable) {
-            Logger.e(TAG, MSG_FAILED_EVALUATE_JS_BRIDGE, err)
-            val safeMessage = err.message ?: ResponseConstants.VALUE_UNKNOWN
-            val exception =
-                WalletKitBridgeException(
-                    WebViewConstants.ERROR_BUNDLE_LOAD_FAILED + MSG_OPEN_PAREN + safeMessage + MSG_CLOSE_PAREN_PERIOD_SPACE + WebViewConstants.BUILD_INSTRUCTION,
-                )
-            failBridgeFutures(exception)
-            onBridgeError(exception, null)
-        }
-    }
-
     private fun failBridgeFutures(exception: WalletKitBridgeException) {
-        if (!bridgeLoaded.isCompleted) {
-            bridgeLoaded.completeExceptionally(exception)
-        }
-        if (!jsBridgeReady.isCompleted) {
-            jsBridgeReady.completeExceptionally(exception)
-        }
+        if (::transportImpl.isInitialized) transportImpl.fail(exception)
     }
 
     private inner class JsBinding {
-        @JavascriptInterface
-        fun postMessage(json: String) {
-            try {
-                val payload = JSONObject(json)
-                onMessage(payload)
-            } catch (err: JSONException) {
-                Logger.e(TAG, "JSONException: " + LogConstants.MSG_MALFORMED_PAYLOAD, err)
-                onBridgeError(WalletKitBridgeException(LogConstants.ERROR_MALFORMED_PAYLOAD_PREFIX + err.message), json)
-            }
-        }
-
         @JavascriptInterface
         fun storageGet(key: String): String? {
             return runBlocking {
@@ -325,13 +286,13 @@ internal class WebViewManager(
         @JavascriptInterface
         fun adapterCallSync(method: String, paramsJson: String): String = runBlocking {
             withTimeout(1000) {
-                val params = JSONObject(paramsJson)
-                val adapterId = params.getString("adapterId")
+                val params = json.parseToJsonElement(paramsJson).jsonObject
+                val adapterId = params.optString("adapterId")
                 val adapter = adapterManager.getAdapter(adapterId)
                     ?: throw IllegalArgumentException("Adapter not found: $adapterId")
                 when (method) {
                     "getPublicKey" -> adapter.publicKey().value
-                    "getNetwork" -> JSONObject().apply { put("chainId", adapter.network().chainId) }.toString()
+                    "getNetwork" -> buildJsonObject { put("chainId", adapter.network().chainId) }.toString()
                     "getAddress" -> adapter.address(adapter.network().isTestnet).value
                     "getWalletId" -> adapter.identifier()
                     "getSupportedFeatures" -> {
@@ -366,12 +327,12 @@ internal class WebViewManager(
                 try {
                     Logger.d(TAG, "sessionCreate: sessionId=$sessionId, dAppInfo=$dAppInfoJson")
 
-                    val dAppInfoObj = JSONObject(dAppInfoJson)
+                    val dAppInfoObj = json.parseToJsonElement(dAppInfoJson).jsonObject
                     val dAppInfo = TONDAppInfo(
                         name = dAppInfoObj.optString("name", ""),
-                        url = dAppInfoObj.optNullableString("url"),
-                        iconUrl = dAppInfoObj.optNullableString("iconUrl"),
-                        description = dAppInfoObj.optNullableString("description"),
+                        url = dAppInfoObj.optStringOrNull("url"),
+                        iconUrl = dAppInfoObj.optStringOrNull("iconUrl"),
+                        description = dAppInfoObj.optStringOrNull("description"),
                     )
 
                     val session = manager.createSession(
@@ -567,24 +528,18 @@ internal class WebViewManager(
             }
         }
 
-        private fun JSONObject.optNullableString(key: String): String? {
-            val value = opt(key)
-            return when (value) {
-                null, JSONObject.NULL -> null
-                else -> value.toString()
-            }
-        }
-
         private fun parseSessionFilter(filterJson: String): SessionFilter? {
             return try {
-                val jsonObj = JSONObject(filterJson)
-                if (jsonObj.length() == 0) {
+                val jsonObj = json.parseToJsonElement(filterJson).jsonObject
+                if (jsonObj.isEmpty()) {
                     null
                 } else {
                     SessionFilter(
-                        walletId = jsonObj.optNullableString("walletId"),
-                        domain = jsonObj.optNullableString("domain"),
-                        isJsBridge = if (jsonObj.has("isJsBridge")) jsonObj.getBoolean("isJsBridge") else null,
+                        walletId = jsonObj.optStringOrNull("walletId"),
+                        domain = jsonObj.optStringOrNull("domain"),
+                        isJsBridge = (jsonObj["isJsBridge"] as? kotlinx.serialization.json.JsonPrimitive)?.let {
+                            it.content.toBooleanStrictOrNull()
+                        },
                     )
                 }
             } catch (e: Exception) {
@@ -593,13 +548,13 @@ internal class WebViewManager(
             }
         }
 
-        private fun featuresToJson(features: List<TONWalletKitConfiguration.Feature>): JSONArray {
-            return JSONArray().apply {
+        private fun featuresToJson(features: List<TONWalletKitConfiguration.Feature>): JsonArray =
+            buildJsonArray {
                 for (feature in features) {
                     when (feature) {
                         is TONWalletKitConfiguration.SendTransactionFeature -> {
-                            put(
-                                JSONObject().apply {
+                            add(
+                                buildJsonObject {
                                     put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SEND_TRANSACTION)
                                     feature.maxMessages?.let { put(JsonConstants.KEY_MAX_MESSAGES, it) }
                                     feature.extraCurrencySupported?.let { put("extraCurrencySupported", it) }
@@ -607,14 +562,14 @@ internal class WebViewManager(
                             )
                         }
                         is TONWalletKitConfiguration.SignDataFeature -> {
-                            put(
-                                JSONObject().apply {
+                            add(
+                                buildJsonObject {
                                     put(JsonConstants.KEY_NAME, JsonConstants.FEATURE_SIGN_DATA)
                                     put(
                                         JsonConstants.KEY_TYPES,
-                                        JSONArray().apply {
+                                        buildJsonArray {
                                             for (type in feature.types) {
-                                                put(
+                                                add(
                                                     when (type) {
                                                         SignDataType.TEXT -> JsonConstants.VALUE_SIGN_DATA_TEXT
                                                         SignDataType.BINARY -> JsonConstants.VALUE_SIGN_DATA_BINARY
@@ -630,7 +585,6 @@ internal class WebViewManager(
                     }
                 }
             }
-        }
     }
 
     private companion object {

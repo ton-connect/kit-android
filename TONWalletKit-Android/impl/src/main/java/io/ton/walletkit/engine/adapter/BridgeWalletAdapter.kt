@@ -36,7 +36,8 @@ import io.ton.walletkit.model.WalletAdapterInfo
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import org.json.JSONObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * Internal adapter wrapping a JS-side wallet adapter.
@@ -88,8 +89,8 @@ internal class BridgeWalletAdapter(
     protected fun finalize() {
         GlobalScope.launch {
             try {
-                val request = JSONObject().apply { put("id", adapterId) }
-                rpcClient.call(BridgeMethodConstants.METHOD_RELEASE_REF, request)
+                val request = buildJsonObject { put("id", adapterId) }
+                rpcClient.send(BridgeMethodConstants.METHOD_RELEASE_REF, request)
             } catch (_: Exception) {
                 Logger.w(TAG, "Failed to release adapter $adapterId during finalization")
             }

@@ -25,12 +25,13 @@ import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
 import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
-import io.ton.walletkit.api.generated.TONNFTRawTransferRequestMessage
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONPagination
+import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
-import io.ton.walletkit.engine.infrastructure.toJSONObject
+import io.ton.walletkit.engine.infrastructure.callTyped
+import io.ton.walletkit.engine.infrastructure.callTypedOrNull
 import io.ton.walletkit.engine.operations.requests.CreateTransferJettonRequest
 import io.ton.walletkit.engine.operations.requests.CreateTransferNftRawRequest
 import io.ton.walletkit.engine.operations.requests.CreateTransferNftRequest
@@ -39,149 +40,74 @@ import io.ton.walletkit.engine.operations.requests.GetJettonWalletAddressRequest
 import io.ton.walletkit.engine.operations.requests.GetJettonsRequest
 import io.ton.walletkit.engine.operations.requests.GetNftRequest
 import io.ton.walletkit.engine.operations.requests.GetNftsRequest
-import io.ton.walletkit.exceptions.JSValueConversionException
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
-import org.json.JSONObject
 
-/**
- * Contains NFT and Jetton related bridge calls such as listing assets and building
- * transfer transactions.
- *
- * @property ensureInitialized Suspended callback to guarantee bridge initialisation.
- * @property rpcClient Bridge RPC transport.
- * @property json Serializer for encoding and decoding bridge payloads.
- *
- * @suppress Internal component used by [WebViewWalletKitEngine].
- */
-internal class AssetOperations(
-    private val ensureInitialized: suspend () -> Unit,
-    private val rpcClient: BridgeRpcClient,
-    private val json: Json,
-) {
+internal suspend fun BridgeRpcClient.getNfts(walletId: String, limit: Int, offset: Int): TONNFTsResponse =
+    callTyped(
+        BridgeMethodConstants.METHOD_GET_NFTS,
+        GetNftsRequest(walletId, TONPagination(limit = limit, offset = offset)),
+    )
 
-    suspend fun getNfts(walletId: String, limit: Int, offset: Int): TONNFTsResponse {
-        ensureInitialized()
+/** JS returns either a TONNFT or null; runCatching also guards against partial/malformed objects. */
+internal suspend fun BridgeRpcClient.getNft(nftAddress: String): TONNFT? = runCatching {
+    callTypedOrNull<TONNFT>(BridgeMethodConstants.METHOD_GET_NFT, GetNftRequest(address = nftAddress))
+}.getOrNull()
 
-        val request = GetNftsRequest(
-            walletId = walletId,
-            pagination = TONPagination(limit = limit, offset = offset),
-        )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_NFTS, json.toJSONObject(request))
-        return try {
-            json.decodeFromString(result.toString())
-        } catch (e: SerializationException) {
-            throw JSValueConversionException.DecodingError(
-                message = "Failed to decode TONNFTsResponse: ${e.message}",
-                cause = e,
-            )
-        }
-    }
+internal suspend fun BridgeRpcClient.createTransferNftTransaction(
+    walletId: String,
+    params: TONNFTTransferRequest,
+): TONTransactionRequest = callTyped(
+    BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_TRANSACTION,
+    CreateTransferNftRequest(
+        walletId = walletId,
+        nftAddress = params.nftAddress.value,
+        transferAmount = params.transferAmount,
+        recipientAddress = params.recipientAddress.value,
+        comment = params.comment,
+    ),
+)
 
-    suspend fun getNft(nftAddress: String): TONNFT? {
-        ensureInitialized()
+internal suspend fun BridgeRpcClient.createTransferNftRawTransaction(
+    walletId: String,
+    params: TONNFTRawTransferRequest,
+): TONTransactionRequest = callTyped(
+    BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_RAW_TRANSACTION,
+    CreateTransferNftRawRequest(
+        walletId = walletId,
+        nftAddress = params.nftAddress.value,
+        transferAmount = params.transferAmount,
+        message = params.message,
+    ),
+)
 
-        val request = GetNftRequest(address = nftAddress)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_NFT, json.toJSONObject(request))
-        return if (result.has("address")) {
-            try {
-                json.decodeFromString(result.toString())
-            } catch (e: SerializationException) {
-                throw JSValueConversionException.DecodingError(
-                    message = "Failed to decode TONNFT: ${e.message}",
-                    cause = e,
-                )
-            }
-        } else {
-            null
-        }
-    }
+internal suspend fun BridgeRpcClient.getJettons(walletId: String, limit: Int, offset: Int): TONJettonsResponse =
+    callTyped(
+        BridgeMethodConstants.METHOD_GET_JETTONS,
+        GetJettonsRequest(walletId, TONPagination(limit = limit, offset = offset)),
+    )
 
-    suspend fun createTransferNftTransaction(
-        walletId: String,
-        params: TONNFTTransferRequest,
-    ): String {
-        ensureInitialized()
+internal suspend fun BridgeRpcClient.createTransferJettonTransaction(
+    walletId: String,
+    params: TONJettonsTransferRequest,
+): TONTransactionRequest = callTyped(
+    BridgeMethodConstants.METHOD_CREATE_TRANSFER_JETTON_TRANSACTION,
+    CreateTransferJettonRequest(
+        walletId = walletId,
+        recipientAddress = params.recipientAddress.value,
+        jettonAddress = params.jettonAddress.value,
+        transferAmount = params.transferAmount,
+        comment = params.comment,
+    ),
+)
 
-        val request = CreateTransferNftRequest(
-            walletId = walletId,
-            nftAddress = params.nftAddress.value,
-            transferAmount = params.transferAmount,
-            recipientAddress = params.recipientAddress.value,
-            comment = params.comment,
-        )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_TRANSACTION, json.toJSONObject(request))
-        return result.toString()
-    }
+internal suspend fun BridgeRpcClient.getJettonBalance(walletId: String, jettonAddress: String): String =
+    callTyped(
+        BridgeMethodConstants.METHOD_GET_JETTON_BALANCE,
+        GetJettonBalanceRequest(walletId, jettonAddress),
+    )
 
-    suspend fun createTransferNftRawTransaction(
-        walletId: String,
-        params: TONNFTRawTransferRequest,
-    ): String {
-        ensureInitialized()
-
-        val messageJson = json.encodeToString(TONNFTRawTransferRequestMessage.serializer(), params.message)
-        val request = CreateTransferNftRawRequest(
-            walletId = walletId,
-            nftAddress = params.nftAddress.value,
-            transferAmount = params.transferAmount,
-            message = messageJson,
-        )
-        val requestObj = json.toJSONObject(request)
-        requestObj.put("message", JSONObject(messageJson))
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_NFT_RAW_TRANSACTION, requestObj)
-        return result.toString()
-    }
-
-    suspend fun getJettons(walletId: String, limit: Int, offset: Int): TONJettonsResponse {
-        ensureInitialized()
-
-        val request = GetJettonsRequest(
-            walletId = walletId,
-            pagination = TONPagination(limit = limit, offset = offset),
-        )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_JETTONS, json.toJSONObject(request))
-        return try {
-            json.decodeFromString(result.toString())
-        } catch (e: SerializationException) {
-            throw JSValueConversionException.DecodingError(
-                message = "Failed to decode TONJettonsResponse: ${e.message}",
-                cause = e,
-            )
-        }
-    }
-
-    suspend fun createTransferJettonTransaction(
-        walletId: String,
-        params: TONJettonsTransferRequest,
-    ): String {
-        ensureInitialized()
-
-        val request = CreateTransferJettonRequest(
-            walletId = walletId,
-            recipientAddress = params.recipientAddress.value,
-            jettonAddress = params.jettonAddress.value,
-            transferAmount = params.transferAmount,
-            comment = params.comment,
-        )
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_CREATE_TRANSFER_JETTON_TRANSACTION, json.toJSONObject(request))
-        return result.toString()
-    }
-
-    suspend fun getJettonBalance(walletId: String, jettonAddress: String): String {
-        ensureInitialized()
-
-        val request = GetJettonBalanceRequest(walletId = walletId, jettonAddress = jettonAddress)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_JETTON_BALANCE, json.toJSONObject(request))
-        return result.optString("balance", "0")
-    }
-
-    suspend fun getJettonWalletAddress(walletId: String, jettonAddress: String): String {
-        ensureInitialized()
-
-        val request = GetJettonWalletAddressRequest(walletId = walletId, jettonAddress = jettonAddress)
-        val result = rpcClient.call(BridgeMethodConstants.METHOD_GET_JETTON_WALLET_ADDRESS, json.toJSONObject(request))
-        return result.optString("jettonWalletAddress", "")
-    }
-}
+internal suspend fun BridgeRpcClient.getJettonWalletAddress(walletId: String, jettonAddress: String): String =
+    callTyped(
+        BridgeMethodConstants.METHOD_GET_JETTON_WALLET_ADDRESS,
+        GetJettonWalletAddressRequest(walletId, jettonAddress),
+    )

@@ -123,14 +123,11 @@ internal class TONStakingManager(
             userAddress = params.userAddress,
             providerOptions = jsonOptions,
         )
-        val content = engine.buildStakeTransaction(jsonParams, identifier.name)
-        return json.decodeFromString(content)
+        return engine.buildStakeTransaction(jsonParams, identifier.name)
     }
 
-    override suspend fun buildStakeTransaction(params: TONStakeParams<JsonElement>): TONTransactionRequest {
-        val content = engine.buildStakeTransaction(params, null)
-        return json.decodeFromString(content)
-    }
+    override suspend fun buildStakeTransaction(params: TONStakeParams<JsonElement>): TONTransactionRequest =
+        engine.buildStakeTransaction(params, null)
 
     override suspend fun getStakedBalance(
         userAddress: TONUserFriendlyAddress,

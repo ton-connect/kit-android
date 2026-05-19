@@ -31,6 +31,7 @@ import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
 import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.api.generated.TONTonApiStreamingProviderConfig
 import io.ton.walletkit.api.generated.TONTonCenterStreamingProviderConfig
+import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.TONWalletKitFactory
 import io.ton.walletkit.listener.TONBridgeEventsHandler
@@ -157,7 +158,7 @@ interface ITONWalletKit {
     /**
      * Trigger transaction approval flow.
      */
-    suspend fun handleNewTransaction(wallet: ITONWallet, transactionContent: String)
+    suspend fun handleNewTransaction(wallet: ITONWallet, transactionContent: TONTransactionRequest)
 
     /**
      * Handle a TON Connect URL (tc:// or https://).

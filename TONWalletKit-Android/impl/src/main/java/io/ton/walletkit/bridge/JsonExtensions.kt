@@ -19,29 +19,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.engine.state
+package io.ton.walletkit.bridge
 
-import io.ton.walletkit.api.generated.TONSwapParams
-import io.ton.walletkit.api.generated.TONSwapQuote
-import io.ton.walletkit.api.generated.TONSwapQuoteParams
-import io.ton.walletkit.api.generated.TONTransactionRequest
-import io.ton.walletkit.swap.ITONSwapProvider
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 
-/**
- * Reverse-RPC registry for Kotlin-implemented [ITONSwapProvider] instances. JS routes calls from
- * its `ProxySwapProvider` here via the bridge dispatcher.
- *
- * @suppress Internal engine component.
- */
-internal class KotlinSwapProviderManager :
-    KotlinProviderRegistry<ITONSwapProvider<JsonElement, JsonElement>>() {
+internal fun JsonElement?.asStringOrNull(): String? =
+    (this as? JsonPrimitive)?.takeIf { it !is JsonNull }?.contentOrNull
 
-    override val tag: String = "KotlinSwapProviderManager"
+internal fun JsonObject.optString(key: String, default: String = ""): String =
+    this[key]?.asStringOrNull() ?: default
 
-    suspend fun quote(providerId: String, params: TONSwapQuoteParams<JsonElement>): TONSwapQuote =
-        require(providerId).quote(params)
+internal fun JsonObject.optStringOrNull(key: String): String? =
+    this[key]?.asStringOrNull()
 
-    suspend fun buildSwapTransaction(providerId: String, params: TONSwapParams<JsonElement>): TONTransactionRequest =
-        require(providerId).buildSwapTransaction(params)
-}
+internal fun JsonObject.optBoolean(key: String, default: Boolean = false): Boolean =
+    (this[key] as? JsonPrimitive)?.booleanOrNull ?: default
+
+internal fun JsonObject.optJsonObject(key: String): JsonObject? =
+    this[key] as? JsonObject
+
+internal fun JsonObject.optJsonArray(key: String): JsonArray? =
+    this[key] as? JsonArray

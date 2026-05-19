@@ -4081,7 +4081,7 @@ function hexToByteArray(hexString) {
 	for (let i = 0; i < hexString.length; i += 2) result[i / 2] = parseInt(hexString.slice(i, i + 2), 16);
 	return result;
 }
-var import_nacl_util, import_nacl_fast$1, CONNECT_EVENT_ERROR_CODES, CONNECT_ITEM_ERROR_CODES, SEND_TRANSACTION_ERROR_CODES, SIGN_DATA_ERROR_CODES, DISCONNECT_ERROR_CODES, CHAIN, Base64, SessionCrypto;
+var import_nacl_util, import_nacl_fast$1, CONNECT_EVENT_ERROR_CODES, CONNECT_ITEM_ERROR_CODES, SEND_TRANSACTION_ERROR_CODES, SIGN_DATA_ERROR_CODES, DISCONNECT_ERROR_CODES, SIGN_MESSAGE_ERROR_CODES, CHAIN, Base64, SessionCrypto;
 var init_esm$1 = __esmMin((() => {
 	import_nacl_util = /* @__PURE__ */ __toESM(require_nacl_util(), 1);
 	import_nacl_fast$1 = /* @__PURE__ */ __toESM(require_nacl_fast(), 1);
@@ -4118,6 +4118,13 @@ var init_esm$1 = __esmMin((() => {
 		DISCONNECT_ERROR_CODES[DISCONNECT_ERROR_CODES["UNKNOWN_APP_ERROR"] = 100] = "UNKNOWN_APP_ERROR";
 		DISCONNECT_ERROR_CODES[DISCONNECT_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
 	})(DISCONNECT_ERROR_CODES || (DISCONNECT_ERROR_CODES = {}));
+	(function(SIGN_MESSAGE_ERROR_CODES) {
+		SIGN_MESSAGE_ERROR_CODES[SIGN_MESSAGE_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
+		SIGN_MESSAGE_ERROR_CODES[SIGN_MESSAGE_ERROR_CODES["BAD_REQUEST_ERROR"] = 1] = "BAD_REQUEST_ERROR";
+		SIGN_MESSAGE_ERROR_CODES[SIGN_MESSAGE_ERROR_CODES["UNKNOWN_APP_ERROR"] = 100] = "UNKNOWN_APP_ERROR";
+		SIGN_MESSAGE_ERROR_CODES[SIGN_MESSAGE_ERROR_CODES["USER_REJECTS_ERROR"] = 300] = "USER_REJECTS_ERROR";
+		SIGN_MESSAGE_ERROR_CODES[SIGN_MESSAGE_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
+	})(SIGN_MESSAGE_ERROR_CODES || (SIGN_MESSAGE_ERROR_CODES = {}));
 	(function(CHAIN) {
 		CHAIN["MAINNET"] = "-239";
 		CHAIN["TESTNET"] = "-3";
@@ -37907,21 +37914,72 @@ function bigIntReplacer(_key, value) {
 	return value;
 }
 //#endregion
+//#region src/transport/port.ts
+/**
+* Copyright (c) TonTech.
+*
+* This source code is licensed under the MIT license found in the
+* LICENSE file in the root directory of this source tree.
+*
+*/
+var HANDSHAKE_TAG = "__walletkit_bridge_init";
+var port = null;
+var inboundCallback = null;
+var pendingOutbound = [];
+function flushPending(p) {
+	while (pendingOutbound.length > 0) {
+		const next = pendingOutbound.shift();
+		p.postMessage(next);
+	}
+}
+function sendToNative(json) {
+	if (port) {
+		port.postMessage(json);
+		return;
+	}
+	pendingOutbound.push(json);
+}
+function setInboundCallback(callback) {
+	inboundCallback = callback;
+}
+function installPortHandshake() {
+	window.addEventListener("message", (event) => {
+		if (event.data !== HANDSHAKE_TAG) {
+			warn("[walletkitBridge] Ignoring window message — not the handshake tag", event.data);
+			return;
+		}
+		const incoming = event.ports?.[0];
+		if (!incoming) {
+			error("[walletkitBridge] Handshake message had no port");
+			return;
+		}
+		if (port) {
+			warn("[walletkitBridge] Bridge port already initialised — ignoring duplicate handshake");
+			return;
+		}
+		incoming.onmessage = (e) => {
+			const data = typeof e.data === "string" ? e.data : JSON.stringify(e.data);
+			const cb = inboundCallback;
+			if (!cb) {
+				warn("[walletkitBridge] Inbound port message arrived before callback was installed");
+				return;
+			}
+			cb(data);
+		};
+		incoming.start();
+		port = incoming;
+		flushPending(port);
+	});
+}
+//#endregion
 //#region src/transport/nativeBridge.ts
 init_dist();
 var pendingRequests = /* @__PURE__ */ new Map();
-/**
-* Synchronous bridge call via @JavascriptInterface (WalletKitNative.adapterCallSync).
-* Used for sync WalletAdapter getters that cannot be async.
-*/
 function bridgeRequestSync(method, params) {
 	const native = window.WalletKitNative;
 	if (!native || typeof native.adapterCallSync !== "function") throw new Error("WalletKitNative.adapterCallSync not available");
 	return native.adapterCallSync(method, JSON.stringify(params));
 }
-/**
-* Send a request to Kotlin via postMessage and wait for a response.
-*/
 function bridgeRequest(method, params) {
 	const id = v7();
 	return new Promise((resolve, reject) => {
@@ -37937,55 +37995,28 @@ function bridgeRequest(method, params) {
 		});
 	});
 }
-function registerNativeResponseHandler() {
-	window.__walletkitResponse = (id, resultJson, errorJson) => {
-		const entry = pendingRequests.get(id);
-		if (!entry) {
-			warn("[walletkitBridge] __walletkitResponse: no pending request for id", id);
-			return;
-		}
-		pendingRequests.delete(id);
-		if (errorJson) {
-			try {
-				const err = JSON.parse(errorJson);
-				entry.reject(new Error(err.message ?? "Native request failed"));
-			} catch {
-				entry.reject(new Error(errorJson));
-			}
-			return;
-		}
-		if (resultJson) try {
-			entry.resolve(JSON.parse(resultJson));
-		} catch {
-			entry.resolve(resultJson);
-		}
-		else entry.resolve(void 0);
-	};
-	info("[walletkitBridge] __walletkitResponse handler registered");
+function handleNativeResponse(id, resultJson, errorJson) {
+	const entry = pendingRequests.get(id);
+	if (!entry) {
+		warn("[walletkitBridge] handleNativeResponse: no pending request for id", id);
+		return;
+	}
+	pendingRequests.delete(id);
+	if (errorJson) {
+		const err = errorJson;
+		entry.reject(new Error(err.message ?? "Native request failed"));
+		return;
+	}
+	if (resultJson === null || resultJson === void 0) {
+		entry.resolve(void 0);
+		return;
+	}
+	if (typeof resultJson === "string") {
+		entry.resolve(JSON.parse(resultJson));
+		return;
+	}
+	entry.resolve(resultJson);
 }
-/**
-* Resolves WalletKit's native bridge implementation exposed on the global scope.
-*/
-function resolveNativeBridge(scope) {
-	const candidate = scope.WalletKitNative;
-	if (candidate && typeof candidate.postMessage === "function") return candidate.postMessage.bind(candidate);
-	const windowCandidate = (typeof scope.window === "object" && scope.window ? scope.window : void 0)?.WalletKitNative;
-	if (windowCandidate && typeof windowCandidate.postMessage === "function") return windowCandidate.postMessage.bind(windowCandidate);
-	return null;
-}
-/**
-* Resolves the Android bridge exposed by the host WebView.
-*/
-function resolveAndroidBridge(scope) {
-	const candidate = scope.AndroidBridge;
-	if (candidate && typeof candidate.postMessage === "function") return candidate.postMessage.bind(candidate);
-	const windowCandidate = (typeof scope.window === "object" && scope.window ? scope.window : void 0)?.AndroidBridge;
-	if (windowCandidate && typeof windowCandidate.postMessage === "function") return windowCandidate.postMessage.bind(windowCandidate);
-	return null;
-}
-/**
-* Sends a payload to the native bridge, falling back to debug logging when unavailable.
-*/
 function postToNative(payload) {
 	if (payload === null || typeof payload !== "object" && typeof payload !== "function") {
 		error("[walletkitBridge] postToNative received non-object payload", {
@@ -37995,19 +38026,7 @@ function postToNative(payload) {
 		});
 		throw new Error("Invalid payload - must be an object");
 	}
-	const json = JSON.stringify(payload, bigIntReplacer);
-	const nativePostMessage = resolveNativeBridge(window);
-	if (nativePostMessage) {
-		nativePostMessage(json);
-		return;
-	}
-	const androidPostMessage = resolveAndroidBridge(window);
-	if (androidPostMessage) {
-		androidPostMessage(json);
-		return;
-	}
-	if (payload.kind === "event") throw new Error("Native bridge not available - cannot deliver event");
-	warn("[walletkitBridge] postToNative: no native handler", payload);
+	sendToNative(JSON.stringify(payload, bigIntReplacer));
 }
 //#endregion
 //#region src/transport/messaging.ts
@@ -38050,17 +38069,8 @@ async function handleCall(id, method, params) {
 		respond(id, void 0, { message });
 	}
 }
-function registerNativeCallHandler() {
-	window.__walletkitCall = (id, method, paramsJson) => {
-		let params = void 0;
-		if (paramsJson && paramsJson !== "null") try {
-			params = JSON.parse(paramsJson);
-		} catch {
-			respond(id, void 0, { message: "Invalid params JSON" });
-			return;
-		}
-		handleCall(id, method, params);
-	};
+function handleNativeCall(id, method, params) {
+	handleCall(id, method, params);
 }
 //#endregion
 //#region src/api/eventListeners.ts
@@ -38976,9 +38986,58 @@ var TonStakersStakingProvider = class TonStakersStakingProvider extends StakingP
 };
 //#endregion
 //#region src/api/staking.ts
+/**
+* JS-side proxy that implements [StakingProviderInterface] by forwarding every call to a
+* Kotlin-implemented `ITONStakingProvider` via reverse-RPC. Mirrors the streaming
+* `ProxyStreamingProvider` pattern.
+*
+* `getSupportedUnstakeModes` is synchronous per the interface contract, so the supported modes
+* are fetched once at registration and cached on this instance.
+*/
+var ProxyStakingProvider = class {
+	constructor(providerId, supportedUnstakeModes) {
+		this.providerId = providerId;
+		this.supportedUnstakeModes = supportedUnstakeModes;
+		this.type = "staking";
+	}
+	async getQuote(params) {
+		const resultJson = await bridgeRequest("kotlinStakingProviderGetQuote", {
+			providerId: this.providerId,
+			params: JSON.stringify(params)
+		});
+		return JSON.parse(resultJson);
+	}
+	async buildStakeTransaction(params) {
+		const resultJson = await bridgeRequest("kotlinStakingProviderBuildStakeTransaction", {
+			providerId: this.providerId,
+			params: JSON.stringify(params)
+		});
+		return JSON.parse(resultJson);
+	}
+	async getStakedBalance(userAddress, network) {
+		const resultJson = await bridgeRequest("kotlinStakingProviderGetStakedBalance", {
+			providerId: this.providerId,
+			userAddress,
+			networkChainId: network?.chainId ?? null
+		});
+		return JSON.parse(resultJson);
+	}
+	async getStakingProviderInfo(network) {
+		const resultJson = await bridgeRequest("kotlinStakingProviderGetStakingProviderInfo", {
+			providerId: this.providerId,
+			networkChainId: network?.chainId ?? null
+		});
+		return JSON.parse(resultJson);
+	}
+	getSupportedUnstakeModes() {
+		return this.supportedUnstakeModes;
+	}
+};
 async function createTonStakersStakingProvider(args) {
 	const instance = await getKit();
-	return { providerId: retain("stakingProvider", TonStakersStakingProvider.createFromContext(instance.createFactoryContext(), args?.config ?? {})) };
+	const provider = TonStakersStakingProvider.createFromContext(instance.createFactoryContext(), args?.config ?? {});
+	retainWithId(provider.providerId, provider);
+	return { providerId: provider.providerId };
 }
 async function registerStakingProvider(args) {
 	const provider = get(args.providerId);
@@ -39004,6 +39063,21 @@ async function getStakingProviderInfo(args) {
 }
 async function getSupportedUnstakeModes(args) {
 	return (await getKit()).staking.getSupportedUnstakeModes(args.providerId);
+}
+/**
+* Tell the JS staking manager that a Kotlin-implemented provider is available.
+* A [ProxyStakingProvider] is created and registered; all subsequent staking operations on it
+* forward to the Kotlin instance via reverse-RPC.
+*
+* @param args.providerId Unique id — matches `identifier.name` on the Kotlin side.
+* @param args.supportedUnstakeModes Cached modes returned synchronously from `getSupportedUnstakeModes`.
+*/
+async function registerKotlinStakingProvider(args) {
+	const instance = await getKit();
+	if (get(args.providerId) instanceof ProxyStakingProvider) release(args.providerId);
+	const provider = new ProxyStakingProvider(args.providerId, args.supportedUnstakeModes);
+	retainWithId(args.providerId, provider);
+	instance.staking.registerProvider(provider);
 }
 //#endregion
 //#region src/api/browser.ts
@@ -39039,18 +39113,18 @@ init_esm();
 init_dist();
 var kotlinSubCallbacks = /* @__PURE__ */ new Map();
 var kotlinProviderSubs = /* @__PURE__ */ new Map();
-function trackKotlinSub(providerId, subId) {
+function trackKotlinSub(providerId, subscriptionId) {
 	let subs = kotlinProviderSubs.get(providerId);
 	if (!subs) {
 		subs = /* @__PURE__ */ new Set();
 		kotlinProviderSubs.set(providerId, subs);
 	}
-	subs.add(subId);
+	subs.add(subscriptionId);
 }
-function forgetKotlinSub(providerId, subId) {
+function forgetKotlinSub(providerId, subscriptionId) {
 	const subs = kotlinProviderSubs.get(providerId);
 	if (!subs) return;
-	subs.delete(subId);
+	subs.delete(subscriptionId);
 	if (subs.size === 0) kotlinProviderSubs.delete(providerId);
 }
 function cleanupReplacedKotlinProvider(instance, nextProviderId, network) {
@@ -39072,19 +39146,19 @@ var ProxyStreamingProvider = class {
 		this.network = network;
 	}
 	watch(type, address, onChange) {
-		const subId = v7();
-		kotlinSubCallbacks.set(subId, onChange);
-		trackKotlinSub(this.providerId, subId);
+		const subscriptionId = v7();
+		kotlinSubCallbacks.set(subscriptionId, onChange);
+		trackKotlinSub(this.providerId, subscriptionId);
 		bridgeRequest("kotlinProviderWatch", {
 			providerId: this.providerId,
-			subId,
+			subscriptionId,
 			type,
 			address
 		});
 		return () => {
-			kotlinSubCallbacks.delete(subId);
-			forgetKotlinSub(this.providerId, subId);
-			bridgeRequest("kotlinProviderUnwatch", { subId });
+			kotlinSubCallbacks.delete(subscriptionId);
+			forgetKotlinSub(this.providerId, subscriptionId);
+			bridgeRequest("kotlinProviderUnwatch", { subscriptionId });
 		};
 	}
 	watchBalance(address, onChange) {
@@ -39108,18 +39182,18 @@ var ProxyStreamingProvider = class {
 	dispose() {
 		const subs = kotlinProviderSubs.get(this.providerId);
 		if (!subs) return;
-		for (const subId of subs) {
-			kotlinSubCallbacks.delete(subId);
-			bridgeRequest("kotlinProviderUnwatch", { subId });
+		for (const subscriptionId of subs) {
+			kotlinSubCallbacks.delete(subscriptionId);
+			bridgeRequest("kotlinProviderUnwatch", { subscriptionId });
 		}
 		kotlinProviderSubs.delete(this.providerId);
 	}
 };
-async function createTonCenterStreamingProvider(args) {
-	return { providerId: retain("streamingProvider", new TonCenterStreamingProvider((await getKit()).createFactoryContext(), args.config)) };
+async function createTonCenterStreamingProvider(config) {
+	return { providerId: retain("streamingProvider", new TonCenterStreamingProvider((await getKit()).createFactoryContext(), config)) };
 }
-async function createTonApiStreamingProvider(args) {
-	return { providerId: retain("streamingProvider", new TonApiStreamingProvider((await getKit()).createFactoryContext(), args.config)) };
+async function createTonApiStreamingProvider(config) {
+	return { providerId: retain("streamingProvider", new TonApiStreamingProvider((await getKit()).createFactoryContext(), config)) };
 }
 async function registerStreamingProvider(args) {
 	const instance = await getKit();
@@ -39206,7 +39280,7 @@ async function registerKotlinStreamingProvider(args) {
 	instance.streaming.registerProvider(() => provider);
 }
 async function kotlinProviderDispatch(args) {
-	const callback = kotlinSubCallbacks.get(args.subId);
+	const callback = kotlinSubCallbacks.get(args.subscriptionId);
 	if (callback) try {
 		callback(JSON.parse(args.updateJson));
 	} catch {}
@@ -43205,7 +43279,7 @@ var log = globalLogger.createChild("DeDustSwapProvider");
 /**
 * Default API URL for DeDust Router
 */
-var DEFAULT_API_URL = "https://mainnet.api.dedust.io";
+var DEFAULT_API_URL = "https://mainnet.api.dedust.io/v4/router";
 /**
 * Default protocols to use for routing
 */
@@ -43248,7 +43322,7 @@ var DeDustSwapProvider = class extends SwapProvider {
 	constructor(config) {
 		super();
 		this.providerId = config?.providerId ?? "dedust";
-		this.apiUrl = config?.apiUrl ?? DEFAULT_API_URL;
+		this.apiUrl = (config?.apiUrl ?? DEFAULT_API_URL).replace(/\/+$/, "");
 		this.defaultSlippageBps = config?.defaultSlippageBps ?? 100;
 		this.referralAddress = config?.referralAddress;
 		this.referralFeeBps = config?.referralFeeBps;
@@ -43288,7 +43362,7 @@ var DeDustSwapProvider = class extends SwapProvider {
 				min_pool_usd_tvl: this.minPoolUsdTvl,
 				exclude_volatile_pools: params.providerOptions?.excludeVolatilePools
 			};
-			const response = await fetch(`${this.apiUrl}/v4/router/quote`, {
+			const response = await fetch(`${this.apiUrl}/quote`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -43356,7 +43430,7 @@ var DeDustSwapProvider = class extends SwapProvider {
 				referral_address: referralAddress ? import_dist$1.Address.parse(referralAddress).toRawString() : void 0,
 				referral_fee: referralFeeBps
 			};
-			const response = await fetch(`${this.apiUrl}/v4/router/swap`, {
+			const response = await fetch(`${this.apiUrl}/swap`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -43405,6 +43479,31 @@ var DeDustSwapProvider = class extends SwapProvider {
 * LICENSE file in the root directory of this source tree.
 *
 */
+/**
+* JS-side proxy that implements [SwapProviderInterface] by forwarding every call to a
+* Kotlin-implemented `ITONSwapProvider` via reverse-RPC. Mirrors the Kotlin staking / streaming
+* proxy pattern.
+*/
+var ProxySwapProvider = class {
+	constructor(providerId) {
+		this.providerId = providerId;
+		this.type = "swap";
+	}
+	async getQuote(params) {
+		const resultJson = await bridgeRequest("kotlinSwapProviderQuote", {
+			providerId: this.providerId,
+			params: JSON.stringify(params)
+		});
+		return JSON.parse(resultJson);
+	}
+	async buildSwapTransaction(params) {
+		const resultJson = await bridgeRequest("kotlinSwapProviderBuildSwapTransaction", {
+			providerId: this.providerId,
+			params: JSON.stringify(params)
+		});
+		return JSON.parse(resultJson);
+	}
+};
 async function getSwap() {
 	const instance = await getKit();
 	if (!instance.swap) throw new Error("Swap is not configured");
@@ -43437,6 +43536,17 @@ async function getSwapQuote(args) {
 }
 async function buildSwapTransaction(args) {
 	return (await getSwap()).buildSwapTransaction(args.params);
+}
+/**
+* Tell the JS swap manager that a Kotlin-implemented provider is available.
+* A [ProxySwapProvider] is created and registered; all subsequent swap operations on it
+* forward to the Kotlin instance via reverse-RPC.
+*/
+async function registerKotlinSwapProvider(args) {
+	if (get(args.providerId) instanceof ProxySwapProvider) release(args.providerId);
+	const provider = new ProxySwapProvider(args.providerId);
+	retainWithId(args.providerId, provider);
+	(await getSwap()).registerProvider(provider);
 }
 //#endregion
 //#region src/api/index.ts
@@ -43510,6 +43620,7 @@ var api = {
 	getStakedBalance,
 	getStakingProviderInfo,
 	getSupportedUnstakeModes,
+	registerKotlinStakingProvider,
 	createOmnistonSwapProvider,
 	createDeDustSwapProvider,
 	registerSwapProvider,
@@ -43517,13 +43628,31 @@ var api = {
 	getRegisteredSwapProviders,
 	hasSwapProvider,
 	getSwapQuote,
-	buildSwapTransaction
+	buildSwapTransaction,
+	registerKotlinSwapProvider
 };
 //#endregion
 //#region src/bridge.ts
 setBridgeApi(api);
-registerNativeCallHandler();
-registerNativeResponseHandler();
+installPortHandshake();
+setInboundCallback((json) => {
+	let envelope;
+	try {
+		envelope = JSON.parse(json);
+	} catch (err) {
+		error("[walletkitBridge] Failed to parse inbound port message", err, json);
+		return;
+	}
+	switch (envelope.kind) {
+		case "call":
+			handleNativeCall(envelope.id, envelope.method, envelope.params);
+			break;
+		case "response":
+			handleNativeResponse(envelope.id, envelope.result, envelope.error);
+			break;
+		default: warn("[walletkitBridge] Unknown inbound envelope kind", envelope);
+	}
+});
 window.walletkitBridge = api;
 //#endregion
 

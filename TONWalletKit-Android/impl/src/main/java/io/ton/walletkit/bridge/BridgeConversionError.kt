@@ -19,29 +19,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.engine.infrastructure
+package io.ton.walletkit.bridge
 
-import kotlinx.serialization.json.Json
-import org.json.JSONObject
+import io.ton.walletkit.WalletKitBridgeException
+import kotlin.reflect.KClass
 
-/**
- * Bridge serialization utilities for converting Kotlin data classes to JSONObject
- * instances used by the JavaScript bridge RPC layer.
- *
- * This centralizes the conversion pattern and ensures type-safe bridge communication.
- *
- * @suppress Internal utility for bridge operations.
- */
+sealed class BridgeConversionError(message: String, cause: Throwable? = null) : WalletKitBridgeException(message, cause) {
+    class UnableToConvert(type: KClass<*>, raw: Any?) :
+        BridgeConversionError("Unable to convert bridge value to ${type.simpleName}: $raw")
 
-/**
- * Serialize any @Serializable value to JSONObject for bridge communication.
- *
- * This replaces manual JSONObject().apply { put(...) } patterns with type-safe
- * data class serialization.
- *
- * @param value The @Serializable value to encode
- * @return JSONObject ready for bridge RPC calls
- */
-internal inline fun <reified T> Json.toJSONObject(value: T): JSONObject {
-    return JSONObject(encodeToString(value))
+    class UnableToConvertNull(type: KClass<*>) :
+        BridgeConversionError("Unable to convert null bridge value to ${type.simpleName}")
+
+    class UnableToEncode(type: KClass<*>, cause: Throwable) :
+        BridgeConversionError("Unable to encode ${type.simpleName} for bridge: ${cause.message}", cause)
+
+    class UnableToDecode(type: KClass<*>, cause: Throwable) :
+        BridgeConversionError("Unable to decode ${type.simpleName} from bridge: ${cause.message}", cause)
 }

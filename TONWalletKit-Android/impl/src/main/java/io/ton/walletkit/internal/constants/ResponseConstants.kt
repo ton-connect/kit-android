@@ -463,6 +463,11 @@ internal object ResponseConstants {
     const val VALUE_KIND_REQUEST = "request"
 
     /**
+     * Value for 'call' message kind (Kotlin→JS forward RPC, replaces window.__walletkitCall).
+     */
+    const val VALUE_KIND_CALL = "call"
+
+    /**
      * Schema type value for text data.
      */
     const val VALUE_SCHEMA_TEXT = "text"

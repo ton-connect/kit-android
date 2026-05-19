@@ -34,7 +34,8 @@ import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.event.TONWalletKitEvent
 import io.ton.walletkit.listener.TONBridgeEventsHandler
 import io.ton.walletkit.model.TONWalletAdapter
-import org.json.JSONObject
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -178,7 +179,7 @@ internal object TestWalletKitFactory {
 
         // Setup callBridgeMethod for generic RPC calls
         val methodSlot = slot<String>()
-        val paramsSlot = slot<JSONObject?>()
+        val paramsSlot = slot<JsonObject?>()
         coEvery {
             mockEngine.callBridgeMethod(
                 capture(methodSlot),

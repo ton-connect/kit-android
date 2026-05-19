@@ -21,9 +21,9 @@
  */
 package io.ton.walletkit.engine.operations.requests
 
+import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 
 /**
  * Internal bridge request models for transaction operations.
@@ -51,17 +51,17 @@ internal data class CreateTransferMultiTonRequest(
 @Serializable
 internal data class HandleNewTransactionRequest(
     val walletId: String,
-    val transactionContent: JsonElement,
+    val transactionContent: TONTransactionRequest,
 )
 
 @Serializable
 internal data class SendTransactionRequest(
     val walletId: String,
-    val transactionContent: JsonElement,
+    val transactionContent: TONTransactionRequest,
 )
 
 @Serializable
 internal data class GetTransactionPreviewRequest(
     val walletId: String,
-    val transactionContent: JsonElement,
+    val transactionContent: TONTransactionRequest,
 )

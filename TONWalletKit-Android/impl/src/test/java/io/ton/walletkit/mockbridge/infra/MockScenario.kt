@@ -35,7 +35,9 @@ import io.ton.walletkit.model.TONHex
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import io.ton.walletkit.model.TONWalletAdapter
 import io.ton.walletkit.model.WalletSignerInfo
-import org.json.JSONObject
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * Interface for mock scenarios that define how the mocked engine responds to RPC calls.
@@ -133,8 +135,8 @@ interface MockScenario {
      * Handle generic RPC call via callBridgeMethod.
      * This is a fallback for methods not explicitly handled above.
      */
-    fun handleRpcCall(method: String, params: JSONObject?): JSONObject {
-        return JSONObject().put("success", true)
+    fun handleRpcCall(method: String, params: JsonObject?): JsonObject {
+        return buildJsonObject { put("success", true) }
     }
 }
 

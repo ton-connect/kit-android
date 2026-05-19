@@ -21,129 +21,83 @@
  */
 package io.ton.walletkit.engine.infrastructure
 
-import android.util.Base64
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.bridge.BridgeCodec
+import io.ton.walletkit.bridge.decodeFromBridge
+import io.ton.walletkit.bridge.decodeFromBridgeOrNull
+import io.ton.walletkit.bridge.optString
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.LogConstants
-import io.ton.walletkit.internal.constants.MiscConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
-import io.ton.walletkit.internal.constants.WebViewConstants
 import io.ton.walletkit.internal.util.Logger
 import kotlinx.coroutines.CompletableDeferred
-import org.json.JSONArray
-import org.json.JSONObject
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Performs RPC-style invocations against the JavaScript bridge and coordinates pending requests.
- *
- * The implementation mirrors the behaviour of the legacy `call`/`handleResponse` pair to ensure
- * identical logging, error handling, and payload normalisation.
- *
- * @suppress Internal component. Use through [WebViewWalletKitEngine].
- */
 internal class BridgeRpcClient(
     private val webViewManager: WebViewManager,
+    private val codec: BridgeCodec,
+    private val ensureInitialized: suspend () -> Unit,
+    @PublishedApi internal val json: Json,
 ) {
     private val pending = ConcurrentHashMap<String, CompletableDeferred<BridgeResponse>>()
     private val ready = CompletableDeferred<Unit>()
 
     /**
-     * Calls a bridge method with optional parameters.
-     *
-     * @param method The method name to invoke.
-     * @param params Optional parameters - can be JSONObject, JSONArray, String, or null.
-     * @return The result as a JSONObject.
+     * Wraps [send] in a JsonObject envelope. Reserved for the [callBridgeMethod] escape hatch
+     * and other callsites that explicitly need an opaque JsonObject result; prefer [callTyped].
      */
-    suspend fun call(
-        method: String,
-        params: Any? = null,
-    ): JSONObject {
+    suspend fun call(method: String, params: Any? = null): JsonObject = wrap(send(method, params))
+
+    /** Send a request to JS and return the raw decoded result; callers may discard it. */
+    suspend fun send(method: String, params: Any? = null): JsonElement {
         webViewManager.webViewInitialized.await()
-        webViewManager.bridgeLoaded.await()
-        webViewManager.jsBridgeReady.await()
+        webViewManager.transport.awaitReady()
         if (method != BridgeMethodConstants.METHOD_INIT) {
             ready.await()
+            ensureInitialized()
         }
 
         val callId = UUID.randomUUID().toString()
         val deferred = CompletableDeferred<BridgeResponse>()
         pending[callId] = deferred
 
-        // Convert params to string - supports JSONObject, JSONArray, String, or null
-        // For strings, use JSONObject.quote to produce valid JSON (e.g. "hello" -> '"hello"')
-        val payload: String? = when (params) {
-            null -> null
-            is JSONObject -> params.toString()
-            is JSONArray -> params.toString()
-            is String -> JSONObject.quote(params)
-            else -> params.toString()
-        }
-        val idLiteral = JSONObject.quote(callId)
-        val methodLiteral = JSONObject.quote(method)
-        val script =
-            if (payload == null) {
-                buildString {
-                    append(WebViewConstants.JS_FUNCTION_WALLETKIT_CALL)
-                    append(JS_OPEN_PAREN)
-                    append(idLiteral)
-                    append(JS_PARAMETER_SEPARATOR)
-                    append(methodLiteral)
-                    append(JS_PARAMETER_SEPARATOR)
-                    append(WebViewConstants.JS_NULL)
-                    append(JS_CLOSE_PAREN)
-                }
-            } else {
-                val payloadBase64 = Base64.encodeToString(payload.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
-                val payloadLiteral = JSONObject.quote(payloadBase64)
-                buildString {
-                    append(WebViewConstants.JS_FUNCTION_WALLETKIT_CALL)
-                    append(JS_OPEN_PAREN)
-                    append(idLiteral)
-                    append(JS_PARAMETER_SEPARATOR)
-                    append(methodLiteral)
-                    append(JS_PARAMETER_SEPARATOR)
-                    append(MiscConstants.SPACE_DELIMITER)
-                    append(WebViewConstants.JS_FUNCTION_ATOB)
-                    append(JS_OPEN_PAREN)
-                    append(payloadLiteral)
-                    append(JS_CLOSE_PAREN)
-                    append(JS_CLOSE_PAREN)
-                }
+        val envelope = buildJsonObject {
+            put(ResponseConstants.KEY_KIND, ResponseConstants.VALUE_KIND_CALL)
+            put(ResponseConstants.KEY_ID, callId)
+            put(ResponseConstants.KEY_METHOD, method)
+            val encoded = codec.encode(params)
+            if (encoded !is JsonNull) {
+                put(ResponseConstants.KEY_PARAMS, encoded)
             }
+        }
 
-        webViewManager.executeJavaScript(script)
-
-        val response = deferred.await()
-        return response.result
+        webViewManager.transport.send(envelope.toString())
+        return deferred.await().raw
     }
 
-    fun handleResponse(
-        id: String,
-        response: JSONObject,
-    ) {
+    fun handleResponse(id: String, response: JsonObject) {
         val deferred = pending.remove(id)
         if (deferred == null) {
             Logger.w(TAG, "handleResponse: No deferred found for id: $id")
             return
         }
-        val error = response.optJSONObject(ResponseConstants.KEY_ERROR)
+        val error = response[ResponseConstants.KEY_ERROR] as? JsonObject
         if (error != null) {
             val message = error.optString(ResponseConstants.KEY_MESSAGE, ResponseConstants.ERROR_MESSAGE_DEFAULT)
             Logger.e(TAG, ERROR_CALL_FAILED + id + ERROR_FAILED_SUFFIX + message)
             deferred.completeExceptionally(WalletKitBridgeException(message))
             return
         }
-        val result = response.opt(ResponseConstants.KEY_RESULT)
-        val payload =
-            when (result) {
-                is JSONObject -> result
-                is JSONArray -> JSONObject().put(ResponseConstants.KEY_ITEMS, result)
-                null -> JSONObject()
-                else -> JSONObject().put(ResponseConstants.KEY_VALUE, result)
-            }
-        deferred.complete(BridgeResponse(payload))
+        val raw = response[ResponseConstants.KEY_RESULT] ?: JsonNull
+        deferred.complete(BridgeResponse(raw))
     }
 
     fun failAll(exception: WalletKitBridgeException) {
@@ -166,16 +120,28 @@ internal class BridgeRpcClient(
 
     fun isReady(): Boolean = ready.isCompleted
 
-    private data class BridgeResponse(
-        val result: JSONObject,
-    )
+    private fun wrap(raw: JsonElement): JsonObject = when (raw) {
+        is JsonObject -> raw
+        is JsonArray -> buildJsonObject { put(ResponseConstants.KEY_ITEMS, raw) }
+        is JsonNull -> JsonObject(emptyMap())
+        else -> buildJsonObject { put(ResponseConstants.KEY_VALUE, raw) }
+    }
+
+    private data class BridgeResponse(val raw: JsonElement)
 
     private companion object {
         private const val TAG = LogConstants.TAG_WEBVIEW_ENGINE
-        private const val JS_OPEN_PAREN = "("
-        private const val JS_CLOSE_PAREN = ")"
-        private const val JS_PARAMETER_SEPARATOR = ","
         private const val ERROR_CALL_FAILED = "call["
         private const val ERROR_FAILED_SUFFIX = "] failed: "
     }
 }
+
+internal suspend inline fun <reified T : Any> BridgeRpcClient.callTyped(
+    method: String,
+    params: Any? = null,
+): T = json.decodeFromBridge(send(method, params))
+
+internal suspend inline fun <reified T : Any> BridgeRpcClient.callTypedOrNull(
+    method: String,
+    params: Any? = null,
+): T? = json.decodeFromBridgeOrNull(send(method, params))

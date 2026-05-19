@@ -27,10 +27,13 @@ import io.ton.walletkit.api.generated.TONNFTRawTransferRequestMessage
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.runBlocking
-import org.json.JSONArray
-import org.json.JSONObject
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.junit.Assert.*
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -45,22 +48,10 @@ import org.robolectric.annotation.Config
 @Config(manifest = Config.NONE, sdk = [28])
 class AssetOperationsTest : OperationsTestBase() {
 
-    private lateinit var assetOperations: AssetOperations
-
     companion object {
         const val TEST_ADDRESS = "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N"
         const val TEST_NFT_ADDRESS = "EQNft123456789012345678901234567890123456789012"
         const val TEST_JETTON_ADDRESS = "EQJetton12345678901234567890123456789012345678"
-    }
-
-    @Before
-    override fun setup() {
-        super.setup()
-        assetOperations = AssetOperations(
-            ensureInitialized = ensureInitialized,
-            rpcClient = rpcClient,
-            json = json,
-        )
     }
 
     // --- getNfts tests ---
@@ -68,16 +59,16 @@ class AssetOperationsTest : OperationsTestBase() {
     @Test
     fun getNfts_parsesNftItemsArray() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
+            buildJsonObject {
                 put(
                     "nfts",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
+                    buildJsonArray {
+                        add(
+                            buildJsonObject {
                                 put("address", TEST_NFT_ADDRESS)
                                 put(
                                     "owner",
-                                    JSONObject().apply {
+                                    buildJsonObject {
                                         put("address", TEST_ADDRESS)
                                     },
                                 )
@@ -88,7 +79,7 @@ class AssetOperationsTest : OperationsTestBase() {
             },
         )
 
-        val result = assetOperations.getNfts(TEST_ADDRESS, limit = 10, offset = 0)
+        val result = rpcClient.getNfts(TEST_ADDRESS, limit = 10, offset = 0)
 
         assertEquals(1, result.nfts.size)
         assertEquals(TEST_NFT_ADDRESS, result.nfts[0].address.value)
@@ -97,12 +88,12 @@ class AssetOperationsTest : OperationsTestBase() {
     @Test
     fun getNfts_returnsEmptyItemsIfNone() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
-                put("nfts", JSONArray())
+            buildJsonObject {
+                put("nfts", JsonArray(emptyList()))
             },
         )
 
-        val result = assetOperations.getNfts(TEST_ADDRESS, limit = 10, offset = 0)
+        val result = rpcClient.getNfts(TEST_ADDRESS, limit = 10, offset = 0)
 
         assertTrue(result.nfts.isEmpty())
     }
@@ -112,13 +103,13 @@ class AssetOperationsTest : OperationsTestBase() {
     @Test
     fun getNft_parsesSingleNft() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
+            buildJsonObject {
                 put("address", TEST_NFT_ADDRESS)
                 put("ownerAddress", TEST_ADDRESS)
             },
         )
 
-        val result = assetOperations.getNft(TEST_NFT_ADDRESS)
+        val result = rpcClient.getNft(TEST_NFT_ADDRESS)
 
         assertNotNull(result)
         assertEquals(TEST_NFT_ADDRESS, result!!.address.value)
@@ -126,9 +117,9 @@ class AssetOperationsTest : OperationsTestBase() {
 
     @Test
     fun getNft_returnsNullIfNoAddress() = runBlocking {
-        givenBridgeReturns(JSONObject()) // No address field
+        givenBridgeReturns(JsonObject(emptyMap())) // No address field
 
-        val result = assetOperations.getNft(TEST_NFT_ADDRESS)
+        val result = rpcClient.getNft(TEST_NFT_ADDRESS)
 
         assertNull(result)
     }
@@ -139,25 +130,25 @@ class AssetOperationsTest : OperationsTestBase() {
     fun getJettons_parsesJettonWallets() = runBlocking {
         // TONJettonWallets uses "jettons" for items, and TONJettonWallet requires "jettonWalletAddress"
         givenBridgeReturns(
-            JSONObject().apply {
-                put("addressBook", JSONObject())
+            buildJsonObject {
+                put("addressBook", JsonObject(emptyMap()))
                 put(
                     "jettons",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
+                    buildJsonArray {
+                        add(
+                            buildJsonObject {
                                 put("address", TEST_JETTON_ADDRESS) // Jetton master address
                                 put("walletAddress", TEST_JETTON_ADDRESS) // Wallet address
                                 put("balance", "1000000000")
                                 put(
                                     "info",
-                                    JSONObject().apply {
+                                    buildJsonObject {
                                         put("name", "Test Jetton")
                                         put("symbol", "TST")
                                     },
                                 )
                                 put("isVerified", false)
-                                put("prices", JSONArray())
+                                put("prices", JsonArray(emptyList()))
                             },
                         )
                     },
@@ -165,7 +156,7 @@ class AssetOperationsTest : OperationsTestBase() {
             },
         )
 
-        val result = assetOperations.getJettons(TEST_ADDRESS, limit = 10, offset = 0)
+        val result = rpcClient.getJettons(TEST_ADDRESS, limit = 10, offset = 0)
 
         assertEquals(1, result.jettons.size)
         assertEquals(TEST_JETTON_ADDRESS, result.jettons[0].address.value)
@@ -174,13 +165,13 @@ class AssetOperationsTest : OperationsTestBase() {
     @Test
     fun getJettons_returnsEmptyIfNone() = runBlocking {
         givenBridgeReturns(
-            JSONObject().apply {
-                put("addressBook", JSONObject())
-                put("jettons", JSONArray())
+            buildJsonObject {
+                put("addressBook", JsonObject(emptyMap()))
+                put("jettons", JsonArray(emptyList()))
             },
         )
 
-        val result = assetOperations.getJettons(TEST_ADDRESS, limit = 10, offset = 0)
+        val result = rpcClient.getJettons(TEST_ADDRESS, limit = 10, offset = 0)
 
         assertTrue(result.jettons.isEmpty())
     }
@@ -189,48 +180,24 @@ class AssetOperationsTest : OperationsTestBase() {
 
     @Test
     fun getJettonBalance_extractsBalanceString() = runBlocking {
-        givenBridgeReturns(
-            jsonOf(
-                "balance" to "5000000000",
-            ),
-        )
+        // JS bridge returns the balance as a raw string
+        givenBridgeReturnsRaw("5000000000")
 
-        val result = assetOperations.getJettonBalance(TEST_ADDRESS, TEST_JETTON_ADDRESS)
+        val result = rpcClient.getJettonBalance(TEST_ADDRESS, TEST_JETTON_ADDRESS)
 
         assertEquals("5000000000", result)
-    }
-
-    @Test
-    fun getJettonBalance_returnsZeroIfMissing() = runBlocking {
-        givenBridgeReturns(JSONObject())
-
-        val result = assetOperations.getJettonBalance(TEST_ADDRESS, TEST_JETTON_ADDRESS)
-
-        assertEquals("0", result)
     }
 
     // --- getJettonWalletAddress tests ---
 
     @Test
     fun getJettonWalletAddress_extractsAddress() = runBlocking {
-        givenBridgeReturns(
-            jsonOf(
-                "jettonWalletAddress" to TEST_JETTON_ADDRESS,
-            ),
-        )
+        // JS bridge returns the address as a raw string
+        givenBridgeReturnsRaw(TEST_JETTON_ADDRESS)
 
-        val result = assetOperations.getJettonWalletAddress(TEST_ADDRESS, TEST_JETTON_ADDRESS)
+        val result = rpcClient.getJettonWalletAddress(TEST_ADDRESS, TEST_JETTON_ADDRESS)
 
         assertEquals(TEST_JETTON_ADDRESS, result)
-    }
-
-    @Test
-    fun getJettonWalletAddress_returnsEmptyIfMissing() = runBlocking {
-        givenBridgeReturns(JSONObject())
-
-        val result = assetOperations.getJettonWalletAddress(TEST_ADDRESS, TEST_JETTON_ADDRESS)
-
-        assertEquals("", result)
     }
 
     // --- createTransferNftTransaction tests ---
@@ -238,24 +205,24 @@ class AssetOperationsTest : OperationsTestBase() {
     @Test
     fun createTransferNftTransaction_returnsTransactionString() = runBlocking {
         val transactionContent = """{"messages":[{"address":"EQ...","amount":"50000000"}]}"""
-        givenBridgeReturns(JSONObject(transactionContent))
+        givenBridgeReturns(transactionContent)
 
         val params = TONNFTTransferRequest(
             nftAddress = TONUserFriendlyAddress(TEST_NFT_ADDRESS),
             recipientAddress = TONUserFriendlyAddress(TEST_ADDRESS),
             comment = "Test transfer",
         )
-        val result = assetOperations.createTransferNftTransaction(TEST_ADDRESS, params)
+        val result = rpcClient.createTransferNftTransaction(TEST_ADDRESS, params)
 
-        assertTrue(result.contains("messages"))
+        assertEquals(1, result.messages.size)
     }
 
     // --- createTransferNftRawTransaction tests ---
 
     @Test
     fun createTransferNftRawTransaction_returnsTransactionString() = runBlocking {
-        val transactionContent = """{"boc":"te6..."}"""
-        givenBridgeReturns(JSONObject(transactionContent))
+        val transactionContent = """{"messages":[{"address":"EQ...","amount":"1"}]}"""
+        givenBridgeReturns(transactionContent)
 
         val params = TONNFTRawTransferRequest(
             nftAddress = TONUserFriendlyAddress(TEST_NFT_ADDRESS),
@@ -266,17 +233,17 @@ class AssetOperationsTest : OperationsTestBase() {
                 forwardAmount = "1",
             ),
         )
-        val result = assetOperations.createTransferNftRawTransaction(TEST_ADDRESS, params)
+        val result = rpcClient.createTransferNftRawTransaction(TEST_ADDRESS, params)
 
-        assertTrue(result.contains("boc"))
+        assertEquals(1, result.messages.size)
     }
 
     // --- createTransferJettonTransaction tests ---
 
     @Test
     fun createTransferJettonTransaction_returnsTransactionString() = runBlocking {
-        val transactionContent = """{"messages":[{"address":"EQ..."}]}"""
-        givenBridgeReturns(JSONObject(transactionContent))
+        val transactionContent = """{"messages":[{"address":"EQ...","amount":"100"}]}"""
+        givenBridgeReturns(transactionContent)
 
         val params = TONJettonsTransferRequest(
             recipientAddress = TONUserFriendlyAddress(TEST_ADDRESS),
@@ -284,8 +251,8 @@ class AssetOperationsTest : OperationsTestBase() {
             transferAmount = "1000000000",
             comment = "Jetton transfer",
         )
-        val result = assetOperations.createTransferJettonTransaction(TEST_ADDRESS, params)
+        val result = rpcClient.createTransferJettonTransaction(TEST_ADDRESS, params)
 
-        assertTrue(result.contains("messages"))
+        assertEquals(1, result.messages.size)
     }
 }

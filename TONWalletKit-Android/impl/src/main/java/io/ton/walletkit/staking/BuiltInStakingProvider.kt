@@ -30,7 +30,6 @@ import io.ton.walletkit.api.generated.TONStakingQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.engine.WalletKitEngine
-import io.ton.walletkit.engine.infrastructure.decodeTransactionRequest
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.json.Json
 
@@ -73,7 +72,7 @@ internal class BuiltInStakingProvider<TQuoteOptions, TStakeOptions>(
             userAddress = params.userAddress,
             providerOptions = jsonOptions,
         )
-        return decodeTransactionRequest(engine.buildStakeTransaction(jsonParams, identifier.name))
+        return engine.buildStakeTransaction(jsonParams, identifier.name)
     }
 
     override suspend fun getStakedBalance(
