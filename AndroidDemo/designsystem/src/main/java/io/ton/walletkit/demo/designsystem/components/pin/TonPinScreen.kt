@@ -62,6 +62,7 @@ fun TonPinScreen(
     modifier: Modifier = Modifier,
     description: String? = null,
     length: Int = 4,
+    fieldModifier: Modifier = Modifier,
     trailing: @Composable () -> Unit = {},
 ) {
     LaunchedEffect(pin) {
@@ -112,6 +113,7 @@ fun TonPinScreen(
             onPinChange = onPinChange,
             isError = error != null,
             onComplete = onComplete,
+            fieldModifier = fieldModifier,
             length = length,
         )
 
