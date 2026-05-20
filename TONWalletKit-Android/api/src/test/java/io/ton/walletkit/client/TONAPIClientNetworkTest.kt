@@ -31,13 +31,18 @@ import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.model.TONBase64
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 
+/**
+ * Verifies how custom [TONAPIClient] implementations attach to networks via
+ * [TONWalletKitConfiguration.NetworkConfiguration]. Network identity is owned by the
+ * configuration, not by the client — matches iOS, where `TONAPIClient` does not expose
+ * `network`.
+ */
 class TONAPIClientNetworkTest {
 
-    private class StubbedClient(
-        override var network: TONNetwork,
-    ) : TONAPIClient {
+    private class StubbedClient : TONAPIClient {
         override suspend fun sendBoc(boc: TONBase64): String = ""
         override suspend fun runGetMethod(
             address: TONUserFriendlyAddress,
@@ -45,65 +50,62 @@ class TONAPIClientNetworkTest {
             stack: List<TONRawStackItem>?,
             seqno: Int?,
         ): TONGetMethodResult = error("not used")
-        override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String = "0"
         override suspend fun getMasterchainInfo(): TONMasterchainInfo = error("not used")
     }
 
     @Test
-    fun `client_network reflects post-construction mutations`() {
-        val client = StubbedClient(network = TONNetwork.MAINNET)
-        assertEquals(TONNetwork.MAINNET, client.network)
-
-        client.network = TONNetwork.TESTNET
-        assertEquals(TONNetwork.TESTNET, client.network)
-    }
-
-    @Test
-    fun `client_network can carry a custom chainId`() {
-        val custom = TONNetwork(chainId = "123456")
-        val client = StubbedClient(network = custom)
-
-        assertEquals(custom, client.network)
-        assertEquals("123456", client.network.chainId)
-    }
-
-    @Test
-    fun `NetworkConfiguration_apiClient_network takes priority over configured slot`() {
-        val client = StubbedClient(network = TONNetwork.TESTNET)
-        val networkConfig = TONWalletKitConfiguration.NetworkConfiguration(
+    fun `NetworkConfiguration pairs a custom client with its network`() {
+        val client = StubbedClient()
+        val nc = TONWalletKitConfiguration.NetworkConfiguration(
             network = TONNetwork.MAINNET,
             apiClient = client,
         )
 
-        val resolved = networkConfig.apiClient?.network ?: networkConfig.network
-        assertEquals(TONNetwork.TESTNET, resolved)
+        assertEquals(TONNetwork.MAINNET, nc.network)
+        assertNotNull(nc.apiClient)
     }
 
     @Test
-    fun `NetworkConfiguration without custom client falls back to configured network`() {
-        val networkConfig = TONWalletKitConfiguration.NetworkConfiguration(
+    fun `NetworkConfiguration without custom client retains its network`() {
+        val nc = TONWalletKitConfiguration.NetworkConfiguration(
             network = TONNetwork.MAINNET,
             apiClientConfiguration = TONWalletKitConfiguration.APIClientConfiguration(key = "k"),
         )
 
-        val resolved = networkConfig.apiClient?.network ?: networkConfig.network
-        assertEquals(TONNetwork.MAINNET, resolved)
+        assertEquals(TONNetwork.MAINNET, nc.network)
     }
 
     @Test
-    fun `WebViewManager apiGetNetworkForChainId lookup returns live client_network`() {
-        val mainnetClient = StubbedClient(network = TONNetwork.MAINNET)
-        val testnetClient = StubbedClient(network = TONNetwork.TESTNET)
-        val clients: List<TONAPIClient> = listOf(mainnetClient, testnetClient)
+    fun `multiple networks each carry their own client pairing`() {
+        val mainnetClient = StubbedClient()
+        val testnetClient = StubbedClient()
+        val configs = listOf(
+            TONWalletKitConfiguration.NetworkConfiguration(
+                network = TONNetwork.MAINNET,
+                apiClient = mainnetClient,
+            ),
+            TONWalletKitConfiguration.NetworkConfiguration(
+                network = TONNetwork.TESTNET,
+                apiClient = testnetClient,
+            ),
+        )
 
-        val mainnetChain = TONNetwork.MAINNET.chainId
-        val customChain = "999"
+        val byMainnet = configs.firstOrNull { it.network == TONNetwork.MAINNET }?.apiClient
+        val byTestnet = configs.firstOrNull { it.network == TONNetwork.TESTNET }?.apiClient
 
-        val lookupBefore = clients.find { it.network.chainId == mainnetChain }?.network
-        assertEquals(TONNetwork.MAINNET, lookupBefore)
+        assertEquals(mainnetClient, byMainnet)
+        assertEquals(testnetClient, byTestnet)
+    }
 
-        mainnetClient.network = TONNetwork(chainId = customChain)
-        val lookupByNewChainId = clients.find { it.network.chainId == customChain }?.network
-        assertEquals(TONNetwork(chainId = customChain), lookupByNewChainId)
+    @Test
+    fun `network pairs can carry a custom chainId`() {
+        val custom = TONNetwork(chainId = "123456")
+        val nc = TONWalletKitConfiguration.NetworkConfiguration(
+            network = custom,
+            apiClient = StubbedClient(),
+        )
+
+        assertEquals(custom, nc.network)
+        assertEquals("123456", nc.network.chainId)
     }
 }

@@ -127,6 +127,11 @@ internal class MessageDispatcher(
             requireAdapter(req.adapterId).signedSendTransaction(request, req.fakeSignature ?: false).value
         }
 
+        registerTypedJson<AdapterSignTransactionRequest, String>(REQUEST_METHOD_ADAPTER_SIGN_MESSAGE) { req ->
+            val request = json.decodeFromString<TONTransactionRequest>(req.input)
+            requireAdapter(req.adapterId).signedSignMessage(request, req.fakeSignature ?: false).value
+        }
+
         registerTypedJson<AdapterSignDataRequest, String>(REQUEST_METHOD_ADAPTER_SIGN_DATA) { req ->
             val request = json.decodeFromString<TONPreparedSignData>(req.input)
             requireAdapter(req.adapterId).signedSignData(request, req.fakeSignature ?: false).value
@@ -464,6 +469,7 @@ internal class MessageDispatcher(
         private const val REQUEST_METHOD_SIGN_WITH_CUSTOM_SIGNER = "signWithCustomSigner"
         private const val REQUEST_METHOD_ADAPTER_GET_STATE_INIT = "adapterGetStateInit"
         private const val REQUEST_METHOD_ADAPTER_SIGN_TRANSACTION = "adapterSignTransaction"
+        private const val REQUEST_METHOD_ADAPTER_SIGN_MESSAGE = "adapterSignMessage"
         private const val REQUEST_METHOD_ADAPTER_SIGN_DATA = "adapterSignData"
         private const val REQUEST_METHOD_ADAPTER_SIGN_TON_PROOF = "adapterSignTonProof"
         private const val REQUEST_METHOD_KOTLIN_SWAP_PROVIDER_QUOTE = "kotlinSwapProviderQuote"

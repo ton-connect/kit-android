@@ -48,7 +48,12 @@ import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTonStakersChainConfig
+import io.ton.walletkit.api.generated.TONGetMethodResult
+import io.ton.walletkit.api.generated.TONMasterchainInfo
+import io.ton.walletkit.api.generated.TONRawStackItem
+import io.ton.walletkit.api.generated.TONSendTransactionResponse
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
+import io.ton.walletkit.api.generated.TONTransactionPreviewOptions
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.api.generated.TONUnstakeMode
@@ -119,6 +124,9 @@ import io.ton.walletkit.engine.operations.sendTransaction
 import io.ton.walletkit.engine.operations.setDefaultStakingProvider
 import io.ton.walletkit.engine.operations.setDefaultSwapProvider
 import io.ton.walletkit.engine.operations.sign
+import io.ton.walletkit.engine.operations.walletClientGetMasterchainInfo
+import io.ton.walletkit.engine.operations.walletClientRunGetMethod
+import io.ton.walletkit.engine.operations.walletClientSendBoc
 import io.ton.walletkit.engine.parsing.EventParser
 import io.ton.walletkit.engine.state.AdapterManager
 import io.ton.walletkit.engine.state.EventRouter
@@ -168,7 +176,7 @@ internal class WebViewWalletKitEngine private constructor(
     eventsHandler: TONBridgeEventsHandler?,
     private val storageAdapter: BridgeStorageAdapter,
     private val sessionManager: TONConnectSessionManager?,
-    private val apiClients: List<TONAPIClient>,
+    private val apiClients: List<Pair<TONNetwork, TONAPIClient>>,
     private val assetPath: String = WebViewConstants.DEFAULT_ASSET_PATH,
 ) : WalletKitEngine {
     override val streamingEvents get() = messageDispatcher.streamingEvents
@@ -376,7 +384,7 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun sendTransaction(
         walletId: String,
         transactionContent: TONTransactionRequest,
-    ): String = rpcClient.sendTransaction(walletId, transactionContent)
+    ): TONSendTransactionResponse = rpcClient.sendTransaction(walletId, transactionContent)
 
     override suspend fun approveConnect(
         event: TONConnectionRequestEvent,
@@ -446,7 +454,22 @@ internal class WebViewWalletKitEngine private constructor(
     override suspend fun getTransactionPreview(
         walletId: String,
         transactionContent: TONTransactionRequest,
-    ): TONTransactionEmulatedPreview = rpcClient.getTransactionPreview(walletId, transactionContent)
+        options: TONTransactionPreviewOptions?,
+    ): TONTransactionEmulatedPreview = rpcClient.getTransactionPreview(walletId, transactionContent, options)
+
+    override suspend fun walletClientSendBoc(walletId: String, boc: String): String =
+        rpcClient.walletClientSendBoc(walletId, boc)
+
+    override suspend fun walletClientRunGetMethod(
+        walletId: String,
+        address: String,
+        method: String,
+        stack: List<TONRawStackItem>?,
+        seqno: Int?,
+    ): TONGetMethodResult = rpcClient.walletClientRunGetMethod(walletId, address, method, stack, seqno)
+
+    override suspend fun walletClientGetMasterchainInfo(walletId: String): TONMasterchainInfo =
+        rpcClient.walletClientGetMasterchainInfo(walletId)
 
     override suspend fun getJettonBalance(walletId: String, jettonAddress: String): String =
         rpcClient.getJettonBalance(walletId, jettonAddress)

@@ -46,7 +46,12 @@ import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTonStakersChainConfig
+import io.ton.walletkit.api.generated.TONGetMethodResult
+import io.ton.walletkit.api.generated.TONMasterchainInfo
+import io.ton.walletkit.api.generated.TONRawStackItem
+import io.ton.walletkit.api.generated.TONSendTransactionResponse
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
+import io.ton.walletkit.api.generated.TONTransactionPreviewOptions
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.api.generated.TONUnstakeMode
@@ -259,13 +264,13 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Send a transaction to the blockchain.
      *
-     * @return Transaction hash (signedBoc) after successful broadcast
+     * @return Broadcast response with boc / normalizedBoc / normalizedHash.
      * @throws WalletKitBridgeException if sending fails
      */
     suspend fun sendTransaction(
         walletId: String,
         transactionContent: TONTransactionRequest,
-    ): String
+    ): TONSendTransactionResponse
 
     /**
      * Approve a connection request from a dApp.
@@ -440,7 +445,22 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun getTransactionPreview(
         walletId: String,
         transactionContent: TONTransactionRequest,
+        options: TONTransactionPreviewOptions? = null,
     ): TONTransactionEmulatedPreview
+
+    // ===== Per-wallet API client bridge =====
+
+    suspend fun walletClientSendBoc(walletId: String, boc: String): String
+
+    suspend fun walletClientRunGetMethod(
+        walletId: String,
+        address: String,
+        method: String,
+        stack: List<TONRawStackItem>? = null,
+        seqno: Int? = null,
+    ): TONGetMethodResult
+
+    suspend fun walletClientGetMasterchainInfo(walletId: String): TONMasterchainInfo
 
     /**
      * Get the balance of a specific jetton for a wallet.

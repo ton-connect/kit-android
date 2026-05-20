@@ -48,6 +48,11 @@ interface TONWalletAdapter {
         fakeSignature: Boolean? = null,
     ): TONBase64
 
+    suspend fun signedSignMessage(
+        input: TONTransactionRequest,
+        fakeSignature: Boolean? = null,
+    ): TONBase64
+
     suspend fun signedSignData(
         input: TONPreparedSignData,
         fakeSignature: Boolean? = null,

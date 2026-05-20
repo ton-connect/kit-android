@@ -55,7 +55,7 @@ import java.net.URL
  * - Implement retry logic and error handling
  */
 class TestAPIClient(
-    override val network: TONNetwork,
+    private val network: TONNetwork,
 ) : TONAPIClient {
 
     private val tag = "TestAPIClient"
@@ -111,18 +111,6 @@ class TestAPIClient(
         return mockResult
     }
 
-    override suspend fun getBalance(
-        address: TONUserFriendlyAddress,
-        seqno: Int?,
-    ): String {
-        Log.d(tag, "getBalance called on network: ${network.chainId}")
-        Log.d(tag, "Address: ${address.value}")
-        delay(300)
-        return mockBalance(network).also { balance ->
-            Log.d(tag, "getBalance completed, balance: $balance")
-        }
-    }
-
     override suspend fun getMasterchainInfo(): TONMasterchainInfo {
         Log.d(tag, "getMasterchainInfo called on network: ${network.chainId}")
         val baseUrl = if (network == TONNetwork.MAINNET) "https://toncenter.com" else "https://testnet.toncenter.com"
@@ -167,7 +155,7 @@ class TestAPIClient(
  * - TonAPI might be preferred for testnet (more detailed responses)
  */
 class ToncenterAPIClient(
-    override val network: TONNetwork,
+    private val network: TONNetwork,
     private val apiKey: String = "",
 ) : TONAPIClient {
 
@@ -188,23 +176,6 @@ class ToncenterAPIClient(
         Log.d(tag, "📞 [Toncenter] runGetMethod: $method on ${address.value}")
         delay(100)
         return TONGetMethodResult(gasUsed = 1000.0, stack = emptyList(), exitCode = 0.0)
-    }
-
-    override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {
-        Log.d(tag, "💰 [Toncenter] getBalance on ${network.chainId}")
-        val baseUrl = if (network == TONNetwork.MAINNET) "https://toncenter.com" else "https://testnet.toncenter.com"
-        return withContext(Dispatchers.IO) {
-            val conn = URL("$baseUrl/api/v3/addressInformation?address=${address.value}").openConnection() as HttpURLConnection
-            conn.connectTimeout = 10_000
-            conn.readTimeout = 10_000
-            conn.setRequestProperty("Accept", "application/json")
-            if (apiKey.isNotEmpty()) conn.setRequestProperty("x-api-key", apiKey)
-            try {
-                JSONObject(conn.inputStream.bufferedReader().readText()).optString("balance", "0")
-            } finally {
-                conn.disconnect()
-            }
-        }
     }
 
     override suspend fun getMasterchainInfo(): TONMasterchainInfo {
@@ -244,7 +215,7 @@ class ToncenterAPIClient(
  * Demonstrates that each network can use a completely different backend.
  */
 class TonAPIClient(
-    override val network: TONNetwork,
+    private val network: TONNetwork,
     private val apiKey: String = "",
 ) : TONAPIClient {
 
@@ -265,12 +236,6 @@ class TonAPIClient(
         Log.d(tag, "📞 [TonAPI] runGetMethod: $method on ${address.value}")
         delay(100)
         return TONGetMethodResult(gasUsed = 1000.0, stack = emptyList(), exitCode = 0.0)
-    }
-
-    override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: Int?): String {
-        Log.d(tag, "💰 [TonAPI] getBalance on ${network.chainId}, apiKeyConfigured=${apiKey.isNotEmpty()}")
-        delay(100)
-        return mockBalance(network)
     }
 
     override suspend fun getMasterchainInfo(): TONMasterchainInfo {
@@ -305,13 +270,6 @@ class TonAPIClient(
         fun testnet(apiKey: String = BuildConfig.TESTNET_API_KEY) = TonAPIClient(TONNetwork.TESTNET, apiKey)
         fun tetra(apiKey: String = BuildConfig.TETRA_API_KEY) = TonAPIClient(TONNetwork.TETRA, apiKey)
     }
-}
-
-private fun mockBalance(network: TONNetwork): String = when (network) {
-    TONNetwork.MAINNET -> "1000000000"
-    TONNetwork.TESTNET -> "250000000"
-    TONNetwork.TETRA -> "50000000"
-    else -> "1000000000"
 }
 
 private fun base64ToHex(base64: String): String {

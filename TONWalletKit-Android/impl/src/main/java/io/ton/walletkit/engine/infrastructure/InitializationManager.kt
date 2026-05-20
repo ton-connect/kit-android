@@ -179,9 +179,8 @@ internal class InitializationManager(
             putJsonArray("networkConfigurations") {
                 for (networkConfig in configuration.networkConfigurations) {
                     addJsonObject {
-                        val resolvedNetwork = networkConfig.apiClient?.network ?: networkConfig.network
                         putJsonObject("network") {
-                            put("chainId", resolvedNetwork.chainId)
+                            put("chainId", networkConfig.network.chainId)
                         }
                         val apiClientTypeStr = when (networkConfig.apiClientType) {
                             TONWalletKitConfiguration.APIClientType.DEFAULT -> "default"

@@ -38938,19 +38938,9 @@ var AndroidAPIClientAdapter = class {
 		const androidWindow = window;
 		if (!androidWindow.WalletKitNative) throw new Error("WalletKitNative bridge not available");
 		this.androidBridge = androidWindow.WalletKitNative;
-		this.registeredChainId = network.chainId;
 		this.network = network;
 	}
 	getNetwork() {
-		const lookup = this.androidBridge.apiGetNetworkForChainId;
-		if (typeof lookup === "function") try {
-			const json = lookup(this.registeredChainId);
-			const network = JSON.parse(json);
-			this.network = network;
-			return network;
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] getNetwork live lookup failed, using cache:", err);
-		}
 		return this.network;
 	}
 	/**
@@ -39009,15 +38999,8 @@ var AndroidAPIClientAdapter = class {
 	async getAccountStates(_addresses) {
 		throw new Error("getAccountStates is not implemented yet");
 	}
-	async getBalance(address, seqno) {
-		try {
-			const networkJson = JSON.stringify(this.network);
-			const seqnoArg = seqno ?? -1;
-			return this.androidBridge.apiGetBalance(networkJson, address, seqnoArg);
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] getBalance failed:", err);
-			throw err;
-		}
+	async getBalance(_address, _seqno) {
+		throw new Error("getBalance is not supported on user-supplied native API clients");
 	}
 	async getAccountTransactions(_request) {
 		throw new Error("getAccountTransactions is not implemented yet");

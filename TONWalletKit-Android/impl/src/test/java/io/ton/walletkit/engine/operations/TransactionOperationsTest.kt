@@ -24,7 +24,6 @@ package io.ton.walletkit.engine.operations
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
@@ -147,40 +146,10 @@ class TransactionOperationsTest : OperationsTestBase() {
     // --- sendTransaction tests ---
 
     @Test
-    fun sendTransaction_extractsBoc() = runBlocking {
+    fun sendTransaction_returnsFullResponse() = runBlocking {
         givenBridgeReturns(
             jsonOf(
                 "boc" to "te6ccgEBAgEA...",
-                "normalizedBoc" to "te6ccgEBAgEA...",
-                "normalizedHash" to "abc123",
-            ),
-        )
-
-        val result = rpcClient.sendTransaction(TEST_ADDRESS, emptyTx())
-
-        assertEquals("te6ccgEBAgEA...", result)
-    }
-
-    @Test
-    fun sendTransaction_fallsBackToSignedBoc() = runBlocking {
-        givenBridgeReturns(
-            jsonOf(
-                "signedBoc" to "te6ccgEBAgEA...",
-            ),
-        )
-
-        val result = rpcClient.sendTransaction(TEST_ADDRESS, emptyTx())
-
-        assertEquals("te6ccgEBAgEA...", result)
-        val encoded = encodeCapturedParams() as JsonObject
-        assertTrue(encoded.get("transactionContent") is JsonObject)
-    }
-
-    @Test
-    fun sendTransaction_extractsBocFromWalletSendResponse() = runBlocking {
-        givenBridgeReturns(
-            jsonOf(
-                "boc" to "te6ccgEBAgEA...wallet",
                 "normalizedBoc" to "te6ccgEBAgEA...normalized",
                 "normalizedHash" to "0xabc123",
             ),
@@ -188,17 +157,11 @@ class TransactionOperationsTest : OperationsTestBase() {
 
         val result = rpcClient.sendTransaction(TEST_ADDRESS, emptyTx())
 
-        assertEquals("te6ccgEBAgEA...wallet", result)
-    }
-
-    @Test
-    fun sendTransaction_throwsIfSignedBocAndBocMissing() {
-        assertThrows(SerializationException::class.java) {
-            runBlocking {
-                givenBridgeReturns(JsonObject(emptyMap()))
-                rpcClient.sendTransaction(TEST_ADDRESS, emptyTx())
-            }
-        }
+        assertEquals("te6ccgEBAgEA...", result.boc.value)
+        assertEquals("te6ccgEBAgEA...normalized", result.normalizedBoc.value)
+        assertEquals("0xabc123", result.normalizedHash.value)
+        val encoded = encodeCapturedParams() as JsonObject
+        assertTrue(encoded.get("transactionContent") is JsonObject)
     }
 
     // --- getTransactionPreview tests ---

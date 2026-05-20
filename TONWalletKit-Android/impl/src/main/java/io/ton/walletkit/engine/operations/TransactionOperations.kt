@@ -21,7 +21,9 @@
  */
 package io.ton.walletkit.engine.operations
 
+import io.ton.walletkit.api.generated.TONSendTransactionResponse
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
+import io.ton.walletkit.api.generated.TONTransactionPreviewOptions
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
@@ -31,9 +33,7 @@ import io.ton.walletkit.engine.operations.requests.CreateTransferTonRequest
 import io.ton.walletkit.engine.operations.requests.GetTransactionPreviewRequest
 import io.ton.walletkit.engine.operations.requests.HandleNewTransactionRequest
 import io.ton.walletkit.engine.operations.requests.SendTransactionRequest
-import io.ton.walletkit.engine.operations.responses.SendTransactionResponse
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
-import kotlinx.serialization.SerializationException
 
 internal suspend fun BridgeRpcClient.createTransferTonTransaction(
     walletId: String,
@@ -68,20 +68,20 @@ internal suspend fun BridgeRpcClient.handleNewTransaction(walletId: String, tran
 internal suspend fun BridgeRpcClient.sendTransaction(
     walletId: String,
     transactionContent: TONTransactionRequest,
-): String {
-    val response: SendTransactionResponse = callTyped(
-        BridgeMethodConstants.METHOD_SEND_TRANSACTION,
-        SendTransactionRequest(walletId = walletId, transactionContent = transactionContent),
-    )
-    return response.boc
-        ?: response.signedBoc
-        ?: throw SerializationException("No value for boc or signedBoc")
-}
+): TONSendTransactionResponse = callTyped(
+    BridgeMethodConstants.METHOD_SEND_TRANSACTION,
+    SendTransactionRequest(walletId = walletId, transactionContent = transactionContent),
+)
 
 internal suspend fun BridgeRpcClient.getTransactionPreview(
     walletId: String,
     transactionContent: TONTransactionRequest,
+    options: TONTransactionPreviewOptions? = null,
 ): TONTransactionEmulatedPreview = callTyped(
     BridgeMethodConstants.METHOD_GET_TRANSACTION_PREVIEW,
-    GetTransactionPreviewRequest(walletId = walletId, transactionContent = transactionContent),
+    GetTransactionPreviewRequest(
+        walletId = walletId,
+        transactionContent = transactionContent,
+        options = options,
+    ),
 )
