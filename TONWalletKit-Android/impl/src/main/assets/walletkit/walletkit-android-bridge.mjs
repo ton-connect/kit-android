@@ -44956,11 +44956,22 @@ async function createDeDustSwapProvider(args) {
 async function registerSwapProvider(args) {
 	(await getSwap()).registerProvider(get(args.providerId));
 }
+async function removeSwapProvider(args) {
+	const swap = await getSwap();
+	if (!swap.hasProvider(args.providerId)) return;
+	swap.removeProvider(swap.getProvider(args.providerId));
+}
 async function setDefaultSwapProvider(args) {
 	(await getSwap()).setDefaultProvider(args.providerId);
 }
 async function getRegisteredSwapProviders() {
 	return { providerIds: (await getSwap()).getProviders().map((provider) => provider.providerId) };
+}
+async function getSwapProviderMetadata(args) {
+	return (await getSwap()).getProvider(args.providerId).getMetadata();
+}
+async function getSwapProviderSupportedNetworks(args) {
+	return { networks: (await getSwap()).getProvider(args.providerId).getSupportedNetworks() };
 }
 async function hasSwapProvider(args) {
 	return { result: (await getSwap()).hasProvider(args.providerId) };
@@ -45063,8 +45074,11 @@ var api = {
 	createOmnistonSwapProvider,
 	createDeDustSwapProvider,
 	registerSwapProvider,
+	removeSwapProvider,
 	setDefaultSwapProvider,
 	getRegisteredSwapProviders,
+	getSwapProviderMetadata,
+	getSwapProviderSupportedNetworks,
 	hasSwapProvider,
 	getSwapQuote,
 	buildSwapTransaction,

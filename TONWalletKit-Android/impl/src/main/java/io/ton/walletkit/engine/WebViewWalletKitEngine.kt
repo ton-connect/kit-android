@@ -26,16 +26,20 @@ import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONDeDustSwapProviderConfig
+import io.ton.walletkit.api.generated.TONGetMethodResult
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
+import io.ton.walletkit.api.generated.TONMasterchainInfo
 import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
+import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSendTransactionResponse
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONSignatureDomain
@@ -48,10 +52,6 @@ import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTonStakersChainConfig
-import io.ton.walletkit.api.generated.TONGetMethodResult
-import io.ton.walletkit.api.generated.TONMasterchainInfo
-import io.ton.walletkit.api.generated.TONRawStackItem
-import io.ton.walletkit.api.generated.TONSendTransactionResponse
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransactionPreviewOptions
 import io.ton.walletkit.api.generated.TONTransactionRequest
@@ -100,6 +100,8 @@ import io.ton.walletkit.engine.operations.getStakedBalance
 import io.ton.walletkit.engine.operations.getStakingProviderInfo
 import io.ton.walletkit.engine.operations.getStakingQuote
 import io.ton.walletkit.engine.operations.getSupportedUnstakeModes
+import io.ton.walletkit.engine.operations.getSwapProviderMetadata
+import io.ton.walletkit.engine.operations.getSwapProviderSupportedNetworks
 import io.ton.walletkit.engine.operations.getSwapQuote
 import io.ton.walletkit.engine.operations.getTransactionPreview
 import io.ton.walletkit.engine.operations.getWallet
@@ -117,6 +119,7 @@ import io.ton.walletkit.engine.operations.registerSwapProvider
 import io.ton.walletkit.engine.operations.rejectConnect
 import io.ton.walletkit.engine.operations.rejectSignData
 import io.ton.walletkit.engine.operations.rejectTransaction
+import io.ton.walletkit.engine.operations.removeSwapProvider
 import io.ton.walletkit.engine.operations.removeWallet
 import io.ton.walletkit.engine.operations.responses.AddWalletResponse
 import io.ton.walletkit.engine.operations.responses.SignerInfoResponse
@@ -485,16 +488,44 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun registerSwapProvider(providerId: String) = rpcClient.registerSwapProvider(providerId)
 
+    override suspend fun removeSwapProvider(providerId: String) = rpcClient.removeSwapProvider(providerId)
+
     override suspend fun setDefaultSwapProvider(providerId: String) = rpcClient.setDefaultSwapProvider(providerId)
 
     override suspend fun getRegisteredSwapProviders(): List<String> = rpcClient.getRegisteredSwapProviders()
 
+    override suspend fun getSwapProviderMetadata(providerId: String) =
+        rpcClient.getSwapProviderMetadata(providerId)
+
+    override suspend fun getSwapProviderSupportedNetworks(providerId: String) =
+        rpcClient.getSwapProviderSupportedNetworks(providerId)
+
     override suspend fun hasSwapProvider(providerId: String): Boolean = rpcClient.hasSwapProvider(providerId)
 
-    override suspend fun registerKotlinSwapProvider(providerId: String) {
+    override suspend fun registerKotlinSwapProvider(
+        providerId: String,
+        metadata: io.ton.walletkit.api.generated.TONSwapProviderMetadata,
+        supportedNetworks: List<TONNetwork>,
+    ) {
         callBridgeMethod(
             BridgeMethodConstants.METHOD_REGISTER_KOTLIN_SWAP_PROVIDER,
-            buildJsonObject { put("providerId", providerId) },
+            buildJsonObject {
+                put("providerId", providerId)
+                put(
+                    "metadata",
+                    json.encodeToJsonElement(
+                        io.ton.walletkit.api.generated.TONSwapProviderMetadata.serializer(),
+                        metadata,
+                    ),
+                )
+                put(
+                    "supportedNetworks",
+                    json.encodeToJsonElement(
+                        kotlinx.serialization.builtins.ListSerializer(TONNetwork.serializer()),
+                        supportedNetworks,
+                    ),
+                )
+            },
         )
     }
 

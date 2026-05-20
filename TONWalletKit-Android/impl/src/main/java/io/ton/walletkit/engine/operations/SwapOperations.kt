@@ -22,8 +22,10 @@
 package io.ton.walletkit.engine.operations
 
 import io.ton.walletkit.api.generated.TONDeDustSwapProviderConfig
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
 import io.ton.walletkit.api.generated.TONSwapParams
+import io.ton.walletkit.api.generated.TONSwapProviderMetadata
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
@@ -32,13 +34,17 @@ import io.ton.walletkit.engine.infrastructure.callTyped
 import io.ton.walletkit.engine.operations.requests.BuildSwapTransactionRequest
 import io.ton.walletkit.engine.operations.requests.CreateDeDustSwapProviderRequest
 import io.ton.walletkit.engine.operations.requests.CreateOmnistonSwapProviderRequest
+import io.ton.walletkit.engine.operations.requests.GetSwapProviderMetadataRequest
+import io.ton.walletkit.engine.operations.requests.GetSwapProviderSupportedNetworksRequest
 import io.ton.walletkit.engine.operations.requests.GetSwapQuoteRequest
 import io.ton.walletkit.engine.operations.requests.HasSwapProviderRequest
 import io.ton.walletkit.engine.operations.requests.RegisterSwapProviderRequest
+import io.ton.walletkit.engine.operations.requests.RemoveSwapProviderRequest
 import io.ton.walletkit.engine.operations.requests.SetDefaultSwapProviderRequest
 import io.ton.walletkit.engine.operations.responses.HasProviderResponse
 import io.ton.walletkit.engine.operations.responses.ProviderIdResponse
 import io.ton.walletkit.engine.operations.responses.ProviderIdsResponse
+import io.ton.walletkit.engine.operations.responses.SupportedNetworksResponse
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -63,12 +69,28 @@ internal suspend fun BridgeRpcClient.registerSwapProvider(providerId: String) {
     send(BridgeMethodConstants.METHOD_REGISTER_SWAP_PROVIDER, RegisterSwapProviderRequest(providerId))
 }
 
+internal suspend fun BridgeRpcClient.removeSwapProvider(providerId: String) {
+    send(BridgeMethodConstants.METHOD_REMOVE_SWAP_PROVIDER, RemoveSwapProviderRequest(providerId))
+}
+
 internal suspend fun BridgeRpcClient.setDefaultSwapProvider(providerId: String) {
     send(BridgeMethodConstants.METHOD_SET_DEFAULT_SWAP_PROVIDER, SetDefaultSwapProviderRequest(providerId))
 }
 
 internal suspend fun BridgeRpcClient.getRegisteredSwapProviders(): List<String> =
     callTyped<ProviderIdsResponse>(BridgeMethodConstants.METHOD_GET_REGISTERED_SWAP_PROVIDERS).providerIds
+
+internal suspend fun BridgeRpcClient.getSwapProviderMetadata(providerId: String): TONSwapProviderMetadata =
+    callTyped(
+        BridgeMethodConstants.METHOD_GET_SWAP_PROVIDER_METADATA,
+        GetSwapProviderMetadataRequest(providerId),
+    )
+
+internal suspend fun BridgeRpcClient.getSwapProviderSupportedNetworks(providerId: String): List<TONNetwork> =
+    callTyped<SupportedNetworksResponse>(
+        BridgeMethodConstants.METHOD_GET_SWAP_PROVIDER_SUPPORTED_NETWORKS,
+        GetSwapProviderSupportedNetworksRequest(providerId),
+    ).networks
 
 internal suspend fun BridgeRpcClient.hasSwapProvider(providerId: String): Boolean =
     callTyped<HasProviderResponse>(

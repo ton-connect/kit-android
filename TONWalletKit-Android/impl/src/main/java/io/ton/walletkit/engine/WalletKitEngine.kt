@@ -24,16 +24,20 @@ package io.ton.walletkit.engine
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONDeDustSwapProviderConfig
+import io.ton.walletkit.api.generated.TONGetMethodResult
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
+import io.ton.walletkit.api.generated.TONMasterchainInfo
 import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
+import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSendTransactionResponse
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONSignatureDomain
@@ -46,10 +50,6 @@ import io.ton.walletkit.api.generated.TONSwapParams
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTonStakersChainConfig
-import io.ton.walletkit.api.generated.TONGetMethodResult
-import io.ton.walletkit.api.generated.TONMasterchainInfo
-import io.ton.walletkit.api.generated.TONRawStackItem
-import io.ton.walletkit.api.generated.TONSendTransactionResponse
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransactionPreviewOptions
 import io.ton.walletkit.api.generated.TONTransactionRequest
@@ -490,9 +490,15 @@ internal interface WalletKitEngine : RequestHandler {
 
     suspend fun registerSwapProvider(providerId: String)
 
+    suspend fun removeSwapProvider(providerId: String)
+
     suspend fun setDefaultSwapProvider(providerId: String)
 
     suspend fun getRegisteredSwapProviders(): List<String>
+
+    suspend fun getSwapProviderMetadata(providerId: String): io.ton.walletkit.api.generated.TONSwapProviderMetadata
+
+    suspend fun getSwapProviderSupportedNetworks(providerId: String): List<TONNetwork>
 
     suspend fun hasSwapProvider(providerId: String): Boolean
 
@@ -507,7 +513,11 @@ internal interface WalletKitEngine : RequestHandler {
      * with the JS swap manager. Called after [kotlinSwapProviderManager] has the Kotlin instance
      * so reverse-RPC calls can find it.
      */
-    suspend fun registerKotlinSwapProvider(providerId: String)
+    suspend fun registerKotlinSwapProvider(
+        providerId: String,
+        metadata: io.ton.walletkit.api.generated.TONSwapProviderMetadata,
+        supportedNetworks: List<TONNetwork>,
+    )
 
     suspend fun getSwapQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote
 

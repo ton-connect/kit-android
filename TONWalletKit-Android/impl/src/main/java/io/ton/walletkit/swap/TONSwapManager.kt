@@ -38,23 +38,40 @@ internal class TONSwapManager(
             // Built-in JS-backed provider: the JS side already has the instance; just register its name.
             engine.registerSwapProvider(provider.identifier.name)
         } else {
-            // Custom Kotlin provider: register locally so reverse-RPC calls from JS's ProxySwapProvider
-            // can reach it, then tell JS to create the proxy and register it with the JS swap manager.
+            // Custom Kotlin provider: pre-fetch metadata + supportedNetworks (JS-side ProxySwapProvider
+            // caches them at construction — per iOS TON-842 contract), register locally so reverse-RPC
+            // calls for quote/build reach the Kotlin instance, then have JS create the proxy.
             @Suppress("UNCHECKED_CAST")
             engine.kotlinSwapProviderManager.register(
                 provider.identifier.name,
                 provider as ITONSwapProvider<JsonElement, JsonElement>,
             )
-            engine.registerKotlinSwapProvider(provider.identifier.name)
+            val metadata = provider.metadata()
+            val supportedNetworks = provider.supportedNetworks()
+            engine.registerKotlinSwapProvider(provider.identifier.name, metadata, supportedNetworks)
         }
+    }
+
+    override suspend fun removeProvider(provider: ITONSwapProvider<*, *>) {
+        val name = provider.identifier.name
+        engine.removeSwapProvider(name)
+        // Local Kotlin registry is keyed by the same name; safe to drop unconditionally.
+        engine.kotlinSwapProviderManager.unregister(name)
     }
 
     override suspend fun setDefaultProvider(identifier: TONSwapProviderIdentifier<*, *>) {
         engine.setDefaultSwapProvider(identifier.name)
     }
 
-    override suspend fun registeredProviders(): List<AnyTONSwapProviderIdentifier> =
-        engine.getRegisteredSwapProviders().map { AnyTONSwapProviderIdentifier(it) }
+    override suspend fun providers(): List<ITONSwapProvider<JsonElement, JsonElement>> =
+        engine.getRegisteredSwapProviders().map { name ->
+            // Custom Kotlin provider: return the user's instance.
+            engine.kotlinSwapProviderManager.getProvider(name)
+                ?: BuiltInSwapProvider(
+                    identifier = AnyTONSwapProviderIdentifier(name),
+                    engine = engine,
+                )
+        }
 
     override suspend fun hasProvider(identifier: TONSwapProviderIdentifier<*, *>): Boolean =
         engine.hasSwapProvider(identifier.name)

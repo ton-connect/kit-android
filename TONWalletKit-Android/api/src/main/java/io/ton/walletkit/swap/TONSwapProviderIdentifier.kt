@@ -35,8 +35,8 @@ interface TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions> {
 }
 
 /**
- * Type-erased swap provider identifier returned by [ITONSwapManager.registeredProviders].
- * Analogous to iOS's `AnyTONProviderIdentifier`.
+ * Type-erased swap provider identifier used by [ITONSwapManager.providers].
+ * Analogous to iOS's `AnyTONSwapProviderIdentifier`.
  */
 data class AnyTONSwapProviderIdentifier(override val name: String) :
     TONSwapProviderIdentifier<JsonElement, JsonElement>
