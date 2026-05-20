@@ -23,23 +23,21 @@ package io.ton.walletkit.core
 
 import io.ton.walletkit.api.generated.TONGetMethodResult
 import io.ton.walletkit.api.generated.TONMasterchainInfo
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.model.TONBase64
 import io.ton.walletkit.model.TONUserFriendlyAddress
 
-/**
- * [TONAPIClient] backed by the JS-side `ApiClient` bound to a specific wallet — the
- * Android counterpart of iOS `JSTONAPIClient`.
- *
- * Every method delegates to the engine, which routes through the WebView bridge to
- * the wallet's underlying JS client (custom or built-in).
- */
+/** Android counterpart of iOS `JSTONAPIClient` — routes through the WebView bridge. */
 internal class BridgedJSAPIClient(
     private val walletId: String,
     private val engine: WalletKitEngine,
+    private val walletNetwork: TONNetwork,
 ) : TONAPIClient {
+
+    override fun network(): TONNetwork = walletNetwork
 
     override suspend fun sendBoc(boc: TONBase64): String =
         engine.walletClientSendBoc(walletId, boc.value)

@@ -93,6 +93,8 @@ internal interface WalletKitEngine : RequestHandler {
     val streamingEvents: SharedFlow<StreamingEvent>
     val kotlinStreamingProviderManager: KotlinStreamingProviderManager
 
+    val network: TONNetwork
+
     /**
      * Initialize WalletKit with custom configuration. This must be called before any other method;
      * subsequent calls are ignored once initialization succeeds.

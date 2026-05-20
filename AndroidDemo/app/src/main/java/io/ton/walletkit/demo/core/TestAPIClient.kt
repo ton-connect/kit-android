@@ -60,6 +60,8 @@ class TestAPIClient(
 
     private val tag = "TestAPIClient"
 
+    override fun network(): TONNetwork = network
+
     override suspend fun sendBoc(boc: TONBase64): String {
         Log.d(tag, "sendBoc called on network: ${network.chainId}")
         Log.d(tag, "BOC (first 50 chars): ${boc.value.take(50)}...")
@@ -161,6 +163,8 @@ class ToncenterAPIClient(
 
     private val tag = "ToncenterAPIClient"
 
+    override fun network(): TONNetwork = network
+
     override suspend fun sendBoc(boc: TONBase64): String {
         Log.d(tag, "🚀 [Toncenter] sendBoc on ${network.chainId}")
         delay(100)
@@ -220,6 +224,8 @@ class TonAPIClient(
 ) : TONAPIClient {
 
     private val tag = "TonAPIClient"
+
+    override fun network(): TONNetwork = network
 
     override suspend fun sendBoc(boc: TONBase64): String {
         Log.d(tag, "🚀 [TonAPI] sendBoc on ${network.chainId}")

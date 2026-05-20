@@ -446,6 +446,13 @@ internal class WebViewManager(
         }
 
         @JavascriptInterface
+        fun apiGetNetworkForChainId(chainId: String): String {
+            val client = apiClients.find { it.first.chainId == chainId }?.second
+                ?: throw IllegalArgumentException("No API client configured for chainId: $chainId")
+            return json.encodeToString(client.network())
+        }
+
+        @JavascriptInterface
         fun apiSendBoc(networkJson: String, boc: String): String {
             val network = json.decodeFromString<TONNetwork>(networkJson)
             val client = apiClients.find { it.first == network }?.second

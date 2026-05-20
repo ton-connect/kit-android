@@ -182,6 +182,7 @@ internal class WebViewWalletKitEngine private constructor(
     private val storageAdapter: BridgeStorageAdapter,
     private val sessionManager: TONConnectSessionManager?,
     private val apiClients: List<Pair<TONNetwork, TONAPIClient>>,
+    override val network: TONNetwork,
     private val assetPath: String = WebViewConstants.DEFAULT_ASSET_PATH,
 ) : WalletKitEngine {
     override val streamingEvents get() = messageDispatcher.streamingEvents
@@ -723,7 +724,7 @@ internal class WebViewWalletKitEngine private constructor(
 
                     Logger.d(TAG, "Creating new WebView engine for network: $network")
                     val storageAdapter = createStorageAdapter(context, configuration.storageType)
-                    WebViewWalletKitEngine(context, eventsHandler, storageAdapter, configuration.sessionManager, configuration.apiClients, assetPath).also {
+                    WebViewWalletKitEngine(context, eventsHandler, storageAdapter, configuration.sessionManager, configuration.apiClients, network, assetPath).also {
                         instances[network] = it
                     }
                 }

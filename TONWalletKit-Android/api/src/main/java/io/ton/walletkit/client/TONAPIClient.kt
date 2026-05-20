@@ -23,40 +23,20 @@ package io.ton.walletkit.client
 
 import io.ton.walletkit.api.generated.TONGetMethodResult
 import io.ton.walletkit.api.generated.TONMasterchainInfo
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.model.TONBase64
 import io.ton.walletkit.model.TONUserFriendlyAddress
 
 /**
- * Interface for custom API client implementations.
- *
- * Implement this interface to provide custom TON blockchain API access. Mirrors the
- * iOS `TONAPIClient` protocol — the three responsibilities a wallet kit needs from a
- * user-supplied client: send signed BOCs, run contract get methods, and read masterchain
- * info. Network identity is established at registration time via
- * [io.ton.walletkit.config.TONWalletKitConfiguration.NetworkConfiguration], not on the
- * client itself.
+ * Interface for custom API client implementations. Mirrors iOS `TONAPIClient` protocol.
  */
 interface TONAPIClient {
-    /**
-     * Send a signed BOC (Bag of Cells) to the network.
-     *
-     * @param boc The base64-encoded BOC to send
-     * @return The transaction hash or message ID
-     * @throws Exception if the send fails
-     */
+    /** Must not block — the JS bridge reads this synchronously via `apiGetNetworkForChainId`. */
+    fun network(): TONNetwork
+
     suspend fun sendBoc(boc: TONBase64): String
 
-    /**
-     * Run a get method on a smart contract.
-     *
-     * @param address The contract address
-     * @param method The method name to call
-     * @param stack Optional stack items to pass as arguments
-     * @param seqno Optional seqno for historical state queries
-     * @return The get method result including gas used, exit code, and stack
-     * @throws Exception if the call fails
-     */
     suspend fun runGetMethod(
         address: TONUserFriendlyAddress,
         method: String,
@@ -64,11 +44,5 @@ interface TONAPIClient {
         seqno: Int? = null,
     ): TONGetMethodResult
 
-    /**
-     * Get the latest masterchain block info.
-     *
-     * @return The masterchain info including seqno, shard, workchain, and hashes
-     * @throws Exception if the query fails
-     */
     suspend fun getMasterchainInfo(): TONMasterchainInfo
 }
