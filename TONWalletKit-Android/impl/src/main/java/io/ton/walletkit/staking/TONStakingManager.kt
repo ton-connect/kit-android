@@ -21,18 +21,16 @@
  */
 package io.ton.walletkit.staking
 
-import io.ton.walletkit.AnyTONProviderIdentifier
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONStakeParams
 import io.ton.walletkit.api.generated.TONStakingBalance
 import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingProviderMetadata
 import io.ton.walletkit.api.generated.TONStakingQuote
 import io.ton.walletkit.api.generated.TONStakingQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
-import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.model.TONUserFriendlyAddress
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
@@ -45,35 +43,43 @@ internal class TONStakingManager(
     private val engine: WalletKitEngine,
 ) : ITONStakingManager {
 
-    private val json = Json { ignoreUnknownKeys = true }
-
     override suspend fun register(provider: ITONStakingProvider<*, *>) {
         if (provider is BuiltInStakingProvider<*, *>) {
             // Built-in JS-backed provider: the JS side already has the instance; just register its name.
             engine.registerStakingProvider(provider.identifier.name)
         } else {
-            // Custom Kotlin provider: register locally so reverse-RPC calls from JS's ProxyStakingProvider
-            // can reach it, then tell JS to create the proxy and register it with the JS staking manager.
+            // Custom Kotlin provider: pre-fetch metadata + supportedNetworks (JS-side ProxyStakingProvider
+            // caches them at construction — per iOS TON-841 contract), register locally so reverse-RPC
+            // calls for quote/build reach the Kotlin instance, then have JS create the proxy.
             @Suppress("UNCHECKED_CAST")
             val typedProvider = provider as ITONStakingProvider<JsonElement, JsonElement>
             engine.kotlinStakingProviderManager.register(provider.identifier.name, typedProvider)
-            // Pre-fetch supported unstake modes so the JS proxy can satisfy its synchronous
-            // `getSupportedUnstakeModes()` contract without a round-trip.
-            val modes = typedProvider.getSupportedUnstakeModes()
-            val modesJson = json.encodeToString(
-                ListSerializer(TONUnstakeMode.serializer()),
-                modes,
-            )
-            engine.registerKotlinStakingProvider(provider.identifier.name, modesJson)
+            val metadata = typedProvider.metadata()
+            val supportedNetworks = typedProvider.supportedNetworks()
+            engine.registerKotlinStakingProvider(provider.identifier.name, metadata, supportedNetworks)
         }
+    }
+
+    override suspend fun remove(provider: ITONStakingProvider<*, *>) {
+        val name = provider.identifier.name
+        engine.removeStakingProvider(name)
+        // Local Kotlin registry is keyed by the same name; safe to drop unconditionally.
+        engine.kotlinStakingProviderManager.unregister(name)
     }
 
     override suspend fun setDefaultProvider(identifier: TONStakingProviderIdentifier<*, *>) {
         engine.setDefaultStakingProvider(identifier.name)
     }
 
-    override suspend fun registeredProviders(): List<AnyTONProviderIdentifier> =
-        engine.getRegisteredStakingProviders().map { AnyTONProviderIdentifier(it) }
+    override suspend fun providers(): List<ITONStakingProvider<JsonElement, JsonElement>> =
+        engine.getRegisteredStakingProviders().map { name ->
+            // Custom Kotlin provider: return the user's instance.
+            engine.kotlinStakingProviderManager.getProvider(name)
+                ?: BuiltInStakingProvider(
+                    identifier = AnyTONStakingProviderIdentifier(name),
+                    engine = engine,
+                )
+        }
 
     override suspend fun hasProvider(identifier: TONStakingProviderIdentifier<*, *>): Boolean =
         engine.hasStakingProvider(identifier.name)
@@ -89,6 +95,11 @@ internal class TONStakingManager(
         // Built-in JS-backed provider: wrap in a fresh handle that talks to the engine.
         return BuiltInStakingProvider(identifier, engine)
     }
+
+    override suspend fun metadata(
+        network: TONNetwork?,
+        identifier: TONStakingProviderIdentifier<*, *>?,
+    ): TONStakingProviderMetadata = engine.getStakingProviderMetadata(network, identifier?.name)
 
     override suspend fun <TQuoteOptions, TStakeOptions> getQuote(
         params: TONStakingQuoteParams<TQuoteOptions>,
@@ -135,12 +146,8 @@ internal class TONStakingManager(
         identifier: TONStakingProviderIdentifier<*, *>?,
     ): TONStakingBalance = engine.getStakedBalance(userAddress.value, network, identifier?.name)
 
-    override suspend fun getStakingProviderInfo(
+    override suspend fun info(
         network: TONNetwork?,
         identifier: TONStakingProviderIdentifier<*, *>?,
     ): TONStakingProviderInfo = engine.getStakingProviderInfo(network, identifier?.name)
-
-    override suspend fun getSupportedUnstakeModes(
-        identifier: TONStakingProviderIdentifier<*, *>?,
-    ): List<TONUnstakeMode> = engine.getSupportedUnstakeModes(identifier?.name)
 }

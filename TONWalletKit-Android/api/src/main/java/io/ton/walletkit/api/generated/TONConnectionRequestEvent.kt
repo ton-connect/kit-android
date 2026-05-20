@@ -109,7 +109,7 @@ data class TONConnectionRequestEvent(
     @SerialName(value = "returnStrategy")
     val returnStrategy: kotlin.String? = null,
 
-    @SerialName("embeddedRequest")
+    @SerialName(value = "embeddedRequest")
     val embeddedRequest: TONEmbeddedRequest? = null,
 
 ) {

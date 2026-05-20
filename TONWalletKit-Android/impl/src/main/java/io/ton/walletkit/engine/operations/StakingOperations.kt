@@ -25,25 +25,28 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONStakeParams
 import io.ton.walletkit.api.generated.TONStakingBalance
 import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingProviderMetadata
 import io.ton.walletkit.api.generated.TONStakingQuote
 import io.ton.walletkit.api.generated.TONStakingQuoteParams
 import io.ton.walletkit.api.generated.TONTonStakersChainConfig
 import io.ton.walletkit.api.generated.TONTransactionRequest
-import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.callTyped
 import io.ton.walletkit.engine.operations.requests.BuildStakeTransactionRequest
 import io.ton.walletkit.engine.operations.requests.CreateTonStakersStakingProviderRequest
 import io.ton.walletkit.engine.operations.requests.GetStakedBalanceRequest
 import io.ton.walletkit.engine.operations.requests.GetStakingProviderInfoRequest
+import io.ton.walletkit.engine.operations.requests.GetStakingProviderMetadataRequest
+import io.ton.walletkit.engine.operations.requests.GetStakingProviderSupportedNetworksRequest
 import io.ton.walletkit.engine.operations.requests.GetStakingQuoteRequest
-import io.ton.walletkit.engine.operations.requests.GetSupportedUnstakeModesRequest
 import io.ton.walletkit.engine.operations.requests.HasStakingProviderRequest
 import io.ton.walletkit.engine.operations.requests.RegisterStakingProviderRequest
+import io.ton.walletkit.engine.operations.requests.RemoveStakingProviderRequest
 import io.ton.walletkit.engine.operations.requests.SetDefaultStakingProviderRequest
 import io.ton.walletkit.engine.operations.responses.HasProviderResponse
 import io.ton.walletkit.engine.operations.responses.ProviderIdResponse
 import io.ton.walletkit.engine.operations.responses.ProviderIdsResponse
+import io.ton.walletkit.engine.operations.responses.SupportedNetworksResponse
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import kotlinx.serialization.json.JsonElement
 
@@ -58,6 +61,10 @@ internal suspend fun BridgeRpcClient.registerStakingProvider(providerId: String)
     send(BridgeMethodConstants.METHOD_REGISTER_STAKING_PROVIDER, RegisterStakingProviderRequest(providerId))
 }
 
+internal suspend fun BridgeRpcClient.removeStakingProvider(providerId: String) {
+    send(BridgeMethodConstants.METHOD_REMOVE_STAKING_PROVIDER, RemoveStakingProviderRequest(providerId))
+}
+
 internal suspend fun BridgeRpcClient.setDefaultStakingProvider(providerId: String) {
     send(BridgeMethodConstants.METHOD_SET_DEFAULT_STAKING_PROVIDER, SetDefaultStakingProviderRequest(providerId))
 }
@@ -70,6 +77,21 @@ internal suspend fun BridgeRpcClient.hasStakingProvider(providerId: String): Boo
         BridgeMethodConstants.METHOD_HAS_STAKING_PROVIDER,
         HasStakingProviderRequest(providerId),
     ).result
+
+internal suspend fun BridgeRpcClient.getStakingProviderMetadata(
+    network: TONNetwork?,
+    providerId: String?,
+): TONStakingProviderMetadata = callTyped(
+    BridgeMethodConstants.METHOD_GET_STAKING_PROVIDER_METADATA,
+    GetStakingProviderMetadataRequest(network = network, providerId = providerId),
+)
+
+internal suspend fun BridgeRpcClient.getStakingProviderSupportedNetworks(
+    providerId: String,
+): List<TONNetwork> = callTyped<SupportedNetworksResponse>(
+    BridgeMethodConstants.METHOD_GET_STAKING_PROVIDER_SUPPORTED_NETWORKS,
+    GetStakingProviderSupportedNetworksRequest(providerId),
+).networks
 
 internal suspend fun BridgeRpcClient.getStakingQuote(
     params: TONStakingQuoteParams<JsonElement>,
@@ -116,9 +138,3 @@ internal suspend fun BridgeRpcClient.getStakingProviderInfo(
     BridgeMethodConstants.METHOD_GET_STAKING_PROVIDER_INFO,
     GetStakingProviderInfoRequest(network = network, providerId = providerId),
 )
-
-internal suspend fun BridgeRpcClient.getSupportedUnstakeModes(providerId: String?): List<TONUnstakeMode> =
-    callTyped(
-        BridgeMethodConstants.METHOD_GET_SUPPORTED_UNSTAKE_MODES,
-        GetSupportedUnstakeModesRequest(providerId = providerId),
-    )

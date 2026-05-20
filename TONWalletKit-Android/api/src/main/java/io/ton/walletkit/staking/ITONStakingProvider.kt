@@ -26,6 +26,7 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONStakeParams
 import io.ton.walletkit.api.generated.TONStakingBalance
 import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingProviderMetadata
 import io.ton.walletkit.api.generated.TONStakingQuote
 import io.ton.walletkit.api.generated.TONStakingQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
@@ -47,6 +48,12 @@ interface ITONStakingProvider<TQuoteOptions, TStakeOptions> {
     /** Typed provider identifier. */
     val identifier: TONStakingProviderIdentifier<TQuoteOptions, TStakeOptions>
 
+    /** Static metadata (name, supported unstake modes, tokens) — optionally network-scoped. */
+    suspend fun metadata(network: TONNetwork? = null): TONStakingProviderMetadata
+
+    /** Networks this provider can operate on. */
+    suspend fun supportedNetworks(): List<TONNetwork>
+
     /** Get a stake or unstake quote from this provider. */
     suspend fun getQuote(params: TONStakingQuoteParams<TQuoteOptions>): TONStakingQuote
 
@@ -59,9 +66,10 @@ interface ITONStakingProvider<TQuoteOptions, TStakeOptions> {
         network: TONNetwork? = null,
     ): TONStakingBalance
 
-    /** Get general info (APY, instant-unstake liquidity) for this provider. */
-    suspend fun getStakingProviderInfo(network: TONNetwork? = null): TONStakingProviderInfo
+    /** Get dynamic info (APY, instant-unstake liquidity) for this provider. */
+    suspend fun info(network: TONNetwork? = null): TONStakingProviderInfo
 
-    /** Unstake modes supported by this provider. */
-    suspend fun getSupportedUnstakeModes(): List<TONUnstakeMode>
+    /** Unstake modes supported by this provider. Derived from [metadata] by default. */
+    suspend fun supportedUnstakeModes(network: TONNetwork? = null): List<TONUnstakeMode> =
+        metadata(network).supportedUnstakeModes
 }

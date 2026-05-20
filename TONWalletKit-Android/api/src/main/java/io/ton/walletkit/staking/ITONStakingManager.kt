@@ -21,11 +21,11 @@
  */
 package io.ton.walletkit.staking
 
-import io.ton.walletkit.AnyTONProviderIdentifier
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONStakeParams
 import io.ton.walletkit.api.generated.TONStakingBalance
 import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingProviderMetadata
 import io.ton.walletkit.api.generated.TONStakingQuote
 import io.ton.walletkit.api.generated.TONStakingQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
@@ -46,11 +46,17 @@ interface ITONStakingManager {
      */
     suspend fun register(provider: ITONStakingProvider<*, *>)
 
+    /** Unregister [provider]; no-op if it isn't currently registered. */
+    suspend fun remove(provider: ITONStakingProvider<*, *>)
+
     /** Set the default provider used when no identifier is passed to query methods. */
     suspend fun setDefaultProvider(identifier: TONStakingProviderIdentifier<*, *>)
 
-    /** Returns type-erased identifiers for all currently registered staking providers. */
-    suspend fun registeredProviders(): List<AnyTONProviderIdentifier>
+    /**
+     * All currently-registered providers as type-erased handles. Mirrors iOS
+     * `providers() -> [TONStakingProvider<AnyTONStakingProviderIdentifier>]`.
+     */
+    suspend fun providers(): List<ITONStakingProvider<JsonElement, JsonElement>>
 
     /** Returns true if a provider with the given [identifier] is currently registered. */
     suspend fun hasProvider(identifier: TONStakingProviderIdentifier<*, *>): Boolean
@@ -62,6 +68,15 @@ interface ITONStakingManager {
     suspend fun <TQuoteOptions, TStakeOptions> provider(
         identifier: TONStakingProviderIdentifier<TQuoteOptions, TStakeOptions>,
     ): ITONStakingProvider<TQuoteOptions, TStakeOptions>?
+
+    /**
+     * Get static metadata (name, supported unstake modes, tokens) for the provider with [identifier],
+     * or the default provider when [identifier] is null. Mirrors iOS `metadata(network:identifier:)`.
+     */
+    suspend fun metadata(
+        network: TONNetwork? = null,
+        identifier: TONStakingProviderIdentifier<*, *>? = null,
+    ): TONStakingProviderMetadata
 
     /**
      * Get a stake or unstake quote from the provider with [identifier]. Mirrors iOS
@@ -107,20 +122,20 @@ interface ITONStakingManager {
     ): TONStakingBalance
 
     /**
-     * Get general information about a staking provider (APY, instant-unstake liquidity).
+     * Get dynamic information about a staking provider (APY, instant-unstake liquidity).
      * @param network TON network (uses current network when null)
      * @param identifier Provider identifier (uses bridge default when null)
      */
-    suspend fun getStakingProviderInfo(
+    suspend fun info(
         network: TONNetwork? = null,
         identifier: TONStakingProviderIdentifier<*, *>? = null,
     ): TONStakingProviderInfo
 
     /**
-     * Get the unstake modes supported by a staking provider.
-     * @param identifier Provider identifier (uses bridge default when null)
+     * Unstake modes supported by a staking provider. Derived from [metadata] — same as iOS.
      */
-    suspend fun getSupportedUnstakeModes(
+    suspend fun supportedUnstakeModes(
+        network: TONNetwork? = null,
         identifier: TONStakingProviderIdentifier<*, *>? = null,
-    ): List<TONUnstakeMode>
+    ): List<TONUnstakeMode> = metadata(network, identifier).supportedUnstakeModes
 }

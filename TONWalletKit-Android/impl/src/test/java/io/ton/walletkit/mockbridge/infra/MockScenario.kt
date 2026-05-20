@@ -99,6 +99,7 @@ interface MockScenario {
             override fun address(testnet: Boolean) = address
             override suspend fun stateInit() = TONBase64("")
             override suspend fun signedSendTransaction(input: TONTransactionRequest, fakeSignature: Boolean?) = TONBase64("")
+            override suspend fun signedSignMessage(input: TONTransactionRequest, fakeSignature: Boolean?) = TONBase64("")
             override suspend fun signedSignData(input: TONPreparedSignData, fakeSignature: Boolean?) = TONHex("")
             override suspend fun signedTonProof(input: TONProofMessage, fakeSignature: Boolean?) = TONHex("")
         }

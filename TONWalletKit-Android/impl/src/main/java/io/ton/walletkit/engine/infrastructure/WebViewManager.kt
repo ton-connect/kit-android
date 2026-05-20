@@ -83,7 +83,7 @@ internal class WebViewManager(
     private val assetPath: String,
     private val storageManager: StorageManager,
     private val sessionManager: TONConnectSessionManager?,
-    private val apiClients: List<TONAPIClient>,
+    private val apiClients: List<Pair<TONNetwork, TONAPIClient>>,
     private val adapterManager: AdapterManager,
     private val json: Json,
     private val onMessage: (JsonObject) -> Unit,
@@ -439,8 +439,8 @@ internal class WebViewManager(
                 return "[]"
             }
 
-            val networks = apiClients.map { client ->
-                json.encodeToString(client.network)
+            val networks = apiClients.map { (network, _) ->
+                json.encodeToString(network)
             }
             return "[${ networks.joinToString(",") }]"
         }
@@ -448,7 +448,7 @@ internal class WebViewManager(
         @JavascriptInterface
         fun apiSendBoc(networkJson: String, boc: String): String {
             val network = json.decodeFromString<TONNetwork>(networkJson)
-            val client = apiClients.find { it.network == network }
+            val client = apiClients.find { it.first == network }?.second
                 ?: throw IllegalArgumentException("No API client configured for network: $network")
 
             return runBlocking {
@@ -471,7 +471,7 @@ internal class WebViewManager(
             seqno: Int,
         ): String {
             val network = json.decodeFromString<TONNetwork>(networkJson)
-            val client = apiClients.find { it.network == network }
+            val client = apiClients.find { it.first == network }?.second
                 ?: throw IllegalArgumentException("No API client configured for network: $network")
 
             return runBlocking {
@@ -489,31 +489,9 @@ internal class WebViewManager(
         }
 
         @JavascriptInterface
-        fun apiGetBalance(
-            networkJson: String,
-            address: String,
-            seqno: Int,
-        ): String {
-            val network = json.decodeFromString<TONNetwork>(networkJson)
-            val client = apiClients.find { it.network == network }
-                ?: throw IllegalArgumentException("No API client configured for network: $network")
-
-            return runBlocking {
-                try {
-                    Logger.d(TAG, "apiGetBalance: network=$network, address=$address")
-                    val seqnoArg = if (seqno == -1) null else seqno
-                    client.getBalance(TONUserFriendlyAddress(address), seqnoArg)
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to get balance for: $address", e)
-                    throw e
-                }
-            }
-        }
-
-        @JavascriptInterface
         fun apiGetMasterchainInfo(networkJson: String): String {
             val network = json.decodeFromString<TONNetwork>(networkJson)
-            val client = apiClients.find { it.network == network }
+            val client = apiClients.find { it.first == network }?.second
                 ?: throw IllegalArgumentException("No API client configured for network: $network")
 
             return runBlocking {

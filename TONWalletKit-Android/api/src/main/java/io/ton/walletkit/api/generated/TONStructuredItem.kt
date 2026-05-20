@@ -37,6 +37,8 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
@@ -102,24 +104,30 @@ sealed class TONStructuredItem {
             val jsonDecoder = decoder as? JsonDecoder
                 ?: throw SerializationException("TONStructuredItem can only be deserialized from JSON")
 
-            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
+            // Cases without an associated value arrive as bare strings on the wire
+            // (e.g. "empty" rather than { "type": "empty" }). Accept both shapes so the
+            // discriminated-union decode doesn't crash with "JsonLiteral is not a JsonObject".
+            val element = jsonDecoder.decodeJsonElement()
+            val asPrimitive = element as? JsonPrimitive
+            val jsonObject: JsonObject? = if (asPrimitive != null && asPrimitive.isString) null else element.jsonObject
+            val discriminatorValue: String = jsonObject?.get(DISCRIMINATOR_FIELD)?.jsonPrimitive?.content
+                ?: asPrimitive?.content
                 ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for TONStructuredItem")
 
             return when (discriminatorValue) {
                 "ton" ->
                     Ton(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<TONTonTransferItem>(), jsonObject),
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONTonTransferItem>(), jsonObject ?: throw SerializationException("Expected JSON object for TONStructuredItem.Ton")),
                     )
 
                 "jetton" ->
                     Jetton(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<TONJettonTransferItem>(), jsonObject),
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONJettonTransferItem>(), jsonObject ?: throw SerializationException("Expected JSON object for TONStructuredItem.Jetton")),
                     )
 
                 "nft" ->
                     Nft(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<TONNftTransferItem>(), jsonObject),
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONNftTransferItem>(), jsonObject ?: throw SerializationException("Expected JSON object for TONStructuredItem.Nft")),
                     )
 
                 else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for TONStructuredItem")

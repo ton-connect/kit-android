@@ -30,6 +30,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -128,8 +129,14 @@ sealed class {{classname}} {
             val jsonDecoder = decoder as? JsonDecoder
                 ?: throw SerializationException("{{classname}} can only be deserialized from JSON")
 
-            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
+            // Cases without an associated value arrive as bare strings on the wire
+            // (e.g. "empty" rather than { "type": "empty" }). Accept both shapes so the
+            // discriminated-union decode doesn't crash with "JsonLiteral is not a JsonObject".
+            val element = jsonDecoder.decodeJsonElement()
+            val asPrimitive = element as? JsonPrimitive
+            val jsonObject: JsonObject? = if (asPrimitive != null && asPrimitive.isString) null else element.jsonObject
+            val discriminatorValue: String = jsonObject?.get(DISCRIMINATOR_FIELD)?.jsonPrimitive?.content
+                ?: asPrimitive?.content
                 ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for {{classname}}")
 
             return when (discriminatorValue) {
@@ -143,12 +150,12 @@ sealed class {{classname}} {
 {{^vendorExtensions.x-single-field-optional}}
                 "{{vendorExtensions.x-enum-case-raw-value}}" ->
                     {{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}}(
-                        {{{vendorExtensions.x-single-field-name}}} = jsonDecoder.json.decodeFromJsonElement(serializer<{{{dataType}}}>(), jsonObject["{{{vendorExtensions.x-single-field-name}}}"] ?: throw SerializationException("Missing '{{{vendorExtensions.x-single-field-name}}}' for {{classname}}"))
+                        {{{vendorExtensions.x-single-field-name}}} = jsonDecoder.json.decodeFromJsonElement(serializer<{{{dataType}}}>(), jsonObject?.get("{{{vendorExtensions.x-single-field-name}}}") ?: throw SerializationException("Missing '{{{vendorExtensions.x-single-field-name}}}' for {{classname}}"))
                     )
 {{/vendorExtensions.x-single-field-optional}}
 {{#vendorExtensions.x-single-field-optional}}
                 "{{vendorExtensions.x-enum-case-raw-value}}" -> {
-                    val fieldElement = jsonObject["{{{vendorExtensions.x-single-field-name}}}"]
+                    val fieldElement = jsonObject?.get("{{{vendorExtensions.x-single-field-name}}}")
                     if (fieldElement != null) {
                         {{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}}(
                             {{{vendorExtensions.x-single-field-name}}} = jsonDecoder.json.decodeFromJsonElement(serializer<{{{dataType}}}>(), fieldElement)
@@ -162,7 +169,7 @@ sealed class {{classname}} {
 {{^vendorExtensions.x-empty-variant}}{{^vendorExtensions.x-single-field-variant}}
                 "{{vendorExtensions.x-enum-case-raw-value}}" ->
                     {{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}}(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<{{{dataType}}}>(), jsonObject)
+                        jsonDecoder.json.decodeFromJsonElement(serializer<{{{dataType}}}>(), jsonObject ?: throw SerializationException("Expected JSON object for {{classname}}.{{#lambda.titlecase}}{{vendorExtensions.x-enum-case-name}}{{/lambda.titlecase}}"))
                     )
 {{/vendorExtensions.x-single-field-variant}}{{/vendorExtensions.x-empty-variant}}
 {{/vendorExtensions.x-enum-case-name}}

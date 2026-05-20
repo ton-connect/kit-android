@@ -70,6 +70,13 @@ internal class BridgeWalletAdapter(
         throw UnsupportedOperationException("BridgeWalletAdapter delegates to JS engine")
     }
 
+    override suspend fun signedSignMessage(
+        input: TONTransactionRequest,
+        fakeSignature: Boolean?,
+    ): TONBase64 {
+        throw UnsupportedOperationException("BridgeWalletAdapter delegates to JS engine")
+    }
+
     override suspend fun signedSignData(
         input: TONPreparedSignData,
         fakeSignature: Boolean?,

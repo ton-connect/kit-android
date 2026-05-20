@@ -71,11 +71,11 @@ import kotlinx.parcelize.Parcelize
     @SerialName("{{{baseName}}}")
     private val {{{name}}}: {{{dataType}}}{{^required}}? = null{{/required}}{{/vendorExtensions.x-frozen}}
 {{^vendorExtensions.x-frozen}}
-{{#vendorExtensions.x-interface-union}}
+{{#vendorExtensions.x-inline-interface-union}}
     @SerialName("{{{baseName}}}")
-    val {{{name}}}: {{#lambda.titlecase}}{{{name}}}{{/lambda.titlecase}}{{^required}}? = null{{/required}}{{/vendorExtensions.x-interface-union}}
-{{^vendorExtensions.x-interface-union}}
-{{#required}}{{>data_class_req_var}}{{/required}}{{^required}}{{>data_class_opt_var}}{{/required}}{{/vendorExtensions.x-interface-union}}
+    val {{{name}}}: {{#lambda.titlecase}}{{{name}}}{{/lambda.titlecase}}{{^required}}? = null{{/required}}{{/vendorExtensions.x-inline-interface-union}}
+{{^vendorExtensions.x-inline-interface-union}}
+{{#required}}{{>data_class_req_var}}{{/required}}{{^required}}{{>data_class_opt_var}}{{/required}}{{/vendorExtensions.x-inline-interface-union}}
 {{/vendorExtensions.x-frozen}}
 {{^-last}},{{/-last}}
 

@@ -37,6 +37,8 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
@@ -102,24 +104,30 @@ sealed class TONStreamingUpdate {
             val jsonDecoder = decoder as? JsonDecoder
                 ?: throw SerializationException("TONStreamingUpdate can only be deserialized from JSON")
 
-            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
+            // Cases without an associated value arrive as bare strings on the wire
+            // (e.g. "empty" rather than { "type": "empty" }). Accept both shapes so the
+            // discriminated-union decode doesn't crash with "JsonLiteral is not a JsonObject".
+            val element = jsonDecoder.decodeJsonElement()
+            val asPrimitive = element as? JsonPrimitive
+            val jsonObject: JsonObject? = if (asPrimitive != null && asPrimitive.isString) null else element.jsonObject
+            val discriminatorValue: String = jsonObject?.get(DISCRIMINATOR_FIELD)?.jsonPrimitive?.content
+                ?: asPrimitive?.content
                 ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for TONStreamingUpdate")
 
             return when (discriminatorValue) {
                 "balance" ->
                     Balance(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<TONBalanceUpdate>(), jsonObject),
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONBalanceUpdate>(), jsonObject ?: throw SerializationException("Expected JSON object for TONStreamingUpdate.Balance")),
                     )
 
                 "transactions" ->
                     Transactions(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionsUpdate>(), jsonObject),
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionsUpdate>(), jsonObject ?: throw SerializationException("Expected JSON object for TONStreamingUpdate.Transactions")),
                     )
 
                 "jettons" ->
                     Jettons(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<TONJettonUpdate>(), jsonObject),
+                        jsonDecoder.json.decodeFromJsonElement(serializer<TONJettonUpdate>(), jsonObject ?: throw SerializationException("Expected JSON object for TONStreamingUpdate.Jettons")),
                     )
 
                 else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for TONStreamingUpdate")

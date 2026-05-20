@@ -21,7 +21,9 @@
  */
 package io.ton.walletkit.swap
 
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSwapParams
+import io.ton.walletkit.api.generated.TONSwapProviderMetadata
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
@@ -42,6 +44,12 @@ internal class BuiltInSwapProvider<TQuoteOptions, TSwapOptions>(
     override val identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
     private val engine: WalletKitEngine,
 ) : ITONSwapProvider<TQuoteOptions, TSwapOptions> {
+
+    override suspend fun metadata(): TONSwapProviderMetadata =
+        engine.getSwapProviderMetadata(identifier.name)
+
+    override suspend fun supportedNetworks(): List<TONNetwork> =
+        engine.getSwapProviderSupportedNetworks(identifier.name)
 
     override suspend fun quote(params: TONSwapQuoteParams<TQuoteOptions>): TONSwapQuote {
         val jsonOptions = params.providerOptions?.let {

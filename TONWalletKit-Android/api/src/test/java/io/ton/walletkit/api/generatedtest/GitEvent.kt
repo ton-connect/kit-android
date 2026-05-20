@@ -41,6 +41,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -107,20 +108,26 @@ sealed class GitEvent {
             val jsonDecoder = decoder as? JsonDecoder
                 ?: throw SerializationException("GitEvent can only be deserialized from JSON")
 
-            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
+            // Cases without an associated value arrive as bare strings on the wire
+            // (e.g. "empty" rather than { "type": "empty" }). Accept both shapes so the
+            // discriminated-union decode doesn't crash with "JsonLiteral is not a JsonObject".
+            val element = jsonDecoder.decodeJsonElement()
+            val asPrimitive = element as? JsonPrimitive
+            val jsonObject: JsonObject? = if (asPrimitive != null && asPrimitive.isString) null else element.jsonObject
+            val discriminatorValue: String = jsonObject?.get(DISCRIMINATOR_FIELD)?.jsonPrimitive?.content
+                ?: asPrimitive?.content
                 ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for GitEvent")
 
             return when (discriminatorValue) {
 
                 "push" ->
                     Push(
-                        jsonDecoder.json.decodeFromJsonElement(serializer<PushEvent>(), jsonObject)
+                        jsonDecoder.json.decodeFromJsonElement(serializer<PushEvent>(), jsonObject ?: throw SerializationException("Expected JSON object for GitEvent.Push"))
                     )
 
                 "tag" ->
                     Tag(
-                        ref = jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.String>(), jsonObject["ref"] ?: throw SerializationException("Missing 'ref' for GitEvent"))
+                        ref = jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.String>(), jsonObject?.get("ref") ?: throw SerializationException("Missing 'ref' for GitEvent"))
                     )
 
                 else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for GitEvent")

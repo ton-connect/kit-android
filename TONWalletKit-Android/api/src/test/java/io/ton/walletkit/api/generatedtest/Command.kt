@@ -40,6 +40,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -103,13 +104,19 @@ sealed class Command {
             val jsonDecoder = decoder as? JsonDecoder
                 ?: throw SerializationException("Command can only be deserialized from JSON")
 
-            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
+            // Cases without an associated value arrive as bare strings on the wire
+            // (e.g. "empty" rather than { "type": "empty" }). Accept both shapes so the
+            // discriminated-union decode doesn't crash with "JsonLiteral is not a JsonObject".
+            val element = jsonDecoder.decodeJsonElement()
+            val asPrimitive = element as? JsonPrimitive
+            val jsonObject: JsonObject? = if (asPrimitive != null && asPrimitive.isString) null else element.jsonObject
+            val discriminatorValue: String = jsonObject?.get(DISCRIMINATOR_FIELD)?.jsonPrimitive?.content
+                ?: asPrimitive?.content
                 ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for Command")
 
             return when (discriminatorValue) {
                 "start" -> {
-                    val fieldElement = jsonObject["timeout"]
+                    val fieldElement = jsonObject?.get("timeout")
                     if (fieldElement != null) {
                         Start(
                             timeout = jsonDecoder.json.decodeFromJsonElement(serializer<kotlin.Int>(), fieldElement)

@@ -36,11 +36,17 @@ interface ITONSwapManager {
      */
     suspend fun registerProvider(provider: ITONSwapProvider<*, *>)
 
+    /** Unregister [provider]; no-op if it isn't currently registered. */
+    suspend fun removeProvider(provider: ITONSwapProvider<*, *>)
+
     /** Set the default provider used by [getQuote] when no identifier is specified. */
     suspend fun setDefaultProvider(identifier: TONSwapProviderIdentifier<*, *>)
 
-    /** Returns typed identifiers for all registered providers. */
-    suspend fun registeredProviders(): List<AnyTONSwapProviderIdentifier>
+    /**
+     * All currently-registered providers as type-erased handles. Mirrors iOS
+     * `providers() -> [TONSwapProvider<AnyTONSwapProviderIdentifier>]`.
+     */
+    suspend fun providers(): List<ITONSwapProvider<JsonElement, JsonElement>>
 
     /** Returns true if a provider with the given [identifier] is currently registered. */
     suspend fun hasProvider(identifier: TONSwapProviderIdentifier<*, *>): Boolean

@@ -23,7 +23,6 @@ package io.ton.walletkit.client
 
 import io.ton.walletkit.api.generated.TONGetMethodResult
 import io.ton.walletkit.api.generated.TONMasterchainInfo
-import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.model.TONBase64
 import io.ton.walletkit.model.TONUserFriendlyAddress
@@ -31,23 +30,14 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 /**
  * Interface for custom API client implementations.
  *
- * Implement this interface to provide custom TON blockchain API access.
- * This allows wallet applications to use their own API infrastructure
- * instead of the default TONCenter API.
- *
- * The API client is responsible for:
- * - Sending signed BOC (Bag of Cells) to the network
- * - Running get methods on smart contracts
- *
- * @see TONGetMethodResult for the get method result structure
- * @see TONRawStackItem for the TVM stack item types
+ * Implement this interface to provide custom TON blockchain API access. Mirrors the
+ * iOS `TONAPIClient` protocol — the three responsibilities a wallet kit needs from a
+ * user-supplied client: send signed BOCs, run contract get methods, and read masterchain
+ * info. Network identity is established at registration time via
+ * [io.ton.walletkit.config.TONWalletKitConfiguration.NetworkConfiguration], not on the
+ * client itself.
  */
 interface TONAPIClient {
-    /**
-     * The network this API client is configured for.
-     */
-    val network: TONNetwork
-
     /**
      * Send a signed BOC (Bag of Cells) to the network.
      *
@@ -73,19 +63,6 @@ interface TONAPIClient {
         stack: List<TONRawStackItem>? = null,
         seqno: Int? = null,
     ): TONGetMethodResult
-
-    /**
-     * Get the balance of an account.
-     *
-     * @param address The account address
-     * @param seqno Optional seqno for historical state queries
-     * @return The balance in nanotons as a string
-     * @throws Exception if the query fails
-     */
-    suspend fun getBalance(
-        address: TONUserFriendlyAddress,
-        seqno: Int? = null,
-    ): String
 
     /**
      * Get the latest masterchain block info.

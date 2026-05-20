@@ -24,16 +24,20 @@ package io.ton.walletkit.engine
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONDeDustSwapProviderConfig
+import io.ton.walletkit.api.generated.TONGetMethodResult
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
+import io.ton.walletkit.api.generated.TONMasterchainInfo
 import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
+import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSendTransactionResponse
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 import io.ton.walletkit.api.generated.TONSignMessageApprovalResponse
@@ -42,6 +46,7 @@ import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.api.generated.TONStakeParams
 import io.ton.walletkit.api.generated.TONStakingBalance
 import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingProviderMetadata
 import io.ton.walletkit.api.generated.TONStakingQuote
 import io.ton.walletkit.api.generated.TONStakingQuoteParams
 import io.ton.walletkit.api.generated.TONSwapParams
@@ -49,9 +54,9 @@ import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTonStakersChainConfig
 import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
+import io.ton.walletkit.api.generated.TONTransactionPreviewOptions
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
-import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.streaming.StreamingEvent
 import io.ton.walletkit.engine.model.WalletAccount
@@ -261,13 +266,13 @@ internal interface WalletKitEngine : RequestHandler {
     /**
      * Send a transaction to the blockchain.
      *
-     * @return Transaction hash (signedBoc) after successful broadcast
+     * @return Broadcast response with boc / normalizedBoc / normalizedHash.
      * @throws WalletKitBridgeException if sending fails
      */
     suspend fun sendTransaction(
         walletId: String,
         transactionContent: TONTransactionRequest,
-    ): String
+    ): TONSendTransactionResponse
 
     /**
      * Approve a connection request from a dApp.
@@ -461,7 +466,22 @@ internal interface WalletKitEngine : RequestHandler {
     suspend fun getTransactionPreview(
         walletId: String,
         transactionContent: TONTransactionRequest,
+        options: TONTransactionPreviewOptions? = null,
     ): TONTransactionEmulatedPreview
+
+    // ===== Per-wallet API client bridge =====
+
+    suspend fun walletClientSendBoc(walletId: String, boc: String): String
+
+    suspend fun walletClientRunGetMethod(
+        walletId: String,
+        address: String,
+        method: String,
+        stack: List<TONRawStackItem>? = null,
+        seqno: Int? = null,
+    ): TONGetMethodResult
+
+    suspend fun walletClientGetMasterchainInfo(walletId: String): TONMasterchainInfo
 
     /**
      * Get the balance of a specific jetton for a wallet.
@@ -491,9 +511,15 @@ internal interface WalletKitEngine : RequestHandler {
 
     suspend fun registerSwapProvider(providerId: String)
 
+    suspend fun removeSwapProvider(providerId: String)
+
     suspend fun setDefaultSwapProvider(providerId: String)
 
     suspend fun getRegisteredSwapProviders(): List<String>
+
+    suspend fun getSwapProviderMetadata(providerId: String): io.ton.walletkit.api.generated.TONSwapProviderMetadata
+
+    suspend fun getSwapProviderSupportedNetworks(providerId: String): List<TONNetwork>
 
     suspend fun hasSwapProvider(providerId: String): Boolean
 
@@ -508,7 +534,11 @@ internal interface WalletKitEngine : RequestHandler {
      * with the JS swap manager. Called after [kotlinSwapProviderManager] has the Kotlin instance
      * so reverse-RPC calls can find it.
      */
-    suspend fun registerKotlinSwapProvider(providerId: String)
+    suspend fun registerKotlinSwapProvider(
+        providerId: String,
+        metadata: io.ton.walletkit.api.generated.TONSwapProviderMetadata,
+        supportedNetworks: List<TONNetwork>,
+    )
 
     suspend fun getSwapQuote(params: TONSwapQuoteParams<JsonElement>, providerId: String?): TONSwapQuote
 
@@ -527,11 +557,23 @@ internal interface WalletKitEngine : RequestHandler {
     /** Register a previously created staking provider with the staking manager. */
     suspend fun registerStakingProvider(providerId: String)
 
+    /** Remove a previously registered staking provider. */
+    suspend fun removeStakingProvider(providerId: String)
+
     /** Set the default staking provider used when no providerId is specified. */
     suspend fun setDefaultStakingProvider(providerId: String)
 
     /** Get the IDs of all registered staking providers. */
     suspend fun getRegisteredStakingProviders(): List<String>
+
+    /** Get static metadata for the staking provider with [providerId] (or default when null). */
+    suspend fun getStakingProviderMetadata(
+        network: TONNetwork?,
+        providerId: String?,
+    ): TONStakingProviderMetadata
+
+    /** Get the networks supported by the staking provider with [providerId]. */
+    suspend fun getStakingProviderSupportedNetworks(providerId: String): List<TONNetwork>
 
     /** Check if a staking provider with the given ID is registered. */
     suspend fun hasStakingProvider(providerId: String): Boolean
@@ -547,10 +589,16 @@ internal interface WalletKitEngine : RequestHandler {
      * with the JS staking manager. Called after [kotlinStakingProviderManager] has the Kotlin
      * instance so reverse-RPC calls can find it.
      *
-     * @param supportedUnstakeModesJson JSON array of supported unstake modes, fetched eagerly so the
-     *   JS proxy can satisfy the synchronous `getSupportedUnstakeModes()` contract without a round-trip.
+     * @param metadata Static metadata cached by the JS proxy to satisfy the synchronous
+     *   `getStakingProviderMetadata()` contract without a round-trip.
+     * @param supportedNetworks Networks cached by the JS proxy to satisfy the synchronous
+     *   `getSupportedNetworks()` contract without a round-trip.
      */
-    suspend fun registerKotlinStakingProvider(providerId: String, supportedUnstakeModesJson: String)
+    suspend fun registerKotlinStakingProvider(
+        providerId: String,
+        metadata: TONStakingProviderMetadata,
+        supportedNetworks: List<TONNetwork>,
+    )
 
     suspend fun getStakingQuote(
         params: TONStakingQuoteParams<JsonElement>,
@@ -572,8 +620,6 @@ internal interface WalletKitEngine : RequestHandler {
         network: TONNetwork?,
         providerId: String?,
     ): TONStakingProviderInfo
-
-    suspend fun getSupportedUnstakeModes(providerId: String?): List<TONUnstakeMode>
 
     /**
      * Call a bridge method directly.

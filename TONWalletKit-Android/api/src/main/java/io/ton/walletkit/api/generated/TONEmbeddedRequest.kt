@@ -37,6 +37,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -113,24 +114,30 @@ sealed class TONEmbeddedRequest {
             val jsonDecoder = decoder as? JsonDecoder
                 ?: throw SerializationException("TONEmbeddedRequest can only be deserialized from JSON")
 
-            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
+            // Cases without an associated value arrive as bare strings on the wire
+            // (e.g. "empty" rather than { "type": "empty" }). Accept both shapes so the
+            // discriminated-union decode doesn't crash with "JsonLiteral is not a JsonObject".
+            val element = jsonDecoder.decodeJsonElement()
+            val asPrimitive = element as? JsonPrimitive
+            val jsonObject: JsonObject? = if (asPrimitive != null && asPrimitive.isString) null else element.jsonObject
+            val discriminatorValue: String = jsonObject?.get(DISCRIMINATOR_FIELD)?.jsonPrimitive?.content
+                ?: asPrimitive?.content
                 ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for TONEmbeddedRequest")
 
             return when (discriminatorValue) {
                 "sendTransaction" ->
                     SendTransaction(
-                        transactionRequest = jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionRequest>(), jsonObject["transactionRequest"] ?: throw SerializationException("Missing 'transactionRequest' for TONEmbeddedRequest")),
+                        transactionRequest = jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionRequest>(), jsonObject?.get("transactionRequest") ?: throw SerializationException("Missing 'transactionRequest' for TONEmbeddedRequest")),
                     )
 
                 "signMessage" ->
                     SignMessage(
-                        transactionRequest = jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionRequest>(), jsonObject["transactionRequest"] ?: throw SerializationException("Missing 'transactionRequest' for TONEmbeddedRequest")),
+                        transactionRequest = jsonDecoder.json.decodeFromJsonElement(serializer<TONTransactionRequest>(), jsonObject?.get("transactionRequest") ?: throw SerializationException("Missing 'transactionRequest' for TONEmbeddedRequest")),
                     )
 
                 "signData" ->
                     SignData(
-                        payload = jsonDecoder.json.decodeFromJsonElement(serializer<TONSignDataPayload>(), jsonObject["payload"] ?: throw SerializationException("Missing 'payload' for TONEmbeddedRequest")),
+                        payload = jsonDecoder.json.decodeFromJsonElement(serializer<TONSignDataPayload>(), jsonObject?.get("payload") ?: throw SerializationException("Missing 'payload' for TONEmbeddedRequest")),
                     )
 
                 else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for TONEmbeddedRequest")

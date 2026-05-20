@@ -46,12 +46,27 @@ internal data class RegisterSwapProviderRequest(
 )
 
 @Serializable
+internal data class RemoveSwapProviderRequest(
+    val providerId: String,
+)
+
+@Serializable
 internal data class SetDefaultSwapProviderRequest(
     val providerId: String,
 )
 
 @Serializable
 internal data class HasSwapProviderRequest(
+    val providerId: String,
+)
+
+@Serializable
+internal data class GetSwapProviderMetadataRequest(
+    val providerId: String,
+)
+
+@Serializable
+internal data class GetSwapProviderSupportedNetworksRequest(
     val providerId: String,
 )
 

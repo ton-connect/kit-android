@@ -37,6 +37,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -99,19 +100,25 @@ sealed class TONEmulationResult {
             val jsonDecoder = decoder as? JsonDecoder
                 ?: throw SerializationException("TONEmulationResult can only be deserialized from JSON")
 
-            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
-            val discriminatorValue = jsonObject[DISCRIMINATOR_FIELD]?.jsonPrimitive?.content
+            // Cases without an associated value arrive as bare strings on the wire
+            // (e.g. "empty" rather than { "type": "empty" }). Accept both shapes so the
+            // discriminated-union decode doesn't crash with "JsonLiteral is not a JsonObject".
+            val element = jsonDecoder.decodeJsonElement()
+            val asPrimitive = element as? JsonPrimitive
+            val jsonObject: JsonObject? = if (asPrimitive != null && asPrimitive.isString) null else element.jsonObject
+            val discriminatorValue: String = jsonObject?.get(DISCRIMINATOR_FIELD)?.jsonPrimitive?.content
+                ?: asPrimitive?.content
                 ?: throw SerializationException("Missing '$DISCRIMINATOR_FIELD' discriminator for TONEmulationResult")
 
             return when (discriminatorValue) {
                 "success" ->
                     Success(
-                        emulationResult = jsonDecoder.json.decodeFromJsonElement(serializer<TONEmulationResponse>(), jsonObject["emulationResult"] ?: throw SerializationException("Missing 'emulationResult' for TONEmulationResult")),
+                        emulationResult = jsonDecoder.json.decodeFromJsonElement(serializer<TONEmulationResponse>(), jsonObject?.get("emulationResult") ?: throw SerializationException("Missing 'emulationResult' for TONEmulationResult")),
                     )
 
                 "error" ->
                     Error(
-                        emulationError = jsonDecoder.json.decodeFromJsonElement(serializer<TONEmulationError>(), jsonObject["emulationError"] ?: throw SerializationException("Missing 'emulationError' for TONEmulationResult")),
+                        emulationError = jsonDecoder.json.decodeFromJsonElement(serializer<TONEmulationError>(), jsonObject?.get("emulationError") ?: throw SerializationException("Missing 'emulationError' for TONEmulationResult")),
                     )
 
                 else -> throw SerializationException("Unknown discriminator '$discriminatorValue' for TONEmulationResult")

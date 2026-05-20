@@ -38999,15 +38999,8 @@ var AndroidAPIClientAdapter = class {
 	async getAccountStates(_addresses) {
 		throw new Error("getAccountStates is not implemented yet");
 	}
-	async getBalance(address, seqno) {
-		try {
-			const networkJson = JSON.stringify(this.network);
-			const seqnoArg = seqno ?? -1;
-			return this.androidBridge.apiGetBalance(networkJson, address, seqnoArg);
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] getBalance failed:", err);
-			throw err;
-		}
+	async getBalance(_address, _seqno) {
+		throw new Error("getBalance is not supported on user-supplied native API clients");
 	}
 	async getAccountTransactions(_request) {
 		throw new Error("getAccountTransactions is not implemented yet");
@@ -40385,8 +40378,7 @@ var TonStakersStakingProvider = class TonStakersStakingProvider extends StakingP
 //#region src/api/staking.ts
 /**
 * JS-side proxy that implements [StakingProviderInterface] by forwarding every call to a
-* Kotlin-implemented `ITONStakingProvider` via reverse-RPC. Mirrors the streaming
-* `ProxyStreamingProvider` pattern.
+* Kotlin-implemented `ITONStakingProvider` via reverse-RPC.
 *
 * `getStakingProviderMetadata` and `getSupportedNetworks` are synchronous per the interface
 * contract, so both values are passed in at registration and cached on this instance.
@@ -40445,8 +40437,19 @@ async function registerStakingProvider(args) {
 	if (!provider) throw new Error(`Staking provider not found: ${args.providerId}`);
 	(await getKit()).staking.registerProvider(provider);
 }
+async function removeStakingProvider(args) {
+	const instance = await getKit();
+	if (!instance.staking.hasProvider(args.providerId)) return;
+	instance.staking.removeProvider(instance.staking.getProvider(args.providerId));
+}
 async function setDefaultStakingProvider(args) {
 	(await getKit()).staking.setDefaultProvider(args.providerId);
+}
+async function getRegisteredStakingProviders() {
+	return { providerIds: (await getKit()).staking.getProviders().map((provider) => provider.providerId) };
+}
+async function hasStakingProvider(args) {
+	return { result: (await getKit()).staking.hasProvider(args.providerId) };
 }
 async function getStakingQuote(args) {
 	const { providerId, ...params } = args;
@@ -40464,6 +40467,9 @@ async function getStakingProviderInfo(args) {
 }
 async function getStakingProviderMetadata(args) {
 	return (await getKit()).staking.getStakingProviderMetadata(args.network, args.providerId);
+}
+async function getStakingProviderSupportedNetworks(args) {
+	return { networks: (await getKit()).staking.getProvider(args.providerId).getSupportedNetworks() };
 }
 /**
 * Tell the JS staking manager that a Kotlin-implemented provider is available.
@@ -44963,11 +44969,22 @@ async function createDeDustSwapProvider(args) {
 async function registerSwapProvider(args) {
 	(await getSwap()).registerProvider(get(args.providerId));
 }
+async function removeSwapProvider(args) {
+	const swap = await getSwap();
+	if (!swap.hasProvider(args.providerId)) return;
+	swap.removeProvider(swap.getProvider(args.providerId));
+}
 async function setDefaultSwapProvider(args) {
 	(await getSwap()).setDefaultProvider(args.providerId);
 }
 async function getRegisteredSwapProviders() {
 	return { providerIds: (await getSwap()).getProviders().map((provider) => provider.providerId) };
+}
+async function getSwapProviderMetadata(args) {
+	return (await getSwap()).getProvider(args.providerId).getMetadata();
+}
+async function getSwapProviderSupportedNetworks(args) {
+	return { networks: (await getSwap()).getProvider(args.providerId).getSupportedNetworks() };
 }
 async function hasSwapProvider(args) {
 	return { result: (await getSwap()).hasProvider(args.providerId) };
@@ -45060,18 +45077,25 @@ var api = {
 	kotlinProviderDispatch,
 	createTonStakersStakingProvider,
 	registerStakingProvider,
+	removeStakingProvider,
 	setDefaultStakingProvider,
+	getRegisteredStakingProviders,
+	hasStakingProvider,
 	getStakingQuote,
 	buildStakeTransaction,
 	getStakedBalance,
 	getStakingProviderInfo,
 	getStakingProviderMetadata,
+	getStakingProviderSupportedNetworks,
 	registerKotlinStakingProvider,
 	createOmnistonSwapProvider,
 	createDeDustSwapProvider,
 	registerSwapProvider,
+	removeSwapProvider,
 	setDefaultSwapProvider,
 	getRegisteredSwapProviders,
+	getSwapProviderMetadata,
+	getSwapProviderSupportedNetworks,
 	hasSwapProvider,
 	getSwapQuote,
 	buildSwapTransaction,

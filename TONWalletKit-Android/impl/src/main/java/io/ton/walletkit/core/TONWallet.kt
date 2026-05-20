@@ -24,6 +24,7 @@ package io.ton.walletkit.core
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.*
+import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.engine.model.WalletAccount
 import io.ton.walletkit.model.KeyPair
@@ -64,6 +65,11 @@ internal class TONWallet internal constructor(
 ) : ITONWallet {
 
     private val json = Json { ignoreUnknownKeys = true }
+
+    override val client: TONAPIClient = BridgedJSAPIClient(
+        walletId = id,
+        engine = engine,
+    )
     companion object {
         /**
          * Convert a mnemonic phrase to a key pair.
@@ -143,12 +149,13 @@ internal class TONWallet internal constructor(
     override suspend fun transferTONTransaction(requests: List<TONTransferRequest>): TONTransactionRequest =
         engine.createTransferMultiTonTransaction(id, requests)
 
-    override suspend fun send(transactionRequest: TONTransactionRequest) {
+    override suspend fun send(transactionRequest: TONTransactionRequest): TONSendTransactionResponse =
         engine.sendTransaction(id, transactionRequest)
-    }
 
-    override suspend fun preview(transactionRequest: TONTransactionRequest): TONTransactionEmulatedPreview =
-        engine.getTransactionPreview(id, transactionRequest)
+    override suspend fun preview(
+        transactionRequest: TONTransactionRequest,
+        options: TONTransactionPreviewOptions?,
+    ): TONTransactionEmulatedPreview = engine.getTransactionPreview(id, transactionRequest, options)
 
     override suspend fun transferNFTTransaction(request: TONNFTTransferRequest): TONTransactionRequest =
         engine.createTransferNftTransaction(id, request)
