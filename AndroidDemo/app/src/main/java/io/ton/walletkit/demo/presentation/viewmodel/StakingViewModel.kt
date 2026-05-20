@@ -276,7 +276,7 @@ class StakingViewModel(
     private suspend fun refreshProviderInfo() {
         val manager = stakingManager ?: return
         runCatching {
-            val info = manager.getStakingProviderInfo(network = network)
+            val info = manager.info(network = network)
             _state.update { it.copy(providerInfo = info) }
         }.onFailure { e ->
             Log.w(TAG, "Failed to load staking provider info: ${e.message}")
@@ -292,7 +292,7 @@ class StakingViewModel(
         manager.setDefaultProvider(provider.identifier)
 
         runCatching {
-            val modes = manager.getSupportedUnstakeModes()
+            val modes = manager.supportedUnstakeModes()
             _state.update { it.copy(supportedModes = modes) }
         }
 

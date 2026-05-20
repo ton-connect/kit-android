@@ -297,6 +297,9 @@ internal object BridgeMethodConstants {
     /** Register a previously created staking provider with the staking manager. */
     const val METHOD_REGISTER_STAKING_PROVIDER = "registerStakingProvider"
 
+    /** Unregister a previously registered staking provider. */
+    const val METHOD_REMOVE_STAKING_PROVIDER = "removeStakingProvider"
+
     /** Set the default staking provider. */
     const val METHOD_SET_DEFAULT_STAKING_PROVIDER = "setDefaultStakingProvider"
 
@@ -312,8 +315,11 @@ internal object BridgeMethodConstants {
     /** Get staking provider information (APY, liquidity). */
     const val METHOD_GET_STAKING_PROVIDER_INFO = "getStakingProviderInfo"
 
-    /** Get supported unstake modes for a staking provider. */
-    const val METHOD_GET_SUPPORTED_UNSTAKE_MODES = "getSupportedUnstakeModes"
+    /** Get static metadata (name, supported unstake modes) for a staking provider. */
+    const val METHOD_GET_STAKING_PROVIDER_METADATA = "getStakingProviderMetadata"
+
+    /** Get networks supported by a staking provider. */
+    const val METHOD_GET_STAKING_PROVIDER_SUPPORTED_NETWORKS = "getStakingProviderSupportedNetworks"
 
     /** Get all registered staking provider IDs. */
     const val METHOD_GET_REGISTERED_STAKING_PROVIDERS = "getRegisteredStakingProviders"

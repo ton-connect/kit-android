@@ -44,6 +44,7 @@ import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.api.generated.TONStakeParams
 import io.ton.walletkit.api.generated.TONStakingBalance
 import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingProviderMetadata
 import io.ton.walletkit.api.generated.TONStakingQuote
 import io.ton.walletkit.api.generated.TONStakingQuoteParams
 import io.ton.walletkit.api.generated.TONSwapParams
@@ -54,7 +55,6 @@ import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransactionPreviewOptions
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
-import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.streaming.StreamingEvent
 import io.ton.walletkit.engine.model.WalletAccount
@@ -536,11 +536,23 @@ internal interface WalletKitEngine : RequestHandler {
     /** Register a previously created staking provider with the staking manager. */
     suspend fun registerStakingProvider(providerId: String)
 
+    /** Remove a previously registered staking provider. */
+    suspend fun removeStakingProvider(providerId: String)
+
     /** Set the default staking provider used when no providerId is specified. */
     suspend fun setDefaultStakingProvider(providerId: String)
 
     /** Get the IDs of all registered staking providers. */
     suspend fun getRegisteredStakingProviders(): List<String>
+
+    /** Get static metadata for the staking provider with [providerId] (or default when null). */
+    suspend fun getStakingProviderMetadata(
+        network: TONNetwork?,
+        providerId: String?,
+    ): TONStakingProviderMetadata
+
+    /** Get the networks supported by the staking provider with [providerId]. */
+    suspend fun getStakingProviderSupportedNetworks(providerId: String): List<TONNetwork>
 
     /** Check if a staking provider with the given ID is registered. */
     suspend fun hasStakingProvider(providerId: String): Boolean
@@ -556,10 +568,16 @@ internal interface WalletKitEngine : RequestHandler {
      * with the JS staking manager. Called after [kotlinStakingProviderManager] has the Kotlin
      * instance so reverse-RPC calls can find it.
      *
-     * @param supportedUnstakeModesJson JSON array of supported unstake modes, fetched eagerly so the
-     *   JS proxy can satisfy the synchronous `getSupportedUnstakeModes()` contract without a round-trip.
+     * @param metadata Static metadata cached by the JS proxy to satisfy the synchronous
+     *   `getStakingProviderMetadata()` contract without a round-trip.
+     * @param supportedNetworks Networks cached by the JS proxy to satisfy the synchronous
+     *   `getSupportedNetworks()` contract without a round-trip.
      */
-    suspend fun registerKotlinStakingProvider(providerId: String, supportedUnstakeModesJson: String)
+    suspend fun registerKotlinStakingProvider(
+        providerId: String,
+        metadata: TONStakingProviderMetadata,
+        supportedNetworks: List<TONNetwork>,
+    )
 
     suspend fun getStakingQuote(
         params: TONStakingQuoteParams<JsonElement>,
@@ -581,8 +599,6 @@ internal interface WalletKitEngine : RequestHandler {
         network: TONNetwork?,
         providerId: String?,
     ): TONStakingProviderInfo
-
-    suspend fun getSupportedUnstakeModes(providerId: String?): List<TONUnstakeMode>
 
     /**
      * Call a bridge method directly.

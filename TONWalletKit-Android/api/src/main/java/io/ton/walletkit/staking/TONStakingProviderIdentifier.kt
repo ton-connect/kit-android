@@ -22,6 +22,7 @@
 package io.ton.walletkit.staking
 
 import io.ton.walletkit.TONProviderIdentifier
+import kotlinx.serialization.json.JsonElement
 
 /**
  * Identifies a staking provider and carries its option types as generic parameters.
@@ -31,3 +32,10 @@ import io.ton.walletkit.TONProviderIdentifier
  * [TStakeOptions] is the provider-specific type for stake transaction params.
  */
 interface TONStakingProviderIdentifier<TQuoteOptions, TStakeOptions> : TONProviderIdentifier
+
+/**
+ * Type-erased staking provider identifier used by [ITONStakingManager.providers].
+ * Mirrors iOS's `AnyTONStakingProviderIdentifier`.
+ */
+data class AnyTONStakingProviderIdentifier(override val name: String) :
+    TONStakingProviderIdentifier<JsonElement, JsonElement>

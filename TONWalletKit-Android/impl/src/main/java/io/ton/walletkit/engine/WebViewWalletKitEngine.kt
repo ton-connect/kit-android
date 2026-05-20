@@ -46,6 +46,7 @@ import io.ton.walletkit.api.generated.TONSignatureDomain
 import io.ton.walletkit.api.generated.TONStakeParams
 import io.ton.walletkit.api.generated.TONStakingBalance
 import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingProviderMetadata
 import io.ton.walletkit.api.generated.TONStakingQuote
 import io.ton.walletkit.api.generated.TONStakingQuoteParams
 import io.ton.walletkit.api.generated.TONSwapParams
@@ -56,7 +57,6 @@ import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransactionPreviewOptions
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
-import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.bridge.BridgeCodec
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -98,8 +98,9 @@ import io.ton.walletkit.engine.operations.getRegisteredStakingProviders
 import io.ton.walletkit.engine.operations.getRegisteredSwapProviders
 import io.ton.walletkit.engine.operations.getStakedBalance
 import io.ton.walletkit.engine.operations.getStakingProviderInfo
+import io.ton.walletkit.engine.operations.getStakingProviderMetadata
+import io.ton.walletkit.engine.operations.getStakingProviderSupportedNetworks
 import io.ton.walletkit.engine.operations.getStakingQuote
-import io.ton.walletkit.engine.operations.getSupportedUnstakeModes
 import io.ton.walletkit.engine.operations.getSwapProviderMetadata
 import io.ton.walletkit.engine.operations.getSwapProviderSupportedNetworks
 import io.ton.walletkit.engine.operations.getSwapQuote
@@ -119,6 +120,7 @@ import io.ton.walletkit.engine.operations.registerSwapProvider
 import io.ton.walletkit.engine.operations.rejectConnect
 import io.ton.walletkit.engine.operations.rejectSignData
 import io.ton.walletkit.engine.operations.rejectTransaction
+import io.ton.walletkit.engine.operations.removeStakingProvider
 import io.ton.walletkit.engine.operations.removeSwapProvider
 import io.ton.walletkit.engine.operations.removeWallet
 import io.ton.walletkit.engine.operations.responses.AddWalletResponse
@@ -540,19 +542,43 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun registerStakingProvider(providerId: String) = rpcClient.registerStakingProvider(providerId)
 
+    override suspend fun removeStakingProvider(providerId: String) = rpcClient.removeStakingProvider(providerId)
+
     override suspend fun setDefaultStakingProvider(providerId: String) =
         rpcClient.setDefaultStakingProvider(providerId)
 
     override suspend fun getRegisteredStakingProviders(): List<String> = rpcClient.getRegisteredStakingProviders()
 
+    override suspend fun getStakingProviderMetadata(
+        network: TONNetwork?,
+        providerId: String?,
+    ): TONStakingProviderMetadata = rpcClient.getStakingProviderMetadata(network, providerId)
+
+    override suspend fun getStakingProviderSupportedNetworks(providerId: String): List<TONNetwork> =
+        rpcClient.getStakingProviderSupportedNetworks(providerId)
+
     override suspend fun hasStakingProvider(providerId: String): Boolean = rpcClient.hasStakingProvider(providerId)
 
-    override suspend fun registerKotlinStakingProvider(providerId: String, supportedUnstakeModesJson: String) {
+    override suspend fun registerKotlinStakingProvider(
+        providerId: String,
+        metadata: TONStakingProviderMetadata,
+        supportedNetworks: List<TONNetwork>,
+    ) {
         callBridgeMethod(
             BridgeMethodConstants.METHOD_REGISTER_KOTLIN_STAKING_PROVIDER,
             buildJsonObject {
                 put("providerId", providerId)
-                put("supportedUnstakeModes", json.parseToJsonElement(supportedUnstakeModesJson))
+                put(
+                    "metadata",
+                    json.encodeToJsonElement(TONStakingProviderMetadata.serializer(), metadata),
+                )
+                put(
+                    "supportedNetworks",
+                    json.encodeToJsonElement(
+                        kotlinx.serialization.builtins.ListSerializer(TONNetwork.serializer()),
+                        supportedNetworks,
+                    ),
+                )
             },
         )
     }
@@ -577,9 +603,6 @@ internal class WebViewWalletKitEngine private constructor(
         network: TONNetwork?,
         providerId: String?,
     ): TONStakingProviderInfo = rpcClient.getStakingProviderInfo(network, providerId)
-
-    override suspend fun getSupportedUnstakeModes(providerId: String?): List<TONUnstakeMode> =
-        rpcClient.getSupportedUnstakeModes(providerId)
 
     private fun SignerInfoResponse.toWalletSignerInfo(): WalletSignerInfo {
         val signerId = signerId?.takeIf { it.isNotEmpty() }

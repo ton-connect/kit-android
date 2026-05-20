@@ -55,6 +55,6 @@ internal class KotlinStakingProviderManager :
             networkChainId?.let { TONNetwork(chainId = it) },
         )
 
-    suspend fun getStakingProviderInfo(providerId: String, networkChainId: String?): TONStakingProviderInfo =
-        require(providerId).getStakingProviderInfo(networkChainId?.let { TONNetwork(chainId = it) })
+    suspend fun info(providerId: String, networkChainId: String?): TONStakingProviderInfo =
+        require(providerId).info(networkChainId?.let { TONNetwork(chainId = it) })
 }

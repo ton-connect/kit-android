@@ -168,7 +168,7 @@ internal class MessageDispatcher(
         }
 
         registerTypedJson<KotlinStakingGetProviderInfoRequest, _>(REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_GET_STAKING_PROVIDER_INFO) { req ->
-            kotlinStakingProviderManager.getStakingProviderInfo(req.providerId, req.networkChainId)
+            kotlinStakingProviderManager.info(req.providerId, req.networkChainId)
         }
 
         registerTyped<KotlinProviderIdRequest>(REQUEST_METHOD_KOTLIN_STAKING_PROVIDER_RELEASE) { req ->

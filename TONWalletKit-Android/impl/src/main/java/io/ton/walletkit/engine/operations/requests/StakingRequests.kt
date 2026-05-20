@@ -49,6 +49,11 @@ internal data class RegisterStakingProviderRequest(
 )
 
 @Serializable
+internal data class RemoveStakingProviderRequest(
+    val providerId: String,
+)
+
+@Serializable
 internal data class SetDefaultStakingProviderRequest(
     val providerId: String,
 )
@@ -86,8 +91,14 @@ internal data class GetStakingProviderInfoRequest(
 )
 
 @Serializable
-internal data class GetSupportedUnstakeModesRequest(
+internal data class GetStakingProviderMetadataRequest(
+    val network: TONNetwork? = null,
     val providerId: String? = null,
+)
+
+@Serializable
+internal data class GetStakingProviderSupportedNetworksRequest(
+    val providerId: String,
 )
 
 @Serializable
