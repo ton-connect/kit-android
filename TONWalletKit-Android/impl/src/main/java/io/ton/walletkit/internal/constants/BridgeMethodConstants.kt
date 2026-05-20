@@ -237,6 +237,17 @@ internal object BridgeMethodConstants {
      */
     const val METHOD_GET_JETTON_WALLET_ADDRESS = "getJettonWalletAddress"
 
+    // Wallet API client methods (per-wallet TONAPIClient bridge).
+
+    /** Send a signed BOC via the wallet's API client. */
+    const val METHOD_WALLET_CLIENT_SEND_BOC = "walletClientSendBoc"
+
+    /** Run a get method via the wallet's API client. */
+    const val METHOD_WALLET_CLIENT_RUN_GET_METHOD = "walletClientRunGetMethod"
+
+    /** Get masterchain info via the wallet's API client. */
+    const val METHOD_WALLET_CLIENT_GET_MASTERCHAIN_INFO = "walletClientGetMasterchainInfo"
+
     // Swap methods
 
     /** Create an Omniston swap provider instance. */
@@ -248,11 +259,20 @@ internal object BridgeMethodConstants {
     /** Register a previously created swap provider with the swap manager. */
     const val METHOD_REGISTER_SWAP_PROVIDER = "registerSwapProvider"
 
+    /** Unregister a previously registered swap provider. */
+    const val METHOD_REMOVE_SWAP_PROVIDER = "removeSwapProvider"
+
     /** Set the default swap provider. */
     const val METHOD_SET_DEFAULT_SWAP_PROVIDER = "setDefaultSwapProvider"
 
     /** Get all registered swap provider IDs. */
     const val METHOD_GET_REGISTERED_SWAP_PROVIDERS = "getRegisteredSwapProviders"
+
+    /** Get static metadata for a registered swap provider. */
+    const val METHOD_GET_SWAP_PROVIDER_METADATA = "getSwapProviderMetadata"
+
+    /** Get the networks a registered swap provider supports. */
+    const val METHOD_GET_SWAP_PROVIDER_SUPPORTED_NETWORKS = "getSwapProviderSupportedNetworks"
 
     /** Check if a swap provider is registered. */
     const val METHOD_HAS_SWAP_PROVIDER = "hasSwapProvider"
@@ -277,6 +297,9 @@ internal object BridgeMethodConstants {
     /** Register a previously created staking provider with the staking manager. */
     const val METHOD_REGISTER_STAKING_PROVIDER = "registerStakingProvider"
 
+    /** Unregister a previously registered staking provider. */
+    const val METHOD_REMOVE_STAKING_PROVIDER = "removeStakingProvider"
+
     /** Set the default staking provider. */
     const val METHOD_SET_DEFAULT_STAKING_PROVIDER = "setDefaultStakingProvider"
 
@@ -292,8 +315,11 @@ internal object BridgeMethodConstants {
     /** Get staking provider information (APY, liquidity). */
     const val METHOD_GET_STAKING_PROVIDER_INFO = "getStakingProviderInfo"
 
-    /** Get supported unstake modes for a staking provider. */
-    const val METHOD_GET_SUPPORTED_UNSTAKE_MODES = "getSupportedUnstakeModes"
+    /** Get static metadata (name, supported unstake modes) for a staking provider. */
+    const val METHOD_GET_STAKING_PROVIDER_METADATA = "getStakingProviderMetadata"
+
+    /** Get networks supported by a staking provider. */
+    const val METHOD_GET_STAKING_PROVIDER_SUPPORTED_NETWORKS = "getStakingProviderSupportedNetworks"
 
     /** Get all registered staking provider IDs. */
     const val METHOD_GET_REGISTERED_STAKING_PROVIDERS = "getRegisteredStakingProviders"

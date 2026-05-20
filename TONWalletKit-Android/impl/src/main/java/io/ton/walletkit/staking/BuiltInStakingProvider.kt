@@ -25,10 +25,10 @@ import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONStakeParams
 import io.ton.walletkit.api.generated.TONStakingBalance
 import io.ton.walletkit.api.generated.TONStakingProviderInfo
+import io.ton.walletkit.api.generated.TONStakingProviderMetadata
 import io.ton.walletkit.api.generated.TONStakingQuote
 import io.ton.walletkit.api.generated.TONStakingQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
-import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.engine.WalletKitEngine
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.json.Json
@@ -47,6 +47,12 @@ internal class BuiltInStakingProvider<TQuoteOptions, TStakeOptions>(
     override val identifier: TONStakingProviderIdentifier<TQuoteOptions, TStakeOptions>,
     private val engine: WalletKitEngine,
 ) : ITONStakingProvider<TQuoteOptions, TStakeOptions> {
+
+    override suspend fun metadata(network: TONNetwork?): TONStakingProviderMetadata =
+        engine.getStakingProviderMetadata(network, identifier.name)
+
+    override suspend fun supportedNetworks(): List<TONNetwork> =
+        engine.getStakingProviderSupportedNetworks(identifier.name)
 
     override suspend fun getQuote(params: TONStakingQuoteParams<TQuoteOptions>): TONStakingQuote {
         val jsonOptions = params.providerOptions?.let {
@@ -80,9 +86,6 @@ internal class BuiltInStakingProvider<TQuoteOptions, TStakeOptions>(
         network: TONNetwork?,
     ): TONStakingBalance = engine.getStakedBalance(userAddress.value, network, identifier.name)
 
-    override suspend fun getStakingProviderInfo(network: TONNetwork?): TONStakingProviderInfo =
+    override suspend fun info(network: TONNetwork?): TONStakingProviderInfo =
         engine.getStakingProviderInfo(network, identifier.name)
-
-    override suspend fun getSupportedUnstakeModes(): List<TONUnstakeMode> =
-        engine.getSupportedUnstakeModes(identifier.name)
 }

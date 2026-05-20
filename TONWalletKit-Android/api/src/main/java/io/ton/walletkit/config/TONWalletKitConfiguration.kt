@@ -74,11 +74,13 @@ data class TONWalletKitConfiguration(
         get() = networkConfigurations.first().network
 
     /**
-     * Extracts all custom API clients from network configurations.
-     * Only includes networks that have a custom apiClient (not apiClientConfiguration).
+     * Extracts all custom API clients from network configurations, paired with the network
+     * they serve. Only includes networks that have a custom [TONAPIClient] (not
+     * `apiClientConfiguration`). The network association lives on the configuration, not
+     * on the client — matches iOS, where `TONAPIClient` does not expose `network`.
      */
-    val apiClients: List<TONAPIClient>
-        get() = networkConfigurations.mapNotNull { it.apiClient }
+    val apiClients: List<Pair<TONNetwork, TONAPIClient>>
+        get() = networkConfigurations.mapNotNull { nc -> nc.apiClient?.let { nc.network to it } }
 
     /**
      * Returns the API client configuration for the primary network.

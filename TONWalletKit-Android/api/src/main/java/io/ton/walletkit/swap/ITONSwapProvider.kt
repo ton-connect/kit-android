@@ -22,7 +22,9 @@
 package io.ton.walletkit.swap
 
 import io.ton.walletkit.TONProviderType
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONSwapParams
+import io.ton.walletkit.api.generated.TONSwapProviderMetadata
 import io.ton.walletkit.api.generated.TONSwapQuote
 import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
@@ -41,6 +43,12 @@ interface ITONSwapProvider<TQuoteOptions, TSwapOptions> {
 
     /** Typed provider identifier. */
     val identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>
+
+    /** Static descriptive metadata (name, logo, url). */
+    suspend fun metadata(): TONSwapProviderMetadata
+
+    /** Networks this provider can operate on. */
+    suspend fun supportedNetworks(): List<TONNetwork>
 
     /** Get a quote from this provider. */
     suspend fun quote(params: TONSwapQuoteParams<TQuoteOptions>): TONSwapQuote

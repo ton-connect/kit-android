@@ -232,7 +232,7 @@ class SwapViewModel(
 
         // Verify both providers are registered and update UI with their IDs
         Log.d(TAG, "hasOmniston=${manager.hasProvider(omniston.identifier)}, hasDeDust=${manager.hasProvider(deDust.identifier)}")
-        val providerIds = manager.registeredProviders().map { it.name }
+        val providerIds = manager.providers().map { it.identifier.name }
         _state.update { it.copy(registeredProviders = providerIds) }
 
         return SwapResources(manager, omniston, deDust).also { swapResources = it }
