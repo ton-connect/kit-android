@@ -87,7 +87,7 @@ fun RevealSeedPhraseScreen(
             Spacer(modifier = Modifier.height(8.dp))
             TonText(
                 text = "Recovery phrase",
-                style = TonTheme.typography.title2,
+                style = TonTheme.typography.title3Bold,
                 color = TonTheme.colors.textPrimary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -165,14 +165,17 @@ private fun SeedPhraseColumn(
 private fun SeedWordRow(index: Int, word: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        // Figma models the word in a chip with `gap 8 + chip-left-padding 12` = 20dp
+        // from the index. The chip itself is white-on-white (invisible), but the
+        // padding still shifts the word.
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         TonText(
             text = index.toString(),
             style = TonTheme.typography.body,
             color = TonTheme.colors.textTertiary,
             textAlign = TextAlign.End,
-            modifier = Modifier.width(24.dp),
+            modifier = Modifier.width(20.dp),
         )
         TonText(
             text = word,

@@ -203,7 +203,7 @@ internal fun TonConnectWalletPicker(
     var expanded by remember { mutableStateOf(false) }
     val current = selected ?: wallets.firstOrNull() ?: return
 
-    val shape = SmoothCornerShape(10.dp)
+    val shape = SmoothCornerShape(12.dp)
     Column(
         modifier = modifier
             .fillMaxWidth()

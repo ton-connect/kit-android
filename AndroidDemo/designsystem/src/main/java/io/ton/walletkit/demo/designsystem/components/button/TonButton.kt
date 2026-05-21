@@ -51,7 +51,7 @@ import io.ton.walletkit.demo.designsystem.icons.TonIconImage
 import io.ton.walletkit.demo.designsystem.theme.SmoothCornerShape
 import io.ton.walletkit.demo.designsystem.theme.TonTheme
 
-private val CornerRadius = 10.dp
+private val CornerRadius = 12.dp
 private val IconLabelSpacing = 8.dp
 
 enum class TonButtonStyle { Primary, Secondary, Tertiary, Text }

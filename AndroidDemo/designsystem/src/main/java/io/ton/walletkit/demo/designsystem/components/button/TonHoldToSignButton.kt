@@ -56,7 +56,7 @@ import io.ton.walletkit.demo.designsystem.theme.SmoothCornerShape
 import io.ton.walletkit.demo.designsystem.theme.TonTheme
 
 private val Height = 50.dp
-private val CornerRadius = 10.dp
+private val CornerRadius = 12.dp
 private val IconSize = 20.dp
 private val IconLabelSpacing = 8.dp
 private const val DEFAULT_HOLD_DURATION_MS = 700
