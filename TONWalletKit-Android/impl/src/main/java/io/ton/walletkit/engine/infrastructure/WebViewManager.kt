@@ -38,10 +38,7 @@ import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.TONDAppInfo
-import io.ton.walletkit.api.generated.TONNFTsRequest
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.api.generated.TONRawStackItem
-import io.ton.walletkit.api.generated.TONUserNFTsRequest
 import io.ton.walletkit.api.isTestnet
 import io.ton.walletkit.bridge.BuildConfig
 import io.ton.walletkit.bridge.optString
@@ -448,162 +445,80 @@ internal class WebViewManager(
         }
 
         @JavascriptInterface
-        fun apiSendBoc(networkJson: String, boc: String): String {
-            val network = json.decodeFromString<TONNetwork>(networkJson)
-            val client = apiClients.find { it.first == network }?.second
-                ?: throw IllegalArgumentException("No API client configured for network: $network")
-
-            return runBlocking {
-                try {
-                    Logger.d(TAG, "apiSendBoc: network=$network")
-                    client.sendBoc(TONBase64(boc))
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to send BOC: $network", e)
-                    throw e
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun apiRunGetMethod(
-            networkJson: String,
-            address: String,
-            method: String,
-            stackJson: String?,
-            seqno: Int,
-        ): String {
-            val network = json.decodeFromString<TONNetwork>(networkJson)
-            val client = apiClients.find { it.first == network }?.second
-                ?: throw IllegalArgumentException("No API client configured for network: $network")
-
-            return runBlocking {
-                try {
-                    Logger.d(TAG, "apiRunGetMethod: network=$network, address=$address, method=$method")
-                    val stack = stackJson?.let { json.decodeFromString<List<TONRawStackItem>>(it) }
-                    val seqnoArg = if (seqno == -1) null else seqno
-                    val result = client.runGetMethod(TONUserFriendlyAddress(address), method, stack, seqnoArg)
-                    json.encodeToString(result)
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to run get method: $method on $address", e)
-                    throw e
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun apiGetBalance(
-            networkJson: String,
-            address: String,
-            seqno: Int,
-        ): String {
-            val network = json.decodeFromString<TONNetwork>(networkJson)
-            val client = apiClients.find { it.first == network }?.second
-                ?: throw IllegalArgumentException("No API client configured for network: $network")
-
-            return runBlocking {
-                try {
-                    Logger.d(TAG, "apiGetBalance: network=$network, address=$address")
-                    // JS passes -1 to represent a missing optional seqno.
-                    val seqnoArg = if (seqno == -1) null else seqno
-                    client.getBalance(TONUserFriendlyAddress(address), seqnoArg)
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to get balance for: $address", e)
-                    throw e
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun apiGetMasterchainInfo(networkJson: String): String {
-            val network = json.decodeFromString<TONNetwork>(networkJson)
-            val client = apiClients.find { it.first == network }?.second
-                ?: throw IllegalArgumentException("No API client configured for network: $network")
-
-            return runBlocking {
-                try {
-                    Logger.d(TAG, "apiGetMasterchainInfo: network=$network")
-                    val result = client.getMasterchainInfo()
-                    json.encodeToString(result)
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed to get masterchain info", e)
-                    throw e
-                }
-            }
-        }
-
-        @JavascriptInterface
-        fun apiNftItemsByAddress(networkJson: String, requestJson: String): String =
-            invokeApiClient(networkJson, "apiNftItemsByAddress") { client ->
-                val request = json.decodeFromString<TONNFTsRequest>(requestJson)
-                json.encodeToString(client.nftItemsByAddress(request))
+        fun apiSendBoc(paramsJson: String): String =
+            callApi<ApiSendBocParams, _>(paramsJson) { client, p ->
+                client.sendBoc(TONBase64(p.boc))
             }
 
         @JavascriptInterface
-        fun apiNftItemsByOwner(networkJson: String, requestJson: String): String =
-            invokeApiClient(networkJson, "apiNftItemsByOwner") { client ->
-                val request = json.decodeFromString<TONUserNFTsRequest>(requestJson)
-                json.encodeToString(client.nftItemsByOwner(request))
+        fun apiRunGetMethod(paramsJson: String): String =
+            callApi<ApiRunGetMethodParams, _>(paramsJson) { client, p ->
+                json.encodeToString(client.runGetMethod(TONUserFriendlyAddress(p.address), p.method, p.stack, p.seqno))
             }
 
         @JavascriptInterface
-        fun apiFetchEmulation(networkJson: String, messageBoc: String, ignoreSignature: Int): String =
-            invokeApiClient(networkJson, "apiFetchEmulation") { client ->
-                // JS passes -1 to represent a missing optional boolean, 0/1 otherwise.
-                val ignoreSignatureArg: Boolean? = when (ignoreSignature) {
-                    -1 -> null
-                    0 -> false
-                    else -> true
-                }
-                json.encodeToString(client.fetchEmulation(TONBase64(messageBoc), ignoreSignatureArg))
+        fun apiGetBalance(paramsJson: String): String =
+            callApi<ApiAddressSeqnoParams, _>(paramsJson) { client, p ->
+                client.getBalance(TONUserFriendlyAddress(p.address), p.seqno)
             }
 
         @JavascriptInterface
-        fun apiAccountState(networkJson: String, address: String, seqno: Int): String =
-            invokeApiClient(networkJson, "apiAccountState") { client ->
-                val seqnoArg = if (seqno == -1) null else seqno
-                json.encodeToString(client.accountState(TONUserFriendlyAddress(address), seqnoArg))
+        fun apiGetMasterchainInfo(paramsJson: String): String =
+            callApi<ApiNetworkOnlyParams, _>(paramsJson) { client, _ ->
+                json.encodeToString(client.getMasterchainInfo())
             }
 
         @JavascriptInterface
-        fun apiAccountStates(networkJson: String, addressesJson: String): String =
-            invokeApiClient(networkJson, "apiAccountStates") { client ->
-                val addresses = json.decodeFromString<List<String>>(addressesJson)
-                    .map { TONUserFriendlyAddress(it) }
-                val result = client.accountStates(addresses)
-                // Re-key by raw address string so the JS side gets `{ "<addr>": <state>, ... }`.
-                val stringKeyed = result.mapKeys { it.key.value }
-                json.encodeToString(stringKeyed)
+        fun apiNftItemsByAddress(paramsJson: String): String =
+            callApi<ApiNftItemsByAddressParams, _>(paramsJson) { client, p ->
+                json.encodeToString(client.nftItemsByAddress(p.request))
             }
 
         @JavascriptInterface
-        fun apiResolveDnsWallet(networkJson: String, domain: String): String? =
-            invokeApiClient(networkJson, "apiResolveDnsWallet") { client ->
-                client.resolveDnsWallet(domain)
+        fun apiNftItemsByOwner(paramsJson: String): String =
+            callApi<ApiNftItemsByOwnerParams, _>(paramsJson) { client, p ->
+                json.encodeToString(client.nftItemsByOwner(p.request))
             }
 
         @JavascriptInterface
-        fun apiBackResolveDnsWallet(networkJson: String, address: String): String? =
-            invokeApiClient(networkJson, "apiBackResolveDnsWallet") { client ->
-                client.backResolveDnsWallet(TONUserFriendlyAddress(address))
+        fun apiFetchEmulation(paramsJson: String): String =
+            callApi<ApiFetchEmulationParams, _>(paramsJson) { client, p ->
+                json.encodeToString(client.fetchEmulation(TONBase64(p.messageBoc), p.ignoreSignature))
             }
 
-        private inline fun <T> invokeApiClient(
-            networkJson: String,
-            opName: String,
-            crossinline block: suspend (TONAPIClient) -> T,
+        @JavascriptInterface
+        fun apiAccountState(paramsJson: String): String =
+            callApi<ApiAddressSeqnoParams, _>(paramsJson) { client, p ->
+                json.encodeToString(client.accountState(TONUserFriendlyAddress(p.address), p.seqno))
+            }
+
+        @JavascriptInterface
+        fun apiAccountStates(paramsJson: String): String =
+            callApi<ApiAccountStatesParams, _>(paramsJson) { client, p ->
+                val result = client.accountStates(p.addresses.map { TONUserFriendlyAddress(it) })
+                json.encodeToString(result.mapKeys { it.key.value })
+            }
+
+        @JavascriptInterface
+        fun apiResolveDnsWallet(paramsJson: String): String? =
+            callApi<ApiResolveDnsParams, _>(paramsJson) { client, p ->
+                client.resolveDnsWallet(p.domain)
+            }
+
+        @JavascriptInterface
+        fun apiBackResolveDnsWallet(paramsJson: String): String? =
+            callApi<ApiBackResolveDnsParams, _>(paramsJson) { client, p ->
+                client.backResolveDnsWallet(TONUserFriendlyAddress(p.address))
+            }
+
+        private inline fun <reified P : ApiParamsWithNetwork, T> callApi(
+            paramsJson: String,
+            crossinline block: suspend (TONAPIClient, P) -> T,
         ): T {
-            val network = json.decodeFromString<TONNetwork>(networkJson)
-            val client = apiClients.find { it.first == network }?.second
-                ?: throw IllegalArgumentException("No API client configured for network: $network")
-            return runBlocking {
-                try {
-                    Logger.d(TAG, "$opName: network=$network")
-                    block(client)
-                } catch (e: Exception) {
-                    Logger.e(TAG, "Failed $opName: network=$network", e)
-                    throw e
-                }
-            }
+            val params = json.decodeFromString<P>(paramsJson)
+            val client = apiClients.find { it.first == params.network }?.second
+                ?: throw IllegalArgumentException("No API client configured for network: ${params.network}")
+            return runBlocking { block(client, params) }
         }
 
         private fun parseSessionFilter(filterJson: String): SessionFilter? {
