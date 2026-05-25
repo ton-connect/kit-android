@@ -59,13 +59,6 @@ object DevPreferences {
         return next
     }
 
-    /**
-     * Wipe both the persisted file and the cached in-process state. Used by the e2e test
-     * harness so a test class can't inherit a legacy-toggle flip from a previous class —
-     * otherwise [useLegacyMainScreen] would stay `true` even after the prefs file is
-     * deleted, because this is a process-wide singleton whose [StateFlow] outlives the
-     * activity recreate between tests.
-     */
     fun reset(context: Context) {
         synchronized(this) {
             context.applicationContext

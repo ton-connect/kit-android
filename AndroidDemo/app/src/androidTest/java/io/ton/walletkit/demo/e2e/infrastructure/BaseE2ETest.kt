@@ -162,11 +162,8 @@ abstract class BaseE2ETest {
             }
             DevPreferences.reset(context)
 
-            // 1b. Reset DevPreferences in-process state. Just deleting the prefs file isn't
-            // enough — the singleton caches the legacy-screen flag in a StateFlow plus a
-            // `loaded` flag and would keep serving the old value into the next test class,
-            // putting the demo back into legacy mode and re-triggering AddWalletSheet on
-            // tests that expect the modern main screen.
+            // Process-wide singleton retains its cached value across the activity recreate
+            // between test classes; resetting it ensures the legacy toggle doesn't leak.
             DevPreferences.reset(context)
 
             // 2. Clear files and cache
