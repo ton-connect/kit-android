@@ -45,6 +45,7 @@ import io.ton.walletkit.demo.data.storage.DemoAppStorage
 import io.ton.walletkit.demo.data.storage.WalletRecord
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.domain.model.WalletMetadata
+import io.ton.walletkit.demo.presentation.dev.DevPreferences
 import io.ton.walletkit.demo.presentation.model.ConnectPermissionUi
 import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
@@ -54,6 +55,7 @@ import io.ton.walletkit.demo.presentation.model.SignMessageRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionMessageUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
+import io.ton.walletkit.demo.presentation.state.CreateWalletFlow
 import io.ton.walletkit.demo.presentation.state.SheetState
 import io.ton.walletkit.demo.presentation.state.WalletUiState
 import io.ton.walletkit.demo.presentation.util.TonFormatter
@@ -140,6 +142,9 @@ class WalletKitViewModel @Inject constructor(
 
     val isPasswordSet: StateFlow<Boolean> = securityController.isPasswordSet
     val isUnlocked: StateFlow<Boolean> = securityController.isUnlocked
+
+    private val _createWalletFlow = MutableStateFlow<CreateWalletFlow>(CreateWalletFlow.Idle)
+    val createWalletFlow: StateFlow<CreateWalletFlow> = _createWalletFlow.asStateFlow()
 
     private val tonConnectViewModel = TonConnectViewModel(
         walletKit = { walletKit ?: error("ITONWalletKit not initialized") },
@@ -618,7 +623,7 @@ class WalletKitViewModel @Inject constructor(
         when (interfaceType) {
             WalletInterfaceType.MNEMONIC, WalletInterfaceType.SIGNER -> {
                 val cleaned = words.map { it.trim().lowercase() }.filter { it.isNotBlank() }
-                if (cleaned.size != 24) {
+                if (cleaned.size != 12 && cleaned.size != 24) {
                     _state.update { it.copy(error = uiString(R.string.wallet_error_recovery_phrase_length)) }
                     return
                 }
@@ -1152,8 +1157,7 @@ class WalletKitViewModel @Inject constructor(
 
     fun removeWallet(address: String) {
         viewModelScope.launch {
-            // The SDK keys wallets by walletId, not by address. The cache maps
-            // address → ITONWallet, so resolve here.
+            // SDK keys wallets by walletId; our cache maps address → ITONWallet.
             val walletId = lifecycleManager.tonWallets[address]?.id
             if (walletId == null) {
                 _state.update { it.copy(error = uiString(R.string.wallet_error_wallet_not_found)) }
@@ -1222,6 +1226,63 @@ class WalletKitViewModel @Inject constructor(
 
             eventLogger.log(R.string.wallet_event_wallet_removed, walletName)
         }
+    }
+
+    fun showCreateWalletOnboarding() {
+        _createWalletFlow.value = CreateWalletFlow.Onboarding
+    }
+
+    fun cancelCreateWalletFlow() {
+        _createWalletFlow.value = CreateWalletFlow.Idle
+    }
+
+    fun startCreateWallet() {
+        viewModelScope.launch {
+            val mnemonic = runCatching { getKit().createTonMnemonic() }
+            mnemonic.onSuccess { words ->
+                _createWalletFlow.value = CreateWalletFlow.Reveal(words)
+            }.onFailure { error ->
+                val fallback = uiString(R.string.wallet_error_generate_failed)
+                _state.update { it.copy(error = error.message ?: fallback) }
+            }
+        }
+    }
+
+    fun confirmRevealAndCreate() {
+        val current = _createWalletFlow.value as? CreateWalletFlow.Reveal ?: return
+        importWallet(name = "", network = DEFAULT_NETWORK, words = current.words)
+        _createWalletFlow.value = CreateWalletFlow.Idle
+    }
+
+    fun startImportWalletFlow() {
+        _createWalletFlow.value = CreateWalletFlow.ImportEntry()
+    }
+
+    fun setImportWordCount(count: Int) {
+        val current = _createWalletFlow.value as? CreateWalletFlow.ImportEntry ?: return
+        if (count != 12 && count != 24) return
+        if (count == current.wordCount) return
+        val trimmedWords = current.words.filterKeys { it < count }
+        _createWalletFlow.value = current.copy(wordCount = count, words = trimmedWords)
+    }
+
+    fun setImportWord(index: Int, value: String) {
+        val current = _createWalletFlow.value as? CreateWalletFlow.ImportEntry ?: return
+        // Pasting a full phrase into one field distributes across all slots.
+        val tokens = value.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+        if (tokens.size == 12 || tokens.size == 24) {
+            val newWords = tokens.withIndex().associate { (i, w) -> i to w }
+            _createWalletFlow.value = current.copy(wordCount = tokens.size, words = newWords)
+            return
+        }
+        _createWalletFlow.value = current.copy(words = current.words + (index to value))
+    }
+
+    fun confirmImportWallet() {
+        val current = _createWalletFlow.value as? CreateWalletFlow.ImportEntry ?: return
+        if (!current.isComplete) return
+        importWallet(name = "", network = DEFAULT_NETWORK, words = current.asPhrase())
+        _createWalletFlow.value = CreateWalletFlow.Idle
     }
 
     fun renameWallet(address: String, newName: String) {
@@ -1721,7 +1782,11 @@ class WalletKitViewModel @Inject constructor(
                 // before deciding whether to open the "add wallet" sheet.
                 _state.first { it.walletsBootstrapped }
 
-                if (_state.value.wallets.isEmpty()) {
+                // Modern flow uses CreateWalletOnboardingScreen, orchestrated by MainActivity
+                // when there's no wallet — auto-opening AddWalletSheet here would race and
+                // leave a stale sheet behind for the user to bump into later. Only fire for
+                // the legacy main screen, which still relies on the bottom-sheet flow.
+                if (_state.value.wallets.isEmpty() && DevPreferences.useLegacyMainScreen.value) {
                     uiCoordinator.openAddWalletSheet()
                 }
             } catch (e: Exception) {
@@ -1757,7 +1822,9 @@ class WalletKitViewModel @Inject constructor(
             // Wait until the initial wallet load cycle in bootstrap() has fully completed
             // before deciding whether to open the "add wallet" sheet.
             _state.first { it.walletsBootstrapped }
-            if (_state.value.wallets.isEmpty()) {
+            // See [setupPassword] — modern main screen drives onboarding from MainActivity,
+            // so skip the legacy AddWalletSheet auto-open unless we're explicitly on legacy.
+            if (_state.value.wallets.isEmpty() && DevPreferences.useLegacyMainScreen.value) {
                 uiCoordinator.openAddWalletSheet()
             }
         }
@@ -1770,8 +1837,6 @@ class WalletKitViewModel @Inject constructor(
     fun resetWallet() {
         viewModelScope.launch {
             try {
-                // Remove all wallets from SDK first. removeWallet expects a walletId,
-                // not an address — pull the id off each cached ITONWallet.
                 val kit = getKit()
                 val allWalletIds = lifecycleManager.tonWallets.values.map { it.id }
                 allWalletIds.forEach { walletId ->

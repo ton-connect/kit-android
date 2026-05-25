@@ -25,10 +25,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import io.ton.walletkit.demo.designsystem.theme.TonTheme
 import io.ton.walletkit.demo.designsystem.tokens.TonTextStyleSpec
+
+// Disables the legacy Android `includeFontPadding` (extra leading above asc / below
+// desc that pre-dates LineHeightStyle). With it on, Inter glyphs render visibly
+// further apart and lower than the Figma/web renderer; with it off, lineHeight 24
+// is honoured symmetrically and tracking matches the Inter Figma spec.
+private val NoFontPadding = PlatformTextStyle(includeFontPadding = false)
+private val TonLineHeightStyle = LineHeightStyle(
+    alignment = LineHeightStyle.Alignment.Center,
+    trim = LineHeightStyle.Trim.None,
+)
 
 // Replaces iOS `.textStyle(.bodySemibold)` modifier. Applies the spec's TextStyle
 // and uppercase transform when the spec asks for caps.
@@ -47,12 +60,30 @@ fun TonText(
         modifier = modifier,
         color = color,
         style = style.style.copy(
-            // Tighten the leading distribution so glyphs sit closer to their baseline
-            // — without this, mixing 64sp + 40sp Text in a Row with [alignByBaseline]
-            // still leaves the smaller glyph visually lower because its lineHeight
-            // padding pushes it below the baseline. With Trim.Both the lineHeight
-            // pads symmetrically around the baseline and price64 + price40 sit on
-            // the same line, matching iOS's `.lastTextBaseline` HStack.
+            lineHeightStyle = TonLineHeightStyle,
+            platformStyle = NoFontPadding,
+        ),
+        textAlign = textAlign,
+        maxLines = maxLines,
+        overflow = overflow,
+    )
+}
+
+@Composable
+fun TonText(
+    text: AnnotatedString,
+    style: TonTextStyleSpec,
+    modifier: Modifier = Modifier,
+    color: Color = TonTheme.colors.textPrimary,
+    textAlign: TextAlign? = null,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip,
+) {
+    Text(
+        text = text,
+        modifier = modifier,
+        color = color,
+        style = style.style.copy(
             lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
                 alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
                 trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.None,

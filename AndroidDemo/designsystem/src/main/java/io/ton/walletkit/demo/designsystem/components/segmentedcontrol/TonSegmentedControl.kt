@@ -53,8 +53,8 @@ import io.ton.walletkit.demo.designsystem.theme.iosSpring
 private val Height = 36.dp
 private val TrackVerticalPadding = 2.dp
 private val TrackHorizontalPadding = 3.dp
-private val TrackCornerRadius = 18.dp
-private val TabCornerRadius = 16.dp
+private val TrackCornerRadius = 12.dp
+private val TabCornerRadius = 10.dp
 private val TabHeight = 32.dp
 
 @Composable

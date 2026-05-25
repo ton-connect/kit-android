@@ -29,9 +29,11 @@ import androidx.compose.ui.unit.sp
 
 // All 23 styles from the iOS `TONTypography.swift` (Figma "Typography" section).
 //
-// iOS uses SF Pro / SF Pro Rounded. Android falls back to the platform default sans-serif —
-// when product wants exact parity we'll bundle SF Pro and swap [defaultFontFamily] /
-// [roundedFontFamily]. Sizes, weights, line heights and tracking are 1:1 with iOS.
+// iOS uses SF Pro / SF Pro Rounded. Android renders in Inter (the Figma stand-in our
+// designers actually mock against), so the Body/Title sizes follow the Inter Figma
+// spec (16/24, 20/24, ls 0) rather than iOS SF Pro's 17/22 with negative tracking —
+// at 17sp Inter looks larger than iOS at 17sp SF Pro, and the negative tracking is
+// an SF-Pro-specific correction that smears Inter.
 @Immutable
 data class TonTextStyleSpec(
     val name: String,
@@ -122,14 +124,17 @@ fun defaultTonTypography(): TonTypography = TonTypography(
     // Titles
     title1 = style("Title 1", 28f, FontWeight.Bold, 34f, 0.38f),
     title2 = style("Title 2", 22f, FontWeight.SemiBold, 28f, -0.264f),
-    title3Bold = style("Title 3 Bold", 20f, FontWeight.Bold, 24f, -0.45f),
-    title3Semibold = style("Title 3 Semibold", 20f, FontWeight.SemiBold, 24f, -0.45f),
-    title3RoundedRegular = style("Title 3 Rounded Regular", 20f, FontWeight.Normal, 24f, -0.45f, family = roundedFontFamily),
-    // Body (17)
-    body = style("Body", 17f, FontWeight.Normal, 22f, -0.43f),
-    bodyMedium = style("Body Medium", 17f, FontWeight.Medium, 22f, -0.43f),
-    bodySemibold = style("Body Semibold", 17f, FontWeight.SemiBold, 22f, -0.43f),
-    bodyRoundedSemibold = style("Body Rounded Semibold", 17f, FontWeight.SemiBold, 22f, -0.12f, family = roundedFontFamily),
+    // Figma spec is 0 ls, but Compose's Inter via Google Fonts renders tighter than the
+    // Figma web renderer at the same size — applying ~1% positive tracking restores the
+    // visible breathing room between glyphs that the design relies on.
+    title3Bold = style("Title 3 Bold", 20f, FontWeight.Bold, 24f, 0.2f),
+    title3Semibold = style("Title 3 Semibold", 20f, FontWeight.SemiBold, 24f, 0.2f),
+    title3RoundedRegular = style("Title 3 Rounded Regular", 20f, FontWeight.Normal, 24f, 0.2f, family = roundedFontFamily),
+    // Body — Figma Inter spec: 16 / line-height 24 / ls 0 (+0.16sp Compose-Inter compensation).
+    body = style("Body", 16f, FontWeight.Normal, 24f, 0.16f),
+    bodyMedium = style("Body Medium", 16f, FontWeight.Medium, 24f, 0.16f),
+    bodySemibold = style("Body Semibold", 16f, FontWeight.SemiBold, 24f, 0.16f),
+    bodyRoundedSemibold = style("Body Rounded Semibold", 16f, FontWeight.SemiBold, 24f, 0.16f, family = roundedFontFamily),
     // Callout (16)
     callout = style("Callout", 16f, FontWeight.Normal, 22f, -0.31f),
     calloutMedium = style("Callout Medium", 16f, FontWeight.Medium, 22f, -0.31f),

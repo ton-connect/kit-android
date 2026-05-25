@@ -38,9 +38,6 @@ import io.ton.walletkit.demo.presentation.util.TestTags
 // "Balance" label + price-style total ("123.456 TON"). Integer part renders in price64,
 // fraction (".456") and the trailing " TON" suffix render in price40 — same baseline
 // as iOS `lastTextBaseline` HStack.
-//
-// [onSecretTap] is the dev-only escape hatch — fires after 5 quick taps on the balance
-// area and is used to toggle between this screen and the legacy debug screen.
 @Composable
 fun WalletHomeBalance(
     totalBalanceInteger: String,

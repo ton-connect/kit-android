@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.demo.R
+import io.ton.walletkit.demo.designsystem.theme.TonTheme
 import io.ton.walletkit.demo.presentation.actions.WalletActions
 import io.ton.walletkit.demo.presentation.dev.DevPreferences
 import io.ton.walletkit.demo.presentation.dev.devToggleTaps
@@ -100,11 +101,8 @@ import io.ton.walletkit.demo.presentation.util.TestTags
 import io.ton.walletkit.demo.presentation.viewmodel.NFTsListViewModel
 import io.ton.walletkit.demo.presentation.viewmodel.SwapViewModel
 
-// Pre-redesign main screen, kept around behind a hidden dev toggle. Shape and behavior
-// match the version that lived on `main` before TON-922 — sectioned debug UI with the
-// status header, quick actions, raw wallet/jetton/NFT/session lists, and the event log.
-// Tap the title bar 5 times to flip back to the new home screen.
-
+// Pre-redesign main screen, kept behind a dev toggle. 5 taps on the title bar
+// flips back to the new home screen.
 private const val DEFAULT_DAPP_URL = "https://allure-test-runner.vercel.app/e2e"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -167,6 +165,7 @@ fun LegacyWalletScreen(
         ModalBottomSheet(
             onDismissRequest = actions::onDismissSheet,
             sheetState = sheetState,
+            containerColor = TonTheme.colors.bgPrimary,
             dragHandle = null,
         ) {
             when (sheet) {
@@ -194,6 +193,8 @@ fun LegacyWalletScreen(
                     request = sheet.request,
                     onApprove = { actions.onApproveSignData(sheet.request) },
                     onReject = { actions.onRejectSignData(sheet.request) },
+                    wallet = state.wallets.firstOrNull { it.address == sheet.request.walletAddress }
+                        ?: activeWallet,
                 )
 
                 is SheetState.SignMessage -> SignMessageRequestSheet(
@@ -418,6 +419,7 @@ fun LegacyWalletScreen(
         ModalBottomSheet(
             onDismissRequest = { selectedNFT = null },
             sheetState = nftDetailsSheetState,
+            containerColor = TonTheme.colors.bgPrimary,
             dragHandle = null,
         ) {
             activeWallet?.let { wallet ->

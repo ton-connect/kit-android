@@ -37,6 +37,7 @@ import io.ton.walletkit.demo.presentation.model.WalletSummary
  */
 interface WalletActions {
     fun onAddWalletClick()
+    fun onStartCreateWalletFlow()
     fun onUrlPromptClick()
     fun onOpenBrowser(url: String, injectTonConnect: Boolean = true)
     fun onRefresh()

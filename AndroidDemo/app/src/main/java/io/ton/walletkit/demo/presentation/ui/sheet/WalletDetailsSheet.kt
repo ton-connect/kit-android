@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.demo.R
+import io.ton.walletkit.demo.designsystem.theme.TonTheme
 import io.ton.walletkit.demo.domain.model.WalletInterfaceType
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.ui.components.NetworkBadge
@@ -84,7 +85,11 @@ fun WalletDetailsSheet(
         // overscroll shouldn't hide it. Close via [onDismiss] (the explicit close button).
         confirmValueChange = { it != SheetValue.Hidden },
     )
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = TonTheme.colors.bgPrimary,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

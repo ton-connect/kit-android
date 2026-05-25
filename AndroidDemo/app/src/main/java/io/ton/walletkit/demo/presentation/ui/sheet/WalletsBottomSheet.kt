@@ -91,7 +91,7 @@ fun WalletsBottomSheet(
             ) {
                 TonIconImage(
                     icon = TonIcon.Close,
-                    size = 16.dp,
+                    size = 12.dp,
                     tint = TonTheme.colors.textSecondary,
                 )
             }

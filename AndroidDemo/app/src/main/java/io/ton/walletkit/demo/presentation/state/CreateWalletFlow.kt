@@ -19,33 +19,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.demo.presentation.dev
+package io.ton.walletkit.demo.presentation.state
 
-import android.os.SystemClock
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
+// Mnemonic state is held only in memory — a process kill drops it and the user
+// re-rolls, which is the right trade-off for unconfirmed seed material.
+sealed interface CreateWalletFlow {
+    data object Idle : CreateWalletFlow
+    data object Onboarding : CreateWalletFlow
+    data class Reveal(val words: List<String>) : CreateWalletFlow
 
-fun Modifier.devToggleTaps(
-    requiredTaps: Int = 5,
-    windowMs: Long = 3_000L,
-    onTrigger: () -> Unit,
-): Modifier = this.then(
-    Modifier.pointerInput(requiredTaps, windowMs) {
-        var count = 0
-        var firstAt = 0L
-        detectTapGestures(onTap = {
-            val now = SystemClock.elapsedRealtime()
-            if (count == 0 || now - firstAt > windowMs) {
-                count = 1
-                firstAt = now
-            } else {
-                count++
-            }
-            if (count >= requiredTaps) {
-                count = 0
-                onTrigger()
-            }
-        })
-    },
-)
+    data class ImportEntry(
+        val wordCount: Int = 24,
+        val words: Map<Int, String> = emptyMap(),
+    ) : CreateWalletFlow {
+        val isComplete: Boolean
+            get() = (0 until wordCount).all { idx -> !words[idx].isNullOrBlank() }
+
+        fun asPhrase(): List<String> = (0 until wordCount).map { idx ->
+            words[idx].orEmpty().trim().lowercase()
+        }
+    }
+}

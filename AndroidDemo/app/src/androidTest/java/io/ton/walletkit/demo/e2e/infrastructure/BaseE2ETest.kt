@@ -160,6 +160,7 @@ abstract class BaseE2ETest {
                     Log.w("BaseE2ETest", "Failed to clear prefs $prefName: ${e.message}")
                 }
             }
+            DevPreferences.reset(context)
 
             // 1b. Reset DevPreferences in-process state. Just deleting the prefs file isn't
             // enough — the singleton caches the legacy-screen flag in a StateFlow plus a

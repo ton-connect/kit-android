@@ -61,6 +61,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ton.walletkit.demo.R
+import io.ton.walletkit.demo.designsystem.theme.TonTheme
 import io.ton.walletkit.demo.presentation.model.TransactionDetailUi
 import io.ton.walletkit.demo.presentation.ui.icons.CallMade
 import io.ton.walletkit.demo.presentation.ui.icons.CallReceived
@@ -83,7 +84,11 @@ fun TransactionDetailSheet(
         confirmValueChange = { it != SheetValue.Hidden },
     )
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = TonTheme.colors.bgPrimary,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

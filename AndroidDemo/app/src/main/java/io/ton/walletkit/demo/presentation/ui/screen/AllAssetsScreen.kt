@@ -22,14 +22,12 @@
 package io.ton.walletkit.demo.presentation.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -37,9 +35,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.ton.walletkit.demo.designsystem.components.navbarbutton.TonBackButton
 import io.ton.walletkit.demo.designsystem.components.text.TonText
-import io.ton.walletkit.demo.designsystem.icons.TonIcon
-import io.ton.walletkit.demo.designsystem.icons.TonIconImage
 import io.ton.walletkit.demo.designsystem.theme.TonTheme
 import io.ton.walletkit.demo.presentation.ui.components.wallet.home.WalletHomeAssetItem
 import io.ton.walletkit.demo.presentation.ui.components.wallet.home.WalletHomeAssetRow
@@ -87,19 +84,7 @@ internal fun SubScreenTopBar(
             .padding(horizontal = 8.dp, vertical = 8.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clickable(onClick = onBack),
-            contentAlignment = Alignment.Center,
-        ) {
-            TonIconImage(
-                icon = TonIcon.ChevronBackSmall,
-                size = 20.dp,
-                tint = TonTheme.colors.textBrand,
-                contentDescription = "Back",
-            )
-        }
+        TonBackButton(onClick = onBack)
         TonText(
             text = title,
             style = TonTheme.typography.bodySemibold,

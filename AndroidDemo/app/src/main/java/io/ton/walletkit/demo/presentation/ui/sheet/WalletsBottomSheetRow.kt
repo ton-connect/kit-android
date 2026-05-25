@@ -106,7 +106,7 @@ fun WalletsBottomSheetRow(
                         TonIconImage(
                             icon = TonIcon.Copy,
                             size = 16.dp,
-                            tint = TonTheme.colors.textSecondary,
+                            tint = TonTheme.colors.textPrimary,
                         )
                     }
                 }

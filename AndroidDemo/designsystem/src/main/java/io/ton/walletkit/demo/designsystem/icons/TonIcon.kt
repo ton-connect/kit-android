@@ -99,6 +99,7 @@ enum class TonIcon(val resourceName: String, val category: Category) {
     Doc("doc", Category.Icons20),
     Done("done", Category.Icons20),
     Failed("failed", Category.Icons20),
+    Fingerprint("fingerprint", Category.Icons20),
     Github("github", Category.Icons20),
     Globe("globe", Category.Icons20),
     InProgress("inprogress", Category.Icons20),

@@ -26,9 +26,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-// Hidden developer toggles. Persisted in plain SharedPreferences (no secrets) and
-// exposed as a StateFlow so Compose can re-render when the user flips them via the
-// secret tap-counter on the main screen.
 object DevPreferences {
     private const val PREFS_NAME = "dev_preferences"
     private const val KEY_USE_LEGACY_MAIN_SCREEN = "use_legacy_main_screen"
@@ -39,8 +36,6 @@ object DevPreferences {
     @Volatile
     private var loaded = false
 
-    // Pulls the current value off disk on first call. Subsequent calls are cheap.
-    // Safe to call from MainActivity.onCreate before the first composition.
     fun ensureLoaded(context: Context) {
         if (loaded) return
         synchronized(this) {
@@ -52,8 +47,6 @@ object DevPreferences {
         }
     }
 
-    // Flip the flag and persist. Returns the new value so callers can render
-    // confirmation UI (e.g. Toast).
     fun toggleLegacyMainScreen(context: Context): Boolean {
         ensureLoaded(context)
         val next = !_useLegacyMainScreen.value

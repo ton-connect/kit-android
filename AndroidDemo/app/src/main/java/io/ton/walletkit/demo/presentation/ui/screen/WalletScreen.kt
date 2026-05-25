@@ -21,6 +21,9 @@
  */
 package io.ton.walletkit.demo.presentation.ui.screen
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -60,6 +63,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -271,6 +275,7 @@ fun WalletScreen(
         ModalBottomSheet(
             onDismissRequest = actions::onDismissSheet,
             sheetState = sheetState,
+            containerColor = TonTheme.colors.bgPrimary,
             dragHandle = null,
         ) {
             when (sheet) {
@@ -298,6 +303,8 @@ fun WalletScreen(
                     request = sheet.request,
                     onApprove = { actions.onApproveSignData(sheet.request) },
                     onReject = { actions.onRejectSignData(sheet.request) },
+                    wallet = state.wallets.firstOrNull { it.address == sheet.request.walletAddress }
+                        ?: activeWallet,
                 )
 
                 is SheetState.SignMessage -> SignMessageRequestSheet(
@@ -409,19 +416,14 @@ fun WalletScreen(
     var showWalletsSheet by remember { mutableStateOf(false) }
     var subScreen by remember { mutableStateOf<HomeSubScreen>(HomeSubScreen.None) }
     val walletsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
 
-    // Drop the wallet picker sheet automatically when we navigate to a sub-screen,
-    // and reset the sub-screen when the active wallet changes (e.g. user switched
-    // wallets while looking at all-assets — bounce them back to home for the new
-    // context, mirroring the iOS NavigationStack popping on `.id(active.id)`).
+    // Reset the sub-screen on wallet switch so the user lands on home for the
+    // new wallet (mirrors iOS NavigationStack popping on `.id(active.id)`).
     LaunchedEffect(state.activeWalletAddress) {
         subScreen = HomeSubScreen.None
     }
     if (subScreen != HomeSubScreen.None) {
-        // Map system back / predictive-back gesture to "leave the sub-screen" so it
-        // matches the chevron's behavior. Without this the activity would handle
-        // back itself and finish, closing the app.
         BackHandler { subScreen = HomeSubScreen.None }
         when (val current = subScreen) {
             HomeSubScreen.AllAssets -> {
@@ -531,6 +533,7 @@ fun WalletScreen(
         ModalBottomSheet(
             onDismissRequest = { showWalletsSheet = false },
             sheetState = walletsSheetState,
+            containerColor = TonTheme.colors.bgPrimary,
             dragHandle = null,
         ) {
             WalletsBottomSheet(
@@ -541,19 +544,14 @@ fun WalletScreen(
                     showWalletsSheet = false
                 },
                 onCopyAddress = { address ->
-                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
-                        as? android.content.ClipboardManager
-                    clipboard?.setPrimaryClip(
-                        android.content.ClipData.newPlainText("Wallet address", address),
-                    )
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                    clipboard?.setPrimaryClip(ClipData.newPlainText("Wallet address", address))
                 },
                 onAddWallet = {
                     showWalletsSheet = false
-                    actions.onAddWalletClick()
+                    actions.onStartCreateWalletFlow()
                 },
                 onDelete = { wallet ->
-                    // Close the picker first so the user gets immediate feedback and
-                    // any subsequent error snackbar isn't hidden behind this sheet.
                     showWalletsSheet = false
                     actions.onRemoveWallet(wallet.address)
                 },
@@ -567,6 +565,7 @@ fun WalletScreen(
         ModalBottomSheet(
             onDismissRequest = { selectedNFT = null },
             sheetState = nftDetailsSheetState,
+            containerColor = TonTheme.colors.bgPrimary,
             dragHandle = null,
         ) {
             // Get the wallet to pass to NFTDetailsScreen

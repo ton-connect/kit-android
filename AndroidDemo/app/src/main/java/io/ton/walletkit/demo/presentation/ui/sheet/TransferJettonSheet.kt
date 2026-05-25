@@ -57,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import io.ton.walletkit.demo.designsystem.theme.TonTheme
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.util.JettonFormatters
 import java.math.BigDecimal
@@ -82,6 +83,7 @@ fun TransferJettonSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        containerColor = TonTheme.colors.bgPrimary,
     ) {
         Column(
             modifier = Modifier

@@ -32,6 +32,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import io.qameta.allure.kotlin.Step
 import io.ton.walletkit.demo.presentation.MainActivity
@@ -52,6 +53,10 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
         const val PIN_LENGTH = 4
         const val DEFAULT_PIN = "1234"
+
+        // Sign-data approve uses TonHoldToSignButton (DEFAULT_HOLD_DURATION_MS = 700ms). Press
+        // for noticeably longer so the test isn't racy with the fill animation completing.
+        const val SIGN_DATA_HOLD_DURATION_MS = 1_200L
     }
 
     private lateinit var composeTestRule: ComposeTestRule
@@ -259,82 +264,119 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
     }
 
     /**
-     * Import a wallet using mnemonic.
+     * Import a wallet using a 24-word mnemonic.
      */
     @Step("Import wallet with mnemonic")
     fun importWallet(mnemonic: List<String>) {
         Log.d("WalletController", "importWallet called with ${mnemonic.size} words")
-        val mnemonicString = mnemonic.joinToString(" ")
-        Log.d("WalletController", "Mnemonic to enter: '${mnemonicString.take(50)}...' (${mnemonicString.length} chars)")
 
-        // Wait for mnemonic field (the paste field in AddWalletSheet)
-        Log.d("WalletController", "Waiting for MNEMONIC_FIELD...")
-        composeTestRule.waitUntil(5000) {
+        composeTestRule.waitForIdle()
+
+        val landed = waitForOne(UI_IDLE_TIMEOUT) {
+            isOnOnboardingScreen() || isOnImportScreen() || isAddWalletSheetShowing()
+        }
+        if (!landed) {
+            Log.w("WalletController", "importWallet: no import surface detected within timeout")
+        }
+
+        when {
+            isOnImportScreen() -> {
+                Log.d("WalletController", "On ImportWalletScreen directly - entering mnemonic")
+                enterMnemonicOnImportScreen(mnemonic)
+            }
+            isOnOnboardingScreen() -> {
+                Log.d("WalletController", "On CreateWalletOnboardingScreen - tapping 'Add existing'")
+                composeTestRule.onNodeWithTag(TestTags.ONBOARDING_IMPORT_WALLET_BUTTON).performClick()
+                composeTestRule.waitForIdle()
+                composeTestRule.waitUntil(UI_IDLE_TIMEOUT) { isOnImportScreen() }
+                enterMnemonicOnImportScreen(mnemonic)
+            }
+            isAddWalletSheetShowing() -> {
+                Log.d("WalletController", "Legacy AddWalletSheet visible - using paste-all field")
+                importWalletViaLegacySheet(mnemonic)
+            }
+            else -> {
+                Log.w("WalletController", "importWallet: no recognised import UI - aborting")
+                return
+            }
+        }
+
+        // Wait for wallet home (either modern or legacy) to appear after import succeeds.
+        composeTestRule.waitForIdle()
+        try {
+            composeTestRule.waitUntil(15_000L) { isOnLegacyHome() || isOnModernHome() }
+            Log.d("WalletController", "Wallet loaded successfully in UI")
+        } catch (e: Exception) {
+            Log.e("WalletController", "Wallet home still not visible after timeout: ${e.message}")
+        }
+        Log.d("WalletController", "After import - legacy: ${isOnLegacyHome()}, modern: ${isOnModernHome()}")
+    }
+
+    /** Modern import flow: paste the full phrase into the first tagged word field, tap Continue. */
+    private fun enterMnemonicOnImportScreen(mnemonic: List<String>) {
+        val mnemonicString = mnemonic.joinToString(" ")
+
+        composeTestRule.waitUntil(UI_IDLE_TIMEOUT) {
+            composeTestRule.onAllNodesWithTag(TestTags.IMPORT_WALLET_WORD_FIELD)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_WORD_FIELD).performTextClearance()
+        composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_WORD_FIELD).performTextInput(mnemonicString)
+        composeTestRule.waitForIdle()
+        composeTestRule.waitUntil(UI_IDLE_TIMEOUT) {
+            try {
+                composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_CONTINUE_BUTTON).assertIsEnabled()
+                true
+            } catch (e: AssertionError) {
+                false
+            }
+        }
+        composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_CONTINUE_BUTTON).performClick()
+        composeTestRule.waitForIdle()
+    }
+
+    /** Legacy AddWalletSheet flow (only reachable when the dev legacy-screen toggle is on). */
+    private fun importWalletViaLegacySheet(mnemonic: List<String>) {
+        val mnemonicString = mnemonic.joinToString(" ")
+
+        composeTestRule.waitUntil(5_000L) {
             composeTestRule.onAllNodesWithTag(TestTags.MNEMONIC_FIELD)
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        Log.d("WalletController", "MNEMONIC_FIELD found, entering mnemonic...")
 
-        // Clear field first and enter mnemonic
-        composeTestRule.onNodeWithTag(TestTags.MNEMONIC_FIELD)
-            .performTextClearance()
-        composeTestRule.onNodeWithTag(TestTags.MNEMONIC_FIELD)
-            .performTextInput(mnemonicString)
-        Log.d("WalletController", "Mnemonic text input performed")
-
-        // Wait for auto-parsing to complete
+        composeTestRule.onNodeWithTag(TestTags.MNEMONIC_FIELD).performTextClearance()
+        composeTestRule.onNodeWithTag(TestTags.MNEMONIC_FIELD).performTextInput(mnemonicString)
         composeTestRule.waitForIdle()
-        Thread.sleep(1000) // Give time for mnemonic parsing
-        Log.d("WalletController", "Waited for parsing")
+        Thread.sleep(1_000L) // Mnemonic parsing inside the sheet is async; let it settle.
 
-        // Scroll to the import button (it may be below the visible area)
-        Log.d("WalletController", "Scrolling to IMPORT_WALLET_PROCESS_BUTTON...")
         try {
-            composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON)
-                .performScrollTo()
-            Log.d("WalletController", "Scrolled to import button")
+            composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON).performScrollTo()
         } catch (e: Exception) {
-            Log.w("WalletController", "Could not scroll to import button: ${e.message}")
+            Log.w("WalletController", "Could not scroll to legacy import button: ${e.message}")
         }
-
         composeTestRule.waitForIdle()
-        Thread.sleep(500) // Let scroll animation complete
+        composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON).performClick()
+    }
 
-        // Click import button
-        Log.d("WalletController", "Clicking IMPORT_WALLET_PROCESS_BUTTON...")
-        try {
-            composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_PROCESS_BUTTON)
-                .performClick()
-            Log.d("WalletController", "Import button clicked successfully")
-        } catch (e: Exception) {
-            Log.e("WalletController", "Failed to click import button: ${e.message}")
-            throw e
-        }
+    private fun isOnOnboardingScreen(): Boolean = try {
+        composeTestRule.onNodeWithTag(TestTags.ONBOARDING_IMPORT_WALLET_BUTTON).assertExists()
+        true
+    } catch (e: AssertionError) {
+        false
+    }
 
-        // Wait for wallet to be imported and explicitly verify it's loaded in UI. Depending on
-        // the dev-toggle state, this is either the modern WalletScreen ([WALLET_BALANCE]) or the
-        // legacy one ([WALLET_ADDRESS]).
-        composeTestRule.waitForIdle()
-        Log.d("WalletController", "Waiting for wallet home to appear after import...")
-        try {
-            composeTestRule.waitUntil(15000) {
-                isOnLegacyHome() || isOnModernHome()
-            }
-            Log.d("WalletController", "Wallet loaded successfully in UI")
-        } catch (e: Exception) {
-            Log.e("WalletController", "Wallet home still not visible after timeout")
-        }
+    private fun isOnImportScreen(): Boolean = try {
+        composeTestRule.onNodeWithTag(TestTags.IMPORT_WALLET_WORD_FIELD).assertExists()
+        true
+    } catch (e: AssertionError) {
+        false
+    }
 
-        Log.d("WalletController", "After import - legacy: ${isOnLegacyHome()}, modern: ${isOnModernHome()}")
-
-        // Check if AddWalletSheet is still showing (import may have failed)
-        val addWalletStillShowing = try {
-            composeTestRule.onNodeWithTag(TestTags.ADD_WALLET_TAB_GENERATE).assertExists()
-            true
-        } catch (e: AssertionError) {
-            false
-        }
-        Log.d("WalletController", "After import - AddWalletSheet still showing: $addWalletStillShowing")
+    private fun waitForOne(timeoutMs: Long, predicate: () -> Boolean): Boolean = try {
+        composeTestRule.waitUntil(timeoutMs) { predicate() }
+        true
+    } catch (e: Exception) {
+        false
     }
 
     /**
@@ -370,9 +412,18 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             return
         }
 
-        // Check if AddWalletSheet is already showing (password was set previously)
+        // Check if AddWalletSheet is already showing (password was set previously, dev toggle on)
         if (isAddWalletSheetShowing()) {
             Log.d("WalletController", "AddWalletSheet already showing - importing wallet directly")
+            importWallet(mnemonic)
+            ensureLegacyScreen()
+            return
+        }
+
+        // Modern first-run lands on the onboarding screen (or the import screen if the user
+        // already tapped through). Both are valid pre-wallet states.
+        if (isOnOnboardingScreen() || isOnImportScreen()) {
+            Log.d("WalletController", "Modern onboarding visible - importing wallet")
             importWallet(mnemonic)
             ensureLegacyScreen()
             return
@@ -407,6 +458,14 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
             // If AddWalletSheet is showing, import wallet
             if (isAddWalletSheetShowing()) {
                 Log.d("WalletController", "AddWalletSheet showing after auth (check $i) - importing wallet")
+                importWallet(mnemonic)
+                ensureLegacyScreen()
+                return
+            }
+
+            // Modern first-run onboarding (or already on the import screen).
+            if (isOnOnboardingScreen() || isOnImportScreen()) {
+                Log.d("WalletController", "Onboarding visible after auth (check $i) - importing wallet")
                 importWallet(mnemonic)
                 ensureLegacyScreen()
                 return
@@ -626,19 +685,26 @@ class WalletController(composeTestRule: ComposeTestRule? = null) {
 
     /**
      * Approve a sign data request.
+     *
+     * The redesigned sheet uses a hold-to-sign button — `onComplete` fires only after a
+     * sustained ~700ms press (DEFAULT_HOLD_DURATION_MS in TonHoldToSignButton). On
+     * instrumented tests `advanceEventTime` only stamps the next input event; it does
+     * not actually advance the device's frame clock, so the underlying animation never
+     * gets time to reach 1.0. We split the touch into two `performTouchInput` calls
+     * with a real `Thread.sleep` between them so the device's frame loop drives the
+     * animation to completion before we release.
      */
     @Step("Approve sign data request")
     fun approveSignData() {
-        // Wait for sign data sheet
         composeTestRule.waitUntil(SHEET_APPEAR_TIMEOUT) {
             composeTestRule.onAllNodesWithTag(TestTags.SIGN_DATA_SHEET)
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        // Click approve button
-        composeTestRule.onNodeWithTag(TestTags.SIGN_DATA_APPROVE_BUTTON)
-            .performClick()
-
+        val node = composeTestRule.onNodeWithTag(TestTags.SIGN_DATA_APPROVE_BUTTON)
+        node.performTouchInput { down(center) }
+        Thread.sleep(SIGN_DATA_HOLD_DURATION_MS)
+        node.performTouchInput { up() }
         composeTestRule.waitForIdle()
     }
 

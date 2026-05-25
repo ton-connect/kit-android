@@ -44,6 +44,8 @@ class WalletActionsImpl @Inject constructor(
 
     override fun onAddWalletClick() = viewModel.openAddWalletSheet()
 
+    override fun onStartCreateWalletFlow() = viewModel.showCreateWalletOnboarding()
+
     override fun onUrlPromptClick() = viewModel.showUrlPrompt()
 
     override fun onOpenBrowser(url: String, injectTonConnect: Boolean) = viewModel.openBrowser(url, injectTonConnect)

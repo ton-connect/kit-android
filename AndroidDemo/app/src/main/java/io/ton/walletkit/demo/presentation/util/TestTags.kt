@@ -31,6 +31,11 @@ object TestTags {
     const val CREATE_PIN_FIELD = "create-pin"
     const val CREATE_PIN_SAVE_BUTTON = "create-pin-save"
 
+    const val ONBOARDING_CREATE_WALLET_BUTTON = "onboarding-create-wallet"
+    const val ONBOARDING_IMPORT_WALLET_BUTTON = "onboarding-import-wallet"
+    const val IMPORT_WALLET_WORD_FIELD = "import-wallet-word"
+    const val IMPORT_WALLET_CONTINUE_BUTTON = "import-wallet-continue"
+
     // UnlockPinScreen
     const val UNLOCK_PIN_FIELD = "unlock-pin"
     const val UNLOCK_PIN_FORGOT_BUTTON = "unlock-pin-forgot"
