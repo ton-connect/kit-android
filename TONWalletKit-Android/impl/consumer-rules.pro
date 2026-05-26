@@ -149,6 +149,13 @@
     <init>(android.content.Context, java.lang.String, okhttp3.OkHttpClient);
 }
 
+# TONWalletKit is the public SDK entry point loaded reflectively by
+# io.ton.walletkit.internal.TONWalletKitFactory from the api module
+# (Class.forName + Companion.initialize). Both the class and its Companion
+# must survive consumer-app minification.
+-keep class io.ton.walletkit.core.TONWalletKit { *; }
+-keep class io.ton.walletkit.core.TONWalletKit$Companion { *; }
+
 # ------------------------------------------------------------
 # 6. Android Security & Crypto
 # Keep encrypted shared preferences (library uses internally)
