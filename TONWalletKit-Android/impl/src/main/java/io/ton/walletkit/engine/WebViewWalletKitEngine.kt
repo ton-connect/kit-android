@@ -111,6 +111,7 @@ import io.ton.walletkit.engine.operations.getSwapQuote
 import io.ton.walletkit.engine.operations.getTransactionPreview
 import io.ton.walletkit.engine.operations.getWallet
 import io.ton.walletkit.engine.operations.getWalletAddress
+import io.ton.walletkit.engine.operations.getWalletNetwork
 import io.ton.walletkit.engine.operations.getWallets
 import io.ton.walletkit.engine.operations.handleNewTransaction
 import io.ton.walletkit.engine.operations.handleTonConnectRequest
@@ -193,7 +194,7 @@ internal class WebViewWalletKitEngine private constructor(
     eventsHandler: TONBridgeEventsHandler?,
     private val storageAdapter: BridgeStorageAdapter,
     private val sessionManager: TONConnectSessionManager?,
-    private val apiClients: List<Pair<TONNetwork, TONAPIClient>>,
+    private val apiClients: Map<TONNetwork, TONAPIClient>,
     private val assetPath: String = WebViewConstants.DEFAULT_ASSET_PATH,
 ) : WalletKitEngine {
     override val streamingEvents get() = messageDispatcher.streamingEvents
@@ -317,7 +318,7 @@ internal class WebViewWalletKitEngine private constructor(
         // BridgeWalletAdapter wraps a JS-side adapter; route through its stable adapterId so we don't
         // re-register in AdapterManager or create a duplicate proxy in JS.
         val adapterId = if (adapter is BridgeWalletAdapter) adapter.adapterId else adapterManager.registerAdapter(adapter)
-        return rpcClient.addWallet(adapterId).toWalletAccount()
+        return rpcClient.addWallet(adapterId).toWalletAccount(network = adapter.network())
     }
 
     override suspend fun createSignerFromMnemonic(
@@ -359,7 +360,8 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun getWallets(): List<WalletAccount> =
         rpcClient.getWallets().mapNotNull { entry ->
-            entry.walletId?.takeIf { it.isNotEmpty() }?.let { entry.toWalletAccount() }
+            val walletId = entry.walletId?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            entry.toWalletAccount(network = rpcClient.getWalletNetwork(walletId))
         }
 
     override suspend fun getWallet(walletId: String): WalletAccount? {
@@ -367,7 +369,8 @@ internal class WebViewWalletKitEngine private constructor(
         val resolvedId = response.walletId?.takeIf { it.isNotEmpty() } ?: walletId
         val address = rpcClient.getWalletAddress(resolvedId)
         if (address.isEmpty()) return null
-        return response.copy(walletId = resolvedId).toWalletAccount(address)
+        return response.copy(walletId = resolvedId)
+            .toWalletAccount(network = rpcClient.getWalletNetwork(resolvedId), address = address)
     }
 
     override suspend fun removeWallet(walletId: String) = rpcClient.removeWallet(walletId)
@@ -661,6 +664,7 @@ internal class WebViewWalletKitEngine private constructor(
     }
 
     private suspend fun AddWalletResponse.toWalletAccount(
+        network: TONNetwork,
         address: String? = null,
     ): WalletAccount {
         val walletId = walletId?.takeIf { it.isNotEmpty() }
@@ -670,6 +674,7 @@ internal class WebViewWalletKitEngine private constructor(
         return WalletAccount(
             walletId = walletId,
             address = TONUserFriendlyAddress(resolvedAddress),
+            network = network,
             publicKey = rawPublicKey?.takeIf { it.isNotEmpty() }?.let(WalletKitUtils::stripHexPrefix),
             version = wallet?.version?.takeIf { it.isNotEmpty() } ?: "unknown",
         )

@@ -96,6 +96,9 @@ internal suspend fun BridgeRpcClient.getWallet(walletId: String): AddWalletRespo
 internal suspend fun BridgeRpcClient.getWalletAddress(walletId: String): String =
     callTyped(BridgeMethodConstants.METHOD_GET_WALLET_ADDRESS, WalletIdRequest(walletId = walletId))
 
+internal suspend fun BridgeRpcClient.getWalletNetwork(walletId: String): TONNetwork =
+    callTyped(BridgeMethodConstants.METHOD_GET_WALLET_NETWORK, WalletIdRequest(walletId = walletId))
+
 internal suspend fun BridgeRpcClient.removeWallet(walletId: String) {
     send(BridgeMethodConstants.METHOD_REMOVE_WALLET, WalletIdRequest(walletId = walletId))
 }

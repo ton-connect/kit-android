@@ -69,6 +69,16 @@ data class TONBase64(
         fun fromString(string: String): TONBase64 {
             return fromData(string.toByteArray(Charsets.UTF_8))
         }
+
+        /**
+         * Parses a Base64-encoded string, validating it upfront.
+         *
+         * @throws IllegalArgumentException if [value] is not valid Base64.
+         */
+        fun parse(value: String): TONBase64 {
+            Base64.decode(value, Base64.DEFAULT)
+            return TONBase64(value)
+        }
     }
 
     override fun toString(): String = value

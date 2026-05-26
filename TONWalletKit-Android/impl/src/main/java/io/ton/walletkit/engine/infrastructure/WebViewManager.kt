@@ -39,6 +39,7 @@ import androidx.webkit.WebViewAssetLoader
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.TONDAppInfo
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.api.generated.TONRawStackItem
 import io.ton.walletkit.api.isTestnet
 import io.ton.walletkit.bridge.BuildConfig
 import io.ton.walletkit.bridge.optString
@@ -65,10 +66,13 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 
@@ -82,7 +86,7 @@ internal class WebViewManager(
     private val assetPath: String,
     private val storageManager: StorageManager,
     private val sessionManager: TONConnectSessionManager?,
-    private val apiClients: List<Pair<TONNetwork, TONAPIClient>>,
+    private val apiClients: Map<TONNetwork, TONAPIClient>,
     private val adapterManager: AdapterManager,
     private val json: Json,
     private val onMessage: (JsonObject) -> Unit,
@@ -284,24 +288,65 @@ internal class WebViewManager(
 
         @JavascriptInterface
         fun adapterCallSync(method: String, paramsJson: String): String = runBlocking {
-            withTimeout(1000) {
+            try {
                 val params = json.parseToJsonElement(paramsJson).jsonObject
-                val adapterId = params.optString("adapterId")
-                val adapter = adapterManager.getAdapter(adapterId)
-                    ?: throw IllegalArgumentException("Adapter not found: $adapterId")
-                when (method) {
-                    "getPublicKey" -> adapter.publicKey().value
-                    "getNetwork" -> buildJsonObject { put("chainId", adapter.network().chainId) }.toString()
-                    "getAddress" -> adapter.address(adapter.network().isTestnet).value
-                    "getWalletId" -> adapter.identifier()
-                    "getSupportedFeatures" -> {
-                        val features = adapter.supportedFeatures()
-                            ?: return@withTimeout "null"
-                        featuresToJson(features).toString()
-                    }
-                    else -> throw IllegalArgumentException("Unknown sync adapter method: $method")
+                if (method.startsWith("api.")) {
+                    dispatchApi(method, params)
+                } else {
+                    withTimeout(1000) { dispatchAdapter(method, params) }
                 }
+            } catch (e: Exception) {
+                Logger.e(TAG, "adapterCallSync($method) failed", e)
+                throw e
             }
+        }
+
+        private fun dispatchAdapter(method: String, params: JsonObject): String {
+            val adapterId = params.optString("adapterId")
+            val adapter = adapterManager.getAdapter(adapterId)
+                ?: throw IllegalArgumentException("Adapter not found: $adapterId")
+            return when (method) {
+                "getPublicKey" -> adapter.publicKey().value
+                "getNetwork" -> buildJsonObject { put("chainId", adapter.network().chainId) }.toString()
+                "getAddress" -> adapter.address(adapter.network().isTestnet).value
+                "getWalletId" -> adapter.identifier()
+                "getSupportedFeatures" -> {
+                    val features = adapter.supportedFeatures() ?: return "null"
+                    featuresToJson(features).toString()
+                }
+                else -> throw IllegalArgumentException("Unknown sync adapter method: $method")
+            }
+        }
+
+        /**
+         * Wire seam for the `api.*` namespace. Every param that maps to a typed value
+         * class is validated here ([TONBase64.parse], [TONUserFriendlyAddress.parse]) so
+         * bad input from JS surfaces as a structured BridgeError at the boundary instead
+         * of leaking through to the http layer with no context.
+         */
+        private suspend fun dispatchApi(method: String, params: JsonObject): String {
+            if (method == "api.getNetworks") return json.encodeToString(apiClients.keys.toList())
+            val client = clientForParams(params)
+            return when (method) {
+                "api.sendBoc" -> client.sendBoc(TONBase64.parse(params.optString("boc")))
+                "api.runGetMethod" -> {
+                    val address = TONUserFriendlyAddress.parse(params.optString("address"))
+                    val methodName = params.optString("method")
+                    val stack = params["stack"]
+                        ?.takeIf { it !is JsonNull }
+                        ?.let { json.decodeFromJsonElement<List<TONRawStackItem>>(it) }
+                    val seqno = (params["seqno"] as? JsonPrimitive)?.content?.toUIntOrNull()
+                    json.encodeToString(client.runGetMethod(address, methodName, stack, seqno))
+                }
+                "api.getMasterchainInfo" -> json.encodeToString(client.getMasterchainInfo())
+                else -> throw IllegalArgumentException("api method not implemented on host: $method")
+            }
+        }
+
+        private fun clientForParams(params: JsonObject): TONAPIClient {
+            val chainId = params.optString("chainId")
+            return apiClients[TONNetwork(chainId)]
+                ?: throw IllegalArgumentException("No API client configured for chainId=$chainId")
         }
 
         // ======== Session Manager Methods ========
@@ -426,100 +471,6 @@ internal class WebViewManager(
                     Logger.e(TAG, "Failed to clear sessions", e)
                 }
             }
-        }
-
-        // ======== API Client Methods ========
-        // These methods are only available when custom API clients are configured.
-        // The JS bridge checks for apiGetNetworks to determine if native API clients are available.
-
-        @JavascriptInterface
-        fun apiGetNetworks(): String {
-            if (apiClients.isEmpty()) {
-                return "[]"
-            }
-
-            val networks = apiClients.map { (network, _) ->
-                json.encodeToString(network)
-            }
-            return "[${ networks.joinToString(",") }]"
-        }
-
-        @JavascriptInterface
-        fun apiSendBoc(paramsJson: String): String =
-            callApi<ApiSendBocParams, _>(paramsJson) { client, p ->
-                client.sendBoc(TONBase64(p.boc))
-            }
-
-        @JavascriptInterface
-        fun apiRunGetMethod(paramsJson: String): String =
-            callApi<ApiRunGetMethodParams, _>(paramsJson) { client, p ->
-                json.encodeToString(client.runGetMethod(TONUserFriendlyAddress(p.address), p.method, p.stack, p.seqno))
-            }
-
-        @JavascriptInterface
-        fun apiGetBalance(paramsJson: String): String =
-            callApi<ApiAddressSeqnoParams, _>(paramsJson) { client, p ->
-                // Return the raw nano-units string — JS-side TokenAmount === string.
-                client.getBalance(TONUserFriendlyAddress(p.address), p.seqno).value
-            }
-
-        @JavascriptInterface
-        fun apiGetMasterchainInfo(paramsJson: String): String =
-            callApi<ApiNetworkOnlyParams, _>(paramsJson) { client, _ ->
-                json.encodeToString(client.getMasterchainInfo())
-            }
-
-        @JavascriptInterface
-        fun apiNftItemsByAddress(paramsJson: String): String =
-            callApi<ApiNftItemsByAddressParams, _>(paramsJson) { client, p ->
-                json.encodeToString(client.nftItemsByAddress(p.request))
-            }
-
-        @JavascriptInterface
-        fun apiNftItemsByOwner(paramsJson: String): String =
-            callApi<ApiNftItemsByOwnerParams, _>(paramsJson) { client, p ->
-                json.encodeToString(client.nftItemsByOwner(p.request))
-            }
-
-        @JavascriptInterface
-        fun apiFetchEmulation(paramsJson: String): String =
-            callApi<ApiFetchEmulationParams, _>(paramsJson) { client, p ->
-                json.encodeToString(client.fetchEmulation(TONBase64(p.messageBoc), p.ignoreSignature))
-            }
-
-        @JavascriptInterface
-        fun apiAccountState(paramsJson: String): String =
-            callApi<ApiAddressSeqnoParams, _>(paramsJson) { client, p ->
-                json.encodeToString(client.accountState(TONUserFriendlyAddress(p.address), p.seqno))
-            }
-
-        @JavascriptInterface
-        fun apiAccountStates(paramsJson: String): String =
-            callApi<ApiAccountStatesParams, _>(paramsJson) { client, p ->
-                val result = client.accountStates(p.addresses.map { TONUserFriendlyAddress(it) })
-                json.encodeToString(result.mapKeys { it.key.value })
-            }
-
-        @JavascriptInterface
-        fun apiResolveDnsWallet(paramsJson: String): String? =
-            callApi<ApiResolveDnsParams, _>(paramsJson) { client, p ->
-                client.resolveDnsWallet(p.domain)
-            }
-
-        @JavascriptInterface
-        fun apiBackResolveDnsWallet(paramsJson: String): String? =
-            callApi<ApiBackResolveDnsParams, _>(paramsJson) { client, p ->
-                client.backResolveDnsWallet(TONUserFriendlyAddress(p.address))
-            }
-
-        private inline fun <reified P : ApiParamsWithNetwork, T> callApi(
-            paramsJson: String,
-            crossinline block: suspend (TONAPIClient, P) -> T,
-        ): T {
-            val params = json.decodeFromString<P>(paramsJson)
-            val client = apiClients.find { it.first == params.network }?.second
-                ?: throw IllegalArgumentException("No API client configured for network: ${params.network}")
-            return runBlocking { block(client, params) }
         }
 
         private fun parseSessionFilter(filterJson: String): SessionFilter? {

@@ -21,6 +21,7 @@
  */
 package io.ton.walletkit.engine.model
 
+import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import kotlinx.serialization.Serializable
 
@@ -38,6 +39,7 @@ import kotlinx.serialization.Serializable
 data class WalletAccount(
     val walletId: String,
     val address: TONUserFriendlyAddress,
+    val network: TONNetwork,
     val publicKey: String? = null,
     val version: String? = null,
 )

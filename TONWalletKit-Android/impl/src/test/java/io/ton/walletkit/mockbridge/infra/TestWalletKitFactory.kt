@@ -28,7 +28,6 @@ import io.mockk.slot
 import io.ton.walletkit.ITONWalletKit
 import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONDisconnectionEventPreview
-import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.TONWalletKit
 import io.ton.walletkit.engine.WalletKitEngine
@@ -84,13 +83,13 @@ internal object TestWalletKitFactory {
             mockEngine.init(configuration)
         }
 
-        // Wrap in TONWalletKit (accessing internal constructor via reflection)
+        // TONWalletKit's constructor is private to prevent SDK consumers (incl. Java)
+        // from instantiating it directly. Tests reach it via reflection.
         val constructor = TONWalletKit::class.java.getDeclaredConstructor(
             WalletKitEngine::class.java,
-            TONNetwork::class.java,
         )
         constructor.isAccessible = true
-        val sdk = constructor.newInstance(mockEngine, configuration.network) as ITONWalletKit
+        val sdk = constructor.newInstance(mockEngine) as ITONWalletKit
 
         // Add events handler if provided
         if (eventsHandler != null) {

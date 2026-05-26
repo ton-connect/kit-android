@@ -23463,7 +23463,7 @@ var init_codes = __esmMin((() => {
 }));
 //#endregion
 //#region ../walletkit/dist/esm/errors/WalletKitError.js
-var WalletKitError, BridgeError, SessionError, EventStoreError, StorageError;
+var WalletKitError, BridgeError$1, SessionError, EventStoreError, StorageError;
 var init_WalletKitError = __esmMin((() => {
 	init_codes();
 	WalletKitError = class WalletKitError extends Error {
@@ -23519,7 +23519,7 @@ var init_WalletKitError = __esmMin((() => {
 			};
 		}
 	};
-	BridgeError = class extends WalletKitError {
+	BridgeError$1 = class extends WalletKitError {
 		constructor(message, originalError, context) {
 			super(ERROR_CODES.BRIDGE_NOT_INITIALIZED, message, originalError, context);
 			this.name = "BridgeError";
@@ -38631,7 +38631,7 @@ var esm_exports = /* @__PURE__ */ __exportAll({
 	Base64ToHex: () => Base64ToHex,
 	Base64ToUint8Array: () => Base64ToUint8Array,
 	BigIntToBase64: () => BigIntToBase64,
-	BridgeError: () => BridgeError,
+	BridgeError: () => BridgeError$1,
 	BridgeManager: () => BridgeManager,
 	CallForSuccess: () => CallForSuccess,
 	ConnectHandler: () => ConnectHandler,
@@ -38946,142 +38946,260 @@ var AndroidTONConnectSessionsManager = class {
 	}
 };
 //#endregion
+//#region src/utils/serialization.ts
+/**
+* Copyright (c) TonTech.
+*
+* This source code is licensed under the MIT license found in the
+* LICENSE file in the root directory of this source tree.
+*
+*/
+/**
+* JSON replacer that converts BigInt values to strings to avoid serialization errors.
+*/
+function bigIntReplacer(_key, value) {
+	if (typeof value === "bigint") return value.toString();
+	return value;
+}
+//#endregion
+//#region src/transport/port.ts
+/**
+* Copyright (c) TonTech.
+*
+* This source code is licensed under the MIT license found in the
+* LICENSE file in the root directory of this source tree.
+*
+*/
+var HANDSHAKE_TAG = "__walletkit_bridge_init";
+var port = null;
+var inboundCallback = null;
+var pendingOutbound = [];
+function flushPending(p) {
+	while (pendingOutbound.length > 0) {
+		const next = pendingOutbound.shift();
+		p.postMessage(next);
+	}
+}
+function sendToNative(json) {
+	if (port) {
+		port.postMessage(json);
+		return;
+	}
+	pendingOutbound.push(json);
+}
+function setInboundCallback(callback) {
+	inboundCallback = callback;
+}
+function installPortHandshake() {
+	window.addEventListener("message", (event) => {
+		if (event.data !== HANDSHAKE_TAG) {
+			warn("[walletkitBridge] Ignoring window message — not the handshake tag", event.data);
+			return;
+		}
+		const incoming = event.ports?.[0];
+		if (!incoming) {
+			error("[walletkitBridge] Handshake message had no port");
+			return;
+		}
+		if (port) {
+			warn("[walletkitBridge] Bridge port already initialised — ignoring duplicate handshake");
+			return;
+		}
+		incoming.onmessage = (e) => {
+			const data = typeof e.data === "string" ? e.data : JSON.stringify(e.data);
+			const cb = inboundCallback;
+			if (!cb) {
+				warn("[walletkitBridge] Inbound port message arrived before callback was installed");
+				return;
+			}
+			cb(data);
+		};
+		incoming.start();
+		port = incoming;
+		flushPending(port);
+	});
+}
+//#endregion
+//#region src/transport/nativeBridge.ts
+init_dist();
+var pendingRequests = /* @__PURE__ */ new Map();
+/** Structured failure for every bridge call. Distinguishes wire-level vs. host vs. decode. */
+var BridgeError = class extends Error {
+	constructor(kind, method, options) {
+		super(`[bridge:${kind}] ${method}${options?.raw ? ` raw=${truncate(options.raw)}` : ""}`);
+		this.kind = kind;
+		this.method = method;
+		this.name = "BridgeError";
+		if (options?.cause !== void 0) this.cause = options.cause;
+	}
+};
+function truncate(s, max = 200) {
+	return s.length <= max ? s : `${s.slice(0, max)}…(${s.length} chars)`;
+}
+/** Sync host call via @JavascriptInterface — returns the raw string the host produced. */
+function bridgeRequestSync(method, params) {
+	const native = window.WalletKitNative;
+	if (!native || typeof native.adapterCallSync !== "function") throw new BridgeError("bridge_unavailable", method);
+	try {
+		return native.adapterCallSync(method, JSON.stringify(params, bigIntReplacer));
+	} catch (cause) {
+		throw new BridgeError("native_threw", method, { cause });
+	}
+}
+/** Sync host call with JSON-parsed return. Optional [decode] runs after parse. */
+function bridgeRequestSyncTyped(method, params, decode) {
+	const raw = bridgeRequestSync(method, params);
+	try {
+		const parsed = JSON.parse(raw);
+		return decode ? decode(parsed) : parsed;
+	} catch (cause) {
+		throw new BridgeError("decode_failed", method, {
+			cause,
+			raw
+		});
+	}
+}
+function isBridgeAvailable() {
+	return typeof window.WalletKitNative?.adapterCallSync === "function";
+}
+function bridgeRequest(method, params) {
+	const id = v7();
+	return new Promise((resolve, reject) => {
+		pendingRequests.set(id, {
+			resolve,
+			reject
+		});
+		postToNative({
+			kind: "request",
+			id,
+			method,
+			params
+		});
+	});
+}
+function handleNativeResponse(id, resultJson, errorJson) {
+	const entry = pendingRequests.get(id);
+	if (!entry) {
+		warn("[walletkitBridge] handleNativeResponse: no pending request for id", id);
+		return;
+	}
+	pendingRequests.delete(id);
+	if (errorJson) {
+		const err = errorJson;
+		entry.reject(new Error(err.message ?? "Native request failed"));
+		return;
+	}
+	if (resultJson === null || resultJson === void 0) {
+		entry.resolve(void 0);
+		return;
+	}
+	if (typeof resultJson === "string") {
+		entry.resolve(JSON.parse(resultJson));
+		return;
+	}
+	entry.resolve(resultJson);
+}
+function postToNative(payload) {
+	if (payload === null || typeof payload !== "object" && typeof payload !== "function") {
+		error("[walletkitBridge] postToNative received non-object payload", {
+			type: typeof payload,
+			value: payload,
+			stack: (/* @__PURE__ */ new Error("postToNative non-object payload")).stack
+		});
+		throw new Error("Invalid payload - must be an object");
+	}
+	sendToNative(JSON.stringify(payload, bigIntReplacer));
+}
+//#endregion
 //#region src/adapters/AndroidAPIClientAdapter.ts
 /**
-* Android native API client adapter.
-* Uses Android's JavascriptInterface methods for API calls.
-* Similar to SwiftAPIClientAdapter for iOS.
+* Android native API client adapter — TS counterpart to the Kotlin `TONAPIClient`.
+*
+* Every method dispatches through the single sync bridge entry point
+* (`window.WalletKitNative.adapterCallSync`) under the `api.*` namespace. The adapter
+* only constructs the params object and picks whether the response is a raw string or
+* a JSON-encoded value — JSON marshalling and error wrapping live in [bridgeRequestSync].
+*
+* Methods iOS's `SwiftAPIClientAdapter` throws on (the ones the Swift host doesn't
+* delegate either) are thrown here too — keeps the two adapters at parity until the
+* host implements them. Bridge-availability checks belong to the bootstrap layer, not here.
 */
 var AndroidAPIClientAdapter = class {
 	constructor(network) {
-		const androidWindow = window;
-		if (!androidWindow.WalletKitNative) throw new Error("WalletKitNative bridge not available");
-		this.androidBridge = androidWindow.WalletKitNative;
 		this.network = network;
+		this.chainId = network.chainId;
 	}
 	getNetwork() {
 		return this.network;
 	}
-	/**
-	* Check if native API clients are available.
-	*/
-	static isAvailable() {
-		return typeof window.WalletKitNative?.apiGetNetworks === "function";
-	}
-	/**
-	* Get all networks that have native API clients configured.
-	*/
-	static getAvailableNetworks() {
-		const androidWindow = window;
-		if (!androidWindow.WalletKitNative?.apiGetNetworks) return [];
-		try {
-			const networksJson = androidWindow.WalletKitNative.apiGetNetworks();
-			return JSON.parse(networksJson);
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] Failed to get available networks:", err);
-			return [];
-		}
-	}
 	async sendBoc(boc) {
-		try {
-			return this.androidBridge.apiSendBoc(JSON.stringify({
-				network: this.network,
-				boc
-			}));
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] sendBoc failed:", err);
-			throw err;
-		}
+		return bridgeRequestSync("api.sendBoc", {
+			chainId: this.chainId,
+			boc
+		});
 	}
 	async runGetMethod(address, method, stack, seqno) {
-		try {
-			const params = JSON.stringify({
-				network: this.network,
-				address,
-				method,
-				stack,
-				seqno
-			});
-			return JSON.parse(this.androidBridge.apiRunGetMethod(params));
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] runGetMethod failed:", err);
-			throw err;
-		}
+		return bridgeRequestSyncTyped("api.runGetMethod", {
+			chainId: this.chainId,
+			address,
+			method,
+			stack,
+			seqno
+		});
+	}
+	async getMasterchainInfo() {
+		return bridgeRequestSyncTyped("api.getMasterchainInfo", { chainId: this.chainId });
 	}
 	async nftItemsByAddress(request) {
-		try {
-			const params = JSON.stringify({
-				network: this.network,
-				request
-			});
-			return JSON.parse(this.androidBridge.apiNftItemsByAddress(params));
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] nftItemsByAddress failed:", err);
-			throw err;
-		}
+		return bridgeRequestSyncTyped("api.nftItemsByAddress", {
+			chainId: this.chainId,
+			request
+		});
 	}
 	async nftItemsByOwner(request) {
-		try {
-			const params = JSON.stringify({
-				network: this.network,
-				request
-			});
-			return JSON.parse(this.androidBridge.apiNftItemsByOwner(params));
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] nftItemsByOwner failed:", err);
-			throw err;
-		}
+		return bridgeRequestSyncTyped("api.nftItemsByOwner", {
+			chainId: this.chainId,
+			request
+		});
 	}
 	async fetchEmulation(messageBoc, ignoreSignature) {
-		try {
-			const params = JSON.stringify({
-				network: this.network,
-				messageBoc,
-				ignoreSignature
-			});
-			return JSON.parse(this.androidBridge.apiFetchEmulation(params));
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] fetchEmulation failed:", err);
-			throw err;
-		}
+		return bridgeRequestSyncTyped("api.fetchEmulation", {
+			chainId: this.chainId,
+			messageBoc,
+			ignoreSignature
+		});
 	}
 	async getAccountState(address, seqno) {
-		try {
-			const params = JSON.stringify({
-				network: this.network,
-				address,
-				seqno
-			});
-			return JSON.parse(this.androidBridge.apiAccountState(params));
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] getAccountState failed:", err);
-			throw err;
-		}
+		return bridgeRequestSyncTyped("api.getAccountState", {
+			chainId: this.chainId,
+			address,
+			seqno
+		});
 	}
 	async getAccountStates(addresses) {
-		try {
-			const params = JSON.stringify({
-				network: this.network,
-				addresses
-			});
-			return JSON.parse(this.androidBridge.apiAccountStates(params));
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] getAccountStates failed:", err);
-			throw err;
-		}
+		return bridgeRequestSyncTyped("api.getAccountStates", {
+			chainId: this.chainId,
+			addresses
+		});
 	}
 	async getBalance(address, seqno) {
-		try {
-			const params = JSON.stringify({
-				network: this.network,
-				address,
-				seqno
-			});
-			return this.androidBridge.apiGetBalance(params);
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] getBalance failed:", err);
-			throw err;
-		}
+		return bridgeRequestSync("api.getBalance", {
+			chainId: this.chainId,
+			address,
+			seqno
+		});
+	}
+	async resolveDnsWallet(domain) {
+		return bridgeRequestSync("api.resolveDnsWallet", {
+			chainId: this.chainId,
+			domain
+		}) || void 0;
+	}
+	async backResolveDnsWallet(address) {
+		return bridgeRequestSync("api.backResolveDnsWallet", {
+			chainId: this.chainId,
+			address
+		}) || void 0;
 	}
 	async getAccountTransactions(_request) {
 		throw new Error("getAccountTransactions is not implemented yet");
@@ -39098,30 +39216,6 @@ var AndroidAPIClientAdapter = class {
 	async getPendingTrace(_request) {
 		throw new Error("getPendingTrace is not implemented yet");
 	}
-	async resolveDnsWallet(domain) {
-		try {
-			const params = JSON.stringify({
-				network: this.network,
-				domain
-			});
-			return this.androidBridge.apiResolveDnsWallet(params) ?? void 0;
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] resolveDnsWallet failed:", err);
-			throw err;
-		}
-	}
-	async backResolveDnsWallet(address) {
-		try {
-			const params = JSON.stringify({
-				network: this.network,
-				address
-			});
-			return this.androidBridge.apiBackResolveDnsWallet(params) ?? void 0;
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] backResolveDnsWallet failed:", err);
-			throw err;
-		}
-	}
 	async jettonsByAddress(_request) {
 		throw new Error("jettonsByAddress is not implemented yet");
 	}
@@ -39130,15 +39224,6 @@ var AndroidAPIClientAdapter = class {
 	}
 	async getEvents(_request) {
 		throw new Error("getEvents is not implemented yet");
-	}
-	async getMasterchainInfo() {
-		try {
-			const params = JSON.stringify({ network: this.network });
-			return JSON.parse(this.androidBridge.apiGetMasterchainInfo(params));
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] getMasterchainInfo failed:", err);
-			throw err;
-		}
 	}
 };
 //#endregion
@@ -39169,10 +39254,7 @@ async function initTonWalletKit(config, deps) {
 		else apiClient = netConfig.apiClientConfiguration;
 		networksConfig[netConfig.network.chainId] = { apiClient };
 	}
-	if (AndroidAPIClientAdapter.isAvailable()) {
-		const availableNetworks = AndroidAPIClientAdapter.getAvailableNetworks();
-		for (const nativeNetwork of availableNetworks) networksConfig[nativeNetwork.chainId] = { apiClient: new AndroidAPIClientAdapter(nativeNetwork) };
-	}
+	if (isBridgeAvailable()) for (const nativeNetwork of bridgeRequestSyncTyped("api.getNetworks", {})) networksConfig[nativeNetwork.chainId] = { apiClient: new AndroidAPIClientAdapter(nativeNetwork) };
 	const kitOptions = { networks: networksConfig };
 	const devOptions = {};
 	if (config?.disableNetworkSend) devOptions.disableNetworkSend = true;
@@ -39270,137 +39352,6 @@ async function clientCall(method, args) {
 	const fn = apiClient[method];
 	if (typeof fn !== "function") throw new Error(`Method '${method}' not found on ApiClient`);
 	return fn.call(apiClient, args);
-}
-//#endregion
-//#region src/utils/serialization.ts
-/**
-* Copyright (c) TonTech.
-*
-* This source code is licensed under the MIT license found in the
-* LICENSE file in the root directory of this source tree.
-*
-*/
-/**
-* JSON replacer that converts BigInt values to strings to avoid serialization errors.
-*/
-function bigIntReplacer(_key, value) {
-	if (typeof value === "bigint") return value.toString();
-	return value;
-}
-//#endregion
-//#region src/transport/port.ts
-/**
-* Copyright (c) TonTech.
-*
-* This source code is licensed under the MIT license found in the
-* LICENSE file in the root directory of this source tree.
-*
-*/
-var HANDSHAKE_TAG = "__walletkit_bridge_init";
-var port = null;
-var inboundCallback = null;
-var pendingOutbound = [];
-function flushPending(p) {
-	while (pendingOutbound.length > 0) {
-		const next = pendingOutbound.shift();
-		p.postMessage(next);
-	}
-}
-function sendToNative(json) {
-	if (port) {
-		port.postMessage(json);
-		return;
-	}
-	pendingOutbound.push(json);
-}
-function setInboundCallback(callback) {
-	inboundCallback = callback;
-}
-function installPortHandshake() {
-	window.addEventListener("message", (event) => {
-		if (event.data !== HANDSHAKE_TAG) {
-			warn("[walletkitBridge] Ignoring window message — not the handshake tag", event.data);
-			return;
-		}
-		const incoming = event.ports?.[0];
-		if (!incoming) {
-			error("[walletkitBridge] Handshake message had no port");
-			return;
-		}
-		if (port) {
-			warn("[walletkitBridge] Bridge port already initialised — ignoring duplicate handshake");
-			return;
-		}
-		incoming.onmessage = (e) => {
-			const data = typeof e.data === "string" ? e.data : JSON.stringify(e.data);
-			const cb = inboundCallback;
-			if (!cb) {
-				warn("[walletkitBridge] Inbound port message arrived before callback was installed");
-				return;
-			}
-			cb(data);
-		};
-		incoming.start();
-		port = incoming;
-		flushPending(port);
-	});
-}
-//#endregion
-//#region src/transport/nativeBridge.ts
-init_dist();
-var pendingRequests = /* @__PURE__ */ new Map();
-function bridgeRequestSync(method, params) {
-	const native = window.WalletKitNative;
-	if (!native || typeof native.adapterCallSync !== "function") throw new Error("WalletKitNative.adapterCallSync not available");
-	return native.adapterCallSync(method, JSON.stringify(params));
-}
-function bridgeRequest(method, params) {
-	const id = v7();
-	return new Promise((resolve, reject) => {
-		pendingRequests.set(id, {
-			resolve,
-			reject
-		});
-		postToNative({
-			kind: "request",
-			id,
-			method,
-			params
-		});
-	});
-}
-function handleNativeResponse(id, resultJson, errorJson) {
-	const entry = pendingRequests.get(id);
-	if (!entry) {
-		warn("[walletkitBridge] handleNativeResponse: no pending request for id", id);
-		return;
-	}
-	pendingRequests.delete(id);
-	if (errorJson) {
-		const err = errorJson;
-		entry.reject(new Error(err.message ?? "Native request failed"));
-		return;
-	}
-	if (resultJson === null || resultJson === void 0) {
-		entry.resolve(void 0);
-		return;
-	}
-	if (typeof resultJson === "string") {
-		entry.resolve(JSON.parse(resultJson));
-		return;
-	}
-	entry.resolve(resultJson);
-}
-function postToNative(payload) {
-	if (payload === null || typeof payload !== "object" && typeof payload !== "function") {
-		error("[walletkitBridge] postToNative received non-object payload", {
-			type: typeof payload,
-			value: payload,
-			stack: (/* @__PURE__ */ new Error("postToNative non-object payload")).stack
-		});
-		throw new Error("Invalid payload - must be an object");
-	}
-	sendToNative(JSON.stringify(payload, bigIntReplacer));
 }
 //#endregion
 //#region src/transport/messaging.ts
@@ -39725,6 +39676,9 @@ async function getWalletById(args) {
 }
 async function getWalletAddress(args) {
 	return wallet(args.walletId, "getAddress");
+}
+async function getWalletNetwork(args) {
+	return wallet(args.walletId, "getNetwork");
 }
 async function removeWallet(args) {
 	return kit("removeWallet", args.walletId);
@@ -40537,7 +40491,6 @@ async function registerStakingProvider(args) {
 }
 async function removeStakingProvider(args) {
 	const instance = await getKit();
-	if (!instance.staking.hasProvider(args.providerId)) return;
 	instance.staking.removeProvider(instance.staking.getProvider(args.providerId));
 }
 async function setDefaultStakingProvider(args) {
@@ -45069,7 +45022,6 @@ async function registerSwapProvider(args) {
 }
 async function removeSwapProvider(args) {
 	const swap = await getSwap();
-	if (!swap.hasProvider(args.providerId)) return;
 	swap.removeProvider(swap.getProvider(args.providerId));
 }
 async function setDefaultSwapProvider(args) {
@@ -45161,6 +45113,7 @@ var api = {
 	getWallets,
 	getWallet: getWalletById,
 	getWalletAddress,
+	getWalletNetwork,
 	removeWallet,
 	getBalance,
 	getRecentTransactions,
