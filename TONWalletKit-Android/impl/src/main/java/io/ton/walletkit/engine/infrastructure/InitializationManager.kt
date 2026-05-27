@@ -26,7 +26,6 @@ import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
 import io.ton.walletkit.api.generated.TONNetwork
-import io.ton.walletkit.bridge.dispatch.WrappedFunctionRegistry
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
@@ -59,7 +58,6 @@ import kotlinx.serialization.json.putJsonObject
 internal class InitializationManager(
     context: Context,
     private val rpcClient: BridgeRpcClient,
-    private val wrappedFunctions: WrappedFunctionRegistry,
 ) {
     private val appContext = context.applicationContext
     private val walletKitInitMutex = Mutex()
@@ -285,7 +283,7 @@ internal class InitializationManager(
     private fun registerFetchManifest(configuration: TONWalletKitConfiguration): String? {
         fetchManifestRef?.let { return it }
         val fetch = configuration.fetchManifest ?: return null
-        return wrappedFunctions.registerTyped(fetch).also { fetchManifestRef = it }
+        return rpcClient.wrappedFunctions.registerTyped(fetch).also { fetchManifestRef = it }
     }
 
     private fun resolveNetworkName(configuration: TONWalletKitConfiguration): String =

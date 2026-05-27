@@ -45,7 +45,6 @@ import io.ton.walletkit.bridge.dispatch.KotlinProviderWatchRequest
 import io.ton.walletkit.bridge.dispatch.KotlinStakingGetProviderInfoRequest
 import io.ton.walletkit.bridge.dispatch.KotlinStakingGetStakedBalanceRequest
 import io.ton.walletkit.bridge.dispatch.SignWithCustomSignerRequest
-import io.ton.walletkit.bridge.dispatch.WrappedFunctionRegistry
 import io.ton.walletkit.bridge.optJsonObject
 import io.ton.walletkit.bridge.optString
 import io.ton.walletkit.bridge.optStringOrNull
@@ -102,7 +101,6 @@ internal class MessageDispatcher(
     private val kotlinSwapProviderManager: KotlinSwapProviderManager,
     private val kotlinStakingProviderManager: KotlinStakingProviderManager,
     private val kotlinStreamingProviderManager: KotlinStreamingProviderManager,
-    private val wrappedFunctions: WrappedFunctionRegistry,
     private val json: Json,
     private val onInitialized: () -> Unit,
 ) {
@@ -205,7 +203,7 @@ internal class MessageDispatcher(
         }
 
         registerTyped<CallByReferenceRequest>(REQUEST_METHOD_CALL_BY_REFERENCE) { req ->
-            wrappedFunctions.invoke(req.refId, req.args)
+            rpcClient.wrappedFunctions.invoke(req.refId, req.args)
         }
     }
 

@@ -25,6 +25,7 @@ import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.bridge.BridgeCodec
 import io.ton.walletkit.bridge.decodeFromBridge
 import io.ton.walletkit.bridge.decodeFromBridgeOrNull
+import io.ton.walletkit.bridge.dispatch.WrappedFunctionRegistry
 import io.ton.walletkit.bridge.optString
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.LogConstants
@@ -49,6 +50,13 @@ internal class BridgeRpcClient(
 ) {
     private val pending = ConcurrentHashMap<String, CompletableDeferred<BridgeResponse>>()
     private val ready = CompletableDeferred<Unit>()
+
+    /**
+     * Reverse-RPC channel: native callbacks JS can invoke by reference. Forward calls (Kotlin→JS,
+     * tracked in [pending]) and these reverse callbacks (JS→Kotlin) are two halves of the same
+     * bridge RPC, so the registry lives here rather than as a separate engine-level object.
+     */
+    internal val wrappedFunctions = WrappedFunctionRegistry(json)
 
     /**
      * Wraps [send] in a JsonObject envelope. Reserved for the [callBridgeMethod] escape hatch
