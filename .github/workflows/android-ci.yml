@@ -540,10 +540,15 @@ jobs:
       - name: Write Firebase credentials
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > $RUNNER_TEMP/firebase-key.json
 
+      - name: Verify Firebase credentials file
+        run: |
+          test -s "$RUNNER_TEMP/firebase-key.json" || { echo "::error::firebase-key.json missing or empty"; exit 1; }
+          python3 -c "import json, os; p = os.path.join(os.environ['RUNNER_TEMP'], 'firebase-key.json'); json.load(open(p)); print('valid service-account JSON, bytes:', os.path.getsize(p))"
+
       - name: Upload to Firebase App Distribution
         working-directory: AndroidDemo
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-key.json
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
           FIREBASE_RELEASE_NOTES: "main #${{ github.run_number }} — ${{ github.event.head_commit.message }}"
-        run: ./gradlew assembleRelease appDistributionUploadRelease
+        run: ./gradlew assembleRelease appDistributionUploadRelease -PfirebaseAppDistribution.serviceCredentialsFile="$RUNNER_TEMP/firebase-key.json"

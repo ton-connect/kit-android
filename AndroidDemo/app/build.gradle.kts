@@ -122,7 +122,6 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             firebaseAppDistribution {
                 appId = System.getenv("FIREBASE_APP_ID") ?: ""
-                serviceCredentialsFile = System.getenv("GOOGLE_APPLICATION_CREDENTIALS") ?: ""
                 releaseNotes = System.getenv("FIREBASE_RELEASE_NOTES") ?: "Build from CI"
                 groups = "testers"
             }
