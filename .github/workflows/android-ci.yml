@@ -516,17 +516,34 @@ jobs:
           retention-days: 7
 
   # Distribute demo app to Firebase App Distribution on push to main.
+  # Auth via Workload Identity Federation (GitHub OIDC) — no long-lived service-account
+  # key is stored. GitHub's OIDC token is exchanged for short-lived Google credentials
+  # that impersonate the distributor service account.
+  # One-time GCP/secret setup: .github/firebase-app-distribution-wif.md
   distribute-demo:
     name: Distribute Demo App
     runs-on: ubuntu-latest
     needs: build-demo
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      # Required so google-github-actions/auth can request the GitHub OIDC token.
+      # Without this the auth step fails before it ever reaches Google.
+      id-token: write
     steps:
       - name: Download release APK
         uses: actions/download-artifact@v4
         with:
           name: demo-release-apk
           path: artifacts/
+
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.FIREBASE_DISTRIBUTOR_SA_EMAIL }}
+          # Writes a short-lived credentials file and exports GOOGLE_APPLICATION_CREDENTIALS,
+          # which firebase-tools picks up automatically — no extra wiring needed.
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -536,17 +553,8 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Write & validate service account credentials
-        env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-key.json"
-          test -s "$RUNNER_TEMP/firebase-key.json" || { echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is empty or unset"; exit 1; }
-          python3 -c "import json, os; json.load(open(os.path.join(os.environ['RUNNER_TEMP'], 'firebase-key.json'))); print('service-account JSON valid')"
-
       - name: Upload to Firebase App Distribution
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-key.json
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
           # Via env + file so commit-message quotes/newlines don't break the CLI call.
           COMMIT_MSG: ${{ github.event.head_commit.message }}
