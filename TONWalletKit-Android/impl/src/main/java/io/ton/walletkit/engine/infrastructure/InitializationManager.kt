@@ -62,10 +62,6 @@ internal class InitializationManager(
     private val appContext = context.applicationContext
     private val walletKitInitMutex = Mutex()
 
-    // Reference to the host's fetchManifest callback (read from the init config), registered once
-    // and reused across re-inits. null when the host configured no custom fetcher.
-    @Volatile private var fetchManifestRef: String? = null
-
     @Volatile private var isWalletKitInitialized: Boolean = false
 
     @Volatile private var persistentStorageEnabled: Boolean = true
@@ -252,8 +248,11 @@ internal class InitializationManager(
                 put("disableTransactionEmulation", eventsConfig.disableTransactionEmulation)
             }
 
-            registerFetchManifest(configuration)?.let { ref ->
-                putJsonObject("fetchManifest") { put("__wrappedFn", ref) }
+            // Register the host's fetchManifest callback fresh on each init. The registry has no
+            // eviction, so a failed-then-retried init leaks the prior registration — acceptable
+            // since init normally succeeds first try and the host callback is tiny.
+            configuration.fetchManifest?.let { fetch ->
+                putJsonObject("fetchManifest") { put("__wrappedFn", rpcClient.wrappedFunctions.registerTyped(fetch)) }
             }
         }
 
@@ -274,16 +273,6 @@ internal class InitializationManager(
         currentConfig = configuration
 
         Logger.d(TAG, "WalletKit initialized. Event listeners will be set up on-demand.")
-    }
-
-    /**
-     * Registers the host's [TONWalletKitConfiguration.fetchManifest] callback (if any) as a wrapped
-     * function and returns its reference, registering once and reusing it across re-inits.
-     */
-    private fun registerFetchManifest(configuration: TONWalletKitConfiguration): String? {
-        fetchManifestRef?.let { return it }
-        val fetch = configuration.fetchManifest ?: return null
-        return rpcClient.wrappedFunctions.registerTyped(fetch).also { fetchManifestRef = it }
     }
 
     private fun resolveNetworkName(configuration: TONWalletKitConfiguration): String =
