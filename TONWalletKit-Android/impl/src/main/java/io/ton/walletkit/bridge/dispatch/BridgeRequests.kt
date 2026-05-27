@@ -23,11 +23,19 @@ package io.ton.walletkit.bridge.dispatch
 
 import io.ton.walletkit.engine.operations.responses.BridgeByteArraySerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
 
 @Serializable
 internal data class SignWithCustomSignerRequest(
     val signerId: String,
     @Serializable(with = BridgeByteArraySerializer::class) val data: ByteArray,
+)
+
+/** JS → native invocation of a callback previously wrapped via [WrappedFunctionRegistry]. */
+@Serializable
+internal data class CallByReferenceRequest(
+    val refId: String,
+    val args: JsonArray,
 )
 
 @Serializable

@@ -25,7 +25,9 @@ import android.content.Context
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONManifestFetchResult
 import io.ton.walletkit.api.generated.TONNetwork
+import io.ton.walletkit.bridge.dispatch.WrappedFunctionRegistry
 import io.ton.walletkit.config.SignDataType
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
@@ -37,9 +39,12 @@ import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.storage.TONWalletKitStorageType
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -58,9 +63,19 @@ import kotlinx.serialization.json.putJsonObject
 internal class InitializationManager(
     context: Context,
     private val rpcClient: BridgeRpcClient,
+    private val wrappedFunctions: WrappedFunctionRegistry,
+    private val fetchManifest: (suspend (String) -> TONManifestFetchResult)?,
+    private val json: Json,
 ) {
     private val appContext = context.applicationContext
     private val walletKitInitMutex = Mutex()
+    private val fetchManifestRef: String? by lazy {
+        fetchManifest?.let { fetch ->
+            wrappedFunctions.register { args ->
+                json.encodeToString(fetch(args[0].jsonPrimitive.content))
+            }
+        }
+    }
 
     @Volatile private var isWalletKitInitialized: Boolean = false
 
@@ -246,6 +261,10 @@ internal class InitializationManager(
             }
             configuration.eventsConfiguration?.let { eventsConfig ->
                 put("disableTransactionEmulation", eventsConfig.disableTransactionEmulation)
+            }
+
+            fetchManifestRef?.let { ref ->
+                putJsonObject("fetchManifest") { put("__wrappedFn", ref) }
             }
         }
 

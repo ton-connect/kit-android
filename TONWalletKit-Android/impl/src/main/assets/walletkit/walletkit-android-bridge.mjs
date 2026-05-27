@@ -39070,141 +39070,6 @@ var AndroidAPIClientAdapter = class {
 	}
 };
 //#endregion
-//#region src/core/initialization.ts
-init_JSBridgeInjector();
-/**
-* Initializes WalletKit with Android-specific configuration and wiring.
-*
-* @param config - Optional initialization configuration.
-* @param deps - Helper dependencies injected from the API layer.
-*/
-async function initTonWalletKit(config, deps) {
-	if (walletKit) return { ok: true };
-	await ensureWalletKitLoaded();
-	const networksConfig = {};
-	if (config?.networkConfigurations && Array.isArray(config.networkConfigurations)) for (const netConfig of config.networkConfigurations) {
-		const type = netConfig.apiClientType;
-		let apiClient;
-		if (type === "tonapi") apiClient = new ApiClientTonApi({
-			endpoint: netConfig.apiClientConfiguration?.url,
-			apiKey: netConfig.apiClientConfiguration?.key,
-			network: netConfig.network
-		});
-		else if (type === "toncenter") apiClient = new ApiClientToncenter({
-			endpoint: netConfig.apiClientConfiguration?.url,
-			apiKey: netConfig.apiClientConfiguration?.key
-		});
-		else apiClient = netConfig.apiClientConfiguration;
-		networksConfig[netConfig.network.chainId] = { apiClient };
-	}
-	if (AndroidAPIClientAdapter.isAvailable()) {
-		const availableNetworks = AndroidAPIClientAdapter.getAvailableNetworks();
-		for (const nativeNetwork of availableNetworks) networksConfig[nativeNetwork.chainId] = { apiClient: new AndroidAPIClientAdapter(nativeNetwork) };
-	}
-	const kitOptions = { networks: networksConfig };
-	const nativeBridge = window.WalletKitNative;
-	if (nativeBridge?.hasCustomFetchManifest?.() && nativeBridge.apiFetchManifest) {
-		const fetchFn = nativeBridge.apiFetchManifest.bind(nativeBridge);
-		kitOptions.fetchManifest = async (url) => JSON.parse(fetchFn(url));
-	}
-	const devOptions = {};
-	if (config?.disableNetworkSend) devOptions.disableNetworkSend = true;
-	if (Object.keys(devOptions).length > 0) kitOptions.dev = devOptions;
-	if (config?.disableTransactionEmulation !== void 0) kitOptions.eventProcessor = { disableTransactionEmulation: config.disableTransactionEmulation };
-	if (config?.deviceInfo) kitOptions.deviceInfo = config.deviceInfo;
-	if (config?.walletManifest) kitOptions.walletManifest = config.walletManifest;
-	if (config?.bridgeUrl) kitOptions.bridge = {
-		bridgeUrl: config.bridgeUrl,
-		jsBridgeTransport: async (sessionId, message) => {
-			let bridgeMessage = message;
-			const DISCONNECT_EVENT = "disconnect";
-			if (bridgeMessage.type === "TONCONNECT_BRIDGE_RESPONSE") {
-				const responseMsg = bridgeMessage;
-				const disconnectPayload = responseMsg.payload;
-				if (disconnectPayload?.event === DISCONNECT_EVENT && !responseMsg.messageId) bridgeMessage = {
-					type: TONCONNECT_BRIDGE_EVENT,
-					source: responseMsg.source,
-					event: {
-						event: "disconnect",
-						id: disconnectPayload.id ?? 0,
-						payload: {}
-					}
-				};
-			}
-			if (bridgeMessage.type === "TONCONNECT_BRIDGE_RESPONSE" && bridgeMessage.messageId) {
-				const resolvers = getInternalBrowserResolverMap();
-				const messageIdStr = String(bridgeMessage.messageId);
-				const resolver = resolvers?.get(messageIdStr);
-				if (resolver) {
-					resolvers?.delete(messageIdStr);
-					resolver.resolve(bridgeMessage);
-				} else warn("[walletkitBridge] No pending promise for messageId:", messageIdStr);
-			}
-			if (bridgeMessage.type === "TONCONNECT_BRIDGE_EVENT") deps.postToNative({
-				kind: "jsBridgeEvent",
-				sessionId,
-				event: bridgeMessage
-			});
-			return Promise.resolve();
-		}
-	};
-	if (window.WalletKitNative) kitOptions.storage = new deps.AndroidStorageAdapter();
-	else if (config?.allowMemoryStorage) {
-		info("[walletkitBridge] Using memory storage (sessions will not persist)");
-		kitOptions.storage = { allowMemory: true };
-	}
-	if (hasAndroidSessionManager()) kitOptions.sessionManager = new AndroidTONConnectSessionsManager();
-	if (!TonWalletKit) throw new Error("TonWalletKit module not loaded");
-	setWalletKit(new TonWalletKit(kitOptions));
-	if (walletKit?.ensureInitialized) await walletKit?.ensureInitialized?.();
-	deps.emit("ready", {});
-	deps.postToNative({ kind: "ready" });
-	info("[walletkitBridge] WalletKit ready");
-	return { ok: true };
-}
-//#endregion
-//#region src/utils/bridge.ts
-async function ensureReady() {
-	if (!walletKit) throw new Error("WalletKit not initialized");
-	await walletKit.ensureInitialized?.();
-	return walletKit;
-}
-function getWalletOrThrow(kit, walletId) {
-	const wallet = kit.getWallet(walletId);
-	if (!wallet) throw new Error(`Wallet not found: ${walletId}`);
-	return wallet;
-}
-async function kit(method, ...args) {
-	const instance = await ensureReady();
-	const fn = instance[method];
-	if (typeof fn !== "function") throw new Error(`Method '${method}' not found on WalletKit`);
-	return fn.apply(instance, args);
-}
-async function wallet(walletId, method, ...args) {
-	const w = getWalletOrThrow(await ensureReady(), walletId);
-	const fn = w[method];
-	if (typeof fn !== "function") throw new Error(`Method '${method}' not found on Wallet`);
-	return fn.apply(w, args);
-}
-async function getKit() {
-	return ensureReady();
-}
-async function getWallet(walletId) {
-	return getWalletOrThrow(await ensureReady(), walletId);
-}
-async function walletCall(method, args) {
-	const w = getWalletOrThrow(await ensureReady(), args.walletId);
-	const fn = w[method];
-	if (typeof fn !== "function") throw new Error(`Method '${method}' not found on Wallet`);
-	return fn.call(w, args);
-}
-async function clientCall(method, args) {
-	const apiClient = getWalletOrThrow(await ensureReady(), args.walletId).getClient();
-	const fn = apiClient[method];
-	if (typeof fn !== "function") throw new Error(`Method '${method}' not found on ApiClient`);
-	return fn.call(apiClient, args);
-}
-//#endregion
 //#region src/utils/serialization.ts
 /**
 * Copyright (c) TonTech.
@@ -39334,6 +39199,147 @@ function postToNative(payload) {
 		throw new Error("Invalid payload - must be an object");
 	}
 	sendToNative(JSON.stringify(payload, bigIntReplacer));
+}
+//#endregion
+//#region src/core/initialization.ts
+init_JSBridgeInjector();
+/**
+* Initializes WalletKit with Android-specific configuration and wiring.
+*
+* @param config - Optional initialization configuration.
+* @param deps - Helper dependencies injected from the API layer.
+*/
+async function initTonWalletKit(config, deps) {
+	if (walletKit) return { ok: true };
+	await ensureWalletKitLoaded();
+	const networksConfig = {};
+	if (config?.networkConfigurations && Array.isArray(config.networkConfigurations)) for (const netConfig of config.networkConfigurations) {
+		const type = netConfig.apiClientType;
+		let apiClient;
+		if (type === "tonapi") apiClient = new ApiClientTonApi({
+			endpoint: netConfig.apiClientConfiguration?.url,
+			apiKey: netConfig.apiClientConfiguration?.key,
+			network: netConfig.network
+		});
+		else if (type === "toncenter") apiClient = new ApiClientToncenter({
+			endpoint: netConfig.apiClientConfiguration?.url,
+			apiKey: netConfig.apiClientConfiguration?.key
+		});
+		else apiClient = netConfig.apiClientConfiguration;
+		networksConfig[netConfig.network.chainId] = { apiClient };
+	}
+	if (AndroidAPIClientAdapter.isAvailable()) {
+		const availableNetworks = AndroidAPIClientAdapter.getAvailableNetworks();
+		for (const nativeNetwork of availableNetworks) networksConfig[nativeNetwork.chainId] = { apiClient: new AndroidAPIClientAdapter(nativeNetwork) };
+	}
+	const kitOptions = { networks: networksConfig };
+	const fetchManifestRef = config?.fetchManifest;
+	if (fetchManifestRef?.__wrappedFn) {
+		const refId = fetchManifestRef.__wrappedFn;
+		const wrappedFns = window;
+		wrappedFns.wrapped_funcs ??= {};
+		wrappedFns.wrapped_funcs[refId] ??= (url) => bridgeRequest("callByReference", {
+			refId,
+			args: [url]
+		});
+		kitOptions.fetchManifest = wrappedFns.wrapped_funcs[refId];
+	}
+	const devOptions = {};
+	if (config?.disableNetworkSend) devOptions.disableNetworkSend = true;
+	if (Object.keys(devOptions).length > 0) kitOptions.dev = devOptions;
+	if (config?.disableTransactionEmulation !== void 0) kitOptions.eventProcessor = { disableTransactionEmulation: config.disableTransactionEmulation };
+	if (config?.deviceInfo) kitOptions.deviceInfo = config.deviceInfo;
+	if (config?.walletManifest) kitOptions.walletManifest = config.walletManifest;
+	if (config?.bridgeUrl) kitOptions.bridge = {
+		bridgeUrl: config.bridgeUrl,
+		jsBridgeTransport: async (sessionId, message) => {
+			let bridgeMessage = message;
+			const DISCONNECT_EVENT = "disconnect";
+			if (bridgeMessage.type === "TONCONNECT_BRIDGE_RESPONSE") {
+				const responseMsg = bridgeMessage;
+				const disconnectPayload = responseMsg.payload;
+				if (disconnectPayload?.event === DISCONNECT_EVENT && !responseMsg.messageId) bridgeMessage = {
+					type: TONCONNECT_BRIDGE_EVENT,
+					source: responseMsg.source,
+					event: {
+						event: "disconnect",
+						id: disconnectPayload.id ?? 0,
+						payload: {}
+					}
+				};
+			}
+			if (bridgeMessage.type === "TONCONNECT_BRIDGE_RESPONSE" && bridgeMessage.messageId) {
+				const resolvers = getInternalBrowserResolverMap();
+				const messageIdStr = String(bridgeMessage.messageId);
+				const resolver = resolvers?.get(messageIdStr);
+				if (resolver) {
+					resolvers?.delete(messageIdStr);
+					resolver.resolve(bridgeMessage);
+				} else warn("[walletkitBridge] No pending promise for messageId:", messageIdStr);
+			}
+			if (bridgeMessage.type === "TONCONNECT_BRIDGE_EVENT") deps.postToNative({
+				kind: "jsBridgeEvent",
+				sessionId,
+				event: bridgeMessage
+			});
+			return Promise.resolve();
+		}
+	};
+	if (window.WalletKitNative) kitOptions.storage = new deps.AndroidStorageAdapter();
+	else if (config?.allowMemoryStorage) {
+		info("[walletkitBridge] Using memory storage (sessions will not persist)");
+		kitOptions.storage = { allowMemory: true };
+	}
+	if (hasAndroidSessionManager()) kitOptions.sessionManager = new AndroidTONConnectSessionsManager();
+	if (!TonWalletKit) throw new Error("TonWalletKit module not loaded");
+	setWalletKit(new TonWalletKit(kitOptions));
+	if (walletKit?.ensureInitialized) await walletKit?.ensureInitialized?.();
+	deps.emit("ready", {});
+	deps.postToNative({ kind: "ready" });
+	info("[walletkitBridge] WalletKit ready");
+	return { ok: true };
+}
+//#endregion
+//#region src/utils/bridge.ts
+async function ensureReady() {
+	if (!walletKit) throw new Error("WalletKit not initialized");
+	await walletKit.ensureInitialized?.();
+	return walletKit;
+}
+function getWalletOrThrow(kit, walletId) {
+	const wallet = kit.getWallet(walletId);
+	if (!wallet) throw new Error(`Wallet not found: ${walletId}`);
+	return wallet;
+}
+async function kit(method, ...args) {
+	const instance = await ensureReady();
+	const fn = instance[method];
+	if (typeof fn !== "function") throw new Error(`Method '${method}' not found on WalletKit`);
+	return fn.apply(instance, args);
+}
+async function wallet(walletId, method, ...args) {
+	const w = getWalletOrThrow(await ensureReady(), walletId);
+	const fn = w[method];
+	if (typeof fn !== "function") throw new Error(`Method '${method}' not found on Wallet`);
+	return fn.apply(w, args);
+}
+async function getKit() {
+	return ensureReady();
+}
+async function getWallet(walletId) {
+	return getWalletOrThrow(await ensureReady(), walletId);
+}
+async function walletCall(method, args) {
+	const w = getWalletOrThrow(await ensureReady(), args.walletId);
+	const fn = w[method];
+	if (typeof fn !== "function") throw new Error(`Method '${method}' not found on Wallet`);
+	return fn.call(w, args);
+}
+async function clientCall(method, args) {
+	const apiClient = getWalletOrThrow(await ensureReady(), args.walletId).getClient();
+	const fn = apiClient[method];
+	if (typeof fn !== "function") throw new Error(`Method '${method}' not found on ApiClient`);
+	return fn.call(apiClient, args);
 }
 //#endregion
 //#region src/transport/messaging.ts

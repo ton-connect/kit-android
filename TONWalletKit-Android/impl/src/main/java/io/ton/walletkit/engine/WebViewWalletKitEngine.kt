@@ -59,6 +59,7 @@ import io.ton.walletkit.api.generated.TONTransactionPreviewOptions
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
 import io.ton.walletkit.bridge.BridgeCodec
+import io.ton.walletkit.bridge.dispatch.WrappedFunctionRegistry
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.engine.adapter.BridgeWalletAdapter
@@ -201,6 +202,7 @@ internal class WebViewWalletKitEngine private constructor(
 
     private val adapterManager = AdapterManager()
     private val signerManager = SignerManager()
+    private val wrappedFunctions = WrappedFunctionRegistry()
     override val kotlinStreamingProviderManager: KotlinStreamingProviderManager
     private val eventRouter = EventRouter()
     private val storageManager = StorageManager(storageAdapter) { persistentStorageEnabled }
@@ -221,7 +223,6 @@ internal class WebViewWalletKitEngine private constructor(
                 storageManager = storageManager,
                 sessionManager = sessionManager,
                 apiClients = apiClients,
-                fetchManifest = fetchManifest,
                 adapterManager = adapterManager,
                 json = json,
                 onMessage = ::handleBridgeMessage,
@@ -234,7 +235,7 @@ internal class WebViewWalletKitEngine private constructor(
             json = json,
         )
         kotlinStreamingProviderManager = KotlinStreamingProviderManager(rpcClient, json)
-        initManager = InitializationManager(appContext, rpcClient)
+        initManager = InitializationManager(appContext, rpcClient, wrappedFunctions, fetchManifest, json)
         eventParser = EventParser(json, this)
         messageDispatcher =
             MessageDispatcher(
@@ -248,6 +249,7 @@ internal class WebViewWalletKitEngine private constructor(
                 kotlinSwapProviderManager = kotlinSwapProviderManager,
                 kotlinStakingProviderManager = kotlinStakingProviderManager,
                 kotlinStreamingProviderManager = kotlinStreamingProviderManager,
+                wrappedFunctions = wrappedFunctions,
                 json = json,
                 onInitialized = ::refreshDerivedState,
             )
