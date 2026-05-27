@@ -200,7 +200,7 @@ internal class WebViewWalletKitEngine private constructor(
 
     private val adapterManager = AdapterManager()
     private val signerManager = SignerManager()
-    private val wrappedFunctions = WrappedFunctionRegistry()
+    private val wrappedFunctions = WrappedFunctionRegistry(json)
     override val kotlinStreamingProviderManager: KotlinStreamingProviderManager
     private val eventRouter = EventRouter()
     private val storageManager = StorageManager(storageAdapter) { persistentStorageEnabled }
@@ -233,7 +233,7 @@ internal class WebViewWalletKitEngine private constructor(
             json = json,
         )
         kotlinStreamingProviderManager = KotlinStreamingProviderManager(rpcClient, json)
-        initManager = InitializationManager(appContext, rpcClient, wrappedFunctions, json)
+        initManager = InitializationManager(appContext, rpcClient, wrappedFunctions)
         eventParser = EventParser(json, this)
         messageDispatcher =
             MessageDispatcher(

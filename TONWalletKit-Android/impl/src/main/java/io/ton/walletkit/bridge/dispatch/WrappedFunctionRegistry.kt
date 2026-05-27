@@ -21,7 +21,9 @@
  */
 package io.ton.walletkit.bridge.dispatch
 
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.serializer
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -34,13 +36,27 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * @suppress Internal component.
  */
-internal class WrappedFunctionRegistry {
+internal class WrappedFunctionRegistry(
+    @PublishedApi internal val json: Json,
+) {
     private val functions = ConcurrentHashMap<String, suspend (JsonArray) -> String>()
 
     /**
-     * Registers [fn] under a fresh reference id and returns it. The id is the opaque handle JS
-     * uses to invoke the callback; [fn] receives the JSON-encoded call arguments and must return
-     * an already-JSON-encoded result.
+     * Typed single-argument registration. The JSON in/out marshalling lives here (decode the
+     * positional arg, encode the result) so callers hand over a strongly-typed callback instead
+     * of repeating the serialization dance at every registration site.
+     */
+    inline fun <reified A, reified R> registerTyped(crossinline fn: suspend (A) -> R): String {
+        val argSerializer = json.serializersModule.serializer<A>()
+        val resSerializer = json.serializersModule.serializer<R>()
+        return register { args ->
+            json.encodeToString(resSerializer, fn(json.decodeFromJsonElement(argSerializer, args[0])))
+        }
+    }
+
+    /**
+     * Raw registration escape hatch: [fn] receives the positional args array and must return an
+     * already-JSON-encoded result. Prefer [registerTyped] for the common single-arg case.
      */
     fun register(fn: suspend (JsonArray) -> String): String {
         var id = UUID.randomUUID().toString()
