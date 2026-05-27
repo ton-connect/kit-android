@@ -192,10 +192,6 @@ jobs:
         working-directory: AndroidDemo
         run: ./gradlew assembleDebugAndroidTest
 
-      - name: Build Release Demo App
-        working-directory: AndroidDemo
-        run: ./gradlew assembleRelease
-
       - name: Prepare APKs for upload
         run: |
           mkdir -p demo-apks
@@ -207,13 +203,6 @@ jobs:
         with:
           name: demo-apks
           path: demo-apks/
-          retention-days: 7
-
-      - name: Upload Release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: demo-release-apk
-          path: AndroidDemo/app/build/outputs/apk/release/app-release.apk
           retention-days: 7
 
   # Generate test matrix based on parallel emulators setting
@@ -515,45 +504,46 @@ jobs:
           path: all-results/
           retention-days: 7
 
-  # Distribute demo app to Firebase App Distribution on push to main.
+  # Distribute demo app to Firebase App Distribution on push to main
   distribute-demo:
     name: Distribute Demo App
     runs-on: ubuntu-latest
     needs: build-demo
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - name: Download release APK
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download SDK AAR
         uses: actions/download-artifact@v4
         with:
-          name: demo-release-apk
-          path: artifacts/
+          name: sdk-aar
+          path: AndroidDemo/app/libs/
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Rename AAR
+        run: mv AndroidDemo/app/libs/impl-release.aar AndroidDemo/app/libs/tonwalletkit-release.aar
 
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
+      - name: Grant execute permission for gradlew
+        working-directory: AndroidDemo
+        run: chmod +x gradlew
 
-      - name: Write & validate service account credentials
-        env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-key.json"
-          test -s "$RUNNER_TEMP/firebase-key.json" || { echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is empty or unset"; exit 1; }
-          python3 -c "import json, os; json.load(open(os.path.join(os.environ['RUNNER_TEMP'], 'firebase-key.json'))); print('service-account JSON valid')"
+      - name: Write Firebase credentials
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > $RUNNER_TEMP/firebase-key.json
 
       - name: Upload to Firebase App Distribution
+        working-directory: AndroidDemo
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-key.json
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
-          # Via env + file so commit-message quotes/newlines don't break the CLI call.
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
-        run: |
-          test -n "$FIREBASE_APP_ID" || { echo "::error::FIREBASE_APP_ID secret is empty or unset"; exit 1; }
-          printf 'main #%s — %s\n' "${{ github.run_number }}" "$COMMIT_MSG" > "$RUNNER_TEMP/release-notes.txt"
-          firebase appdistribution:distribute "artifacts/app-release.apk" \
-            --app "$FIREBASE_APP_ID" \
-            --groups "testers" \
-            --release-notes-file "$RUNNER_TEMP/release-notes.txt"
+          FIREBASE_RELEASE_NOTES: "main #${{ github.run_number }} — ${{ github.event.head_commit.message }}"
+        run: ./gradlew assembleRelease appDistributionUploadRelease
