@@ -19,27 +19,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.ton.walletkit.request
+package io.ton.walletkit.demo.presentation.model
 
-import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
-import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.request.TONWalletSignMessageRequest
 
 /**
- * A transaction request from a dApp. Mirrors iOS `TONWalletTransactionRequest`.
+ * UI state for a sign-message (sign-only transaction) request.
  *
- * When this request is the embedded follow-up of a connect-with-intent flow, [event] is the
- * embedded variant (a subclass of [TONSendTransactionRequestEvent]); the bridge picks up the
- * `connectionResult` field at serialization time so the JS side can finalise the session.
+ * The wallet signs but does not broadcast — the dApp relays the resulting BoC.
  */
-class TONWalletTransactionRequest(
-    val event: TONSendTransactionRequestEvent,
-    private val handler: RequestHandler,
-) {
-    suspend fun approve(response: TONSendTransactionApprovalResponse? = null) {
-        handler.approveTransaction(event, response)
-    }
-
-    suspend fun reject(reason: String? = null, errorCode: Int? = null) {
-        handler.rejectTransaction(event, reason, errorCode)
-    }
-}
+data class SignMessageRequestUi(
+    val id: String,
+    val walletAddress: String,
+    val dAppName: String,
+    val validUntil: Long?,
+    val messages: List<TransactionMessageUi>,
+    val preview: String?,
+    val signMessageRequest: TONWalletSignMessageRequest? = null,
+)

@@ -53,7 +53,7 @@ import kotlinx.serialization.Serializable
  * @param returnStrategy Raw TonConnect return strategy string.
  */
 @Serializable
-data class TONSendTransactionRequestEvent(
+open class TONSendTransactionRequestEvent(
 
     /* Unique identifier for the bridge event */
     @SerialName(value = "id")

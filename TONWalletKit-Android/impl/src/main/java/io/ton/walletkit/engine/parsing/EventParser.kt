@@ -28,6 +28,7 @@ import io.ton.walletkit.api.generated.TONJettonUpdate
 import io.ton.walletkit.api.generated.TONRequestErrorEvent
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONSignMessageRequestEvent
 import io.ton.walletkit.api.generated.TONStreamingUpdate
 import io.ton.walletkit.api.generated.TONTransactionsUpdate
 import io.ton.walletkit.bridge.decodeFromBridge
@@ -42,6 +43,7 @@ import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.util.Logger
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
+import io.ton.walletkit.request.TONWalletSignMessageRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -69,6 +71,11 @@ internal class EventParser(
         EventTypeConstants.EVENT_SIGN_DATA_REQUEST ->
             TONWalletKitEvent.SignDataRequest(
                 TONWalletSignDataRequest(decode<TONSignDataRequestEvent>(data), engine),
+            )
+
+        EventTypeConstants.EVENT_SIGN_MESSAGE_REQUEST ->
+            TONWalletKitEvent.SignMessageRequest(
+                TONWalletSignMessageRequest(decode<TONSignMessageRequestEvent>(data), engine),
             )
 
         EventTypeConstants.EVENT_REQUEST_ERROR ->

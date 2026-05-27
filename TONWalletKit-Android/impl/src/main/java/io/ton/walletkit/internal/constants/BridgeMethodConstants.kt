@@ -138,6 +138,16 @@ internal object BridgeMethodConstants {
     const val METHOD_REJECT_SIGN_DATA_REQUEST = "rejectSignDataRequest"
 
     /**
+     * Method name for approving a sign-message (sign-only transaction) request.
+     */
+    const val METHOD_APPROVE_SIGN_MESSAGE_REQUEST = "approveSignMessageRequest"
+
+    /**
+     * Method name for rejecting a sign-message request.
+     */
+    const val METHOD_REJECT_SIGN_MESSAGE_REQUEST = "rejectSignMessageRequest"
+
+    /**
      * Method name for listing all active sessions.
      */
     const val METHOD_LIST_SESSIONS = "listSessions"

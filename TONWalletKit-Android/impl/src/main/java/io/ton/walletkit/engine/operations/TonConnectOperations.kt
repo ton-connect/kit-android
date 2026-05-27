@@ -24,12 +24,16 @@ package io.ton.walletkit.engine.operations
 import io.ton.walletkit.WalletKitBridgeException
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONEmbeddedRequestEvent
 import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONSignMessageApprovalResponse
+import io.ton.walletkit.api.generated.TONSignMessageRequestEvent
 import io.ton.walletkit.engine.infrastructure.BridgeRpcClient
 import io.ton.walletkit.engine.infrastructure.callTyped
+import io.ton.walletkit.engine.infrastructure.callTypedOrNull
 import io.ton.walletkit.internal.constants.BridgeMethodConstants
 import io.ton.walletkit.internal.constants.LogConstants
 import io.ton.walletkit.internal.constants.ResponseConstants
@@ -114,10 +118,13 @@ private fun extractOriginFromUrl(url: String): String = runCatching {
 internal suspend fun BridgeRpcClient.approveConnect(
     event: TONConnectionRequestEvent,
     response: TONConnectionApprovalResponse? = null,
-) {
+): TONEmbeddedRequestEvent? {
     event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
     event.walletId ?: throw WalletKitBridgeException(ERROR_WALLET_ID_REQUIRED)
-    send(BridgeMethodConstants.METHOD_APPROVE_CONNECT_REQUEST, listOf(event, response))
+    return callTypedOrNull<TONEmbeddedRequestEvent>(
+        BridgeMethodConstants.METHOD_APPROVE_CONNECT_REQUEST,
+        listOf(event, response),
+    )
 }
 
 internal suspend fun BridgeRpcClient.rejectConnect(
@@ -161,6 +168,23 @@ internal suspend fun BridgeRpcClient.rejectSignData(
     @Suppress("UNUSED_PARAMETER") errorCode: Int? = null,
 ) {
     send(BridgeMethodConstants.METHOD_REJECT_SIGN_DATA_REQUEST, listOf(event, reason))
+}
+
+internal suspend fun BridgeRpcClient.approveSignMessage(
+    event: TONSignMessageRequestEvent,
+    response: TONSignMessageApprovalResponse? = null,
+) {
+    event.walletAddress ?: throw WalletKitBridgeException(ERROR_WALLET_ADDRESS_REQUIRED)
+    event.walletId ?: throw WalletKitBridgeException(ERROR_WALLET_ID_REQUIRED)
+    send(BridgeMethodConstants.METHOD_APPROVE_SIGN_MESSAGE_REQUEST, listOf(event, response))
+}
+
+internal suspend fun BridgeRpcClient.rejectSignMessage(
+    event: TONSignMessageRequestEvent,
+    reason: String?,
+    @Suppress("UNUSED_PARAMETER") errorCode: Int? = null,
+) {
+    send(BridgeMethodConstants.METHOD_REJECT_SIGN_MESSAGE_REQUEST, listOf(event, reason))
 }
 
 internal suspend fun BridgeRpcClient.listSessions(): List<TONConnectSession> =

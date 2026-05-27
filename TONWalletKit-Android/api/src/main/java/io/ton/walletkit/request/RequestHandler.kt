@@ -23,10 +23,13 @@ package io.ton.walletkit.request
 
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONEmbeddedRequestEvent
 import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
+import io.ton.walletkit.api.generated.TONSignMessageApprovalResponse
+import io.ton.walletkit.api.generated.TONSignMessageRequestEvent
 
 /**
  * Internal interface for handling request approvals/rejections.
@@ -35,24 +38,17 @@ import io.ton.walletkit.api.generated.TONSignDataRequestEvent
  */
 interface RequestHandler {
     /**
-     * Approve a connection request. The event should have walletId and walletAddress set.
-     * @param event The connection request event
-     * @param response Optional pre-computed approval response. If provided, the SDK will use this
-     *                 response directly instead of computing it internally.
+     * Approves a connection request. Returns the embedded follow-up event when the connect
+     * carried an intent (the bundle finalises the session and emits the follow-up in one
+     * round-trip), or null for a plain connect.
      */
     suspend fun approveConnect(
         event: TONConnectionRequestEvent,
         response: TONConnectionApprovalResponse? = null,
-    )
+    ): TONEmbeddedRequestEvent?
 
     suspend fun rejectConnect(event: TONConnectionRequestEvent, reason: String?, errorCode: Int?)
 
-    /**
-     * Approve a transaction request.
-     * @param event The transaction request event
-     * @param response Optional pre-computed approval response. If provided, the SDK will use this
-     *                 response directly instead of signing the transaction internally.
-     */
     suspend fun approveTransaction(
         event: TONSendTransactionRequestEvent,
         response: TONSendTransactionApprovalResponse? = null,
@@ -60,16 +56,17 @@ interface RequestHandler {
 
     suspend fun rejectTransaction(event: TONSendTransactionRequestEvent, reason: String?, errorCode: Int?)
 
-    /**
-     * Approve a sign data request.
-     * @param event The sign data request event
-     * @param response Optional pre-computed approval response. If provided, the SDK will use this
-     *                 response directly instead of signing the data internally.
-     */
     suspend fun approveSignData(
         event: TONSignDataRequestEvent,
         response: TONSignDataApprovalResponse? = null,
     )
 
     suspend fun rejectSignData(event: TONSignDataRequestEvent, reason: String?, errorCode: Int?)
+
+    suspend fun approveSignMessage(
+        event: TONSignMessageRequestEvent,
+        response: TONSignMessageApprovalResponse? = null,
+    )
+
+    suspend fun rejectSignMessage(event: TONSignMessageRequestEvent, reason: String?, errorCode: Int?)
 }

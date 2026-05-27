@@ -26,6 +26,7 @@ internal object EventTypeConstants {
     const val EVENT_CONNECT_REQUEST = "connectRequest"
     const val EVENT_TRANSACTION_REQUEST = "transactionRequest"
     const val EVENT_SIGN_DATA_REQUEST = "signDataRequest"
+    const val EVENT_SIGN_MESSAGE_REQUEST = "signMessageRequest"
     const val EVENT_DISCONNECT = "disconnect"
     const val EVENT_STATE_CHANGED = "stateChanged"
     const val EVENT_WALLET_STATE_CHANGED = "walletStateChanged"

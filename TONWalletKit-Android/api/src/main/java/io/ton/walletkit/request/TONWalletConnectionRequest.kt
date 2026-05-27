@@ -24,50 +24,46 @@ package io.ton.walletkit.request
 import io.ton.walletkit.ITONWallet
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
+import io.ton.walletkit.api.generated.TONEmbeddedRequestEvent
+import io.ton.walletkit.event.TONWalletKitEvent
 
 /**
- * Represents a connection request from a dApp.
- *
- * Mirrors iOS TONWalletConnectionRequest for cross-platform consistency.
- *
- * Handle this request by calling [approve] with a wallet
- * or [reject] to deny the connection.
- *
- * @property event The underlying connection request event with all details
+ * A connection request from a dApp. Mirrors iOS `TONWalletConnectionRequest`.
  */
 class TONWalletConnectionRequest(
     val event: TONConnectionRequestEvent,
     private val handler: RequestHandler,
 ) {
     /**
-     * Approve this connection request with the specified wallet.
-     *
-     * The wallet's ID and address will be used for the connection.
-     * This matches the iOS API where approve takes a wallet parameter.
-     *
-     * @param wallet The wallet to connect with
-     * @param response Optional pre-computed approval response. If provided, the SDK will use
-     *                 this response directly instead of generating proof internally.
-     * @throws io.ton.walletkit.WalletKitBridgeException if approval fails
+     * Approves the connection with [wallet]. Returns the wrapped follow-up event when the
+     * dApp's request carried an `embeddedRequest` intent (sendTransaction / signMessage /
+     * signData), so the host can immediately process it. Returns null for a plain connect.
      */
     suspend fun approve(
         wallet: ITONWallet,
         response: TONConnectionApprovalResponse? = null,
-    ) {
+    ): TONWalletKitEvent? {
         val updatedEvent = event.copy(
             walletId = wallet.id,
             walletAddress = wallet.address,
         )
-        handler.approveConnect(updatedEvent, response)
+        val embedded = handler.approveConnect(updatedEvent, response) ?: return null
+        return when (embedded) {
+            is TONEmbeddedRequestEvent.SendTransaction ->
+                TONWalletKitEvent.SendTransactionRequest(
+                    TONWalletTransactionRequest(event = embedded.value, handler = handler),
+                )
+            is TONEmbeddedRequestEvent.SignMessage ->
+                TONWalletKitEvent.SignMessageRequest(
+                    TONWalletSignMessageRequest(event = embedded.value, handler = handler),
+                )
+            is TONEmbeddedRequestEvent.SignData ->
+                TONWalletKitEvent.SignDataRequest(
+                    TONWalletSignDataRequest(event = embedded.value, handler = handler),
+                )
+        }
     }
 
-    /**
-     * Reject this connection request.
-     *
-     * @param reason Optional reason for rejection
-     * @param errorCode Optional error code for the TON Connect protocol
-     * @throws io.ton.walletkit.WalletKitBridgeException if rejection fails
-     */
     suspend fun reject(reason: String? = null, errorCode: Int? = null) {
         handler.rejectConnect(event, reason, errorCode)
     }

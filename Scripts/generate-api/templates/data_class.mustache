@@ -14,6 +14,10 @@ typealias {{{classname}}} = {{modelNamePrefix}}{{{vendorExtensions.x-alias-targe
 {{>modelGeneric}}
 {{/vendorExtensions.x-is-generic}}
 {{^vendorExtensions.x-is-generic}}
+{{#vendorExtensions.x-parent-class}}
+{{>modelChildClass}}
+{{/vendorExtensions.x-parent-class}}
+{{^vendorExtensions.x-parent-class}}
 {{^multiplatform}}
 {{#kotlinx_serialization}}
 import kotlinx.serialization.Serializable
@@ -64,7 +68,7 @@ import kotlinx.parcelize.Parcelize
 {{#isDeprecated}}
 @Deprecated(message = "This schema is deprecated.")
 {{/isDeprecated}}
-{{#nonPublicApi}}internal {{/nonPublicApi}}{{#hasVars}}data {{/hasVars}}class {{classname}} (
+{{#nonPublicApi}}internal {{/nonPublicApi}}{{#vendorExtensions.x-is-open}}open {{/vendorExtensions.x-is-open}}{{^vendorExtensions.x-is-open}}{{#hasVars}}data {{/hasVars}}{{/vendorExtensions.x-is-open}}class {{classname}} (
 
 {{#allVars}}
 {{#vendorExtensions.x-frozen}}
@@ -162,6 +166,7 @@ import kotlinx.parcelize.Parcelize
 {{/vars}}
 {{/hasEnums}}
 }
+{{/vendorExtensions.x-parent-class}}
 {{/vendorExtensions.x-is-generic}}
 {{/vendorExtensions.x-discriminated-union}}
 {{/vendorExtensions.x-type-alias}}

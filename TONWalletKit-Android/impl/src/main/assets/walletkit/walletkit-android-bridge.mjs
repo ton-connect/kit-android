@@ -39102,11 +39102,6 @@ async function initTonWalletKit(config, deps) {
 		for (const nativeNetwork of availableNetworks) networksConfig[nativeNetwork.chainId] = { apiClient: new AndroidAPIClientAdapter(nativeNetwork) };
 	}
 	const kitOptions = { networks: networksConfig };
-	const nativeBridge = window.WalletKitNative;
-	if (nativeBridge?.hasCustomFetchManifest?.() && nativeBridge.apiFetchManifest) {
-		const fetchFn = nativeBridge.apiFetchManifest.bind(nativeBridge);
-		kitOptions.fetchManifest = async (url) => JSON.parse(fetchFn(url));
-	}
 	const devOptions = {};
 	if (config?.disableNetworkSend) devOptions.disableNetworkSend = true;
 	if (Object.keys(devOptions).length > 0) kitOptions.dev = devOptions;

@@ -103,6 +103,7 @@ import io.ton.walletkit.demo.presentation.ui.sheet.BrowserSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.ConnectRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.JettonDetailsSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.SignDataSheet
+import io.ton.walletkit.demo.presentation.ui.sheet.SignMessageRequestSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.StakingSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.SwapSheet
 import io.ton.walletkit.demo.presentation.ui.sheet.TransactionDetailSheet
@@ -304,6 +305,12 @@ fun WalletScreen(
                     onReject = { actions.onRejectSignData(sheet.request) },
                     wallet = state.wallets.firstOrNull { it.address == sheet.request.walletAddress }
                         ?: activeWallet,
+                )
+
+                is SheetState.SignMessage -> SignMessageRequestSheet(
+                    request = sheet.request,
+                    onApprove = { actions.onApproveSignMessage(sheet.request) },
+                    onReject = { actions.onRejectSignMessage(sheet.request) },
                 )
 
                 is SheetState.WalletDetails -> WalletDetailsSheet(

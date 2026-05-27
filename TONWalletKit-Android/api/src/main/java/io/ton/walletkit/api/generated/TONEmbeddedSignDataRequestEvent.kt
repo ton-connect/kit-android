@@ -29,90 +29,111 @@
 package io.ton.walletkit.api.generated
 
 import io.ton.walletkit.model.TONUserFriendlyAddress
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.SerialName
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 
 /**
  *
  *
- * @param id Unique identifier for the bridge event
- * @param payload
- * @param preview
- * @param connectionResult
- * @param from
- * @param walletAddress
- * @param walletId Wallet identifier associated with the event
- * @param domain Domain of the dApp that initiated the event
- * @param isJsBridge Whether the event originated from JS Bridge (injected provider)
- * @param tabId Browser tab ID for JS Bridge events
- * @param sessionId Session identifier for the connection
- * @param isLocal
- * @param messageId
- * @param traceId
- * @param dAppInfo
- * @param returnStrategy Raw TonConnect return strategy string.
+ * Inherits TONSignDataRequestEvent so it is substitutable
+ * wherever the base event is expected. kotlinx-serialization cannot auto-serialize this
+ * concrete/concrete inheritance (it would raise duplicate serial names), so a custom
+ * serializer flat-merges the inherited fields with this type's own fields.
  */
-@Serializable
-data class TONEmbeddedSignDataRequestEvent(
-
-    /* Unique identifier for the bridge event */
-    @SerialName(value = "id")
-    val id: kotlin.String,
-
-    @SerialName(value = "payload")
-    val payload: TONSignDataPayload,
-
-    @SerialName(value = "preview")
-    val preview: TONSignDataRequestEventPreview,
-
-    @SerialName("connectionResult")
+@Serializable(with = TONEmbeddedSignDataRequestEvent.Serializer::class)
+class TONEmbeddedSignDataRequestEvent(
+    id: kotlin.String,
+    payload: TONSignDataPayload,
+    preview: TONSignDataRequestEventPreview,
     private val connectionResult: kotlinx.serialization.json.JsonElement,
-
-    @SerialName(value = "from")
-    val from: kotlin.String? = null,
-
-    @Contextual @SerialName(value = "walletAddress")
-    val walletAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
-
-    /* Wallet identifier associated with the event */
-    @SerialName(value = "walletId")
-    val walletId: kotlin.String? = null,
-
-    /* Domain of the dApp that initiated the event */
-    @SerialName(value = "domain")
-    val domain: kotlin.String? = null,
-
-    /* Whether the event originated from JS Bridge (injected provider) */
-    @SerialName(value = "isJsBridge")
-    val isJsBridge: kotlin.Boolean? = null,
-
-    /* Browser tab ID for JS Bridge events */
-    @SerialName(value = "tabId")
-    val tabId: kotlin.String? = null,
-
-    /* Session identifier for the connection */
-    @SerialName(value = "sessionId")
-    val sessionId: kotlin.String? = null,
-
-    @SerialName(value = "isLocal")
-    val isLocal: kotlin.Boolean? = null,
-
-    @SerialName(value = "messageId")
-    val messageId: kotlin.String? = null,
-
-    @SerialName(value = "traceId")
-    val traceId: kotlin.String? = null,
-
-    @SerialName(value = "dAppInfo")
-    val dAppInfo: TONDAppInfo? = null,
-
-    /* Raw TonConnect return strategy string. */
-    @SerialName(value = "returnStrategy")
-    val returnStrategy: kotlin.String? = null,
-    @SerialName("type")
+    from: kotlin.String? = null,
+    walletAddress: io.ton.walletkit.model.TONUserFriendlyAddress? = null,
+    walletId: kotlin.String? = null,
+    domain: kotlin.String? = null,
+    isJsBridge: kotlin.Boolean? = null,
+    tabId: kotlin.String? = null,
+    sessionId: kotlin.String? = null,
+    isLocal: kotlin.Boolean? = null,
+    messageId: kotlin.String? = null,
+    traceId: kotlin.String? = null,
+    dAppInfo: TONDAppInfo? = null,
+    returnStrategy: kotlin.String? = null,
     val type: kotlin.String = "signData",
+) : TONSignDataRequestEvent(
+    id = id,
+    payload = payload,
+    preview = preview,
+    from = from,
+    walletAddress = walletAddress,
+    walletId = walletId,
+    domain = domain,
+    isJsBridge = isJsBridge,
+    tabId = tabId,
+    sessionId = sessionId,
+    isLocal = isLocal,
+    messageId = messageId,
+    traceId = traceId,
+    dAppInfo = dAppInfo,
+    returnStrategy = returnStrategy,
 ) {
 
-    companion object
+    internal object Serializer : KSerializer<TONEmbeddedSignDataRequestEvent> {
+        override val descriptor: SerialDescriptor =
+            buildClassSerialDescriptor("io.ton.walletkit.api.generated.TONEmbeddedSignDataRequestEvent")
+
+        override fun serialize(encoder: Encoder, value: TONEmbeddedSignDataRequestEvent) {
+            val jsonEncoder = encoder as? JsonEncoder
+                ?: throw SerializationException("TONEmbeddedSignDataRequestEvent can only be serialized with JSON")
+            val base = jsonEncoder.json.encodeToJsonElement(
+                TONSignDataRequestEvent.serializer(),
+                value,
+            ).jsonObject
+            val merged = JsonObject(
+                base + buildMap {
+                    put("connectionResult", value.connectionResult)
+                    put("type", JsonPrimitive(value.type))
+                },
+            )
+            jsonEncoder.encodeJsonElement(merged)
+        }
+
+        override fun deserialize(decoder: Decoder): TONEmbeddedSignDataRequestEvent {
+            val jsonDecoder = decoder as? JsonDecoder
+                ?: throw SerializationException("TONEmbeddedSignDataRequestEvent can only be deserialized from JSON")
+            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
+            val base = jsonDecoder.json.decodeFromJsonElement(
+                TONSignDataRequestEvent.serializer(),
+                jsonObject,
+            )
+            return TONEmbeddedSignDataRequestEvent(
+                id = base.id,
+                payload = base.payload,
+                preview = base.preview,
+                connectionResult = jsonObject["connectionResult"] ?: throw SerializationException("Missing 'connectionResult' for TONEmbeddedSignDataRequestEvent"),
+                from = base.from,
+                walletAddress = base.walletAddress,
+                walletId = base.walletId,
+                domain = base.domain,
+                isJsBridge = base.isJsBridge,
+                tabId = base.tabId,
+                sessionId = base.sessionId,
+                isLocal = base.isLocal,
+                messageId = base.messageId,
+                traceId = base.traceId,
+                dAppInfo = base.dAppInfo,
+                returnStrategy = base.returnStrategy,
+            )
+        }
+    }
 }

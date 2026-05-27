@@ -27,6 +27,7 @@ import io.ton.walletkit.demo.presentation.model.ConnectRequestUi
 import io.ton.walletkit.demo.presentation.model.JettonDetails
 import io.ton.walletkit.demo.presentation.model.JettonSummary
 import io.ton.walletkit.demo.presentation.model.SignDataRequestUi
+import io.ton.walletkit.demo.presentation.model.SignMessageRequestUi
 import io.ton.walletkit.demo.presentation.model.TransactionRequestUi
 import io.ton.walletkit.demo.presentation.model.WalletSummary
 import io.ton.walletkit.demo.presentation.viewmodel.WalletKitViewModel
@@ -96,6 +97,10 @@ class WalletActionsImpl @Inject constructor(
     override fun onApproveSignData(request: SignDataRequestUi) = viewModel.approveSignData(request)
 
     override fun onRejectSignData(request: SignDataRequestUi) = viewModel.rejectSignData(request)
+
+    override fun onApproveSignMessage(request: SignMessageRequestUi) = viewModel.approveSignMessage(request)
+
+    override fun onRejectSignMessage(request: SignMessageRequestUi) = viewModel.rejectSignMessage(request)
 
     override fun onConfirmSignerApproval() = viewModel.confirmSignerApproval()
 

@@ -140,6 +140,86 @@ add_discriminated_union(
     description="Preview data for signing"
 )
 
+# Reconstruct interface inheritance that ts-json-schema-generator flattened.
+# Each embedded event `extends` its base event in TypeScript, but the schema
+# generator inlines all inherited properties and drops the relationship. We
+# re-attach it via vendor extensions the Kotlin mustache template consumes:
+#   - the base schema gets `x-is-open` so it is emitted as `open class`
+#   - the child schema gets `x-parent-class` (unprefixed base name)
+#   - every child property NOT present on the base gets `x-own` so the template
+#     knows which fields the child adds vs. forwards to the super constructor
+# (kotlinx-serialization cannot auto-serialize concrete/concrete inheritance, so
+# the template also emits a custom KSerializer for each child — see
+# modelChildClass.mustache.)
+INHERITANCE_PAIRS = [
+    ("EmbeddedSendTransactionRequestEvent", "SendTransactionRequestEvent"),
+    ("EmbeddedSignMessageRequestEvent", "SignMessageRequestEvent"),
+    ("EmbeddedSignDataRequestEvent", "SignDataRequestEvent"),
+]
+
+def add_inheritance(child_name, parent_name):
+    # NOTE: mutate the rewritten `data` (line `data = _rewrite_refs(data)`), not the
+    # stale `schemas`/`components_schemas` alias which points at the pre-rewrite tree
+    # and is never written out.
+    out_schemas = data.get("components", {}).get("schemas", {}) or {}
+    child = out_schemas.get(child_name)
+    parent = out_schemas.get(parent_name)
+    if not child or not parent:
+        return
+    parent["x-is-open"] = True
+    child["x-parent-class"] = parent_name
+    parent_props = set((parent.get("properties") or {}).keys())
+    for prop_name, prop_def in (child.get("properties") or {}).items():
+        if prop_name not in parent_props and isinstance(prop_def, dict):
+            prop_def["x-own"] = True
+
+for child_name, parent_name in INHERITANCE_PAIRS:
+    add_inheritance(child_name, parent_name)
+
+# Normalize SCREAMING_SNAKE_CASE schema names (e.g. CONNECT_EVENT_ERROR_CODES, enums
+# mirrored from external SCREAMING_SNAKE sources) to PascalCase. Otherwise openapi-generator
+# strips the underscores but keeps the casing, producing TONCONNECTEVENTERRORCODES instead of
+# the idiomatic TONConnectEventErrorCodes. Mutates the rewritten `data` (see add_inheritance).
+def normalize_screaming_snake_type_names():
+    import re
+    out_schemas = data.get("components", {}).get("schemas", {}) or {}
+
+    def to_pascal(name):
+        return "".join(part[:1].upper() + part[1:].lower() for part in name.split("_") if part)
+
+    renames = {}
+    for name in list(out_schemas.keys()):
+        if re.fullmatch(r"[A-Z0-9]+(_[A-Z0-9]+)+", name):
+            pascal = to_pascal(name)
+            if pascal != name and pascal not in out_schemas:
+                renames[name] = pascal
+
+    if not renames:
+        return
+
+    for old_name, new_name in renames.items():
+        out_schemas[new_name] = out_schemas.pop(old_name)
+
+    ref_map = {}
+    for old_name, new_name in renames.items():
+        ref_map["#/definitions/%s" % old_name] = "#/definitions/%s" % new_name
+        ref_map["#/components/schemas/%s" % old_name] = "#/components/schemas/%s" % new_name
+
+    def update_refs(node):
+        if isinstance(node, dict):
+            ref = node.get("$ref")
+            if isinstance(ref, str) and ref in ref_map:
+                node["$ref"] = ref_map[ref]
+            for value in node.values():
+                update_refs(value)
+        elif isinstance(node, list):
+            for item in node:
+                update_refs(item)
+
+    update_refs(data)
+
+normalize_screaming_snake_type_names()
+
 with open(target, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2)
 PY

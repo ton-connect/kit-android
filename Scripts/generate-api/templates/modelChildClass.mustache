@@ -1,0 +1,92 @@
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONUserFriendlyAddress
+
+/**
+ * {{{description}}}
+ *
+ * Inherits {{modelNamePrefix}}{{{vendorExtensions.x-parent-class}}} so it is substitutable
+ * wherever the base event is expected. kotlinx-serialization cannot auto-serialize this
+ * concrete/concrete inheritance (it would raise duplicate serial names), so a custom
+ * serializer flat-merges the inherited fields with this type's own fields.
+ */
+@Serializable(with = {{classname}}.Serializer::class)
+class {{classname}}(
+{{#allVars}}
+{{#vendorExtensions.x-own}}
+    {{#vendorExtensions.x-frozen}}private {{/vendorExtensions.x-frozen}}val {{{name}}}: {{{dataType}}}{{^required}}? = null{{/required}},
+{{/vendorExtensions.x-own}}
+{{^vendorExtensions.x-own}}
+    {{{name}}}: {{{dataType}}}{{^required}}? = null{{/required}},
+{{/vendorExtensions.x-own}}
+{{/allVars}}
+{{#vendorExtensions.x-constant-fields}}
+    val {{{name}}}: kotlin.String = "{{{value}}}",
+{{/vendorExtensions.x-constant-fields}}
+) : {{modelNamePrefix}}{{{vendorExtensions.x-parent-class}}}(
+{{#allVars}}
+{{^vendorExtensions.x-own}}
+    {{{name}}} = {{{name}}},
+{{/vendorExtensions.x-own}}
+{{/allVars}}
+) {
+
+    internal object Serializer : KSerializer<{{classname}}> {
+        override val descriptor: SerialDescriptor =
+            buildClassSerialDescriptor("io.ton.walletkit.api.generated.{{classname}}")
+
+        override fun serialize(encoder: Encoder, value: {{classname}}) {
+            val jsonEncoder = encoder as? JsonEncoder
+                ?: throw SerializationException("{{classname}} can only be serialized with JSON")
+            val base = jsonEncoder.json.encodeToJsonElement(
+                {{modelNamePrefix}}{{{vendorExtensions.x-parent-class}}}.serializer(),
+                value,
+            ).jsonObject
+            val merged = JsonObject(
+                base + buildMap {
+{{#allVars}}
+{{#vendorExtensions.x-own}}
+                    put("{{{baseName}}}", value.{{{name}}})
+{{/vendorExtensions.x-own}}
+{{/allVars}}
+{{#vendorExtensions.x-constant-fields}}
+                    put("{{{name}}}", JsonPrimitive(value.{{{name}}}))
+{{/vendorExtensions.x-constant-fields}}
+                },
+            )
+            jsonEncoder.encodeJsonElement(merged)
+        }
+
+        override fun deserialize(decoder: Decoder): {{classname}} {
+            val jsonDecoder = decoder as? JsonDecoder
+                ?: throw SerializationException("{{classname}} can only be deserialized from JSON")
+            val jsonObject = jsonDecoder.decodeJsonElement().jsonObject
+            val base = jsonDecoder.json.decodeFromJsonElement(
+                {{modelNamePrefix}}{{{vendorExtensions.x-parent-class}}}.serializer(),
+                jsonObject,
+            )
+            return {{classname}}(
+{{#allVars}}
+{{#vendorExtensions.x-own}}
+                {{{name}}} = jsonObject["{{{baseName}}}"] ?: throw SerializationException("Missing '{{{baseName}}}' for {{classname}}"),
+{{/vendorExtensions.x-own}}
+{{^vendorExtensions.x-own}}
+                {{{name}}} = base.{{{name}}},
+{{/vendorExtensions.x-own}}
+{{/allVars}}
+            )
+        }
+    }
+}

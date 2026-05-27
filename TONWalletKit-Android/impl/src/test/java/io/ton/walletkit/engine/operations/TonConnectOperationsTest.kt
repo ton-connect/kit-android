@@ -198,8 +198,8 @@ class TonConnectOperationsTest : OperationsTestBase() {
     // --- approveConnect tests ---
 
     @Test
-    fun approveConnect_completesSuccessfully() = runBlocking {
-        givenBridgeReturns(JsonObject(emptyMap()))
+    fun approveConnect_completesSuccessfullyWithNoEmbedded() = runBlocking {
+        givenBridgeReturnsRawNull()
 
         val event = createConnectRequestEvent(
             id = "req-123",
@@ -207,12 +207,12 @@ class TonConnectOperationsTest : OperationsTestBase() {
             walletId = "mock-wallet-id-hash",
         )
 
-        // Should not throw
-        rpcClient.approveConnect(event)
+        val result = rpcClient.approveConnect(event)
+        assertEquals(null, result)
     }
 
     @Test(expected = WalletKitBridgeException::class)
-    fun approveConnect_throwsIfWalletAddressMissing() = runBlocking {
+    fun approveConnect_throwsIfWalletAddressMissing() = runBlocking<Unit> {
         givenBridgeReturns(JsonObject(emptyMap()))
 
         val event = createConnectRequestEvent(
@@ -225,7 +225,7 @@ class TonConnectOperationsTest : OperationsTestBase() {
     }
 
     @Test(expected = WalletKitBridgeException::class)
-    fun approveConnect_throwsIfWalletIdMissing() = runBlocking {
+    fun approveConnect_throwsIfWalletIdMissing() = runBlocking<Unit> {
         givenBridgeReturns(JsonObject(emptyMap()))
 
         val event = createConnectRequestEvent(

@@ -25,39 +25,20 @@ import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 
 /**
- * Represents a data signing request from a dApp.
+ * A data signing request from a dApp. Mirrors iOS `TONWalletSignDataRequest`.
  *
- * Mirrors iOS TONWalletSignDataRequest for cross-platform consistency.
- *
- * Handle this request by calling [approve] to sign the data
- * or [reject] to deny it.
- *
- * @property event The underlying sign data request event with all details
+ * When this request is the embedded follow-up of a connect-with-intent flow, [event] is the
+ * embedded variant (a subclass of [TONSignDataRequestEvent]); the bridge picks up the
+ * `connectionResult` field at serialization time so the JS side can finalise the session.
  */
 class TONWalletSignDataRequest(
     val event: TONSignDataRequestEvent,
     private val handler: RequestHandler,
 ) {
-    /**
-     * Approve this sign data request.
-     *
-     * @param response Optional pre-computed approval response. If provided, the SDK will use
-     *                 this response directly instead of signing the data internally.
-     * @throws io.ton.walletkit.WalletKitBridgeException if approval fails
-     */
-    suspend fun approve(
-        response: TONSignDataApprovalResponse? = null,
-    ) {
+    suspend fun approve(response: TONSignDataApprovalResponse? = null) {
         handler.approveSignData(event, response)
     }
 
-    /**
-     * Reject this sign data request.
-     *
-     * @param reason Optional reason for rejection
-     * @param errorCode Optional error code for the TON Connect protocol
-     * @throws io.ton.walletkit.WalletKitBridgeException if rejection fails
-     */
     suspend fun reject(reason: String? = null, errorCode: Int? = null) {
         handler.rejectSignData(event, reason, errorCode)
     }

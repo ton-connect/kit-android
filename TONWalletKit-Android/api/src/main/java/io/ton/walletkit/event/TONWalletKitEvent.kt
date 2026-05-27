@@ -25,6 +25,7 @@ import io.ton.walletkit.api.generated.TONDisconnectionEvent
 import io.ton.walletkit.api.generated.TONRequestErrorEvent
 import io.ton.walletkit.request.TONWalletConnectionRequest
 import io.ton.walletkit.request.TONWalletSignDataRequest
+import io.ton.walletkit.request.TONWalletSignMessageRequest
 import io.ton.walletkit.request.TONWalletTransactionRequest
 
 /**
@@ -69,6 +70,18 @@ sealed class TONWalletKitEvent {
      */
     data class SignDataRequest(
         val request: TONWalletSignDataRequest,
+    ) : TONWalletKitEvent()
+
+    /**
+     * A dApp is requesting to sign a transaction without broadcasting it (sign-message).
+     *
+     * Handle by calling [TONWalletSignMessageRequest.approve] to sign
+     * or [TONWalletSignMessageRequest.reject] to deny.
+     *
+     * @property request Sign-message request with approve/reject methods
+     */
+    data class SignMessageRequest(
+        val request: TONWalletSignMessageRequest,
     ) : TONWalletKitEvent()
 
     /**

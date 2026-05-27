@@ -21,25 +21,27 @@
  */
 package io.ton.walletkit.request
 
-import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
-import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
+import io.ton.walletkit.api.generated.TONSignMessageApprovalResponse
+import io.ton.walletkit.api.generated.TONSignMessageRequestEvent
 
 /**
- * A transaction request from a dApp. Mirrors iOS `TONWalletTransactionRequest`.
+ * A sign-message (sign-only) transaction request from a dApp. Mirrors iOS
+ * `TONWalletSignMessageRequest`. Unlike [TONWalletTransactionRequest], the signed BoC is
+ * returned to the dApp rather than broadcast.
  *
  * When this request is the embedded follow-up of a connect-with-intent flow, [event] is the
- * embedded variant (a subclass of [TONSendTransactionRequestEvent]); the bridge picks up the
+ * embedded variant (a subclass of [TONSignMessageRequestEvent]); the bridge picks up the
  * `connectionResult` field at serialization time so the JS side can finalise the session.
  */
-class TONWalletTransactionRequest(
-    val event: TONSendTransactionRequestEvent,
+class TONWalletSignMessageRequest(
+    val event: TONSignMessageRequestEvent,
     private val handler: RequestHandler,
 ) {
-    suspend fun approve(response: TONSendTransactionApprovalResponse? = null) {
-        handler.approveTransaction(event, response)
+    suspend fun approve(response: TONSignMessageApprovalResponse? = null) {
+        handler.approveSignMessage(event, response)
     }
 
     suspend fun reject(reason: String? = null, errorCode: Int? = null) {
-        handler.rejectTransaction(event, reason, errorCode)
+        handler.rejectSignMessage(event, reason, errorCode)
     }
 }
