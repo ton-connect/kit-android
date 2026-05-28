@@ -101,9 +101,12 @@ internal interface WalletKitEngine : RequestHandler {
      * subsequent calls are ignored once initialization succeeds.
      *
      * @param configuration Configuration for the WalletKit SDK
+     * @param kitInstanceId Identifier of the calling [TONWalletKit], used to namespace per-kit
+     * native callbacks (e.g. `fetchManifest`) since engines are cached per network and may be
+     * shared across kits. May be `null` for non-production paths (mocks/tests).
      * @throws WalletKitBridgeException if initialization fails
      */
-    suspend fun init(configuration: TONWalletKitConfiguration)
+    suspend fun init(configuration: TONWalletKitConfiguration, kitInstanceId: String? = null)
 
     /**
      * Get the current WalletKit configuration.

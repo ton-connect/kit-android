@@ -66,6 +66,7 @@ import io.ton.walletkit.swap.dedust.TONDeDustSwapProviderIdentifier
 import io.ton.walletkit.swap.omniston.TONOmnistonSwapProvider
 import io.ton.walletkit.swap.omniston.TONOmnistonSwapProviderIdentifier
 import kotlinx.serialization.json.Json
+import java.util.UUID
 
 /**
  * Main entry point for TON Wallet Kit SDK.
@@ -124,6 +125,11 @@ internal class TONWalletKit private constructor(
     internal val engine: WalletKitEngine,
 ) : ITONWalletKit {
 
+    // Namespaces native callbacks in the shared WrappedFunctionRegistry. Multiple TONWalletKit
+    // instances may share an engine, so without this id two kits would collide on the same
+    // registry key and each re-init would leak a stale entry.
+    private val instanceId: String = UUID.randomUUID().toString()
+
     private val swapManager: ITONSwapManager = TONSwapManager(engine)
 
     companion object {
@@ -139,13 +145,15 @@ internal class TONWalletKit private constructor(
             // Network-based caching prevents multiple WebView instances per network —
             // multiple WebViews with the same JS bridge interface name conflict, and
             // mainnet / testnet need their own engine. [init] is idempotent.
-            val newEngine = WebViewWalletKitEngine.getOrCreate(
-                context = context,
-                configuration = configuration,
-                eventsHandler = null,
-            ).apply { init(configuration) }
-
-            return TONWalletKit(newEngine)
+            val kit = TONWalletKit(
+                WebViewWalletKitEngine.getOrCreate(
+                    context = context,
+                    configuration = configuration,
+                    eventsHandler = null,
+                ),
+            )
+            kit.engine.init(configuration, kitInstanceId = kit.instanceId)
+            return kit
         }
     }
 

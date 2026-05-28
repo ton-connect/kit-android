@@ -75,18 +75,24 @@ internal class InitializationManager(
     private var pendingInitConfig: TONWalletKitConfiguration? = null
     private var currentConfig: TONWalletKitConfiguration? = null
 
-    suspend fun initialize(configuration: TONWalletKitConfiguration) {
+    private var pendingInitKitInstanceId: String? = null
+
+    suspend fun initialize(configuration: TONWalletKitConfiguration, kitInstanceId: String? = null) {
         walletKitInitMutex.withLock {
             if (!isWalletKitInitialized) {
                 pendingInitConfig = configuration
+                pendingInitKitInstanceId = kitInstanceId
             }
         }
-        ensureInitialized(configuration)
+        ensureInitialized(configuration, kitInstanceId)
     }
 
     fun getConfiguration(): TONWalletKitConfiguration? = currentConfig
 
-    suspend fun ensureInitialized(configuration: TONWalletKitConfiguration? = null) {
+    suspend fun ensureInitialized(
+        configuration: TONWalletKitConfiguration? = null,
+        kitInstanceId: String? = null,
+    ) {
         if (isWalletKitInitialized) {
             return
         }
@@ -97,12 +103,14 @@ internal class InitializationManager(
             }
 
             val effectiveConfig = configuration ?: pendingInitConfig ?: throw WalletKitBridgeException(ERROR_INIT_CONFIG_REQUIRED)
+            val effectiveKitInstanceId = kitInstanceId ?: pendingInitKitInstanceId
             pendingInitConfig = null
+            pendingInitKitInstanceId = null
 
             Logger.d(TAG, "Auto-initializing WalletKit with config: network=${resolveNetworkName(effectiveConfig)}")
 
             try {
-                performInitialization(effectiveConfig)
+                performInitialization(effectiveConfig, effectiveKitInstanceId)
                 isWalletKitInitialized = true
                 Logger.d(TAG, "WalletKit auto-initialization completed successfully")
             } catch (err: Throwable) {
@@ -134,7 +142,10 @@ internal class InitializationManager(
 
     fun tonApiKey(): String? = tonApiKey
 
-    private suspend fun performInitialization(configuration: TONWalletKitConfiguration) {
+    private suspend fun performInitialization(
+        configuration: TONWalletKitConfiguration,
+        kitInstanceId: String?,
+    ) {
         val networkName = resolveNetworkName(configuration)
         currentNetwork = networkName
         persistentStorageEnabled = configuration.storageType != TONWalletKitStorageType.Memory
@@ -248,11 +259,14 @@ internal class InitializationManager(
                 put("disableTransactionEmulation", eventsConfig.disableTransactionEmulation)
             }
 
-            // Register the host's fetchManifest callback fresh on each init. The registry has no
-            // eviction, so a failed-then-retried init leaks the prior registration — acceptable
-            // since init normally succeeds first try and the host callback is tiny.
+            // Namespaced id (when available) makes re-registration idempotent and isolates kits
+            // sharing a cached engine. Null → UUID fallback for mock paths.
             configuration.fetchManifest?.let { fetch ->
-                putJsonObject("fetchManifest") { put("__wrappedFn", rpcClient.wrappedFunctions.registerTyped(fetch)) }
+                val refId = rpcClient.wrappedFunctions.registerTyped(
+                    id = kitInstanceId?.let { "$it.fetchManifest" },
+                    fn = fetch,
+                )
+                putJsonObject("fetchManifest") { put("__wrappedFn", refId) }
             }
         }
 

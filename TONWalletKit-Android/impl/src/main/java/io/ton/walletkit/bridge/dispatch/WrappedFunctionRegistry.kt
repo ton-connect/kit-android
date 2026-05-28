@@ -42,30 +42,35 @@ internal class WrappedFunctionRegistry(
     private val functions = ConcurrentHashMap<String, suspend (JsonArray) -> String>()
 
     /**
-     * Typed single-argument registration. The JSON in/out marshalling lives here (decode the
-     * positional arg, encode the result) so callers hand over a strongly-typed callback instead
-     * of repeating the serialization dance at every registration site.
+     * Typed single-argument registration. The JSON in/out marshalling lives here so callers hand
+     * over a strongly-typed callback instead of repeating the serialization dance at every site.
+     *
+     * @param id If non-null, used as the reference and replaces any existing entry under that key
+     * (idempotent re-registration). If null, a fresh UUID is generated.
      */
-    inline fun <reified A, reified R> registerTyped(crossinline fn: suspend (A) -> R): String {
+    inline fun <reified A, reified R> registerTyped(id: String? = null, crossinline fn: suspend (A) -> R): String {
         val argSerializer = json.serializersModule.serializer<A>()
         val resSerializer = json.serializersModule.serializer<R>()
-        return register { args ->
+        return register(id) { args ->
             json.encodeToString(resSerializer, fn(json.decodeFromJsonElement(argSerializer, args[0])))
         }
     }
 
     /**
      * Raw registration escape hatch: [fn] receives the positional args array and must return an
-     * already-JSON-encoded result. Prefer [registerTyped] for the common single-arg case.
+     * already-JSON-encoded result. Prefer [registerTyped] for the common single-arg case. See
+     * [registerTyped] for the [id] semantics.
      */
-    fun register(fn: suspend (JsonArray) -> String): String {
-        var id = UUID.randomUUID().toString()
-        // Guard against an id collision: putIfAbsent is atomic and returns non-null only if the
-        // key was already taken, so regenerate until we claim a free reference.
-        while (functions.putIfAbsent(id, fn) != null) {
-            id = UUID.randomUUID().toString()
+    fun register(id: String? = null, fn: suspend (JsonArray) -> String): String {
+        if (id != null) {
+            functions[id] = fn
+            return id
         }
-        return id
+        var newId = UUID.randomUUID().toString()
+        while (functions.putIfAbsent(newId, fn) != null) {
+            newId = UUID.randomUUID().toString()
+        }
+        return newId
     }
 
     /** Invokes the callback bound to [refId]. The returned String is already JSON-encoded. */
