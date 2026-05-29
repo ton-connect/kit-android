@@ -27,7 +27,7 @@ import kotlinx.serialization.json.JsonElement
 
 /**
  * Identifier for the Omniston (STON.fi) swap provider.
- * [QuoteOptions] = [TONOmnistonProviderOptions]; [SwapOptions] = [JsonElement] (untyped, like iOS `AnyCodable`).
+ * [QuoteOptions] = [TONOmnistonProviderOptions]; [SwapOptions] = [JsonElement] (untyped JSON).
  */
 class TONOmnistonSwapProviderIdentifier(override val name: String = "omniston") :
     TONSwapProviderIdentifier<TONOmnistonProviderOptions, JsonElement>

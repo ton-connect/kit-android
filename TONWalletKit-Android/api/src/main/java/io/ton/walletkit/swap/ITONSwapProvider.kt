@@ -30,7 +30,7 @@ import io.ton.walletkit.api.generated.TONSwapQuoteParams
 import io.ton.walletkit.api.generated.TONTransactionRequest
 
 /**
- * Contract every swap provider must satisfy. Mirrors iOS's `TONSwapProviderProtocol`.
+ * Contract every swap provider must satisfy.
  *
  * The built-in [TONSwapProvider] implements this interface. Custom providers implement it directly.
  *

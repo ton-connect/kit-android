@@ -24,5 +24,5 @@ package io.ton.walletkit.staking.tonstakers
 import io.ton.walletkit.staking.ITONStakingProvider
 import kotlinx.serialization.json.JsonElement
 
-/** Typed handle for the TonStakers staking provider. Both option types are [JsonElement] (untyped), matching iOS `AnyCodable`. */
+/** Typed handle for the TonStakers staking provider. Both option types are [JsonElement] (untyped). */
 typealias TONTonStakersStakingProvider = ITONStakingProvider<JsonElement, JsonElement>

@@ -24,7 +24,6 @@ package io.ton.walletkit.model
 /**
  * Type alias for balance values in nano units.
  *
- * This mirrors the iOS SDK's TONBalance which is a typealias for TONTokenAmount.
  * Use this when specifically referring to wallet/account balances.
  */
 typealias TONBalance = TONTokenAmount

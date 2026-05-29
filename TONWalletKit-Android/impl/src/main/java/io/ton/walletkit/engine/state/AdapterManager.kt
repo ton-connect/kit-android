@@ -34,8 +34,8 @@ import java.util.concurrent.ConcurrentHashMap
  * (getStateInit, getSignedSendTransaction, etc.) back to the Kotlin adapter
  * via WebView @JavascriptInterface bridge methods that look up the adapter by ID.
  *
- * This mirrors iOS's pattern where the Swift adapter is exposed to JS via JSExport,
- * except Android uses message-based bridge callbacks instead.
+ * The adapter stays on the Kotlin side; JS reaches it through message-based bridge
+ * callbacks keyed by the registered ID.
  *
  * @suppress Internal component. Exposed via [WebViewWalletKitEngine] only.
  */

@@ -25,7 +25,6 @@ import kotlinx.serialization.json.JsonElement
 
 /**
  * Identifies a swap provider and carries its option types as generic parameters.
- * Analogous to iOS's `TONSwapProviderIdentifier` protocol.
  *
  * [TQuoteOptions] is the provider-specific type for [ITONSwapManager.getQuote] options.
  * [TSwapOptions] is the provider-specific type for swap-transaction building options.
@@ -36,7 +35,6 @@ interface TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions> {
 
 /**
  * Type-erased swap provider identifier used by [ITONSwapManager.providers].
- * Analogous to iOS's `AnyTONSwapProviderIdentifier`.
  */
 data class AnyTONSwapProviderIdentifier(override val name: String) :
     TONSwapProviderIdentifier<JsonElement, JsonElement>

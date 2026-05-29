@@ -25,5 +25,5 @@ import io.ton.walletkit.api.generated.TONOmnistonProviderOptions
 import io.ton.walletkit.swap.ITONSwapProvider
 import kotlinx.serialization.json.JsonElement
 
-/** Typed handle for the Omniston (STON.fi) swap provider. SwapOptions is [JsonElement] (untyped), matching iOS `AnyCodable`. */
+/** Typed handle for the Omniston (STON.fi) swap provider. SwapOptions is [JsonElement] (untyped). */
 typealias TONOmnistonSwapProvider = ITONSwapProvider<TONOmnistonProviderOptions, JsonElement>

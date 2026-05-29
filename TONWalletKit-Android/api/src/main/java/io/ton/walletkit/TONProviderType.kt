@@ -22,7 +22,7 @@
 package io.ton.walletkit
 
 /**
- * Discriminator for the domain a provider belongs to. Mirrors iOS's `TONProviderType` enum.
+ * Discriminator for the domain a provider belongs to.
  * Used to tell swap, staking, and streaming providers apart at runtime.
  */
 enum class TONProviderType {

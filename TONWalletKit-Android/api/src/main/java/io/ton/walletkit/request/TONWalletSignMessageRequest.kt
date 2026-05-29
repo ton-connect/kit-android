@@ -25,9 +25,8 @@ import io.ton.walletkit.api.generated.TONSignMessageApprovalResponse
 import io.ton.walletkit.api.generated.TONSignMessageRequestEvent
 
 /**
- * A sign-message (sign-only) transaction request from a dApp. Mirrors iOS
- * `TONWalletSignMessageRequest`. Unlike [TONWalletTransactionRequest], the signed BoC is
- * returned to the dApp rather than broadcast.
+ * A sign-message (sign-only) transaction request from a dApp. Unlike
+ * [TONWalletTransactionRequest], the signed BoC is returned to the dApp rather than broadcast.
  *
  * When this request is the embedded follow-up of a connect-with-intent flow, [event] is the
  * embedded variant (a subclass of [TONSignMessageRequestEvent]); the bridge picks up the

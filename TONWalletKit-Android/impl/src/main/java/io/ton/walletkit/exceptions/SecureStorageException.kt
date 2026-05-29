@@ -25,8 +25,7 @@ package io.ton.walletkit.exceptions
  * Exception thrown when secure storage operations fail.
  *
  * This sealed class represents failures in secure storage operations on Android, such as
- * EncryptedSharedPreferences, KeyStore, or other secure storage mechanisms. It is the
- * Android equivalent of iOS SDK's `KeychainError`.
+ * EncryptedSharedPreferences, KeyStore, or other secure storage mechanisms.
  *
  * Secure storage is used to store sensitive data such as:
  * - Private keys and mnemonics

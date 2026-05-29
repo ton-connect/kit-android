@@ -28,7 +28,7 @@ import io.ton.walletkit.api.generated.TONEmbeddedRequestEvent
 import io.ton.walletkit.event.TONWalletKitEvent
 
 /**
- * A connection request from a dApp. Mirrors iOS `TONWalletConnectionRequest`.
+ * A connection request from a dApp.
  */
 class TONWalletConnectionRequest(
     val event: TONConnectionRequestEvent,

@@ -39,7 +39,7 @@ internal class TONSwapManager(
             engine.registerSwapProvider(provider.identifier.name)
         } else {
             // Custom Kotlin provider: pre-fetch metadata + supportedNetworks (JS-side ProxySwapProvider
-            // caches them at construction — per iOS TON-842 contract), register locally so reverse-RPC
+            // caches them at construction), register locally so reverse-RPC
             // calls for quote/build reach the Kotlin instance, then have JS create the proxy.
             @Suppress("UNCHECKED_CAST")
             engine.kotlinSwapProviderManager.register(

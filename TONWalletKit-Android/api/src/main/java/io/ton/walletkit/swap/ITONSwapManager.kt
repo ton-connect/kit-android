@@ -32,7 +32,7 @@ interface ITONSwapManager {
     /**
      * Register a provider. Accepts any [ITONSwapProvider] implementation — the SDK's built-in
      * providers returned from `ITONWalletKit.omnistonSwapProvider` / `dedustSwapProvider`, and any
-     * user-defined conformer. Mirrors iOS `register<Provider: TONSwapProviderProtocol>(provider:)`.
+     * user-defined conformer.
      */
     suspend fun registerProvider(provider: ITONSwapProvider<*, *>)
 
@@ -43,8 +43,7 @@ interface ITONSwapManager {
     suspend fun setDefaultProvider(identifier: TONSwapProviderIdentifier<*, *>)
 
     /**
-     * All currently-registered providers as type-erased handles. Mirrors iOS
-     * `providers() -> [TONSwapProvider<AnyTONSwapProviderIdentifier>]`.
+     * All currently-registered providers as type-erased handles.
      */
     suspend fun providers(): List<ITONSwapProvider<JsonElement, JsonElement>>
 
@@ -53,15 +52,13 @@ interface ITONSwapManager {
 
     /**
      * Returns a typed [ITONSwapProvider] for [identifier] if it is currently registered, null otherwise.
-     * Mirrors iOS `provider<Identifier: TONSwapProviderIdentifier>(with: Identifier) -> TONSwapProvider<Identifier>?`.
      */
     suspend fun <TQuoteOptions, TSwapOptions> provider(
         identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
     ): ITONSwapProvider<TQuoteOptions, TSwapOptions>?
 
     /**
-     * Get a quote from the provider with [identifier]. Mirrors iOS
-     * `quote<Identifier: TONSwapProviderIdentifier>(params:, identifier:)`.
+     * Get a quote from the provider with [identifier].
      *
      * Typed `providerOptions` are serialized internally by the SDK before reaching the JS bridge.
      */
@@ -70,7 +67,7 @@ interface ITONSwapManager {
         identifier: TONSwapProviderIdentifier<TQuoteOptions, TSwapOptions>,
     ): TONSwapQuote
 
-    /** Get a quote from the default registered provider. Mirrors iOS `quote(params: TONSwapQuoteParams<AnyCodable>)`. */
+    /** Get a quote from the default registered provider. */
     suspend fun getQuote(params: TONSwapQuoteParams<JsonElement>): TONSwapQuote
 
     /**

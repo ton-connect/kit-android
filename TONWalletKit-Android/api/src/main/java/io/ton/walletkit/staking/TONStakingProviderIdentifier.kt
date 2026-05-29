@@ -26,7 +26,6 @@ import kotlinx.serialization.json.JsonElement
 
 /**
  * Identifies a staking provider and carries its option types as generic parameters.
- * Analogous to iOS's `TONStakingProviderIdentifier` protocol.
  *
  * [TQuoteOptions] is the provider-specific type for quote params.
  * [TStakeOptions] is the provider-specific type for stake transaction params.
@@ -35,7 +34,6 @@ interface TONStakingProviderIdentifier<TQuoteOptions, TStakeOptions> : TONProvid
 
 /**
  * Type-erased staking provider identifier used by [ITONStakingManager.providers].
- * Mirrors iOS's `AnyTONStakingProviderIdentifier`.
  */
 data class AnyTONStakingProviderIdentifier(override val name: String) :
     TONStakingProviderIdentifier<JsonElement, JsonElement>

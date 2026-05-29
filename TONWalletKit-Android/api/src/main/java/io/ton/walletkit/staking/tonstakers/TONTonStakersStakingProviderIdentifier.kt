@@ -26,7 +26,7 @@ import kotlinx.serialization.json.JsonElement
 
 /**
  * Identifier for the TonStakers staking provider.
- * Both [TQuoteOptions] and [TStakeOptions] are [JsonElement] (untyped), matching iOS's `AnyCodable`.
+ * Both [TQuoteOptions] and [TStakeOptions] are [JsonElement] (untyped).
  */
 data class TONTonStakersStakingProviderIdentifier(
     override val name: String = DEFAULT_NAME,

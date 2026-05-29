@@ -34,7 +34,7 @@ import io.ton.walletkit.api.generated.TONUnstakeMode
 import io.ton.walletkit.model.TONUserFriendlyAddress
 
 /**
- * Contract every staking provider must satisfy. Mirrors iOS's `TONStakingProviderProtocol`.
+ * Contract every staking provider must satisfy.
  *
  * The SDK's built-in TonStakers provider implements this interface. Custom providers implement it directly.
  *

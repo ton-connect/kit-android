@@ -229,7 +229,6 @@ internal class TonConnectInjector(
 
         // CRITICAL: Use WebViewCompat.addDocumentStartJavaScript for early injection
         // This is the proper Android API to inject JavaScript before HTML parsing begins
-        // (similar to iOS WKUserScript with injectionTime = .atDocumentStart)
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
             try {
                 // Load inject.mjs from assets

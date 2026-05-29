@@ -28,8 +28,6 @@ import io.ton.walletkit.api.generated.TONNetwork
  *
  * Implement this interface to provide custom signing logic for hardware wallets
  * or other external signers.
- *
- * Mirrors iOS TONWalletSignerProtocol for cross-platform consistency.
  */
 interface WalletSigner {
     /**

@@ -25,7 +25,7 @@ import io.ton.walletkit.api.generated.TONSignDataApprovalResponse
 import io.ton.walletkit.api.generated.TONSignDataRequestEvent
 
 /**
- * A data signing request from a dApp. Mirrors iOS `TONWalletSignDataRequest`.
+ * A data signing request from a dApp.
  *
  * When this request is the embedded follow-up of a connect-with-intent flow, [event] is the
  * embedded variant (a subclass of [TONSignDataRequestEvent]); the bridge picks up the

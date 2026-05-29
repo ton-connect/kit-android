@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap
  * bridge — which isn't possible, only serializable data is. Each callback is registered under a
  * generated UUID "reference"; the reference travels to JS (e.g. in the init config), and JS calls
  * back through the `callByReference` reverse-RPC method, which resolves the reference here and runs
- * the callback. Mirrors the iOS UUID-handler-map approach and reuses the async reverse-RPC channel.
+ * the callback over the async reverse-RPC channel.
  *
  * @suppress Internal component.
  */

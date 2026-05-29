@@ -25,7 +25,7 @@ import io.ton.walletkit.api.generated.TONSendTransactionApprovalResponse
 import io.ton.walletkit.api.generated.TONSendTransactionRequestEvent
 
 /**
- * A transaction request from a dApp. Mirrors iOS `TONWalletTransactionRequest`.
+ * A transaction request from a dApp.
  *
  * When this request is the embedded follow-up of a connect-with-intent flow, [event] is the
  * embedded variant (a subclass of [TONSendTransactionRequestEvent]); the bridge picks up the

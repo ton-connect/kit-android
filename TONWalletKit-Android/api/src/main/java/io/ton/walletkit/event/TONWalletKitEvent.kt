@@ -31,8 +31,6 @@ import io.ton.walletkit.request.TONWalletTransactionRequest
 /**
  * Events from TON Wallet Kit using a type-safe sealed hierarchy.
  *
- * Mirrors iOS TONWalletKitEvent for cross-platform consistency.
- *
  * Use this with exhaustive when() expressions to handle all possible events.
  */
 sealed class TONWalletKitEvent {

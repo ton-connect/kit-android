@@ -120,7 +120,7 @@ data class TONUserFriendlyAddress(
 
     /**
      * Returns the raw address format: "workchain:hash"
-     * Uses lowercase hex to match iOS implementation.
+     * Uses lowercase hex.
      */
     fun toRawString(): String = raw.string
 

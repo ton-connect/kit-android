@@ -49,7 +49,7 @@ internal class TONStakingManager(
             engine.registerStakingProvider(provider.identifier.name)
         } else {
             // Custom Kotlin provider: pre-fetch metadata + supportedNetworks (JS-side ProxyStakingProvider
-            // caches them at construction — per iOS TON-841 contract), register locally so reverse-RPC
+            // caches them at construction), register locally so reverse-RPC
             // calls for quote/build reach the Kotlin instance, then have JS create the proxy.
             @Suppress("UNCHECKED_CAST")
             val typedProvider = provider as ITONStakingProvider<JsonElement, JsonElement>

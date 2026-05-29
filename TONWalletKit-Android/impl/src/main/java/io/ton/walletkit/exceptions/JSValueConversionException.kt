@@ -31,8 +31,6 @@ package io.ton.walletkit.exceptions
  * - JSON encoding/decoding failures
  * - BigInt and complex type conversions
  *
- * This class mirrors the iOS SDK's `JSValueConversionError` enum for cross-platform consistency.
- *
  * @see JSException
  */
 internal sealed class JSValueConversionException(

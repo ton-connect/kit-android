@@ -28,8 +28,6 @@ import io.ton.walletkit.model.TONUserFriendlyAddress
 
 /**
  * TON wallet instance for transaction management and dApp interactions.
- *
- * Mirrors the iOS TONWalletProtocol for cross-platform consistency.
  */
 interface ITONWallet {
     /**
@@ -152,12 +150,6 @@ interface ITONWallet {
      */
     suspend fun jettons(request: TONJettonsRequest): TONJettonsResponse
 }
-
-/**
- * Convenience extensions for ITONWallet.
- *
- * Mirrors iOS TONWalletProtocol extensions.
- */
 
 /**
  * Get NFTs with a simple limit parameter.

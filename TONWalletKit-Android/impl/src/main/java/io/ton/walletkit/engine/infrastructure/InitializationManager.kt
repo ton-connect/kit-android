@@ -175,7 +175,7 @@ internal class InitializationManager(
             tonClientEndpoint?.let { put(JsonConstants.KEY_API_URL, it) }
             put(JsonConstants.KEY_TON_API_URL, apiBaseUrl)
 
-            // Pass all configured networks (matching iOS bridge format: networkConfigurations)
+            // Pass all configured networks under `networkConfigurations`.
             putJsonArray("networkConfigurations") {
                 for (networkConfig in configuration.networkConfigurations) {
                     addJsonObject {
