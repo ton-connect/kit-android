@@ -298,6 +298,7 @@ internal class TONWalletKit private constructor(
         return TONWallet(
             id = account.walletId,
             address = account.address,
+            network = account.network,
             engine = engine,
             account = account,
         )
@@ -314,6 +315,7 @@ internal class TONWalletKit private constructor(
             TONWallet(
                 id = account.walletId,
                 address = account.address,
+                network = account.network,
                 engine = engine,
                 account = account,
             )
@@ -329,6 +331,7 @@ internal class TONWalletKit private constructor(
         return TONWallet(
             id = account.walletId,
             address = account.address,
+            network = account.network,
             engine = engine,
             account = account,
         )

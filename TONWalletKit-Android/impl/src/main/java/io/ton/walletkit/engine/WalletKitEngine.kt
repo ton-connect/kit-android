@@ -21,10 +21,12 @@
  */
 package io.ton.walletkit.engine
 
+import io.ton.walletkit.api.generated.TONAccountState
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONDeDustSwapProviderConfig
 import io.ton.walletkit.api.generated.TONEmbeddedRequestEvent
+import io.ton.walletkit.api.generated.TONEmulationResult
 import io.ton.walletkit.api.generated.TONGetMethodResult
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
@@ -32,6 +34,7 @@ import io.ton.walletkit.api.generated.TONMasterchainInfo
 import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
+import io.ton.walletkit.api.generated.TONNFTsRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
@@ -58,6 +61,7 @@ import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransactionPreviewOptions
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
+import io.ton.walletkit.api.generated.TONUserNFTsRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.core.streaming.StreamingEvent
 import io.ton.walletkit.engine.model.WalletAccount
@@ -479,10 +483,41 @@ internal interface WalletKitEngine : RequestHandler {
         address: String,
         method: String,
         stack: List<TONRawStackItem>? = null,
-        seqno: Int? = null,
+        seqno: UInt? = null,
     ): TONGetMethodResult
 
+    suspend fun walletClientGetBalance(
+        walletId: String,
+        address: String,
+        seqno: UInt? = null,
+    ): String
+
     suspend fun walletClientGetMasterchainInfo(walletId: String): TONMasterchainInfo
+
+    suspend fun walletClientNftItemsByAddress(walletId: String, request: TONNFTsRequest): TONNFTsResponse
+
+    suspend fun walletClientNftItemsByOwner(walletId: String, request: TONUserNFTsRequest): TONNFTsResponse
+
+    suspend fun walletClientFetchEmulation(
+        walletId: String,
+        messageBoc: String,
+        ignoreSignature: Boolean = false,
+    ): TONEmulationResult
+
+    suspend fun walletClientAccountState(
+        walletId: String,
+        address: String,
+        seqno: UInt? = null,
+    ): TONAccountState
+
+    suspend fun walletClientAccountStates(
+        walletId: String,
+        addresses: List<String>,
+    ): Map<String, TONAccountState>
+
+    suspend fun walletClientResolveDnsWallet(walletId: String, domain: String): String?
+
+    suspend fun walletClientBackResolveDnsWallet(walletId: String, address: String): String?
 
     /**
      * Get the balance of a specific jetton for a wallet.

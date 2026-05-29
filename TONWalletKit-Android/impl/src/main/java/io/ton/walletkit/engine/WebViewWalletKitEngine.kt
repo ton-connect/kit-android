@@ -23,10 +23,12 @@ package io.ton.walletkit.engine
 
 import android.content.Context
 import io.ton.walletkit.WalletKitBridgeException
+import io.ton.walletkit.api.generated.TONAccountState
 import io.ton.walletkit.api.generated.TONConnectionApprovalResponse
 import io.ton.walletkit.api.generated.TONConnectionRequestEvent
 import io.ton.walletkit.api.generated.TONDeDustSwapProviderConfig
 import io.ton.walletkit.api.generated.TONEmbeddedRequestEvent
+import io.ton.walletkit.api.generated.TONEmulationResult
 import io.ton.walletkit.api.generated.TONGetMethodResult
 import io.ton.walletkit.api.generated.TONJettonsResponse
 import io.ton.walletkit.api.generated.TONJettonsTransferRequest
@@ -34,6 +36,7 @@ import io.ton.walletkit.api.generated.TONMasterchainInfo
 import io.ton.walletkit.api.generated.TONNFT
 import io.ton.walletkit.api.generated.TONNFTRawTransferRequest
 import io.ton.walletkit.api.generated.TONNFTTransferRequest
+import io.ton.walletkit.api.generated.TONNFTsRequest
 import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONOmnistonSwapProviderConfig
@@ -60,6 +63,7 @@ import io.ton.walletkit.api.generated.TONTransactionEmulatedPreview
 import io.ton.walletkit.api.generated.TONTransactionPreviewOptions
 import io.ton.walletkit.api.generated.TONTransactionRequest
 import io.ton.walletkit.api.generated.TONTransferRequest
+import io.ton.walletkit.api.generated.TONUserNFTsRequest
 import io.ton.walletkit.bridge.BridgeCodec
 import io.ton.walletkit.client.TONAPIClient
 import io.ton.walletkit.config.TONWalletKitConfiguration
@@ -111,6 +115,7 @@ import io.ton.walletkit.engine.operations.getSwapQuote
 import io.ton.walletkit.engine.operations.getTransactionPreview
 import io.ton.walletkit.engine.operations.getWallet
 import io.ton.walletkit.engine.operations.getWalletAddress
+import io.ton.walletkit.engine.operations.getWalletNetwork
 import io.ton.walletkit.engine.operations.getWallets
 import io.ton.walletkit.engine.operations.handleNewTransaction
 import io.ton.walletkit.engine.operations.handleTonConnectRequest
@@ -134,7 +139,15 @@ import io.ton.walletkit.engine.operations.sendTransaction
 import io.ton.walletkit.engine.operations.setDefaultStakingProvider
 import io.ton.walletkit.engine.operations.setDefaultSwapProvider
 import io.ton.walletkit.engine.operations.sign
+import io.ton.walletkit.engine.operations.walletClientAccountState
+import io.ton.walletkit.engine.operations.walletClientAccountStates
+import io.ton.walletkit.engine.operations.walletClientBackResolveDnsWallet
+import io.ton.walletkit.engine.operations.walletClientFetchEmulation
+import io.ton.walletkit.engine.operations.walletClientGetBalance
 import io.ton.walletkit.engine.operations.walletClientGetMasterchainInfo
+import io.ton.walletkit.engine.operations.walletClientNftItemsByAddress
+import io.ton.walletkit.engine.operations.walletClientNftItemsByOwner
+import io.ton.walletkit.engine.operations.walletClientResolveDnsWallet
 import io.ton.walletkit.engine.operations.walletClientRunGetMethod
 import io.ton.walletkit.engine.operations.walletClientSendBoc
 import io.ton.walletkit.engine.parsing.EventParser
@@ -186,7 +199,7 @@ internal class WebViewWalletKitEngine private constructor(
     eventsHandler: TONBridgeEventsHandler?,
     private val storageAdapter: BridgeStorageAdapter,
     private val sessionManager: TONConnectSessionManager?,
-    private val apiClients: List<Pair<TONNetwork, TONAPIClient>>,
+    private val apiClients: Map<TONNetwork, TONAPIClient>,
     private val assetPath: String = WebViewConstants.DEFAULT_ASSET_PATH,
 ) : WalletKitEngine {
     override val streamingEvents get() = messageDispatcher.streamingEvents
@@ -310,7 +323,7 @@ internal class WebViewWalletKitEngine private constructor(
         // BridgeWalletAdapter wraps a JS-side adapter; route through its stable adapterId so we don't
         // re-register in AdapterManager or create a duplicate proxy in JS.
         val adapterId = if (adapter is BridgeWalletAdapter) adapter.adapterId else adapterManager.registerAdapter(adapter)
-        return rpcClient.addWallet(adapterId).toWalletAccount()
+        return rpcClient.addWallet(adapterId).toWalletAccount(network = adapter.network())
     }
 
     override suspend fun createSignerFromMnemonic(
@@ -352,7 +365,8 @@ internal class WebViewWalletKitEngine private constructor(
 
     override suspend fun getWallets(): List<WalletAccount> =
         rpcClient.getWallets().mapNotNull { entry ->
-            entry.walletId?.takeIf { it.isNotEmpty() }?.let { entry.toWalletAccount() }
+            val walletId = entry.walletId?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            entry.toWalletAccount(network = rpcClient.getWalletNetwork(walletId))
         }
 
     override suspend fun getWallet(walletId: String): WalletAccount? {
@@ -360,7 +374,8 @@ internal class WebViewWalletKitEngine private constructor(
         val resolvedId = response.walletId?.takeIf { it.isNotEmpty() } ?: walletId
         val address = rpcClient.getWalletAddress(resolvedId)
         if (address.isEmpty()) return null
-        return response.copy(walletId = resolvedId).toWalletAccount(address)
+        return response.copy(walletId = resolvedId)
+            .toWalletAccount(network = rpcClient.getWalletNetwork(resolvedId), address = address)
     }
 
     override suspend fun removeWallet(walletId: String) = rpcClient.removeWallet(walletId)
@@ -486,11 +501,46 @@ internal class WebViewWalletKitEngine private constructor(
         address: String,
         method: String,
         stack: List<TONRawStackItem>?,
-        seqno: Int?,
+        seqno: UInt?,
     ): TONGetMethodResult = rpcClient.walletClientRunGetMethod(walletId, address, method, stack, seqno)
+
+    override suspend fun walletClientGetBalance(
+        walletId: String,
+        address: String,
+        seqno: UInt?,
+    ): String = rpcClient.walletClientGetBalance(walletId, address, seqno)
 
     override suspend fun walletClientGetMasterchainInfo(walletId: String): TONMasterchainInfo =
         rpcClient.walletClientGetMasterchainInfo(walletId)
+
+    override suspend fun walletClientNftItemsByAddress(walletId: String, request: TONNFTsRequest): TONNFTsResponse =
+        rpcClient.walletClientNftItemsByAddress(walletId, request)
+
+    override suspend fun walletClientNftItemsByOwner(walletId: String, request: TONUserNFTsRequest): TONNFTsResponse =
+        rpcClient.walletClientNftItemsByOwner(walletId, request)
+
+    override suspend fun walletClientFetchEmulation(
+        walletId: String,
+        messageBoc: String,
+        ignoreSignature: Boolean,
+    ): TONEmulationResult = rpcClient.walletClientFetchEmulation(walletId, messageBoc, ignoreSignature)
+
+    override suspend fun walletClientAccountState(
+        walletId: String,
+        address: String,
+        seqno: UInt?,
+    ): TONAccountState = rpcClient.walletClientAccountState(walletId, address, seqno)
+
+    override suspend fun walletClientAccountStates(
+        walletId: String,
+        addresses: List<String>,
+    ): Map<String, TONAccountState> = rpcClient.walletClientAccountStates(walletId, addresses)
+
+    override suspend fun walletClientResolveDnsWallet(walletId: String, domain: String): String? =
+        rpcClient.walletClientResolveDnsWallet(walletId, domain)
+
+    override suspend fun walletClientBackResolveDnsWallet(walletId: String, address: String): String? =
+        rpcClient.walletClientBackResolveDnsWallet(walletId, address)
 
     override suspend fun getJettonBalance(walletId: String, jettonAddress: String): String =
         rpcClient.getJettonBalance(walletId, jettonAddress)
@@ -630,6 +680,7 @@ internal class WebViewWalletKitEngine private constructor(
     }
 
     private suspend fun AddWalletResponse.toWalletAccount(
+        network: TONNetwork,
         address: String? = null,
     ): WalletAccount {
         val walletId = walletId?.takeIf { it.isNotEmpty() }
@@ -639,6 +690,7 @@ internal class WebViewWalletKitEngine private constructor(
         return WalletAccount(
             walletId = walletId,
             address = TONUserFriendlyAddress(resolvedAddress),
+            network = network,
             publicKey = rawPublicKey?.takeIf { it.isNotEmpty() }?.let(WalletKitUtils::stripHexPrefix),
             version = wallet?.version?.takeIf { it.isNotEmpty() } ?: "unknown",
         )

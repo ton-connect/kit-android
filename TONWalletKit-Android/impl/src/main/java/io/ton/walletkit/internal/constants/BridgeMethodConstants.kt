@@ -69,6 +69,9 @@ internal object BridgeMethodConstants {
      */
     const val METHOD_GET_WALLET_ADDRESS = "getWalletAddress"
 
+    /** Method name for getting a wallet's network. */
+    const val METHOD_GET_WALLET_NETWORK = "getWalletNetwork"
+
     /**
      * Method name for removing a wallet.
      */
@@ -255,8 +258,32 @@ internal object BridgeMethodConstants {
     /** Run a get method via the wallet's API client. */
     const val METHOD_WALLET_CLIENT_RUN_GET_METHOD = "walletClientRunGetMethod"
 
+    /** Get the balance of an account via the wallet's API client. */
+    const val METHOD_WALLET_CLIENT_GET_BALANCE = "walletClientGetBalance"
+
     /** Get masterchain info via the wallet's API client. */
     const val METHOD_WALLET_CLIENT_GET_MASTERCHAIN_INFO = "walletClientGetMasterchainInfo"
+
+    /** Get NFTs by collection address via the wallet's API client. */
+    const val METHOD_WALLET_CLIENT_NFT_ITEMS_BY_ADDRESS = "walletClientNftItemsByAddress"
+
+    /** Get NFTs owned by an account via the wallet's API client. */
+    const val METHOD_WALLET_CLIENT_NFT_ITEMS_BY_OWNER = "walletClientNftItemsByOwner"
+
+    /** Run transaction emulation via the wallet's API client. */
+    const val METHOD_WALLET_CLIENT_FETCH_EMULATION = "walletClientFetchEmulation"
+
+    /** Get a single account state via the wallet's API client. */
+    const val METHOD_WALLET_CLIENT_ACCOUNT_STATE = "walletClientAccountState"
+
+    /** Batch get account states via the wallet's API client. */
+    const val METHOD_WALLET_CLIENT_ACCOUNT_STATES = "walletClientAccountStates"
+
+    /** Resolve a DNS domain to a wallet address via the wallet's API client. */
+    const val METHOD_WALLET_CLIENT_RESOLVE_DNS_WALLET = "walletClientResolveDnsWallet"
+
+    /** Reverse-resolve a wallet address back to a DNS domain via the wallet's API client. */
+    const val METHOD_WALLET_CLIENT_BACK_RESOLVE_DNS_WALLET = "walletClientBackResolveDnsWallet"
 
     // Swap methods
 

@@ -114,6 +114,7 @@ interface MockScenario {
         return WalletAccount(
             walletId = "mock-wallet-id-${adapterId.hashCode().toString(16)}",
             address = TONUserFriendlyAddress(address),
+            network = TONNetwork.TESTNET,
             publicKey = "0x${"0".repeat(64)}",
             version = WalletVersions.V5R1,
         )

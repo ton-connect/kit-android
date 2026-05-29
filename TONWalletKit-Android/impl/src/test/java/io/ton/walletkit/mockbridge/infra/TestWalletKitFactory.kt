@@ -83,7 +83,8 @@ internal object TestWalletKitFactory {
             mockEngine.init(configuration)
         }
 
-        // Wrap in TONWalletKit (accessing internal constructor via reflection)
+        // TONWalletKit's constructor is private to prevent SDK consumers (incl. Java)
+        // from instantiating it directly. Tests reach it via reflection.
         val constructor = TONWalletKit::class.java.getDeclaredConstructor(
             WalletKitEngine::class.java,
         )

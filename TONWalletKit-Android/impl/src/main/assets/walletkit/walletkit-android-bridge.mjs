@@ -6,7 +6,7 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __esmMin = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
-var __commonJSMin = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod), cb = null), mod.exports);
 var __exportAll = (all, no_symbols) => {
 	let target = {};
 	for (var name in all) __defProp(target, name, {
@@ -35,7 +35,7 @@ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require
 	throw Error("Calling `require` for \"" + x + "\" in an environment that doesn't expose the `require` function. See https://rolldown.rs/in-depth/bundling-cjs#require-external-modules for more details.");
 });
 //#endregion
-//#region ../../node_modules/base64-js/index.js
+//#region ../../node_modules/.pnpm/base64-js@1.5.1/node_modules/base64-js/index.js
 var require_base64_js = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.byteLength = byteLength;
 	exports.toByteArray = toByteArray;
@@ -123,7 +123,7 @@ var require_base64_js = /* @__PURE__ */ __commonJSMin(((exports) => {
 	}
 }));
 //#endregion
-//#region ../../node_modules/ieee754/index.js
+//#region ../../node_modules/.pnpm/ieee754@1.2.1/node_modules/ieee754/index.js
 var require_ieee754 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 	exports.read = function(buffer, offset, isLE, mLen, nBytes) {
@@ -195,6 +195,12 @@ var require_ieee754 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		buffer[offset + i - d] |= s * 128;
 	};
 }));
+/*!
+* The buffer module from node.js, for the browser.
+*
+* @author   Feross Aboukhadijeh <https://feross.org>
+* @license  MIT
+*/
 //#endregion
 //#region src/utils/logger.ts
 var import_buffer = (/* @__PURE__ */ __commonJSMin(((exports) => {
@@ -1501,16 +1507,16 @@ var consoleRef = globalThis.console;
 * Get the current log level from window
 */
 function getCurrentLogLevel() {
-	return LogLevel$1[logWindow.__WALLETKIT_LOG_LEVEL__ || "OFF"] ?? LogLevel$1.OFF;
+	return LogLevel$1[logWindow.__WALLETKIT_LOG_LEVEL__ || "OFF"] ?? 0;
 }
 var info = (...args) => {
-	if (getCurrentLogLevel() >= LogLevel$1.INFO) consoleRef?.log?.("[WalletKit]", ...args);
+	if (getCurrentLogLevel() >= 3) consoleRef?.log?.("[WalletKit]", ...args);
 };
 var warn = (...args) => {
-	if (getCurrentLogLevel() >= LogLevel$1.WARN) consoleRef?.warn?.("[WalletKit]", ...args);
+	if (getCurrentLogLevel() >= 2) consoleRef?.warn?.("[WalletKit]", ...args);
 };
 var error = (...args) => {
-	if (getCurrentLogLevel() >= LogLevel$1.ERROR) consoleRef?.error?.("[WalletKit]", ...args);
+	if (getCurrentLogLevel() >= 1) consoleRef?.error?.("[WalletKit]", ...args);
 };
 //#endregion
 //#region src/polyfills/setupNativeBridge.ts
@@ -1585,7 +1591,7 @@ function setupNativeBridge() {
 }
 setupNativeBridge();
 //#endregion
-//#region ../../node_modules/tweetnacl-util/nacl-util.js
+//#region ../../node_modules/.pnpm/tweetnacl-util@0.15.1/node_modules/tweetnacl-util/nacl-util.js
 var require_nacl_util = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	(function(root, f) {
 		"use strict";
@@ -1651,7 +1657,7 @@ var require___vite_browser_external = /* @__PURE__ */ __commonJSMin(((exports, m
 	module.exports = {};
 }));
 //#endregion
-//#region ../../node_modules/tweetnacl/nacl-fast.js
+//#region ../../node_modules/.pnpm/tweetnacl@1.0.3/node_modules/tweetnacl/nacl-fast.js
 var require_nacl_fast = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	(function(nacl) {
 		"use strict";
@@ -4021,34 +4027,34 @@ var require_nacl_fast = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	})(typeof module !== "undefined" && module.exports ? module.exports : self.nacl = self.nacl || {});
 }));
 //#endregion
-//#region ../../node_modules/@tonconnect/protocol/lib/esm/index.mjs
-function encodeUint8Array(value, urlSafe) {
-	const encoded = import_nacl_util.default.encodeBase64(value);
+//#region ../../node_modules/.pnpm/@tonconnect+protocol@2.5.0-alpha.1/node_modules/@tonconnect/protocol/lib/esm/index.mjs
+function encodeUint8Array$1(value, urlSafe) {
+	const encoded = import_nacl_util$1.default.encodeBase64(value);
 	if (!urlSafe) return encoded;
 	return encodeURIComponent(encoded);
 }
-function decodeToUint8Array(value, urlSafe) {
+function decodeToUint8Array$1(value, urlSafe) {
 	if (urlSafe) value = decodeURIComponent(value);
-	return import_nacl_util.default.decodeBase64(value);
+	return import_nacl_util$1.default.decodeBase64(value);
 }
-function encode(value, urlSafe = false) {
+function encode$1(value, urlSafe = false) {
 	let uint8Array;
 	if (value instanceof Uint8Array) uint8Array = value;
 	else {
 		if (typeof value !== "string") value = JSON.stringify(value);
-		uint8Array = import_nacl_util.default.decodeUTF8(value);
+		uint8Array = import_nacl_util$1.default.decodeUTF8(value);
 	}
-	return encodeUint8Array(uint8Array, urlSafe);
+	return encodeUint8Array$1(uint8Array, urlSafe);
 }
-function decode(value, urlSafe = false) {
-	const decodedUint8Array = decodeToUint8Array(value, urlSafe);
+function decode$1(value, urlSafe = false) {
+	const decodedUint8Array = decodeToUint8Array$1(value, urlSafe);
 	return {
 		toString() {
-			return import_nacl_util.default.encodeUTF8(decodedUint8Array);
+			return import_nacl_util$1.default.encodeUTF8(decodedUint8Array);
 		},
 		toObject() {
 			try {
-				return JSON.parse(import_nacl_util.default.encodeUTF8(decodedUint8Array));
+				return JSON.parse(import_nacl_util$1.default.encodeUTF8(decodedUint8Array));
 			} catch (e) {
 				return null;
 			}
@@ -4061,7 +4067,7 @@ function decode(value, urlSafe = false) {
 function fromBase64Url(base64url) {
 	const padded = base64url.length + (4 - base64url.length % 4) % 4;
 	const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/").padEnd(padded, "=");
-	return Base64.decode(base64).toString();
+	return Base64$1.decode(base64).toString();
 }
 function expandMessage(w) {
 	const msg = {
@@ -4194,16 +4200,16 @@ function toHexString(byteArray) {
 	});
 	return hexString;
 }
-function hexToByteArray(hexString) {
+function hexToByteArray$1(hexString) {
 	if (hexString.length % 2 !== 0) throw new Error(`Cannot convert ${hexString} to bytesArray`);
 	const result = new Uint8Array(hexString.length / 2);
 	for (let i = 0; i < hexString.length; i += 2) result[i / 2] = parseInt(hexString.slice(i, i + 2), 16);
 	return result;
 }
-var import_nacl_util, import_nacl_fast$1, CONNECT_EVENT_ERROR_CODES, CONNECT_ITEM_ERROR_CODES, SEND_TRANSACTION_ERROR_CODES, SIGN_DATA_ERROR_CODES, DISCONNECT_ERROR_CODES, SIGN_MESSAGE_ERROR_CODES, CHAIN, Base64, SessionCrypto;
-var init_esm$1 = __esmMin((() => {
-	import_nacl_util = /* @__PURE__ */ __toESM(require_nacl_util(), 1);
-	import_nacl_fast$1 = /* @__PURE__ */ __toESM(require_nacl_fast(), 1);
+var import_nacl_util$1, import_nacl_fast$2, CONNECT_EVENT_ERROR_CODES$1, CONNECT_ITEM_ERROR_CODES$1, SEND_TRANSACTION_ERROR_CODES$1, SIGN_DATA_ERROR_CODES$1, DISCONNECT_ERROR_CODES$1, SIGN_MESSAGE_ERROR_CODES, CHAIN$1, Base64$1, SessionCrypto;
+var init_esm$2 = __esmMin((() => {
+	import_nacl_util$1 = /* @__PURE__ */ __toESM(require_nacl_util(), 1);
+	import_nacl_fast$2 = /* @__PURE__ */ __toESM(require_nacl_fast(), 1);
 	(function(CONNECT_EVENT_ERROR_CODES) {
 		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
 		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["BAD_REQUEST_ERROR"] = 1] = "BAD_REQUEST_ERROR";
@@ -4212,31 +4218,31 @@ var init_esm$1 = __esmMin((() => {
 		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["UNKNOWN_APP_ERROR"] = 100] = "UNKNOWN_APP_ERROR";
 		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["USER_REJECTS_ERROR"] = 300] = "USER_REJECTS_ERROR";
 		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
-	})(CONNECT_EVENT_ERROR_CODES || (CONNECT_EVENT_ERROR_CODES = {}));
+	})(CONNECT_EVENT_ERROR_CODES$1 || (CONNECT_EVENT_ERROR_CODES$1 = {}));
 	(function(CONNECT_ITEM_ERROR_CODES) {
 		CONNECT_ITEM_ERROR_CODES[CONNECT_ITEM_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
 		CONNECT_ITEM_ERROR_CODES[CONNECT_ITEM_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
-	})(CONNECT_ITEM_ERROR_CODES || (CONNECT_ITEM_ERROR_CODES = {}));
+	})(CONNECT_ITEM_ERROR_CODES$1 || (CONNECT_ITEM_ERROR_CODES$1 = {}));
 	(function(SEND_TRANSACTION_ERROR_CODES) {
 		SEND_TRANSACTION_ERROR_CODES[SEND_TRANSACTION_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
 		SEND_TRANSACTION_ERROR_CODES[SEND_TRANSACTION_ERROR_CODES["BAD_REQUEST_ERROR"] = 1] = "BAD_REQUEST_ERROR";
 		SEND_TRANSACTION_ERROR_CODES[SEND_TRANSACTION_ERROR_CODES["UNKNOWN_APP_ERROR"] = 100] = "UNKNOWN_APP_ERROR";
 		SEND_TRANSACTION_ERROR_CODES[SEND_TRANSACTION_ERROR_CODES["USER_REJECTS_ERROR"] = 300] = "USER_REJECTS_ERROR";
 		SEND_TRANSACTION_ERROR_CODES[SEND_TRANSACTION_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
-	})(SEND_TRANSACTION_ERROR_CODES || (SEND_TRANSACTION_ERROR_CODES = {}));
+	})(SEND_TRANSACTION_ERROR_CODES$1 || (SEND_TRANSACTION_ERROR_CODES$1 = {}));
 	(function(SIGN_DATA_ERROR_CODES) {
 		SIGN_DATA_ERROR_CODES[SIGN_DATA_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
 		SIGN_DATA_ERROR_CODES[SIGN_DATA_ERROR_CODES["BAD_REQUEST_ERROR"] = 1] = "BAD_REQUEST_ERROR";
 		SIGN_DATA_ERROR_CODES[SIGN_DATA_ERROR_CODES["UNKNOWN_APP_ERROR"] = 100] = "UNKNOWN_APP_ERROR";
 		SIGN_DATA_ERROR_CODES[SIGN_DATA_ERROR_CODES["USER_REJECTS_ERROR"] = 300] = "USER_REJECTS_ERROR";
 		SIGN_DATA_ERROR_CODES[SIGN_DATA_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
-	})(SIGN_DATA_ERROR_CODES || (SIGN_DATA_ERROR_CODES = {}));
+	})(SIGN_DATA_ERROR_CODES$1 || (SIGN_DATA_ERROR_CODES$1 = {}));
 	(function(DISCONNECT_ERROR_CODES) {
 		DISCONNECT_ERROR_CODES[DISCONNECT_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
 		DISCONNECT_ERROR_CODES[DISCONNECT_ERROR_CODES["BAD_REQUEST_ERROR"] = 1] = "BAD_REQUEST_ERROR";
 		DISCONNECT_ERROR_CODES[DISCONNECT_ERROR_CODES["UNKNOWN_APP_ERROR"] = 100] = "UNKNOWN_APP_ERROR";
 		DISCONNECT_ERROR_CODES[DISCONNECT_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
-	})(DISCONNECT_ERROR_CODES || (DISCONNECT_ERROR_CODES = {}));
+	})(DISCONNECT_ERROR_CODES$1 || (DISCONNECT_ERROR_CODES$1 = {}));
 	(function(SIGN_MESSAGE_ERROR_CODES) {
 		SIGN_MESSAGE_ERROR_CODES[SIGN_MESSAGE_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
 		SIGN_MESSAGE_ERROR_CODES[SIGN_MESSAGE_ERROR_CODES["BAD_REQUEST_ERROR"] = 1] = "BAD_REQUEST_ERROR";
@@ -4247,10 +4253,10 @@ var init_esm$1 = __esmMin((() => {
 	(function(CHAIN) {
 		CHAIN["MAINNET"] = "-239";
 		CHAIN["TESTNET"] = "-3";
-	})(CHAIN || (CHAIN = {}));
-	Base64 = {
-		encode,
-		decode
+	})(CHAIN$1 || (CHAIN$1 = {}));
+	Base64$1 = {
+		encode: encode$1,
+		decode: decode$1
 	};
 	SessionCrypto = class {
 		constructor(keyPair) {
@@ -4259,25 +4265,25 @@ var init_esm$1 = __esmMin((() => {
 			this.sessionId = toHexString(this.keyPair.publicKey);
 		}
 		createKeypair() {
-			return import_nacl_fast$1.default.box.keyPair();
+			return import_nacl_fast$2.default.box.keyPair();
 		}
 		createKeypairFromString(keyPair) {
 			return {
-				publicKey: hexToByteArray(keyPair.publicKey),
-				secretKey: hexToByteArray(keyPair.secretKey)
+				publicKey: hexToByteArray$1(keyPair.publicKey),
+				secretKey: hexToByteArray$1(keyPair.secretKey)
 			};
 		}
 		createNonce() {
-			return import_nacl_fast$1.default.randomBytes(this.nonceLength);
+			return import_nacl_fast$2.default.randomBytes(this.nonceLength);
 		}
 		encrypt(message, receiverPublicKey) {
 			const encodedMessage = new TextEncoder().encode(message);
 			const nonce = this.createNonce();
-			return concatUint8Arrays(nonce, import_nacl_fast$1.default.box(encodedMessage, nonce, receiverPublicKey, this.keyPair.secretKey));
+			return concatUint8Arrays(nonce, import_nacl_fast$2.default.box(encodedMessage, nonce, receiverPublicKey, this.keyPair.secretKey));
 		}
 		decrypt(message, senderPublicKey) {
 			const [nonce, internalMessage] = splitToUint8Arrays(message, this.nonceLength);
-			const decrypted = import_nacl_fast$1.default.box.open(internalMessage, nonce, senderPublicKey, this.keyPair.secretKey);
+			const decrypted = import_nacl_fast$2.default.box.open(internalMessage, nonce, senderPublicKey, this.keyPair.secretKey);
 			if (!decrypted) throw new Error(`Decryption error: \n message: ${message.toString()} \n sender pubkey: ${senderPublicKey.toString()} \n keypair pubkey: ${this.keyPair.publicKey.toString()} \n keypair secretkey: ${this.keyPair.secretKey.toString()}`);
 			return new TextDecoder().decode(decrypted);
 		}
@@ -4290,14 +4296,14 @@ var init_esm$1 = __esmMin((() => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/inspect.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/inspect.js
 var require_inspect = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.inspectSymbol = void 0;
 	exports.inspectSymbol = Symbol.for("nodejs.util.inspect.custom");
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/utils/crc16.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/utils/crc16.js
 var require_crc16 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -4330,7 +4336,7 @@ var require_crc16 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.crc16 = crc16;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/address/Address.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/address/Address.js
 var require_Address = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -4474,7 +4480,7 @@ var require_Address = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.address = address;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/address/ExternalAddress.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/address/ExternalAddress.js
 var require_ExternalAddress = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -4503,7 +4509,7 @@ var require_ExternalAddress = /* @__PURE__ */ __commonJSMin(((exports) => {
 	_a = inspect_1.inspectSymbol;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/utils/base32.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/utils/base32.js
 var require_base32 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -4558,7 +4564,7 @@ var require_base32 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.base32Decode = base32Decode;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/address/ADNLAddress.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/address/ADNLAddress.js
 var require_ADNLAddress = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -4607,7 +4613,7 @@ var require_ADNLAddress = /* @__PURE__ */ __commonJSMin(((exports) => {
 	_a = inspect_1.inspectSymbol;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/utils/paddedBits.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/utils/paddedBits.js
 var require_paddedBits = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -4644,7 +4650,7 @@ var require_paddedBits = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.paddedBufferToBits = paddedBufferToBits;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/BitString.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/BitString.js
 var require_BitString = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -4763,7 +4769,7 @@ var require_BitString = /* @__PURE__ */ __commonJSMin(((exports) => {
 	BitString.EMPTY = new BitString(Buffer.alloc(0), 0, 0);
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/BitBuilder.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/BitBuilder.js
 var require_BitBuilder = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -4965,7 +4971,7 @@ var require_BitBuilder = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.BitBuilder = BitBuilder;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/CellType.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/CellType.js
 var require_CellType = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -4986,7 +4992,7 @@ var require_CellType = /* @__PURE__ */ __commonJSMin(((exports) => {
 	})(CellType || (exports.CellType = CellType = {}));
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/dict/utils/readUnaryLength.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/dict/utils/readUnaryLength.js
 var require_readUnaryLength = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.readUnaryLength = void 0;
@@ -4998,7 +5004,7 @@ var require_readUnaryLength = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.readUnaryLength = readUnaryLength;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/BitReader.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/BitReader.js
 var require_BitReader = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -5413,7 +5419,7 @@ var require_BitReader = /* @__PURE__ */ __commonJSMin(((exports) => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/cell/exoticMerkleProof.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/cell/exoticMerkleProof.js
 var require_exoticMerkleProof = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -5450,7 +5456,7 @@ var require_exoticMerkleProof = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.convertToMerkleProof = convertToMerkleProof;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/dict/generateMerkleProof.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/dict/generateMerkleProof.js
 var require_generateMerkleProof = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.generateMerkleProof = exports.generateMerkleProofDirect = void 0;
@@ -5510,7 +5516,7 @@ var require_generateMerkleProof = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.generateMerkleProof = generateMerkleProof;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/dict/generateMerkleUpdate.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/dict/generateMerkleUpdate.js
 var require_generateMerkleUpdate = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.generateMerkleUpdate = void 0;
@@ -5528,7 +5534,7 @@ var require_generateMerkleUpdate = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.generateMerkleUpdate = generateMerkleUpdate;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/dict/parseDict.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/dict/parseDict.js
 var require_parseDict = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -5575,7 +5581,7 @@ var require_parseDict = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.parseDict = parseDict;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/dict/utils/findCommonPrefix.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/dict/utils/findCommonPrefix.js
 var require_findCommonPrefix = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -5601,7 +5607,7 @@ var require_findCommonPrefix = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.findCommonPrefix = findCommonPrefix;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/dict/serializeDict.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/dict/serializeDict.js
 var require_serializeDict = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -5745,7 +5751,7 @@ var require_serializeDict = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.serializeDict = serializeDict;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/dict/utils/internalKeySerializer.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/dict/utils/internalKeySerializer.js
 var require_internalKeySerializer = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -5791,7 +5797,7 @@ var require_internalKeySerializer = /* @__PURE__ */ __commonJSMin(((exports) => 
 	exports.deserializeInternalKey = deserializeInternalKey;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/dict/Dictionary.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/dict/Dictionary.js
 var require_Dictionary = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -5944,62 +5950,156 @@ var require_Dictionary = /* @__PURE__ */ __commonJSMin(((exports) => {
 	};
 	exports.Dictionary = Dictionary;
 	Dictionary.Keys = {
+		/**
+		* Standard address key
+		* @returns DictionaryKey<Address>
+		*/
 		Address: () => {
 			return createAddressKey();
 		},
+		/**
+		* Create standard big integer key
+		* @param bits number of bits
+		* @returns DictionaryKey<bigint>
+		*/
 		BigInt: (bits) => {
 			return createBigIntKey(bits);
 		},
+		/**
+		* Create integer key
+		* @param bits bits of integer
+		* @returns DictionaryKey<number>
+		*/
 		Int: (bits) => {
 			return createIntKey(bits);
 		},
+		/**
+		* Create standard unsigned big integer key
+		* @param bits number of bits
+		* @returns DictionaryKey<bigint>
+		*/
 		BigUint: (bits) => {
 			return createBigUintKey(bits);
 		},
+		/**
+		* Create standard unsigned integer key
+		* @param bits number of bits
+		* @returns DictionaryKey<number>
+		*/
 		Uint: (bits) => {
 			return createUintKey(bits);
 		},
+		/**
+		* Create standard buffer key
+		* @param bytes number of bytes of a buffer
+		* @returns DictionaryKey<Buffer>
+		*/
 		Buffer: (bytes) => {
 			return createBufferKey(bytes);
 		},
+		/**
+		* Create BitString key
+		* @param bits key length
+		* @returns DictionaryKey<BitString>
+		* Point is that Buffer has to be 8 bit aligned,
+		* while key is TVM dictionary doesn't have to be
+		* aligned at all.
+		*/
 		BitString: (bits) => {
 			return createBitStringKey(bits);
 		}
 	};
 	Dictionary.Values = {
+		/**
+		* Create standard integer value
+		* @returns DictionaryValue<bigint>
+		*/
 		BigInt: (bits) => {
 			return createBigIntValue(bits);
 		},
+		/**
+		* Create standard integer value
+		* @returns DictionaryValue<number>
+		*/
 		Int: (bits) => {
 			return createIntValue(bits);
 		},
+		/**
+		* Create big var int
+		* @param bits number of header bits
+		* @returns DictionaryValue<bigint>
+		*/
 		BigVarInt: (bits) => {
 			return createBigVarIntValue(bits);
 		},
+		/**
+		* Create standard unsigned integer value
+		* @param bits number of bits
+		* @returns DictionaryValue<bigint>
+		*/
 		BigUint: (bits) => {
 			return createBigUintValue(bits);
 		},
+		/**
+		* Create standard unsigned integer value
+		* @param bits number of bits
+		* @returns DictionaryValue<bigint>
+		*/
 		Uint: (bits) => {
 			return createUintValue(bits);
 		},
+		/**
+		* Create big var int
+		* @param bits number of header bits
+		* @returns DictionaryValue<bigint>
+		*/
 		BigVarUint: (bits) => {
 			return createBigVarUintValue(bits);
 		},
+		/**
+		* Create standard boolean value
+		* @returns DictionaryValue<boolean>
+		*/
 		Bool: () => {
 			return createBooleanValue();
 		},
+		/**
+		* Create standard address value
+		* @returns DictionaryValue<Address>
+		*/
 		Address: () => {
 			return createAddressValue();
 		},
+		/**
+		* Create standard cell value
+		* @returns DictionaryValue<Cell>
+		*/
 		Cell: () => {
 			return createCellValue();
 		},
+		/**
+		* Create Builder value
+		* @param bytes number of bytes of a buffer
+		* @returns DictionaryValue<Builder>
+		*/
 		Buffer: (bytes) => {
 			return createBufferValue(bytes);
 		},
+		/**
+		* Create BitString value
+		* @param bits bit length
+		* @returns DictionaryValue<BitString>
+		* Point is that Buffer is not applicable
+		* when length is not 8 bit alligned.
+		*/
 		BitString: (bits) => {
 			return createBitStringValue(bits);
 		},
+		/**
+		* Create dictionary value
+		* @param key
+		* @param value
+		*/
 		Dictionary: (key, value) => {
 			return createDictionaryValue(key, value);
 		}
@@ -6240,7 +6340,7 @@ var require_Dictionary = /* @__PURE__ */ __commonJSMin(((exports) => {
 	}
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/utils/strings.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/utils/strings.js
 var require_strings = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -6290,7 +6390,7 @@ var require_strings = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.writeString = writeString;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/Slice.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/Slice.js
 var require_Slice = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -6752,7 +6852,7 @@ var require_Slice = /* @__PURE__ */ __commonJSMin(((exports) => {
 	_a = inspect_1.inspectSymbol;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/cell/exoticLibrary.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/cell/exoticLibrary.js
 var require_exoticLibrary = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -6774,7 +6874,7 @@ var require_exoticLibrary = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.exoticLibrary = exoticLibrary;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/cell/exoticMerkleUpdate.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/cell/exoticMerkleUpdate.js
 var require_exoticMerkleUpdate = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -6810,7 +6910,7 @@ var require_exoticMerkleUpdate = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.exoticMerkleUpdate = exoticMerkleUpdate;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/cell/LevelMask.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/cell/LevelMask.js
 var require_LevelMask = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -6854,7 +6954,7 @@ var require_LevelMask = /* @__PURE__ */ __commonJSMin(((exports) => {
 	}
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/cell/exoticPruned.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/cell/exoticPruned.js
 var require_exoticPruned = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -6897,7 +6997,7 @@ var require_exoticPruned = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.exoticPruned = exoticPruned;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/cell/resolveExotic.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/cell/resolveExotic.js
 var require_resolveExotic = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -6978,7 +7078,7 @@ var require_resolveExotic = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.resolveExotic = resolveExotic;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/cell/descriptor.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/cell/descriptor.js
 var require_descriptor = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -7027,7 +7127,7 @@ var require_descriptor = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.getRepr = getRepr;
 }));
 //#endregion
-//#region ../../node_modules/jssha/dist/sha.js
+//#region ../../node_modules/.pnpm/jssha@3.2.0/node_modules/jssha/dist/sha.js
 var require_sha = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	/**
 	* A JavaScript implementation of the SHA family of hashes - defined in FIPS PUB 180-4, FIPS PUB 202,
@@ -7917,7 +8017,7 @@ var require_sha = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	}));
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto-primitives/dist/browser/getSecureRandom.js
+//#region ../../node_modules/.pnpm/@ton+crypto-primitives@2.1.0/node_modules/@ton/crypto-primitives/dist/browser/getSecureRandom.js
 var require_getSecureRandom$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -7938,7 +8038,7 @@ var require_getSecureRandom$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.getSecureRandomWords = getSecureRandomWords;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto-primitives/dist/browser/hmac_sha512.js
+//#region ../../node_modules/.pnpm/@ton+crypto-primitives@2.1.0/node_modules/@ton/crypto-primitives/dist/browser/hmac_sha512.js
 var require_hmac_sha512$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -7962,7 +8062,7 @@ var require_hmac_sha512$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.hmac_sha512 = hmac_sha512;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto-primitives/dist/browser/pbkdf2_sha512.js
+//#region ../../node_modules/.pnpm/@ton+crypto-primitives@2.1.0/node_modules/@ton/crypto-primitives/dist/browser/pbkdf2_sha512.js
 var require_pbkdf2_sha512$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -7988,7 +8088,7 @@ var require_pbkdf2_sha512$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.pbkdf2_sha512 = pbkdf2_sha512;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto-primitives/dist/browser/sha256.js
+//#region ../../node_modules/.pnpm/@ton+crypto-primitives@2.1.0/node_modules/@ton/crypto-primitives/dist/browser/sha256.js
 var require_sha256$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -8006,7 +8106,7 @@ var require_sha256$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.sha256 = sha256;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto-primitives/dist/browser/sha512.js
+//#region ../../node_modules/.pnpm/@ton+crypto-primitives@2.1.0/node_modules/@ton/crypto-primitives/dist/browser/sha512.js
 var require_sha512$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -8024,7 +8124,7 @@ var require_sha512$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.sha512 = sha512;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto-primitives/dist/browser.js
+//#region ../../node_modules/.pnpm/@ton+crypto-primitives@2.1.0/node_modules/@ton/crypto-primitives/dist/browser.js
 var require_browser = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -8078,7 +8178,7 @@ var require_browser = /* @__PURE__ */ __commonJSMin(((exports) => {
 	});
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/primitives/sha256.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/primitives/sha256.js
 var require_sha256 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -8114,7 +8214,7 @@ var require_sha256 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.sha256 = sha256;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/primitives/sha512.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/primitives/sha512.js
 var require_sha512 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -8150,7 +8250,7 @@ var require_sha512 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.sha512 = sha512;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/primitives/pbkdf2_sha512.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/primitives/pbkdf2_sha512.js
 var require_pbkdf2_sha512 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -8168,7 +8268,7 @@ var require_pbkdf2_sha512 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.pbkdf2_sha512 = pbkdf2_sha512;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/primitives/hmac_sha512.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/primitives/hmac_sha512.js
 var require_hmac_sha512 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -8202,7 +8302,7 @@ var require_hmac_sha512 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.hmac_sha512 = hmac_sha512;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/primitives/getSecureRandom.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/primitives/getSecureRandom.js
 var require_getSecureRandom = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -8244,7 +8344,7 @@ var require_getSecureRandom = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.getSecureRandomNumber = getSecureRandomNumber;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/passwords/wordlist.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/passwords/wordlist.js
 var require_wordlist$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -16035,7 +16135,7 @@ var require_wordlist$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	];
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/passwords/newSecureWords.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/passwords/newSecureWords.js
 var require_newSecureWords = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -16056,7 +16156,7 @@ var require_newSecureWords = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.newSecureWords = newSecureWords;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/passwords/newSecurePassphrase.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/passwords/newSecurePassphrase.js
 var require_newSecurePassphrase = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -16074,7 +16174,7 @@ var require_newSecurePassphrase = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.newSecurePassphrase = newSecurePassphrase;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/utils/binary.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/utils/binary.js
 var require_binary = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -16111,7 +16211,7 @@ var require_binary = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.bitsToBytes = bitsToBytes;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/mnemonic/wordlist.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/mnemonic/wordlist.js
 var require_wordlist = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -18174,7 +18274,7 @@ var require_wordlist = /* @__PURE__ */ __commonJSMin(((exports) => {
 	];
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/mnemonic/mnemonic.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/mnemonic/mnemonic.js
 var require_mnemonic = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -18354,7 +18454,7 @@ var require_mnemonic = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.mnemonicFromRandomSeed = mnemonicFromRandomSeed;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/primitives/nacl.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/primitives/nacl.js
 var require_nacl = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -18405,7 +18505,7 @@ var require_nacl = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.openBox = openBox;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/hd/ed25519.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/hd/ed25519.js
 var require_ed25519 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -18456,7 +18556,7 @@ var require_ed25519 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.deriveEd25519Path = deriveEd25519Path;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/hd/symmetric.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/hd/symmetric.js
 var require_symmetric = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -18499,7 +18599,7 @@ var require_symmetric = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.deriveSymmetricPath = deriveSymmetricPath;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/hd/mnemonics.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/hd/mnemonics.js
 var require_mnemonics = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -18551,7 +18651,7 @@ var require_mnemonics = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.deriveMnemonicsPath = deriveMnemonicsPath;
 }));
 //#endregion
-//#region ../../node_modules/@ton/crypto/dist/index.js
+//#region ../../node_modules/.pnpm/@ton+crypto@3.3.0/node_modules/@ton/crypto/dist/index.js
 var require_dist$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -18776,7 +18876,7 @@ var require_dist$2 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	});
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/cell/wonderCalculator.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/cell/wonderCalculator.js
 var require_wonderCalculator = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -18875,7 +18975,7 @@ var require_wonderCalculator = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.wonderCalculator = wonderCalculator;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/cell/utils/topologicalSort.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/cell/utils/topologicalSort.js
 var require_topologicalSort = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -18936,7 +19036,7 @@ var require_topologicalSort = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.topologicalSort = topologicalSort;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/utils/bitsForNumber.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/utils/bitsForNumber.js
 var require_bitsForNumber = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -18960,7 +19060,7 @@ var require_bitsForNumber = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.bitsForNumber = bitsForNumber;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/utils/crc32c.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/utils/crc32c.js
 var require_crc32c = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -18993,7 +19093,7 @@ var require_crc32c = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.crc32c = crc32c;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/cell/serialization.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/cell/serialization.js
 var require_serialization = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -19208,7 +19308,7 @@ var require_serialization = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.serializeBoc = serializeBoc;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/Cell.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/Cell.js
 var require_Cell = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -19397,7 +19497,7 @@ var require_Cell = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Cell.EMPTY = new Cell();
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/boc/Builder.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/boc/Builder.js
 var require_Builder = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -19807,7 +19907,7 @@ var require_Builder = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.Builder = Builder;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/SimpleLibrary.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/SimpleLibrary.js
 var require_SimpleLibrary = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -19842,7 +19942,7 @@ var require_SimpleLibrary = /* @__PURE__ */ __commonJSMin(((exports) => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/TickTock.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/TickTock.js
 var require_TickTock = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -19869,7 +19969,7 @@ var require_TickTock = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeTickTock = storeTickTock;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/StateInit.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/StateInit.js
 var require_StateInit = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -19919,7 +20019,7 @@ var require_StateInit = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeStateInit = storeStateInit;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/address/contractAddress.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/address/contractAddress.js
 var require_contractAddress = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -19940,7 +20040,7 @@ var require_contractAddress = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.contractAddress = contractAddress;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/tuple/tuple.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/tuple/tuple.js
 var require_tuple = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20087,7 +20187,7 @@ var require_tuple = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.parseTuple = parseTuple;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/tuple/reader.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/tuple/reader.js
 var require_reader = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20221,7 +20321,7 @@ var require_reader = /* @__PURE__ */ __commonJSMin(((exports) => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/tuple/builder.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/tuple/builder.js
 var require_builder = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20321,7 +20421,7 @@ var require_builder = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.TupleBuilder = TupleBuilder;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/utils/convert.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/utils/convert.js
 var require_convert = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20384,7 +20484,7 @@ var require_convert = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.fromNano = fromNano;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/ExtraCurrency.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/ExtraCurrency.js
 var require_ExtraCurrency = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.packExtraCurrencyCell = exports.packExtraCurrencyDict = exports.storeExtraCurrency = exports.loadMaybeExtraCurrency = exports.loadExtraCurrency = void 0;
@@ -20420,7 +20520,7 @@ var require_ExtraCurrency = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.packExtraCurrencyCell = packExtraCurrencyCell;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/_helpers.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/_helpers.js
 var require__helpers = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20494,7 +20594,7 @@ var require__helpers = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.comment = comment;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/AccountState.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/AccountState.js
 var require_AccountState = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20536,7 +20636,7 @@ var require_AccountState = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeAccountState = storeAccountState;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/CurrencyCollection.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/CurrencyCollection.js
 var require_CurrencyCollection = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20568,7 +20668,7 @@ var require_CurrencyCollection = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeCurrencyCollection = storeCurrencyCollection;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/AccountStorage.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/AccountStorage.js
 var require_AccountStorage = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20599,7 +20699,7 @@ var require_AccountStorage = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeAccountStorage = storeAccountStorage;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/StorageExtraInfo.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/StorageExtraInfo.js
 var require_StorageExtraInfo = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20629,7 +20729,7 @@ var require_StorageExtraInfo = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeStorageExtraInfo = storeStorageExtraInfo;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/StorageUsed.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/StorageUsed.js
 var require_StorageUsed = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20656,7 +20756,7 @@ var require_StorageUsed = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeStorageUsed = storeStorageUsed;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/StorageInfo.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/StorageInfo.js
 var require_StorageInfo = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20689,7 +20789,7 @@ var require_StorageInfo = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeStorageInfo = storeStorageInfo;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/Account.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/Account.js
 var require_Account = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20720,7 +20820,7 @@ var require_Account = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeAccount = storeAccount;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/AccountStatus.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/AccountStatus.js
 var require_AccountStatus = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20763,7 +20863,7 @@ var require_AccountStatus = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeAccountStatus = storeAccountStatus;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/AccountStatusChange.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/AccountStatusChange.js
 var require_AccountStatusChange = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20795,7 +20895,7 @@ var require_AccountStatusChange = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeAccountStatusChange = storeAccountStatusChange;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/CommonMessageInfoRelaxed.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/CommonMessageInfoRelaxed.js
 var require_CommonMessageInfoRelaxed = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20858,7 +20958,7 @@ var require_CommonMessageInfoRelaxed = /* @__PURE__ */ __commonJSMin(((exports) 
 	exports.storeCommonMessageInfoRelaxed = storeCommonMessageInfoRelaxed;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/MessageRelaxed.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/MessageRelaxed.js
 var require_MessageRelaxed = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20919,7 +21019,7 @@ var require_MessageRelaxed = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeMessageRelaxed = storeMessageRelaxed;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/LibRef.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/LibRef.js
 var require_LibRef = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -20955,7 +21055,7 @@ var require_LibRef = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeLibRef = storeLibRef;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/OutList.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/OutList.js
 var require_OutList = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21047,7 +21147,7 @@ var require_OutList = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.loadOutList = loadOutList;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/CommonMessageInfo.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/CommonMessageInfo.js
 var require_CommonMessageInfo = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21121,7 +21221,7 @@ var require_CommonMessageInfo = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeCommonMessageInfo = storeCommonMessageInfo;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/ComputeSkipReason.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/ComputeSkipReason.js
 var require_ComputeSkipReason = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21151,7 +21251,7 @@ var require_ComputeSkipReason = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeComputeSkipReason = storeComputeSkipReason;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/DepthBalanceInfo.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/DepthBalanceInfo.js
 var require_DepthBalanceInfo = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21179,7 +21279,7 @@ var require_DepthBalanceInfo = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeDepthBalanceInfo = storeDepthBalanceInfo;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/HashUpdate.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/HashUpdate.js
 var require_HashUpdate = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21208,7 +21308,7 @@ var require_HashUpdate = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeHashUpdate = storeHashUpdate;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/MasterchainStateExtra.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/MasterchainStateExtra.js
 var require_MasterchainStateExtra = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21234,7 +21334,7 @@ var require_MasterchainStateExtra = /* @__PURE__ */ __commonJSMin(((exports) => 
 	exports.loadMasterchainStateExtra = loadMasterchainStateExtra;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/Message.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/Message.js
 var require_Message = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21301,7 +21401,7 @@ var require_Message = /* @__PURE__ */ __commonJSMin(((exports) => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/SendMode.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/SendMode.js
 var require_SendMode = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21323,7 +21423,7 @@ var require_SendMode = /* @__PURE__ */ __commonJSMin(((exports) => {
 	})(SendMode || (exports.SendMode = SendMode = {}));
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/ReserveMode.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/ReserveMode.js
 var require_ReserveMode = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21347,7 +21447,7 @@ var require_ReserveMode = /* @__PURE__ */ __commonJSMin(((exports) => {
 	})(ReserveMode || (exports.ReserveMode = ReserveMode = {}));
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/ShardAccount.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/ShardAccount.js
 var require_ShardAccount = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21385,7 +21485,7 @@ var require_ShardAccount = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeShardAccount = storeShardAccount;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/ShardAccounts.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/ShardAccounts.js
 var require_ShardAccounts = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21423,7 +21523,7 @@ var require_ShardAccounts = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeShardAccounts = storeShardAccounts;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/ShardIdent.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/ShardIdent.js
 var require_ShardIdent = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21454,7 +21554,7 @@ var require_ShardIdent = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeShardIdent = storeShardIdent;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/ShardStateUnsplit.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/ShardStateUnsplit.js
 var require_ShardStateUnsplit = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21505,7 +21605,7 @@ var require_ShardStateUnsplit = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.loadShardStateUnsplit = loadShardStateUnsplit;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/SignatureDomain.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/SignatureDomain.js
 var require_SignatureDomain = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.signatureDomainEmptyTag = exports.signatureDomainL2Tag = void 0;
@@ -21513,7 +21613,7 @@ var require_SignatureDomain = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.signatureDomainEmptyTag = 236803867;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/SplitMergeInfo.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/SplitMergeInfo.js
 var require_SplitMergeInfo = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21544,7 +21644,7 @@ var require_SplitMergeInfo = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeSplitMergeInfo = storeSplitMergeInfo;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/TransactionActionPhase.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/TransactionActionPhase.js
 var require_TransactionActionPhase = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21597,7 +21697,7 @@ var require_TransactionActionPhase = /* @__PURE__ */ __commonJSMin(((exports) =>
 	exports.storeTransactionActionPhase = storeTransactionActionPhase;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/TransactionBouncePhase.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/TransactionBouncePhase.js
 var require_TransactionBouncePhase = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21645,7 +21745,7 @@ var require_TransactionBouncePhase = /* @__PURE__ */ __commonJSMin(((exports) =>
 	exports.storeTransactionBouncePhase = storeTransactionBouncePhase;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/TransactionComputePhase.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/TransactionComputePhase.js
 var require_TransactionComputePhase = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21704,7 +21804,7 @@ var require_TransactionComputePhase = /* @__PURE__ */ __commonJSMin(((exports) =
 	exports.storeTransactionComputePhase = storeTransactionComputePhase;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/TransactionCreditPhase.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/TransactionCreditPhase.js
 var require_TransactionCreditPhase = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21736,7 +21836,7 @@ var require_TransactionCreditPhase = /* @__PURE__ */ __commonJSMin(((exports) =>
 	exports.storeTransactionCreditPhase = storeTransactionCreditPhase;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/TransactionStoragePhase.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/TransactionStoragePhase.js
 var require_TransactionStoragePhase = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21774,7 +21874,7 @@ var require_TransactionStoragePhase = /* @__PURE__ */ __commonJSMin(((exports) =
 	exports.storeTransactionsStoragePhase = storeTransactionsStoragePhase;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/TransactionDescription.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/TransactionDescription.js
 var require_TransactionDescription = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -21932,7 +22032,7 @@ var require_TransactionDescription = /* @__PURE__ */ __commonJSMin(((exports) =>
 	exports.storeTransactionDescription = storeTransactionDescription;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/Transaction.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/Transaction.js
 var require_Transaction = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -22010,7 +22110,7 @@ var require_Transaction = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.storeTransaction = storeTransaction;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/types/_export.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/types/_export.js
 var require__export = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -22536,7 +22636,7 @@ var require__export = /* @__PURE__ */ __commonJSMin(((exports) => {
 	});
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/contract/openContract.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/contract/openContract.js
 var require_openContract = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -22574,7 +22674,7 @@ var require_openContract = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.openContract = openContract;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/contract/ComputeError.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/contract/ComputeError.js
 var require_ComputeError = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -22596,7 +22696,7 @@ var require_ComputeError = /* @__PURE__ */ __commonJSMin(((exports) => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/utils/getMethodId.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/utils/getMethodId.js
 var require_getMethodId = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -22880,7 +22980,7 @@ var require_getMethodId = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.getMethodId = getMethodId;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/crypto/safeSign.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/crypto/safeSign.js
 var require_safeSign = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -22914,7 +23014,7 @@ var require_safeSign = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.safeSignVerify = safeSignVerify;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/crypto/domainSignature.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/crypto/domainSignature.js
 var require_domainSignature = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.domainSignVerify = exports.domainSign = exports.domainDataToSign = exports.signatureDomainPrefix = exports.signatureDomainHash = void 0;
@@ -22961,7 +23061,7 @@ var require_domainSignature = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.domainSignVerify = domainSignVerify;
 }));
 //#endregion
-//#region ../../node_modules/@ton/core/dist/index.js
+//#region ../../node_modules/.pnpm/@ton+core@0.63.1_@ton+crypto@3.3.0/node_modules/@ton/core/dist/index.js
 var require_dist$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	/**
 	* Copyright (c) Whales Corp.
@@ -23463,7 +23563,7 @@ var init_codes = __esmMin((() => {
 }));
 //#endregion
 //#region ../walletkit/dist/esm/errors/WalletKitError.js
-var WalletKitError, BridgeError, SessionError, EventStoreError, StorageError;
+var WalletKitError, BridgeError$1, SessionError, EventStoreError, StorageError;
 var init_WalletKitError = __esmMin((() => {
 	init_codes();
 	WalletKitError = class WalletKitError extends Error {
@@ -23519,7 +23619,7 @@ var init_WalletKitError = __esmMin((() => {
 			};
 		}
 	};
-	BridgeError = class extends WalletKitError {
+	BridgeError$1 = class extends WalletKitError {
 		constructor(message, originalError, context) {
 			super(ERROR_CODES.BRIDGE_NOT_INITIALIZED, message, originalError, context);
 			this.name = "BridgeError";
@@ -25400,7 +25500,7 @@ var init_WalletManager = __esmMin((() => {
 //#region ../walletkit/dist/esm/core/TONConnectStoredSessionManager.js
 var log$36, TONConnectStoredSessionManager;
 var init_TONConnectStoredSessionManager = __esmMin((() => {
-	init_esm$1();
+	init_esm$2();
 	init_Logger();
 	log$36 = globalLogger.createChild("TONConnectStoredSessionManager");
 	TONConnectStoredSessionManager = class {
@@ -25572,7 +25672,97 @@ var init_TONConnectStoredSessionManager = __esmMin((() => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/blakejs/util.js
+//#region ../../node_modules/.pnpm/@tonconnect+protocol@2.4.0/node_modules/@tonconnect/protocol/lib/esm/index.mjs
+function encodeUint8Array(value, urlSafe) {
+	const encoded = import_nacl_util.default.encodeBase64(value);
+	if (!urlSafe) return encoded;
+	return encodeURIComponent(encoded);
+}
+function decodeToUint8Array(value, urlSafe) {
+	if (urlSafe) value = decodeURIComponent(value);
+	return import_nacl_util.default.decodeBase64(value);
+}
+function encode(value, urlSafe = false) {
+	let uint8Array;
+	if (value instanceof Uint8Array) uint8Array = value;
+	else {
+		if (typeof value !== "string") value = JSON.stringify(value);
+		uint8Array = import_nacl_util.default.decodeUTF8(value);
+	}
+	return encodeUint8Array(uint8Array, urlSafe);
+}
+function decode(value, urlSafe = false) {
+	const decodedUint8Array = decodeToUint8Array(value, urlSafe);
+	return {
+		toString() {
+			return import_nacl_util.default.encodeUTF8(decodedUint8Array);
+		},
+		toObject() {
+			try {
+				return JSON.parse(import_nacl_util.default.encodeUTF8(decodedUint8Array));
+			} catch (e) {
+				return null;
+			}
+		},
+		toUint8Array() {
+			return decodedUint8Array;
+		}
+	};
+}
+function hexToByteArray(hexString) {
+	if (hexString.length % 2 !== 0) throw new Error(`Cannot convert ${hexString} to bytesArray`);
+	const result = new Uint8Array(hexString.length / 2);
+	for (let i = 0; i < hexString.length; i += 2) result[i / 2] = parseInt(hexString.slice(i, i + 2), 16);
+	return result;
+}
+var import_nacl_util, CONNECT_EVENT_ERROR_CODES, CONNECT_ITEM_ERROR_CODES, SEND_TRANSACTION_ERROR_CODES, SIGN_DATA_ERROR_CODES, DISCONNECT_ERROR_CODES, CHAIN, Base64;
+var init_esm$1 = __esmMin((() => {
+	import_nacl_util = /* @__PURE__ */ __toESM(require_nacl_util(), 1);
+	require_nacl_fast();
+	(function(CONNECT_EVENT_ERROR_CODES) {
+		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
+		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["BAD_REQUEST_ERROR"] = 1] = "BAD_REQUEST_ERROR";
+		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["MANIFEST_NOT_FOUND_ERROR"] = 2] = "MANIFEST_NOT_FOUND_ERROR";
+		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["MANIFEST_CONTENT_ERROR"] = 3] = "MANIFEST_CONTENT_ERROR";
+		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["UNKNOWN_APP_ERROR"] = 100] = "UNKNOWN_APP_ERROR";
+		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["USER_REJECTS_ERROR"] = 300] = "USER_REJECTS_ERROR";
+		CONNECT_EVENT_ERROR_CODES[CONNECT_EVENT_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
+	})(CONNECT_EVENT_ERROR_CODES || (CONNECT_EVENT_ERROR_CODES = {}));
+	(function(CONNECT_ITEM_ERROR_CODES) {
+		CONNECT_ITEM_ERROR_CODES[CONNECT_ITEM_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
+		CONNECT_ITEM_ERROR_CODES[CONNECT_ITEM_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
+	})(CONNECT_ITEM_ERROR_CODES || (CONNECT_ITEM_ERROR_CODES = {}));
+	(function(SEND_TRANSACTION_ERROR_CODES) {
+		SEND_TRANSACTION_ERROR_CODES[SEND_TRANSACTION_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
+		SEND_TRANSACTION_ERROR_CODES[SEND_TRANSACTION_ERROR_CODES["BAD_REQUEST_ERROR"] = 1] = "BAD_REQUEST_ERROR";
+		SEND_TRANSACTION_ERROR_CODES[SEND_TRANSACTION_ERROR_CODES["UNKNOWN_APP_ERROR"] = 100] = "UNKNOWN_APP_ERROR";
+		SEND_TRANSACTION_ERROR_CODES[SEND_TRANSACTION_ERROR_CODES["USER_REJECTS_ERROR"] = 300] = "USER_REJECTS_ERROR";
+		SEND_TRANSACTION_ERROR_CODES[SEND_TRANSACTION_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
+	})(SEND_TRANSACTION_ERROR_CODES || (SEND_TRANSACTION_ERROR_CODES = {}));
+	(function(SIGN_DATA_ERROR_CODES) {
+		SIGN_DATA_ERROR_CODES[SIGN_DATA_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
+		SIGN_DATA_ERROR_CODES[SIGN_DATA_ERROR_CODES["BAD_REQUEST_ERROR"] = 1] = "BAD_REQUEST_ERROR";
+		SIGN_DATA_ERROR_CODES[SIGN_DATA_ERROR_CODES["UNKNOWN_APP_ERROR"] = 100] = "UNKNOWN_APP_ERROR";
+		SIGN_DATA_ERROR_CODES[SIGN_DATA_ERROR_CODES["USER_REJECTS_ERROR"] = 300] = "USER_REJECTS_ERROR";
+		SIGN_DATA_ERROR_CODES[SIGN_DATA_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
+	})(SIGN_DATA_ERROR_CODES || (SIGN_DATA_ERROR_CODES = {}));
+	(function(DISCONNECT_ERROR_CODES) {
+		DISCONNECT_ERROR_CODES[DISCONNECT_ERROR_CODES["UNKNOWN_ERROR"] = 0] = "UNKNOWN_ERROR";
+		DISCONNECT_ERROR_CODES[DISCONNECT_ERROR_CODES["BAD_REQUEST_ERROR"] = 1] = "BAD_REQUEST_ERROR";
+		DISCONNECT_ERROR_CODES[DISCONNECT_ERROR_CODES["UNKNOWN_APP_ERROR"] = 100] = "UNKNOWN_APP_ERROR";
+		DISCONNECT_ERROR_CODES[DISCONNECT_ERROR_CODES["METHOD_NOT_SUPPORTED"] = 400] = "METHOD_NOT_SUPPORTED";
+	})(DISCONNECT_ERROR_CODES || (DISCONNECT_ERROR_CODES = {}));
+	(function(CHAIN) {
+		CHAIN["MAINNET"] = "-239";
+		CHAIN["TESTNET"] = "-3";
+	})(CHAIN || (CHAIN = {}));
+	Base64 = {
+		encode,
+		decode
+	};
+}));
+//#endregion
+//#region ../../node_modules/.pnpm/blakejs@1.2.1/node_modules/blakejs/util.js
 var require_util = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var ERROR_MSG_INPUT = "Input must be an string, Buffer or Uint8Array";
 	function normalizeInput(input) {
@@ -25630,7 +25820,7 @@ var require_util = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/blakejs/blake2b.js
+//#region ../../node_modules/.pnpm/blakejs@1.2.1/node_modules/blakejs/blake2b.js
 var require_blake2b = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var util = require_util();
 	function ADD64AA(v, a, b) {
@@ -26052,7 +26242,7 @@ var require_blake2b = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/blakejs/blake2s.js
+//#region ../../node_modules/.pnpm/blakejs@1.2.1/node_modules/blakejs/blake2s.js
 var require_blake2s = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var util = require_util();
 	function B2S_GET32(v, i) {
@@ -26323,7 +26513,7 @@ var require_blake2s = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/blakejs/index.js
+//#region ../../node_modules/.pnpm/blakejs@1.2.1/node_modules/blakejs/index.js
 var require_blakejs = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var b2b = require_blake2b();
 	var b2s = require_blake2s();
@@ -26341,18 +26531,18 @@ var require_blakejs = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/@tonconnect/bridge-sdk/dist/index.mjs
+//#region ../../node_modules/.pnpm/@tonconnect+bridge-sdk@0.2.8/node_modules/@tonconnect/bridge-sdk/dist/index.mjs
 function P$1() {
 	return typeof process < "u" && !!process.env;
 }
 function B(i) {
 	return process?.env?.[i];
 }
-function k(i) {
+function k$1(i) {
 	return i.slice(-1) === "/" ? i.slice(0, -1) : i;
 }
 function v(i, e) {
-	return k(i) + "/" + e;
+	return k$1(i) + "/" + e;
 }
 function p(i) {
 	let e = new AbortController();
@@ -26481,7 +26671,7 @@ async function f(i, e) {
 function x(i) {
 	return [...new Set(i)];
 }
-function T(i, e) {
+function T$1(i, e) {
 	let t = new Set(i), r = new Set(e);
 	if (t.size !== r.size) return false;
 	for (let n of t) if (!r.has(n)) return false;
@@ -26495,7 +26685,7 @@ function R$1(i, e, t) {
 	let r = i.subarray(0, import_nacl_fast.default.box.publicKeyLength), n = G$1(r, e), o = i.subarray(import_nacl_fast.default.box.publicKeyLength);
 	return import_nacl_fast.default.box.open(o, n, r, t);
 }
-var import_nacl_fast, import_blakejs, O$1, s, b, a, y, C$1;
+var import_nacl_fast, import_blakejs, O$1, s, b, a, y, C;
 var init_dist$1 = __esmMin((() => {
 	init_esm$1();
 	import_nacl_fast = /* @__PURE__ */ __toESM(require_nacl_fast(), 1);
@@ -26608,7 +26798,7 @@ var init_dist$1 = __esmMin((() => {
 			this.listener(e);
 		}
 	};
-	C$1 = class i {
+	C = class i {
 		constructor(e, t = null, r = null, n = void 0) {
 			this.bridgeUrl = e;
 			this.listener = t;
@@ -26710,7 +26900,7 @@ var init_dist$1 = __esmMin((() => {
 			this.startHeartbeatWatcher(t?.signal);
 		}
 		async updateClients(e, t) {
-			T(this.clients.map((o) => o.session.sessionId), e.map((o) => o.session.sessionId)) || (this.clients = e, await this.restoreConnection(e, {
+			T$1(this.clients.map((o) => o.session.sessionId), e.map((o) => o.session.sessionId)) || (this.clients = e, await this.restoreConnection(e, {
 				...this.connectionOptions,
 				signal: t?.signal
 			}));
@@ -26868,7 +27058,7 @@ var init_dist$1 = __esmMin((() => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/uuid/dist/stringify.js
+//#region ../../node_modules/.pnpm/uuid@14.0.0/node_modules/uuid/dist/stringify.js
 function unsafeStringify(arr, offset = 0) {
 	return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
 }
@@ -26878,20 +27068,16 @@ var init_stringify = __esmMin((() => {
 	for (let i = 0; i < 256; ++i) byteToHex.push((i + 256).toString(16).slice(1));
 }));
 //#endregion
-//#region ../../node_modules/uuid/dist/rng.js
+//#region ../../node_modules/.pnpm/uuid@14.0.0/node_modules/uuid/dist/rng.js
 function rng() {
-	if (!getRandomValues) {
-		if (typeof crypto === "undefined" || !crypto.getRandomValues) throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
-		getRandomValues = crypto.getRandomValues.bind(crypto);
-	}
-	return getRandomValues(rnds8);
+	return crypto.getRandomValues(rnds8);
 }
-var getRandomValues, rnds8;
+var rnds8;
 var init_rng = __esmMin((() => {
 	rnds8 = new Uint8Array(16);
 }));
 //#endregion
-//#region ../../node_modules/uuid/dist/v7.js
+//#region ../../node_modules/.pnpm/uuid@14.0.0/node_modules/uuid/dist/v7.js
 function v7(options, buf, offset) {
 	let bytes;
 	if (options) bytes = v7Bytes(options.random ?? options.rng?.() ?? rng(), options.msecs, options.seq, buf, offset);
@@ -26948,7 +27134,7 @@ var init_v7 = __esmMin((() => {
 	_state = {};
 }));
 //#endregion
-//#region ../../node_modules/uuid/dist/index.js
+//#region ../../node_modules/.pnpm/uuid@14.0.0/node_modules/uuid/dist/index.js
 var init_dist = __esmMin((() => {
 	init_stringify();
 	init_rng();
@@ -27098,7 +27284,7 @@ var init_JSBridgeInjector = __esmMin((() => {
 //#region ../walletkit/dist/esm/core/BridgeManager.js
 var log$34, BridgeManager;
 var init_BridgeManager = __esmMin((() => {
-	init_esm$1();
+	init_esm$2();
 	init_dist$1();
 	init_Logger();
 	init_uuid();
@@ -27125,13 +27311,16 @@ var init_BridgeManager = __esmMin((() => {
 		analytics;
 		requestProcessingTimeoutId;
 		constructor(walletManifest, config, sessionManager, storage, eventStore, eventRouter, walletKitConfig, eventEmitter, analyticsManager) {
+			const isManifestJsBridge = walletManifest && "jsBridgeKey" in walletManifest ? true : false;
+			const manifestJsBridgeKey = walletManifest && "jsBridgeKey" in walletManifest ? walletManifest.jsBridgeKey : void 0;
+			const manifestBridgeUrl = walletManifest && "bridgeUrl" in walletManifest ? walletManifest.bridgeUrl : void 0;
 			this.config = {
 				heartbeatInterval: 5e3,
 				reconnectInterval: 15e3,
 				maxReconnectAttempts: 5,
-				enableJsBridge: walletManifest && "jsBridgeKey" in walletManifest ? true : false,
-				jsBridgeKey: walletManifest && "jsBridgeKey" in walletManifest ? walletManifest.jsBridgeKey : void 0,
-				bridgeUrl: walletManifest && "bridgeUrl" in walletManifest ? walletManifest.bridgeUrl : void 0,
+				enableJsBridge: isManifestJsBridge,
+				jsBridgeKey: manifestJsBridgeKey,
+				bridgeUrl: manifestBridgeUrl,
 				...config
 			};
 			this.sessionManager = sessionManager;
@@ -27142,7 +27331,7 @@ var init_BridgeManager = __esmMin((() => {
 			this.analytics = analyticsManager?.scoped({ bridge_url: this.config.bridgeUrl });
 			this.walletKitConfig = walletKitConfig;
 			this.jsBridgeTransport = config?.jsBridgeTransport;
-			if (this.config.bridgeUrl && !this.config.disableHttpConnection) this.bridgeProvider = new C$1(this.config.bridgeUrl, this.queueBridgeEvent.bind(this), (error) => {
+			if (this.config.bridgeUrl && !this.config.disableHttpConnection) this.bridgeProvider = new C(this.config.bridgeUrl, this.queueBridgeEvent.bind(this), (error) => {
 				log$34.error("Bridge listener error", { error: error.toString() });
 				this.analytics?.emitBridgeClientConnectError({
 					error_message: `${error?.toString() || "Unknown error"}${error?.errorCode ? ` (Code: ${error?.errorCode})` : ""}`,
@@ -27593,19 +27782,19 @@ async function fetchManifest(manifestUrl, proxyUrl) {
 	try {
 		if (!isValidHost(new URL(manifestUrl).host)) return {
 			manifest: null,
-			manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_NOT_FOUND_ERROR
+			manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES$1.MANIFEST_NOT_FOUND_ERROR
 		};
 	} catch (_) {
 		return {
 			manifest: null,
-			manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_NOT_FOUND_ERROR
+			manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES$1.MANIFEST_NOT_FOUND_ERROR
 		};
 	}
 	const directResult = await tryFetchManifest(manifestUrl);
 	if (directResult.manifest) return directResult;
 	if (!proxyUrl) return {
 		manifest: null,
-		manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR
+		manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES$1.MANIFEST_CONTENT_ERROR
 	};
 	log$33.info("Direct manifest fetch failed, trying proxy", { manifestUrl });
 	return tryFetchManifest(`${proxyUrl}${manifestUrl}`);
@@ -27620,7 +27809,7 @@ async function tryFetchManifest(url) {
 			});
 			return {
 				manifest: null,
-				manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR
+				manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES$1.MANIFEST_CONTENT_ERROR
 			};
 		}
 		return {
@@ -27634,13 +27823,13 @@ async function tryFetchManifest(url) {
 		});
 		return {
 			manifest: null,
-			manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR
+			manifestFetchErrorCode: CONNECT_EVENT_ERROR_CODES$1.MANIFEST_CONTENT_ERROR
 		};
 	}
 }
 var log$33;
 var init_manifest = __esmMin((() => {
-	init_esm$1();
+	init_esm$2();
 	init_url();
 	init_Logger();
 	log$33 = globalLogger.createChild("ManifestUtils");
@@ -27649,7 +27838,7 @@ var init_manifest = __esmMin((() => {
 //#region ../walletkit/dist/esm/handlers/ConnectHandler.js
 var log$32, ConnectHandler;
 var init_ConnectHandler = __esmMin((() => {
-	init_esm$1();
+	init_esm$2();
 	init_Logger();
 	init_BasicHandler();
 	init_url();
@@ -27740,11 +27929,11 @@ var init_ConnectHandler = __esmMin((() => {
 							dAppUrl,
 							host: parsedDAppUrl.host
 						});
-						finalManifestFetchErrorCode = CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR;
+						finalManifestFetchErrorCode = CONNECT_EVENT_ERROR_CODES$1.MANIFEST_CONTENT_ERROR;
 					}
 				} catch (_) {
 					log$32.warn("Invalid dApp URL in manifest - failed to parse", { dAppUrl });
-					finalManifestFetchErrorCode = CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR;
+					finalManifestFetchErrorCode = CONNECT_EVENT_ERROR_CODES$1.MANIFEST_CONTENT_ERROR;
 				}
 			}
 			const sanitizedManifest = manifest && {
@@ -27896,9 +28085,21 @@ var init_AssetType = __esmMin((() => {
 var Network;
 var init_Network = __esmMin((() => {
 	Network = {
+		/**
+		* TON Mainnet (chain ID: -239)
+		*/
 		mainnet: () => ({ chainId: "-239" }),
+		/**
+		* TON Testnet (chain ID: -3)
+		*/
 		testnet: () => ({ chainId: "-3" }),
+		/**
+		* TON Tetra L2 chain (chain ID: 662387)
+		*/
 		tetra: () => ({ chainId: "662387" }),
+		/**
+		* Custom network with specified chain ID
+		*/
 		custom: (chainId) => ({ chainId })
 	};
 }));
@@ -28538,24 +28739,56 @@ var init_events = __esmMin((() => {
 	log$30 = globalLogger.createChild("EventsUtils");
 }));
 //#endregion
-//#region ../../node_modules/@scure/bip39/node_modules/@noble/hashes/utils.js
+//#region ../../node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/utils.js
 /**
-* Utilities for hex, bytes, CSPRNG.
-* @module
+* Checks if something is Uint8Array. Be careful: nodejs Buffer will return true.
+* @param a - value to test
+* @returns `true` when the value is a Uint8Array-compatible view.
+* @example
+* Check whether a value is a Uint8Array-compatible view.
+* ```ts
+* isBytes(new Uint8Array([1, 2, 3]));
+* ```
 */
-/*! noble-hashes - MIT License (c) 2022 Paul Miller (paulmillr.com) */
-/** Checks if something is Uint8Array. Be careful: nodejs Buffer will return true. */
 function isBytes(a) {
-	return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array";
+	return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
 }
-/** Asserts something is positive integer. */
+/**
+* Asserts something is a non-negative integer.
+* @param n - number to validate
+* @param title - label included in thrown errors
+* @throws On wrong argument types. {@link TypeError}
+* @throws On wrong argument ranges or values. {@link RangeError}
+* @example
+* Validate a non-negative integer option.
+* ```ts
+* anumber(32, 'length');
+* ```
+*/
 function anumber(n, title = "") {
+	if (typeof n !== "number") {
+		const prefix = title && `"${title}" `;
+		throw new TypeError(`${prefix}expected number, got ${typeof n}`);
+	}
 	if (!Number.isSafeInteger(n) || n < 0) {
 		const prefix = title && `"${title}" `;
-		throw new Error(`${prefix}expected integer >= 0, got ${n}`);
+		throw new RangeError(`${prefix}expected integer >= 0, got ${n}`);
 	}
 }
-/** Asserts something is Uint8Array. */
+/**
+* Asserts something is Uint8Array.
+* @param value - value to validate
+* @param length - optional exact length constraint
+* @param title - label included in thrown errors
+* @returns The validated byte array.
+* @throws On wrong argument types. {@link TypeError}
+* @throws On wrong argument ranges or values. {@link RangeError}
+* @example
+* Validate that a value is a byte array.
+* ```ts
+* abytes(new Uint8Array([1, 2, 3]));
+* ```
+*/
 function abytes(value, length, title = "") {
 	const bytes = isBytes(value);
 	const len = value?.length;
@@ -28564,36 +28797,109 @@ function abytes(value, length, title = "") {
 		const prefix = title && `"${title}" `;
 		const ofLen = needsLen ? ` of length ${length}` : "";
 		const got = bytes ? `length=${len}` : `type=${typeof value}`;
-		throw new Error(prefix + "expected Uint8Array" + ofLen + ", got " + got);
+		const message = prefix + "expected Uint8Array" + ofLen + ", got " + got;
+		if (!bytes) throw new TypeError(message);
+		throw new RangeError(message);
 	}
 	return value;
 }
-/** Asserts something is hash */
+/**
+* Asserts something is a wrapped hash constructor.
+* @param h - hash constructor to validate
+* @throws On wrong argument types or invalid hash wrapper shape. {@link TypeError}
+* @throws On invalid hash metadata ranges or values. {@link RangeError}
+* @throws If the hash metadata allows empty outputs or block sizes. {@link Error}
+* @example
+* Validate a callable hash wrapper.
+* ```ts
+* import { ahash } from '@noble/hashes/utils.js';
+* import { sha256 } from '@noble/hashes/sha2.js';
+* ahash(sha256);
+* ```
+*/
 function ahash(h) {
-	if (typeof h !== "function" || typeof h.create !== "function") throw new Error("Hash must wrapped by utils.createHasher");
+	if (typeof h !== "function" || typeof h.create !== "function") throw new TypeError("Hash must wrapped by utils.createHasher");
 	anumber(h.outputLen);
 	anumber(h.blockLen);
+	if (h.outputLen < 1) throw new Error("\"outputLen\" must be >= 1");
+	if (h.blockLen < 1) throw new Error("\"blockLen\" must be >= 1");
 }
-/** Asserts a hash instance has not been destroyed / finished */
+/**
+* Asserts a hash instance has not been destroyed or finished.
+* @param instance - hash instance to validate
+* @param checkFinished - whether to reject finalized instances
+* @throws If the hash instance has already been destroyed or finalized. {@link Error}
+* @example
+* Validate that a hash instance is still usable.
+* ```ts
+* import { aexists } from '@noble/hashes/utils.js';
+* import { sha256 } from '@noble/hashes/sha2.js';
+* const hash = sha256.create();
+* aexists(hash);
+* ```
+*/
 function aexists(instance, checkFinished = true) {
 	if (instance.destroyed) throw new Error("Hash instance has been destroyed");
 	if (checkFinished && instance.finished) throw new Error("Hash#digest() has already been called");
 }
-/** Asserts output is properly-sized byte array */
+/**
+* Asserts output is a sufficiently-sized byte array.
+* @param out - destination buffer
+* @param instance - hash instance providing output length
+* Oversized buffers are allowed; downstream code only promises to fill the first `outputLen` bytes.
+* @throws On wrong argument types. {@link TypeError}
+* @throws On wrong argument ranges or values. {@link RangeError}
+* @example
+* Validate a caller-provided digest buffer.
+* ```ts
+* import { aoutput } from '@noble/hashes/utils.js';
+* import { sha256 } from '@noble/hashes/sha2.js';
+* const hash = sha256.create();
+* aoutput(new Uint8Array(hash.outputLen), hash);
+* ```
+*/
 function aoutput(out, instance) {
 	abytes(out, void 0, "digestInto() output");
 	const min = instance.outputLen;
-	if (out.length < min) throw new Error("\"digestInto() output\" expected to be of length >=" + min);
+	if (out.length < min) throw new RangeError("\"digestInto() output\" expected to be of length >=" + min);
 }
-/** Zeroize a byte array. Warning: JS provides no guarantees. */
+/**
+* Zeroizes typed arrays in place. Warning: JS provides no guarantees.
+* @param arrays - arrays to overwrite with zeros
+* @example
+* Zeroize sensitive buffers in place.
+* ```ts
+* clean(new Uint8Array([1, 2, 3]));
+* ```
+*/
 function clean(...arrays) {
 	for (let i = 0; i < arrays.length; i++) arrays[i].fill(0);
 }
-/** Create DataView of an array for easy byte-level manipulation. */
+/**
+* Creates a DataView for byte-level manipulation.
+* @param arr - source typed array
+* @returns DataView over the same buffer region.
+* @example
+* Create a DataView over an existing buffer.
+* ```ts
+* createView(new Uint8Array(4));
+* ```
+*/
 function createView(arr) {
 	return new DataView(arr.buffer, arr.byteOffset, arr.byteLength);
 }
-/** Returns control to thread each 'tick' ms to avoid blocking. */
+/**
+* Returns control to the Promise/microtask scheduler every `tick`
+* milliseconds to avoid blocking long loops.
+* @param iters - number of loop iterations to run
+* @param tick - maximum time slice in milliseconds
+* @param cb - callback executed on each iteration
+* @example
+* Run a loop that periodically yields back to the event loop.
+* ```ts
+* await asyncLoop(2, 0, () => {});
+* ```
+*/
 async function asyncLoop(iters, tick, cb) {
 	let ts = Date.now();
 	for (let i = 0; i < iters; i++) {
@@ -28607,39 +28913,82 @@ async function asyncLoop(iters, tick, cb) {
 /**
 * Converts string to bytes using UTF8 encoding.
 * Built-in doesn't validate input to be string: we do the check.
-* @example utf8ToBytes('abc') // Uint8Array.from([97, 98, 99])
+* Non-ASCII details are delegated to the platform `TextEncoder`.
+* @param str - string to encode
+* @returns UTF-8 encoded bytes.
+* @throws On wrong argument types. {@link TypeError}
+* @example
+* Encode a string as UTF-8 bytes.
+* ```ts
+* utf8ToBytes('abc'); // Uint8Array.from([97, 98, 99])
+* ```
 */
 function utf8ToBytes(str) {
-	if (typeof str !== "string") throw new Error("string expected");
+	if (typeof str !== "string") throw new TypeError("string expected");
 	return new Uint8Array(new TextEncoder().encode(str));
 }
 /**
-* Helper for KDFs: consumes uint8array or string.
-* When string is passed, does utf8 decoding, using TextDecoder.
+* Helper for KDFs: consumes Uint8Array or string.
+* String inputs are UTF-8 encoded; byte-array inputs stay aliased to the caller buffer.
+* @param data - user-provided KDF input
+* @param errorTitle - label included in thrown errors
+* @returns Byte representation of the input.
+* @throws On wrong argument types. {@link TypeError}
+* @example
+* Normalize KDF input to bytes.
+* ```ts
+* kdfInputToBytes('password');
+* ```
 */
 function kdfInputToBytes(data, errorTitle = "") {
 	if (typeof data === "string") return utf8ToBytes(data);
 	return abytes(data, void 0, errorTitle);
 }
-/** Merges default options and passed options. */
+/**
+* Merges default options and passed options.
+* @param defaults - base option object
+* @param opts - user overrides
+* @returns Merged option object. The merge mutates `defaults` in place.
+* @throws On wrong argument types. {@link TypeError}
+* @example
+* Merge user overrides onto default options.
+* ```ts
+* checkOpts({ dkLen: 32 }, { asyncTick: 10 });
+* ```
+*/
 function checkOpts(defaults, opts) {
-	if (opts !== void 0 && {}.toString.call(opts) !== "[object Object]") throw new Error("options must be object or undefined");
+	if (opts !== void 0 && {}.toString.call(opts) !== "[object Object]") throw new TypeError("options must be object or undefined");
 	return Object.assign(defaults, opts);
 }
-/** Creates function with outputLen, blockLen, create properties from a class constructor. */
+/**
+* Creates a callable hash function from a stateful class constructor.
+* @param hashCons - hash constructor or factory
+* @param info - optional metadata such as DER OID
+* @returns Frozen callable hash wrapper with `.create()`.
+*   Wrapper construction eagerly calls `hashCons(undefined)` once to read
+*   `outputLen` / `blockLen`, so constructor side effects happen at module
+*   init time.
+* @example
+* Wrap a stateful hash constructor into a callable helper.
+* ```ts
+* import { createHasher } from '@noble/hashes/utils.js';
+* import { sha256 } from '@noble/hashes/sha2.js';
+* const wrapped = createHasher(sha256.create, { oid: sha256.oid });
+* wrapped(new Uint8Array([1]));
+* ```
+*/
 function createHasher(hashCons, info = {}) {
 	const hashC = (msg, opts) => hashCons(opts).update(msg).digest();
 	const tmp = hashCons(void 0);
 	hashC.outputLen = tmp.outputLen;
 	hashC.blockLen = tmp.blockLen;
+	hashC.canXOF = tmp.canXOF;
 	hashC.create = (opts) => hashCons(opts);
 	Object.assign(hashC, info);
 	return Object.freeze(hashC);
 }
 var nextTick, oidNist;
 var init_utils$3 = __esmMin((() => {
-	new Uint8Array(new Uint32Array([287454020]).buffer)[0];
-	typeof Uint8Array.from([]).toHex === "function" && Uint8Array.fromHex;
 	nextTick = async () => {};
 	oidNist = (suffix) => ({ oid: Uint8Array.from([
 		6,
@@ -28656,7 +29005,7 @@ var init_utils$3 = __esmMin((() => {
 	]) });
 }));
 //#endregion
-//#region ../../node_modules/@scure/bip39/node_modules/@noble/hashes/hmac.js
+//#region ../../node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/hmac.js
 var _HMAC, hmac;
 var init_hmac = __esmMin((() => {
 	init_utils$3();
@@ -28665,6 +29014,7 @@ var init_hmac = __esmMin((() => {
 		iHash;
 		blockLen;
 		outputLen;
+		canXOF = false;
 		finished = false;
 		destroyed = false;
 		constructor(hash, key) {
@@ -28691,11 +29041,12 @@ var init_hmac = __esmMin((() => {
 		}
 		digestInto(out) {
 			aexists(this);
-			abytes(out, this.outputLen, "output");
+			aoutput(out, this);
 			this.finished = true;
-			this.iHash.digestInto(out);
-			this.oHash.update(out);
-			this.oHash.digestInto(out);
+			const buf = out.subarray(0, this.outputLen);
+			this.iHash.digestInto(buf);
+			this.oHash.update(buf);
+			this.oHash.digestInto(buf);
 			this.destroy();
 		}
 		digest() {
@@ -28724,11 +29075,14 @@ var init_hmac = __esmMin((() => {
 			this.iHash.destroy();
 		}
 	};
-	hmac = (hash, key, message) => new _HMAC(hash, key).update(message).digest();
-	hmac.create = (hash, key) => new _HMAC(hash, key);
+	hmac = /* @__PURE__ */ (() => {
+		const hmac_ = ((hash, key, message) => new _HMAC(hash, key).update(message).digest());
+		hmac_.create = (hash, key) => new _HMAC(hash, key);
+		return hmac_;
+	})();
 }));
 //#endregion
-//#region ../../node_modules/@scure/bip39/node_modules/@noble/hashes/pbkdf2.js
+//#region ../../node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/pbkdf2.js
 function pbkdf2Init(hash, _password, _salt, _opts) {
 	ahash(hash);
 	const { c, dkLen, asyncTick } = checkOpts({
@@ -28739,6 +29093,8 @@ function pbkdf2Init(hash, _password, _salt, _opts) {
 	anumber(dkLen, "dkLen");
 	anumber(asyncTick, "asyncTick");
 	if (c < 1) throw new Error("iterations (c) must be >= 1");
+	if (dkLen < 1) throw new Error("\"dkLen\" must be >= 1");
+	if (dkLen > (2 ** 32 - 1) * hash.outputLen) throw new Error("derived key too long");
 	const password = kdfInputToBytes(_password, "password");
 	const salt = kdfInputToBytes(_salt, "salt");
 	const DK = new Uint8Array(dkLen);
@@ -28760,9 +29116,24 @@ function pbkdf2Output(PRF, PRFSalt, DK, prfW, u) {
 	return DK;
 }
 /**
-* PBKDF2-HMAC: RFC 2898 key derivation function. Async version.
+* PBKDF2-HMAC: RFC 8018 key derivation function. Async version.
+* @param hash - hash function that would be used e.g. sha256
+* @param password - password from which a derived key is generated;
+*   JS string inputs are UTF-8 encoded first
+* @param salt - cryptographic salt; JS string inputs are UTF-8 encoded first
+* @param opts - PBKDF2 work factor and output settings. `dkLen`, if provided,
+*   must be `>= 1` per RFC 8018 §5.2. `asyncTick` is only a local
+*   scheduler-yield knob for this JS wrapper, not part of RFC 8018.
+*   See {@link Pbkdf2Opt}.
+* @returns Promise resolving to derived key bytes.
+* @throws If the PBKDF2 iteration count or derived-key settings are invalid. {@link Error}
 * @example
-* await pbkdf2Async(sha256, 'password', 'salt', { dkLen: 32, c: 500_000 });
+* PBKDF2-HMAC: RFC 2898 key derivation function.
+* ```ts
+* import { pbkdf2Async } from '@noble/hashes/pbkdf2.js';
+* import { sha256 } from '@noble/hashes/sha2.js';
+* const key = await pbkdf2Async(sha256, 'password', 'salt', { dkLen: 32, c: 500_000 });
+* ```
 */
 async function pbkdf2Async(hash, password, salt, opts) {
 	const { c, dkLen, asyncTick, DK, PRF, PRFSalt } = pbkdf2Init(hash, password, salt, opts);
@@ -28787,13 +29158,14 @@ var init_pbkdf2 = __esmMin((() => {
 	init_utils$3();
 }));
 //#endregion
-//#region ../../node_modules/@scure/bip39/node_modules/@noble/hashes/_md.js
+//#region ../../node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/_md.js
 var HashMD, SHA512_IV;
 var init__md = __esmMin((() => {
 	init_utils$3();
 	HashMD = class {
 		blockLen;
 		outputLen;
+		canXOF = false;
 		padOffset;
 		isLE;
 		buffer;
@@ -28899,7 +29271,7 @@ var init__md = __esmMin((() => {
 	]);
 }));
 //#endregion
-//#region ../../node_modules/@scure/bip39/node_modules/@noble/hashes/_u64.js
+//#region ../../node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/_u64.js
 function fromBig(n, le = false) {
 	if (le) return {
 		h: Number(n & U32_MASK64),
@@ -28945,13 +29317,13 @@ var init__u64 = __esmMin((() => {
 	add5H = (low, Ah, Bh, Ch, Dh, Eh) => Ah + Bh + Ch + Dh + Eh + (low / 2 ** 32 | 0) | 0;
 }));
 //#endregion
-//#region ../../node_modules/@scure/bip39/node_modules/@noble/hashes/sha2.js
+//#region ../../node_modules/.pnpm/@noble+hashes@2.2.0/node_modules/@noble/hashes/sha2.js
 var K512, SHA512_Kh, SHA512_Kl, SHA512_W_H, SHA512_W_L, SHA2_64B, _SHA512, sha512;
 var init_sha2 = __esmMin((() => {
 	init__md();
 	init__u64();
 	init_utils$3();
-	K512 = split([
+	K512 = /* @__PURE__ */ (() => split([
 		"0x428a2f98d728ae22",
 		"0x7137449123ef65cd",
 		"0xb5c0fbcfec4d3b2f",
@@ -29032,9 +29404,9 @@ var init_sha2 = __esmMin((() => {
 		"0x597f299cfc657e2a",
 		"0x5fcb6fab3ad6faec",
 		"0x6c44198c4a475817"
-	].map((n) => BigInt(n)));
-	SHA512_Kh = K512[0];
-	SHA512_Kl = K512[1];
+	].map((n) => BigInt(n))))();
+	SHA512_Kh = /* @__PURE__ */ (() => K512[0])();
+	SHA512_Kl = /* @__PURE__ */ (() => K512[1])();
 	SHA512_W_H = /* @__PURE__ */ new Uint32Array(80);
 	SHA512_W_L = /* @__PURE__ */ new Uint32Array(80);
 	SHA2_64B = class extends HashMD {
@@ -29142,6 +29514,7 @@ var init_sha2 = __esmMin((() => {
 			clean(SHA512_W_H, SHA512_W_L);
 		}
 		destroy() {
+			this.destroyed = true;
 			clean(this.buffer);
 			this.set(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 		}
@@ -29170,7 +29543,8 @@ var init_sha2 = __esmMin((() => {
 	sha512 = /* @__PURE__ */ createHasher(() => new _SHA512(), /* @__PURE__ */ oidNist(3));
 }));
 //#endregion
-//#region ../../node_modules/@scure/bip39/index.js
+//#region ../../node_modules/.pnpm/@scure+bip39@2.2.0/node_modules/@scure/bip39/index.js
+/*! scure-bip39 - MIT License (c) 2022 Patricio Palladino, Paul Miller (paulmillr.com) */
 function nfkd(str) {
 	if (typeof str !== "string") throw new TypeError("invalid mnemonic type: " + typeof str);
 	return str.normalize("NFKD");
@@ -29192,13 +29566,18 @@ function normalize(str) {
 }
 /**
 * Irreversible: Uses KDF to derive 64 bytes of key data from mnemonic + optional password.
-* @param mnemonic 12-24 words
-* @param passphrase string that will additionally protect the key
-* @returns 64 bytes of key data
+* @param mnemonic - 12-24 words.
+* @param passphrase - String that will additionally protect the key.
+* @returns 64 bytes of key data.
+* @throws If the mnemonic shape is invalid. {@link Error}
+* @throws On wrong argument types. {@link TypeError}
 * @example
+* Derive a seed from a mnemonic with the async PBKDF2 helper.
+* ```ts
 * const mnem = 'legal winner thank year wave sausage worth useful legal winner thank yellow';
-* await mnemonicToSeed(mnem, 'password');
-* // new Uint8Array([...64 bytes])
+* const seed = await mnemonicToSeed(mnem, 'password');
+* // => new Uint8Array([...64 bytes])
+* ```
 */
 function mnemonicToSeed(mnemonic, passphrase = "") {
 	return pbkdf2Async(sha512, normalize(mnemonic).nfkd, psalt(passphrase), {
@@ -29322,6 +29701,7 @@ var init_cell = __esmMin((() => {
 }));
 //#endregion
 //#region ../walletkit/dist/esm/utils/signData/crc32.js
+/*! crc32.js (C) 2014-present SheetJS -- http://sheetjs.com */
 function signed_crc_table() {
 	var c = 0, table = new Array(256);
 	for (var n = 0; n != 256; ++n) {
@@ -29729,12 +30109,15 @@ var init_map_emulation_trace = __esmMin((() => {
 	init_address$1();
 }));
 //#endregion
-//#region ../../node_modules/lru-cache/dist/esm/browser/index.min.js
-var C, S, W, D, I, U, L, G, P, F, j, O, R, M;
+//#region ../../node_modules/.pnpm/lru-cache@11.5.0/node_modules/lru-cache/dist/esm/browser/index.min.js
+var L, S, W, M, D, j, I, P, k, T, G, O, R, U;
 var init_index_min = __esmMin((() => {
-	C = { hasSubscribers: !1 }, S = C, W = C, D = () => S.hasSubscribers || W.hasSubscribers, I = typeof performance == "object" && performance && typeof performance.now == "function" ? performance : Date, U = /* @__PURE__ */ new Set(), L = typeof process == "object" && process ? process : {}, G = (u, e, t, i) => {
-		typeof L.emitWarning == "function" ? L.emitWarning(u, e, t, i) : console.error(`[${t}] ${e}: ${u}`);
-	}, P = (u) => !U.has(u), F = (u) => !!u && u === Math.floor(u) && u > 0 && isFinite(u), j = (u) => F(u) ? u <= Math.pow(2, 8) ? Uint8Array : u <= Math.pow(2, 16) ? Uint16Array : u <= Math.pow(2, 32) ? Uint32Array : u <= Number.MAX_SAFE_INTEGER ? O : null : null, O = class extends Array {
+	L = { hasSubscribers: !1 }, S = L, W = L;
+	M = typeof performance == "object" && performance && typeof performance.now == "function" ? performance : Date;
+	D = () => S.hasSubscribers || W.hasSubscribers, j = /* @__PURE__ */ new Set(), I = typeof process == "object" && process ? process : {}, P = (u, e, t, i) => {
+		typeof I.emitWarning == "function" ? I.emitWarning(u, e, t, i) : console.error(`[${t}] ${e}: ${u}`);
+	}, k = (u) => !j.has(u);
+	T = (u) => !!u && u === Math.floor(u) && u > 0 && isFinite(u), G = (u) => T(u) ? u <= Math.pow(2, 8) ? Uint8Array : u <= Math.pow(2, 16) ? Uint16Array : u <= Math.pow(2, 32) ? Uint32Array : u <= Number.MAX_SAFE_INTEGER ? O : null : null, O = class extends Array {
 		constructor(e) {
 			super(e), this.fill(0);
 		}
@@ -29743,7 +30126,7 @@ var init_index_min = __esmMin((() => {
 		length;
 		static #o = !1;
 		static create(e) {
-			let t = j(e);
+			let t = G(e);
 			if (!t) return [];
 			u.#o = !0;
 			let i = new u(e, t);
@@ -29759,14 +30142,14 @@ var init_index_min = __esmMin((() => {
 		pop() {
 			return this.heap[--this.length];
 		}
-	}, M = class u {
+	}, U = class u {
 		#o;
-		#u;
-		#w;
-		#D;
+		#c;
 		#S;
+		#O;
+		#w;
 		#M;
-		#U;
+		#I;
 		#m;
 		get perf() {
 			return this.#m;
@@ -29786,14 +30169,15 @@ var init_index_min = __esmMin((() => {
 		allowStaleOnFetchAbort;
 		allowStaleOnFetchRejection;
 		ignoreFetchAbort;
+		backgroundFetchSize;
 		#n;
 		#b;
 		#s;
 		#i;
 		#t;
-		#a;
-		#c;
 		#l;
+		#u;
+		#a;
 		#h;
 		#y;
 		#r;
@@ -29802,9 +30186,9 @@ var init_index_min = __esmMin((() => {
 		#d;
 		#g;
 		#T;
-		#W;
+		#U;
 		#f;
-		#j;
+		#x;
 		static unsafeExposeInternals(e) {
 			return {
 				starts: e.#F,
@@ -29814,10 +30198,10 @@ var init_index_min = __esmMin((() => {
 				keyMap: e.#s,
 				keyList: e.#i,
 				valList: e.#t,
-				next: e.#a,
-				prev: e.#c,
+				next: e.#l,
+				prev: e.#u,
 				get head() {
-					return e.#l;
+					return e.#a;
 				},
 				get tail() {
 					return e.#h;
@@ -29835,7 +30219,7 @@ var init_index_min = __esmMin((() => {
 			return this.#o;
 		}
 		get maxSize() {
-			return this.#u;
+			return this.#c;
 		}
 		get calculatedSize() {
 			return this.#b;
@@ -29847,126 +30231,128 @@ var init_index_min = __esmMin((() => {
 			return this.#M;
 		}
 		get memoMethod() {
-			return this.#U;
+			return this.#I;
 		}
 		get dispose() {
-			return this.#w;
-		}
-		get onInsert() {
-			return this.#D;
-		}
-		get disposeAfter() {
 			return this.#S;
 		}
+		get onInsert() {
+			return this.#O;
+		}
+		get disposeAfter() {
+			return this.#w;
+		}
 		constructor(e) {
-			let { max: t = 0, ttl: i, ttlResolution: s = 1, ttlAutopurge: n, updateAgeOnGet: o, updateAgeOnHas: r, allowStale: h, dispose: l, onInsert: c, disposeAfter: f, noDisposeOnSet: g, noUpdateTTL: p, maxSize: T = 0, maxEntrySize: w = 0, sizeCalculation: y, fetchMethod: a, memoMethod: m, noDeleteOnFetchRejection: _, noDeleteOnStaleGet: b, allowStaleOnFetchRejection: d, allowStaleOnFetchAbort: A, ignoreFetchAbort: z, perf: x } = e;
-			if (x !== void 0 && typeof x?.now != "function") throw new TypeError("perf option must have a now() method if specified");
-			if (this.#m = x ?? I, t !== 0 && !F(t)) throw new TypeError("max option must be a nonnegative integer");
-			let v = t ? j(t) : Array;
+			let { max: t = 0, ttl: i, ttlResolution: s = 1, ttlAutopurge: n, updateAgeOnGet: r, updateAgeOnHas: h, allowStale: a, dispose: o, onInsert: d, disposeAfter: y, noDisposeOnSet: _, noUpdateTTL: c, maxSize: g = 0, maxEntrySize: f = 0, sizeCalculation: b, fetchMethod: l, memoMethod: w, noDeleteOnFetchRejection: F, noDeleteOnStaleGet: m, allowStaleOnFetchRejection: p, allowStaleOnFetchAbort: A, ignoreFetchAbort: z, backgroundFetchSize: C = 1, perf: E } = e;
+			if (this.backgroundFetchSize = C, E !== void 0 && typeof E?.now != "function") throw new TypeError("perf option must have a now() method if specified");
+			if (this.#m = E ?? M, t !== 0 && !T(t)) throw new TypeError("max option must be a nonnegative integer");
+			let v = t ? G(t) : Array;
 			if (!v) throw new Error("invalid max value: " + t);
-			if (this.#o = t, this.#u = T, this.maxEntrySize = w || this.#u, this.sizeCalculation = y, this.sizeCalculation) {
-				if (!this.#u && !this.maxEntrySize) throw new TypeError("cannot set sizeCalculation without setting maxSize or maxEntrySize");
+			if (this.#o = t, this.#c = g, this.maxEntrySize = f || this.#c, this.sizeCalculation = b, this.sizeCalculation) {
+				if (!this.#c && !this.maxEntrySize) throw new TypeError("cannot set sizeCalculation without setting maxSize or maxEntrySize");
 				if (typeof this.sizeCalculation != "function") throw new TypeError("sizeCalculation set to non-function");
 			}
-			if (m !== void 0 && typeof m != "function") throw new TypeError("memoMethod must be a function if defined");
-			if (this.#U = m, a !== void 0 && typeof a != "function") throw new TypeError("fetchMethod must be a function if specified");
-			if (this.#M = a, this.#W = !!a, this.#s = /* @__PURE__ */ new Map(), this.#i = Array.from({ length: t }).fill(void 0), this.#t = Array.from({ length: t }).fill(void 0), this.#a = new v(t), this.#c = new v(t), this.#l = 0, this.#h = 0, this.#y = R.create(t), this.#n = 0, this.#b = 0, typeof l == "function" && (this.#w = l), typeof c == "function" && (this.#D = c), typeof f == "function" ? (this.#S = f, this.#r = []) : (this.#S = void 0, this.#r = void 0), this.#T = !!this.#w, this.#j = !!this.#D, this.#f = !!this.#S, this.noDisposeOnSet = !!g, this.noUpdateTTL = !!p, this.noDeleteOnFetchRejection = !!_, this.allowStaleOnFetchRejection = !!d, this.allowStaleOnFetchAbort = !!A, this.ignoreFetchAbort = !!z, this.maxEntrySize !== 0) {
-				if (this.#u !== 0 && !F(this.#u)) throw new TypeError("maxSize must be a positive integer if specified");
-				if (!F(this.maxEntrySize)) throw new TypeError("maxEntrySize must be a positive integer if specified");
+			if (w !== void 0 && typeof w != "function") throw new TypeError("memoMethod must be a function if defined");
+			if (this.#I = w, l !== void 0 && typeof l != "function") throw new TypeError("fetchMethod must be a function if specified");
+			if (this.#M = l, this.#U = !!l, this.#s = /* @__PURE__ */ new Map(), this.#i = Array.from({ length: t }).fill(void 0), this.#t = Array.from({ length: t }).fill(void 0), this.#l = new v(t), this.#u = new v(t), this.#a = 0, this.#h = 0, this.#y = R.create(t), this.#n = 0, this.#b = 0, typeof o == "function" && (this.#S = o), typeof d == "function" && (this.#O = d), typeof y == "function" ? (this.#w = y, this.#r = []) : (this.#w = void 0, this.#r = void 0), this.#T = !!this.#S, this.#x = !!this.#O, this.#f = !!this.#w, this.noDisposeOnSet = !!_, this.noUpdateTTL = !!c, this.noDeleteOnFetchRejection = !!F, this.allowStaleOnFetchRejection = !!p, this.allowStaleOnFetchAbort = !!A, this.ignoreFetchAbort = !!z, this.maxEntrySize !== 0) {
+				if (this.#c !== 0 && !T(this.#c)) throw new TypeError("maxSize must be a positive integer if specified");
+				if (!T(this.maxEntrySize)) throw new TypeError("maxEntrySize must be a positive integer if specified");
 				this.#X();
 			}
-			if (this.allowStale = !!h, this.noDeleteOnStaleGet = !!b, this.updateAgeOnGet = !!o, this.updateAgeOnHas = !!r, this.ttlResolution = F(s) || s === 0 ? s : 1, this.ttlAutopurge = !!n, this.ttl = i || 0, this.ttl) {
-				if (!F(this.ttl)) throw new TypeError("ttl must be a positive integer if specified");
-				this.#H();
+			if (this.allowStale = !!a, this.noDeleteOnStaleGet = !!m, this.updateAgeOnGet = !!r, this.updateAgeOnHas = !!h, this.ttlResolution = T(s) || s === 0 ? s : 1, this.ttlAutopurge = !!n, this.ttl = i || 0, this.ttl) {
+				if (!T(this.ttl)) throw new TypeError("ttl must be a positive integer if specified");
+				this.#k();
 			}
-			if (this.#o === 0 && this.ttl === 0 && this.#u === 0) throw new TypeError("At least one of max, maxSize, or ttl is required");
-			if (!this.ttlAutopurge && !this.#o && !this.#u) {
-				let E = "LRU_CACHE_UNBOUNDED";
-				P(E) && (U.add(E), G("TTL caching without ttlAutopurge, max, or maxSize can result in unbounded memory consumption.", "UnboundedCacheWarning", E, u));
+			if (this.#o === 0 && this.ttl === 0 && this.#c === 0) throw new TypeError("At least one of max, maxSize, or ttl is required");
+			if (!this.ttlAutopurge && !this.#o && !this.#c) {
+				let x = "LRU_CACHE_UNBOUNDED";
+				k(x) && (j.add(x), P("TTL caching without ttlAutopurge, max, or maxSize can result in unbounded memory consumption.", "UnboundedCacheWarning", x, u));
 			}
 		}
 		getRemainingTTL(e) {
 			return this.#s.has(e) ? Infinity : 0;
 		}
-		#H() {
+		#k() {
 			let e = new O(this.#o), t = new O(this.#o);
 			this.#d = e, this.#F = t;
 			let i = this.ttlAutopurge ? Array.from({ length: this.#o }) : void 0;
-			this.#g = i, this.#N = (r, h, l = this.#m.now()) => {
-				t[r] = h !== 0 ? l : 0, e[r] = h, s(r, h);
-			}, this.#x = (r) => {
-				t[r] = e[r] !== 0 ? this.#m.now() : 0, s(r, e[r]);
+			this.#g = i, this.#H = (h, a, o = this.#m.now()) => {
+				t[h] = a !== 0 ? o : 0, e[h] = a, s(h, a);
+			}, this.#D = (h) => {
+				t[h] = e[h] !== 0 ? this.#m.now() : 0, s(h, e[h]);
 			};
-			let s = this.ttlAutopurge ? (r, h) => {
-				if (i?.[r] && (clearTimeout(i[r]), i[r] = void 0), h && h !== 0 && i) {
-					let l = setTimeout(() => {
-						this.#p(r) && this.#v(this.#i[r], "expire");
-					}, h + 1);
-					l.unref && l.unref(), i[r] = l;
+			let s = this.ttlAutopurge ? (h, a) => {
+				if (i?.[h] && (clearTimeout(i[h]), i[h] = void 0), a && a !== 0 && i) {
+					let o = setTimeout(() => {
+						this.#p(h) && this.#E(this.#i[h], "expire");
+					}, a + 1);
+					o.unref && o.unref(), i[h] = o;
 				}
 			} : () => {};
-			this.#E = (r, h) => {
-				if (e[h]) {
-					let l = e[h], c = t[h];
-					if (!l || !c) return;
-					r.ttl = l, r.start = c, r.now = n || o();
-					r.remainingTTL = l - (r.now - c);
+			this.#v = (h, a) => {
+				if (e[a]) {
+					let o = e[a], d = t[a];
+					if (!o || !d) return;
+					h.ttl = o, h.start = d, h.now = n || r();
+					h.remainingTTL = o - (h.now - d);
 				}
 			};
-			let n = 0, o = () => {
-				let r = this.#m.now();
+			let n = 0, r = () => {
+				let h = this.#m.now();
 				if (this.ttlResolution > 0) {
-					n = r;
-					let h = setTimeout(() => n = 0, this.ttlResolution);
-					h.unref && h.unref();
+					n = h;
+					let a = setTimeout(() => n = 0, this.ttlResolution);
+					a.unref && a.unref();
 				}
-				return r;
+				return h;
 			};
-			this.getRemainingTTL = (r) => {
-				let h = this.#s.get(r);
-				if (h === void 0) return 0;
-				let l = e[h], c = t[h];
-				if (!l || !c) return Infinity;
-				return l - ((n || o()) - c);
-			}, this.#p = (r) => {
-				let h = t[r], l = e[r];
-				return !!l && !!h && (n || o()) - h > l;
+			this.getRemainingTTL = (h) => {
+				let a = this.#s.get(h);
+				if (a === void 0) return 0;
+				let o = e[a], d = t[a];
+				if (!o || !d) return Infinity;
+				return o - ((n || r()) - d);
+			}, this.#p = (h) => {
+				let a = t[h], o = e[h];
+				return !!o && !!a && (n || r()) - a > o;
 			};
 		}
-		#x = () => {};
-		#E = () => {};
-		#N = () => {};
+		#D = () => {};
+		#v = () => {};
+		#H = () => {};
 		#p = () => !1;
 		#X() {
 			let e = new O(this.#o);
 			this.#b = 0, this.#_ = e, this.#R = (t) => {
 				this.#b -= e[t], e[t] = 0;
-			}, this.#k = (t, i, s, n) => {
-				if (this.#e(i)) return 0;
-				if (!F(s)) if (n) {
-					if (typeof n != "function") throw new TypeError("sizeCalculation must be a function");
-					if (s = n(i, t), !F(s)) throw new TypeError("sizeCalculation return invalid (expect positive integer)");
-				} else throw new TypeError("invalid size value (must be positive integer). When maxSize or maxEntrySize is used, sizeCalculation or size must be set.");
+			}, this.#N = (t, i, s, n) => {
+				if (!T(s)) {
+					if (this.#e(i)) return this.backgroundFetchSize;
+					if (n) {
+						if (typeof n != "function") throw new TypeError("sizeCalculation must be a function");
+						if (s = n(i, t), !T(s)) throw new TypeError("sizeCalculation return invalid (expect positive integer)");
+					} else throw new TypeError("invalid size value (must be positive integer). When maxSize or maxEntrySize is used, sizeCalculation or size must be set.");
+				}
 				return s;
-			}, this.#I = (t, i, s) => {
-				if (e[t] = i, this.#u) {
-					let n = this.#u - e[t];
+			}, this.#j = (t, i, s) => {
+				if (e[t] = i, this.#c) {
+					let n = this.#c - e[t];
 					for (; this.#b > n;) this.#G(!0);
 				}
 				this.#b += e[t], s && (s.entrySize = i, s.totalCalculatedSize = this.#b);
 			};
 		}
 		#R = (e) => {};
-		#I = (e, t, i) => {};
-		#k = (e, t, i, s) => {
+		#j = (e, t, i) => {};
+		#N = (e, t, i, s) => {
 			if (i || s) throw new TypeError("cannot set size without setting maxSize or maxEntrySize on cache");
 			return 0;
 		};
 		*#A({ allowStale: e = this.allowStale } = {}) {
-			if (this.#n) for (let t = this.#h; this.#V(t) && ((e || !this.#p(t)) && (yield t), t !== this.#l);) t = this.#c[t];
+			if (this.#n) for (let t = this.#h; this.#V(t) && ((e || !this.#p(t)) && (yield t), t !== this.#a);) t = this.#u[t];
 		}
 		*#z({ allowStale: e = this.allowStale } = {}) {
-			if (this.#n) for (let t = this.#l; this.#V(t) && ((e || !this.#p(t)) && (yield t), t !== this.#h);) t = this.#a[t];
+			if (this.#n) for (let t = this.#a; this.#V(t) && ((e || !this.#p(t)) && (yield t), t !== this.#h);) t = this.#l[t];
 		}
 		#V(e) {
 			return e !== void 0 && this.#s.get(this.#i[e]) === e;
@@ -30019,7 +30405,7 @@ var init_index_min = __esmMin((() => {
 		}
 		purgeStale() {
 			let e = !1;
-			for (let t of this.#z({ allowStale: !0 })) this.#p(t) && (this.#v(this.#i[t], "expire"), e = !0);
+			for (let t of this.#z({ allowStale: !0 })) this.#p(t) && (this.#E(this.#i[t], "expire"), e = !0);
 			return e;
 		}
 		info(e) {
@@ -30029,8 +30415,8 @@ var init_index_min = __esmMin((() => {
 			if (s === void 0) return;
 			let n = { value: s };
 			if (this.#d && this.#F) {
-				let o = this.#d[t], r = this.#F[t];
-				if (o && r) n.ttl = o - (this.#m.now() - r), n.start = Date.now();
+				let r = this.#d[t], h = this.#F[t];
+				if (r && h) n.ttl = r - (this.#m.now() - h), n.start = Date.now();
 			}
 			return this.#_ && (n.size = this.#_[t]), n;
 		}
@@ -30039,13 +30425,13 @@ var init_index_min = __esmMin((() => {
 			for (let t of this.#A({ allowStale: !0 })) {
 				let i = this.#i[t], s = this.#t[t], n = this.#e(s) ? s.__staleWhileFetching : s;
 				if (n === void 0 || i === void 0) continue;
-				let o = { value: n };
+				let r = { value: n };
 				if (this.#d && this.#F) {
-					o.ttl = this.#d[t];
-					let r = this.#m.now() - this.#F[t];
-					o.start = Math.floor(Date.now() - r);
+					r.ttl = this.#d[t];
+					let h = this.#m.now() - this.#F[t];
+					r.start = Math.floor(Date.now() - h);
 				}
-				this.#_ && (o.size = this.#_[t]), e.unshift([i, o]);
+				this.#_ && (r.size = this.#_[t]), e.unshift([i, r]);
 			}
 			return e;
 		}
@@ -30056,59 +30442,57 @@ var init_index_min = __esmMin((() => {
 					let s = Date.now() - i.start;
 					i.start = this.#m.now() - s;
 				}
-				this.#O(t, i.value, i);
+				this.#W(t, i.value, i);
 			}
 		}
 		set(e, t, i = {}) {
 			let { status: s = S.hasSubscribers ? {} : void 0 } = i;
-			i.status = s, s && (s.op = "set", s.key = e, t !== void 0 && (s.value = t));
-			let n = this.#O(e, t, i);
+			i.status = s, s && (s.op = "set", s.key = e, t !== void 0 && (s.value = t), s.cache = this);
+			let n = this.#W(e, t, i);
 			return s && S.hasSubscribers && S.publish(s), n;
 		}
-		#O(e, t, i = {}) {
-			let { ttl: s = this.ttl, start: n, noDisposeOnSet: o = this.noDisposeOnSet, sizeCalculation: r = this.sizeCalculation, status: h } = i;
-			if (t === void 0) return h && (h.set = "deleted"), this.delete(e), this;
-			let { noUpdateTTL: l = this.noUpdateTTL } = i;
-			h && !this.#e(t) && (h.value = t);
-			let c = this.#k(e, t, i.size || 0, r, h);
-			if (this.maxEntrySize && c > this.maxEntrySize) return this.#v(e, "set"), h && (h.set = "miss", h.maxEntrySizeExceeded = !0), this;
-			let f = this.#n === 0 ? void 0 : this.#s.get(e);
-			if (f === void 0) f = this.#n === 0 ? this.#h : this.#y.length !== 0 ? this.#y.pop() : this.#n === this.#o ? this.#G(!1) : this.#n, this.#i[f] = e, this.#t[f] = t, this.#s.set(e, f), this.#a[this.#h] = f, this.#c[f] = this.#h, this.#h = f, this.#n++, this.#I(f, c, h), h && (h.set = "add"), l = !1, this.#j && this.#D?.(t, e, "add");
+		#W(e, t, i, s) {
+			let { ttl: n = this.ttl, start: r, noDisposeOnSet: h = this.noDisposeOnSet, sizeCalculation: a = this.sizeCalculation, status: o } = i, d = this.#e(t);
+			if (t === void 0) return o && (o.set = "deleted"), this.delete(e), this;
+			let { noUpdateTTL: y = this.noUpdateTTL } = i;
+			o && !d && (o.value = t);
+			let _ = this.#N(e, t, i.size || 0, a, o);
+			if (this.maxEntrySize && _ > this.maxEntrySize) return this.#E(e, "set"), o && (o.set = "miss", o.maxEntrySizeExceeded = !0), this;
+			let c = this.#n === 0 ? void 0 : this.#s.get(e);
+			if (c === void 0) c = this.#n === 0 ? this.#h : this.#y.length !== 0 ? this.#y.pop() : this.#n === this.#o ? this.#G(!1) : this.#n, this.#i[c] = e, this.#t[c] = t, this.#s.set(e, c), this.#l[this.#h] = c, this.#u[c] = this.#h, this.#h = c, this.#n++, this.#j(c, _, o), o && (o.set = "add"), y = !1, this.#x && !d && this.#O?.(t, e, "add");
 			else {
-				this.#L(f);
-				let g = this.#t[f];
+				this.#L(c);
+				let g = this.#t[c];
 				if (t !== g) {
-					if (this.#W && this.#e(g)) {
-						g.__abortController.abort(/* @__PURE__ */ new Error("replaced"));
-						let { __staleWhileFetching: p } = g;
-						p !== void 0 && !o && (this.#T && this.#w?.(p, e, "set"), this.#f && this.#r?.push([
-							p,
+					if (!h) if (this.#e(g)) {
+						g !== s && g.__abortController.abort(/* @__PURE__ */ new Error("replaced"));
+						let { __staleWhileFetching: f } = g;
+						f !== void 0 && f !== t && (this.#T && this.#S?.(f, e, "set"), this.#f && this.#r?.push([
+							f,
 							e,
 							"set"
 						]));
-					} else o || (this.#T && this.#w?.(g, e, "set"), this.#f && this.#r?.push([
+					} else this.#T && this.#S?.(g, e, "set"), this.#f && this.#r?.push([
 						g,
 						e,
 						"set"
-					]));
-					if (this.#R(f), this.#I(f, c, h), this.#t[f] = t, h) {
-						h.set = "replace";
-						let p = g && this.#e(g) ? g.__staleWhileFetching : g;
-						p !== void 0 && (h.oldValue = p);
+					]);
+					if (this.#R(c), this.#j(c, _, o), this.#t[c] = t, !d) {
+						let f = g && this.#e(g) ? g.__staleWhileFetching : g, b = f === void 0 ? "add" : t !== f ? "replace" : "update";
+						o && (o.set = b, f !== void 0 && (o.oldValue = f)), this.#x && this.onInsert?.(t, e, b);
 					}
-				} else h && (h.set = "update");
-				this.#j && this.onInsert?.(t, e, t === g ? "update" : "replace");
+				} else d || (o && (o.set = "update"), this.#x && this.onInsert?.(t, e, "update"));
 			}
-			if (s !== 0 && !this.#d && this.#H(), this.#d && (l || this.#N(f, s, n), h && this.#E(h, f)), !o && this.#f && this.#r) {
-				let g = this.#r, p;
-				for (; p = g?.shift();) this.#S?.(...p);
+			if (n !== 0 && !this.#d && this.#k(), this.#d && (y || this.#H(c, n, r), o && this.#v(o, c)), !h && this.#f && this.#r) {
+				let g = this.#r, f;
+				for (; f = g?.shift();) this.#w?.(...f);
 			}
 			return this;
 		}
 		pop() {
 			try {
 				for (; this.#n;) {
-					let e = this.#t[this.#l];
+					let e = this.#t[this.#a];
 					if (this.#G(!0), this.#e(e)) {
 						if (e.__staleWhileFetching) return e.__staleWhileFetching;
 					} else if (e !== void 0) return e;
@@ -30116,37 +30500,39 @@ var init_index_min = __esmMin((() => {
 			} finally {
 				if (this.#f && this.#r) {
 					let e = this.#r, t;
-					for (; t = e?.shift();) this.#S?.(...t);
+					for (; t = e?.shift();) this.#w?.(...t);
 				}
 			}
 		}
 		#G(e) {
-			let t = this.#l, i = this.#i[t], s = this.#t[t];
-			return this.#W && this.#e(s) ? s.__abortController.abort(/* @__PURE__ */ new Error("evicted")) : (this.#T || this.#f) && (this.#T && this.#w?.(s, i, "evict"), this.#f && this.#r?.push([
-				s,
+			let t = this.#a, i = this.#i[t], s = this.#t[t], n = this.#e(s);
+			n && s.__abortController.abort(/* @__PURE__ */ new Error("evicted"));
+			let r = n ? s.__staleWhileFetching : s;
+			return (this.#T || this.#f) && r !== void 0 && (this.#T && this.#S?.(r, i, "evict"), this.#f && this.#r?.push([
+				r,
 				i,
 				"evict"
-			])), this.#R(t), this.#g?.[t] && (clearTimeout(this.#g[t]), this.#g[t] = void 0), e && (this.#i[t] = void 0, this.#t[t] = void 0, this.#y.push(t)), this.#n === 1 ? (this.#l = this.#h = 0, this.#y.length = 0) : this.#l = this.#a[t], this.#s.delete(i), this.#n--, t;
+			])), this.#R(t), this.#g?.[t] && (clearTimeout(this.#g[t]), this.#g[t] = void 0), e && (this.#i[t] = void 0, this.#t[t] = void 0, this.#y.push(t)), this.#n === 1 ? (this.#a = this.#h = 0, this.#y.length = 0) : this.#a = this.#l[t], this.#s.delete(i), this.#n--, t;
 		}
 		has(e, t = {}) {
 			let { status: i = S.hasSubscribers ? {} : void 0 } = t;
-			t.status = i, i && (i.op = "has", i.key = e);
+			t.status = i, i && (i.op = "has", i.key = e, i.cache = this);
 			let s = this.#Y(e, t);
 			return S.hasSubscribers && S.publish(i), s;
 		}
 		#Y(e, t = {}) {
 			let { updateAgeOnHas: i = this.updateAgeOnHas, status: s } = t, n = this.#s.get(e);
 			if (n !== void 0) {
-				let o = this.#t[n];
-				if (this.#e(o) && o.__staleWhileFetching === void 0) return !1;
-				if (this.#p(n)) s && (s.has = "stale", this.#E(s, n));
-				else return i && this.#x(n), s && (s.has = "hit", this.#E(s, n)), !0;
+				let r = this.#t[n];
+				if (this.#e(r) && r.__staleWhileFetching === void 0) return !1;
+				if (this.#p(n)) s && (s.has = "stale", this.#v(s, n));
+				else return i && this.#D(n), s && (s.has = "hit", this.#v(s, n)), !0;
 			} else s && (s.has = "miss");
 			return !1;
 		}
 		peek(e, t = {}) {
 			let { status: i = D() ? {} : void 0 } = t;
-			i && (i.op = "peek", i.key = e), t.status = i;
+			i && (i.op = "peek", i.key = e, i.cache = this), t.status = i;
 			let s = this.#J(e, t);
 			return S.hasSubscribers && S.publish(i), s;
 		}
@@ -30156,46 +30542,46 @@ var init_index_min = __esmMin((() => {
 				i && (i.peek = n === void 0 ? "miss" : "stale");
 				return;
 			}
-			let o = this.#t[n], r = this.#e(o) ? o.__staleWhileFetching : o;
-			return i && (r !== void 0 ? (i.peek = "hit", i.value = r) : i.peek = "miss"), r;
+			let r = this.#t[n], h = this.#e(r) ? r.__staleWhileFetching : r;
+			return i && (h !== void 0 ? (i.peek = "hit", i.value = h) : i.peek = "miss"), h;
 		}
 		#P(e, t, i, s) {
 			let n = t === void 0 ? void 0 : this.#t[t];
 			if (this.#e(n)) return n;
-			let o = new AbortController(), { signal: r } = i;
-			r?.addEventListener("abort", () => o.abort(r.reason), { signal: o.signal });
-			let h = {
-				signal: o.signal,
+			let r = new AbortController(), { signal: h } = i;
+			h?.addEventListener("abort", () => r.abort(h.reason), { signal: r.signal });
+			let a = {
+				signal: r.signal,
 				options: i,
 				context: s
-			}, l = (w, y = !1) => {
-				let { aborted: a } = o.signal, m = i.ignoreFetchAbort && w !== void 0, _ = i.ignoreFetchAbort || !!(i.allowStaleOnFetchAbort && w !== void 0);
-				if (i.status && (a && !y ? (i.status.fetchAborted = !0, i.status.fetchError = o.signal.reason, m && (i.status.fetchAbortIgnored = !0)) : i.status.fetchResolved = !0), a && !m && !y) return f(o.signal.reason, _);
-				let b = p, d = this.#t[t];
-				return (d === p || d === void 0 && m && y) && (w === void 0 ? b.__staleWhileFetching !== void 0 ? this.#t[t] = b.__staleWhileFetching : this.#v(e, "fetch") : (i.status && (i.status.fetchUpdated = !0), this.#O(e, w, h.options))), w;
-			}, c = (w) => (i.status && (i.status.fetchRejected = !0, i.status.fetchError = w), f(w, !1)), f = (w, y) => {
-				let { aborted: a } = o.signal, m = a && i.allowStaleOnFetchAbort, _ = m || i.allowStaleOnFetchRejection, b = _ || i.noDeleteOnFetchRejection, d = p;
-				if (this.#t[t] === p && (!b || !y && d.__staleWhileFetching === void 0 ? this.#v(e, "fetch") : m || (this.#t[t] = d.__staleWhileFetching)), _) return i.status && d.__staleWhileFetching !== void 0 && (i.status.returnedStale = !0), d.__staleWhileFetching;
-				if (d.__returned === d) throw w;
-			}, g = (w, y) => {
-				let a = this.#M?.(e, n, h);
-				a && a instanceof Promise && a.then((m) => w(m === void 0 ? void 0 : m), y), o.signal.addEventListener("abort", () => {
-					(!i.ignoreFetchAbort || i.allowStaleOnFetchAbort) && (w(void 0), i.allowStaleOnFetchAbort && (w = (m) => l(m, !0)));
-				});
+			}, o = (f, b = !1) => {
+				let { aborted: l } = r.signal, w = i.ignoreFetchAbort && f !== void 0, F = i.ignoreFetchAbort || !!(i.allowStaleOnFetchAbort && f !== void 0);
+				if (i.status && (l && !b ? (i.status.fetchAborted = !0, i.status.fetchError = r.signal.reason, w && (i.status.fetchAbortIgnored = !0)) : i.status.fetchResolved = !0), l && !w && !b) return y(r.signal.reason, F);
+				let m = c, p = this.#t[t];
+				return (p === c || p === void 0 && w && b) && (f === void 0 ? m.__staleWhileFetching !== void 0 ? this.#t[t] = m.__staleWhileFetching : this.#E(e, "fetch") : (i.status && (i.status.fetchUpdated = !0), this.#W(e, f, a.options, m))), f;
+			}, d = (f) => (i.status && (i.status.fetchRejected = !0, i.status.fetchError = f), y(f, !1)), y = (f, b) => {
+				let { aborted: l } = r.signal, w = l && i.allowStaleOnFetchAbort, F = w || i.allowStaleOnFetchRejection, m = F || i.noDeleteOnFetchRejection, p = c;
+				if (this.#t[t] === c && (!m || !b && p.__staleWhileFetching === void 0 ? this.#E(e, "fetch") : w || (this.#t[t] = p.__staleWhileFetching)), F) return i.status && p.__staleWhileFetching !== void 0 && (i.status.returnedStale = !0), p.__staleWhileFetching;
+				if (p.__returned === p) throw f;
+			}, _ = (f, b) => {
+				let l = this.#M?.(e, n, a);
+				r.signal.addEventListener("abort", () => {
+					(!i.ignoreFetchAbort || i.allowStaleOnFetchAbort) && (f(void 0), i.allowStaleOnFetchAbort && (f = (w) => o(w, !0)));
+				}), l && l instanceof Promise ? l.then((w) => f(w === void 0 ? void 0 : w), b) : l !== void 0 && f(l);
 			};
 			i.status && (i.status.fetchDispatched = !0);
-			let p = new Promise(g).then(l, c), T = Object.assign(p, {
-				__abortController: o,
+			let c = new Promise(_).then(o, d), g = Object.assign(c, {
+				__abortController: r,
 				__staleWhileFetching: n,
 				__returned: void 0
 			});
-			return t === void 0 ? (this.#O(e, T, {
-				...h.options,
+			return t === void 0 ? (this.#W(e, g, {
+				...a.options,
 				status: void 0
-			}), t = this.#s.get(e)) : this.#t[t] = T, T;
+			}), t = this.#s.get(e)) : this.#t[t] = g, g;
 		}
 		#e(e) {
-			if (!this.#W) return !1;
+			if (!this.#U) return !1;
 			let t = e;
 			return !!t && t instanceof Promise && t.hasOwnProperty("__staleWhileFetching") && t.__abortController instanceof AbortController;
 		}
@@ -30203,53 +30589,53 @@ var init_index_min = __esmMin((() => {
 			let i = W.hasSubscribers, { status: s = D() ? {} : void 0 } = t;
 			t.status = s, s && t.context && (s.context = t.context);
 			let n = this.#B(e, t);
-			return s && D() && i && (s.trace = !0, W.tracePromise(() => n, s).catch(() => {})), n;
+			return s && i && (s.trace = !0, W.tracePromise(() => n, s).catch(() => {})), n;
 		}
 		async #B(e, t = {}) {
-			let { allowStale: i = this.allowStale, updateAgeOnGet: s = this.updateAgeOnGet, noDeleteOnStaleGet: n = this.noDeleteOnStaleGet, ttl: o = this.ttl, noDisposeOnSet: r = this.noDisposeOnSet, size: h = 0, sizeCalculation: l = this.sizeCalculation, noUpdateTTL: c = this.noUpdateTTL, noDeleteOnFetchRejection: f = this.noDeleteOnFetchRejection, allowStaleOnFetchRejection: g = this.allowStaleOnFetchRejection, ignoreFetchAbort: p = this.ignoreFetchAbort, allowStaleOnFetchAbort: T = this.allowStaleOnFetchAbort, context: w, forceRefresh: y = !1, status: a, signal: m } = t;
-			if (a && (a.op = "fetch", a.key = e, y && (a.forceRefresh = !0)), !this.#W) return a && (a.fetch = "get"), this.#C(e, {
+			let { allowStale: i = this.allowStale, updateAgeOnGet: s = this.updateAgeOnGet, noDeleteOnStaleGet: n = this.noDeleteOnStaleGet, ttl: r = this.ttl, noDisposeOnSet: h = this.noDisposeOnSet, size: a = 0, sizeCalculation: o = this.sizeCalculation, noUpdateTTL: d = this.noUpdateTTL, noDeleteOnFetchRejection: y = this.noDeleteOnFetchRejection, allowStaleOnFetchRejection: _ = this.allowStaleOnFetchRejection, ignoreFetchAbort: c = this.ignoreFetchAbort, allowStaleOnFetchAbort: g = this.allowStaleOnFetchAbort, context: f, forceRefresh: b = !1, status: l, signal: w } = t;
+			if (l && (l.op = "fetch", l.key = e, b && (l.forceRefresh = !0), l.cache = this), !this.#U) return l && (l.fetch = "get"), this.#C(e, {
 				allowStale: i,
 				updateAgeOnGet: s,
 				noDeleteOnStaleGet: n,
-				status: a
+				status: l
 			});
-			let _ = {
+			let F = {
 				allowStale: i,
 				updateAgeOnGet: s,
 				noDeleteOnStaleGet: n,
-				ttl: o,
-				noDisposeOnSet: r,
-				size: h,
-				sizeCalculation: l,
-				noUpdateTTL: c,
-				noDeleteOnFetchRejection: f,
-				allowStaleOnFetchRejection: g,
-				allowStaleOnFetchAbort: T,
-				ignoreFetchAbort: p,
-				status: a,
-				signal: m
-			}, b = this.#s.get(e);
-			if (b === void 0) {
-				a && (a.fetch = "miss");
-				let d = this.#P(e, b, _, w);
-				return d.__returned = d;
+				ttl: r,
+				noDisposeOnSet: h,
+				size: a,
+				sizeCalculation: o,
+				noUpdateTTL: d,
+				noDeleteOnFetchRejection: y,
+				allowStaleOnFetchRejection: _,
+				allowStaleOnFetchAbort: g,
+				ignoreFetchAbort: c,
+				status: l,
+				signal: w
+			}, m = this.#s.get(e);
+			if (m === void 0) {
+				l && (l.fetch = "miss");
+				let p = this.#P(e, m, F, f);
+				return p.__returned = p;
 			} else {
-				let d = this.#t[b];
-				if (this.#e(d)) {
-					let E = i && d.__staleWhileFetching !== void 0;
-					return a && (a.fetch = "inflight", E && (a.returnedStale = !0)), E ? d.__staleWhileFetching : d.__returned = d;
+				let p = this.#t[m];
+				if (this.#e(p)) {
+					let v = i && p.__staleWhileFetching !== void 0;
+					return l && (l.fetch = "inflight", v && (l.returnedStale = !0)), v ? p.__staleWhileFetching : p.__returned = p;
 				}
-				let A = this.#p(b);
-				if (!y && !A) return a && (a.fetch = "hit"), this.#L(b), s && this.#x(b), a && this.#E(a, b), d;
-				let z = this.#P(e, b, _, w), v = z.__staleWhileFetching !== void 0 && i;
-				return a && (a.fetch = A ? "stale" : "refresh", v && A && (a.returnedStale = !0)), v ? z.__staleWhileFetching : z.__returned = z;
+				let A = this.#p(m);
+				if (!b && !A) return l && (l.fetch = "hit"), this.#L(m), s && this.#D(m), l && this.#v(l, m), p;
+				let z = this.#P(e, m, F, f), E = z.__staleWhileFetching !== void 0 && i;
+				return l && (l.fetch = A ? "stale" : "refresh", E && A && (l.returnedStale = !0)), E ? z.__staleWhileFetching : z.__returned = z;
 			}
 		}
 		forceFetch(e, t = {}) {
 			let i = W.hasSubscribers, { status: s = D() ? {} : void 0 } = t;
 			t.status = s, s && t.context && (s.context = t.context);
 			let n = this.#K(e, t);
-			return s && D() && i && (s.trace = !0, W.tracePromise(() => n, s).catch(() => {})), n;
+			return s && i && (s.trace = !0, W.tracePromise(() => n, s).catch(() => {})), n;
 		}
 		async #K(e, t = {}) {
 			let i = await this.#B(e, t);
@@ -30258,52 +30644,53 @@ var init_index_min = __esmMin((() => {
 		}
 		memo(e, t = {}) {
 			let { status: i = S.hasSubscribers ? {} : void 0 } = t;
-			t.status = i, i && (i.op = "memo", i.key = e, t.context && (i.context = t.context));
+			t.status = i, i && (i.op = "memo", i.key = e, t.context && (i.context = t.context), i.cache = this);
 			let s = this.#Q(e, t);
 			return i && (i.value = s), S.hasSubscribers && S.publish(i), s;
 		}
 		#Q(e, t = {}) {
-			let i = this.#U;
+			let i = this.#I;
 			if (!i) throw new Error("no memoMethod provided to constructor");
-			let { context: s, status: n, forceRefresh: o, ...r } = t;
-			n && o && (n.forceRefresh = !0);
-			let h = this.#C(e, r), l = o || h === void 0;
-			if (n && (n.memo = l ? "miss" : "hit", l || (n.value = h)), !l) return h;
-			let c = i(e, h, {
-				options: r,
+			let { context: s, status: n, forceRefresh: r, ...h } = t;
+			n && r && (n.forceRefresh = !0);
+			let a = this.#C(e, h), o = r || a === void 0;
+			if (n && (n.memo = o ? "miss" : "hit", o || (n.value = a)), !o) return a;
+			let d = i(e, a, {
+				options: h,
 				context: s
 			});
-			return n && (n.value = c), this.#O(e, c, r), c;
+			return n && (n.value = d), this.#W(e, d, h), d;
 		}
 		get(e, t = {}) {
 			let { status: i = S.hasSubscribers ? {} : void 0 } = t;
-			t.status = i, i && (i.op = "get", i.key = e);
+			t.status = i, i && (i.op = "get", i.key = e, i.cache = this);
 			let s = this.#C(e, t);
 			return i && (s !== void 0 && (i.value = s), S.hasSubscribers && S.publish(i)), s;
 		}
 		#C(e, t = {}) {
-			let { allowStale: i = this.allowStale, updateAgeOnGet: s = this.updateAgeOnGet, noDeleteOnStaleGet: n = this.noDeleteOnStaleGet, status: o } = t, r = this.#s.get(e);
-			if (r === void 0) {
-				o && (o.get = "miss");
+			let { allowStale: i = this.allowStale, updateAgeOnGet: s = this.updateAgeOnGet, noDeleteOnStaleGet: n = this.noDeleteOnStaleGet, status: r } = t, h = this.#s.get(e);
+			if (h === void 0) {
+				r && (r.get = "miss");
 				return;
 			}
-			let h = this.#t[r], l = this.#e(h);
-			return o && this.#E(o, r), this.#p(r) ? l ? (o && (o.get = "stale-fetching"), i && h.__staleWhileFetching !== void 0 ? (o && (o.returnedStale = !0), h.__staleWhileFetching) : void 0) : (n || this.#v(e, "expire"), o && (o.get = "stale"), i ? (o && (o.returnedStale = !0), h) : void 0) : (o && (o.get = l ? "fetching" : "hit"), this.#L(r), s && this.#x(r), l ? h.__staleWhileFetching : h);
+			let a = this.#t[h], o = this.#e(a);
+			return r && this.#v(r, h), this.#p(h) ? o ? (r && (r.get = "stale-fetching"), i && a.__staleWhileFetching !== void 0 ? (r && (r.returnedStale = !0), a.__staleWhileFetching) : void 0) : (n || this.#E(e, "expire"), r && (r.get = "stale"), i ? (r && (r.returnedStale = !0), a) : void 0) : (r && (r.get = o ? "fetching" : "hit"), this.#L(h), s && this.#D(h), o ? a.__staleWhileFetching : a);
 		}
 		#$(e, t) {
-			this.#c[t] = e, this.#a[e] = t;
+			this.#u[t] = e, this.#l[e] = t;
 		}
 		#L(e) {
-			e !== this.#h && (e === this.#l ? this.#l = this.#a[e] : this.#$(this.#c[e], this.#a[e]), this.#$(this.#h, e), this.#h = e);
+			e !== this.#h && (e === this.#a ? this.#a = this.#l[e] : this.#$(this.#u[e], this.#l[e]), this.#$(this.#h, e), this.#h = e);
 		}
 		delete(e) {
-			return this.#v(e, "delete");
+			return this.#E(e, "delete");
 		}
-		#v(e, t) {
+		#E(e, t) {
 			S.hasSubscribers && S.publish({
 				op: "delete",
 				delete: t,
-				key: e
+				key: e,
+				cache: this
 			});
 			let i = !1;
 			if (this.#n !== 0) {
@@ -30312,24 +30699,24 @@ var init_index_min = __esmMin((() => {
 				else {
 					this.#R(s);
 					let n = this.#t[s];
-					if (this.#e(n) ? n.__abortController.abort(/* @__PURE__ */ new Error("deleted")) : (this.#T || this.#f) && (this.#T && this.#w?.(n, e, t), this.#f && this.#r?.push([
+					if (this.#e(n) ? n.__abortController.abort(/* @__PURE__ */ new Error("deleted")) : (this.#T || this.#f) && (this.#T && this.#S?.(n, e, t), this.#f && this.#r?.push([
 						n,
 						e,
 						t
-					])), this.#s.delete(e), this.#i[s] = void 0, this.#t[s] = void 0, s === this.#h) this.#h = this.#c[s];
-					else if (s === this.#l) this.#l = this.#a[s];
+					])), this.#s.delete(e), this.#i[s] = void 0, this.#t[s] = void 0, s === this.#h) this.#h = this.#u[s];
+					else if (s === this.#a) this.#a = this.#l[s];
 					else {
-						let o = this.#c[s];
-						this.#a[o] = this.#a[s];
-						let r = this.#a[s];
-						this.#c[r] = this.#c[s];
+						let r = this.#u[s];
+						this.#l[r] = this.#l[s];
+						let h = this.#l[s];
+						this.#u[h] = this.#u[s];
 					}
 					this.#n--, this.#y.push(s);
 				}
 			}
 			if (this.#f && this.#r?.length) {
 				let s = this.#r, n;
-				for (; n = s?.shift();) this.#S?.(...n);
+				for (; n = s?.shift();) this.#w?.(...n);
 			}
 			return i;
 		}
@@ -30342,7 +30729,7 @@ var init_index_min = __esmMin((() => {
 				if (this.#e(i)) i.__abortController.abort(/* @__PURE__ */ new Error("deleted"));
 				else {
 					let s = this.#i[t];
-					this.#T && this.#w?.(i, s, e), this.#f && this.#r?.push([
+					this.#T && this.#S?.(i, s, e), this.#f && this.#r?.push([
 						i,
 						s,
 						e
@@ -30354,9 +30741,9 @@ var init_index_min = __esmMin((() => {
 				for (let t of this.#g ?? []) t !== void 0 && clearTimeout(t);
 				this.#g?.fill(void 0);
 			}
-			if (this.#_ && this.#_.fill(0), this.#l = 0, this.#h = 0, this.#y.length = 0, this.#b = 0, this.#n = 0, this.#f && this.#r) {
+			if (this.#_ && this.#_.fill(0), this.#a = 0, this.#h = 0, this.#y.length = 0, this.#b = 0, this.#n = 0, this.#f && this.#r) {
 				let t = this.#r, i;
-				for (; i = t?.shift();) this.#S?.(...i);
+				for (; i = t?.shift();) this.#w?.(...i);
 			}
 		}
 	};
@@ -30510,7 +30897,7 @@ var init_assetHelpers = __esmMin((() => {
 	init_index_min();
 	init_address$1();
 	init_tvmStack();
-	jettonMasterByWalletCache = new M({
+	jettonMasterByWalletCache = new U({
 		max: 1e3,
 		ttl: 1e3 * 60 * 10
 	});
@@ -30924,7 +31311,7 @@ var init_utils$2 = __esmMin((() => {
 //#region ../walletkit/dist/esm/handlers/TransactionHandler.js
 var log$28, TransactionHandler;
 var init_TransactionHandler = __esmMin((() => {
-	init_esm$1();
+	init_esm$2();
 	init_Logger();
 	init_BasicHandler();
 	init_events();
@@ -30954,7 +31341,7 @@ var init_TransactionHandler = __esmMin((() => {
 				log$28.error("Wallet not found", { event });
 				return {
 					error: {
-						code: SEND_TRANSACTION_ERROR_CODES.UNKNOWN_APP_ERROR,
+						code: SEND_TRANSACTION_ERROR_CODES$1.UNKNOWN_APP_ERROR,
 						message: "Wallet not found"
 					},
 					id: event.id
@@ -30969,7 +31356,7 @@ var init_TransactionHandler = __esmMin((() => {
 				this.eventEmitter.emit("eventError", event, "transaction-handler");
 				return {
 					error: {
-						code: SEND_TRANSACTION_ERROR_CODES.BAD_REQUEST_ERROR,
+						code: SEND_TRANSACTION_ERROR_CODES$1.BAD_REQUEST_ERROR,
 						message: "Failed to parse transaction request"
 					},
 					id: event.id
@@ -31113,7 +31500,7 @@ var init_SignDataHandler = __esmMin((() => {
 //#region ../walletkit/dist/esm/handlers/SignMessageHandler.js
 var log$26, SignMessageHandler;
 var init_SignMessageHandler = __esmMin((() => {
-	init_esm$1();
+	init_esm$2();
 	init_Logger();
 	init_BasicHandler();
 	init_utils$2();
@@ -31520,7 +31907,7 @@ function toTonConnectSignDataPayload(payload) {
 var import_dist$16, import_dist$17, log$24, RequestProcessor;
 var init_RequestProcessor = __esmMin((() => {
 	import_dist$16 = require_dist$1();
-	init_esm$1();
+	init_esm$2();
 	import_dist$17 = require_dist$2();
 	init_Logger();
 	init_tonProof();
@@ -31739,7 +32126,7 @@ var init_RequestProcessor = __esmMin((() => {
 					event: "connect_error",
 					id: 1,
 					payload: {
-						code: errorCode ?? CONNECT_EVENT_ERROR_CODES.USER_REJECTS_ERROR,
+						code: errorCode ?? CONNECT_EVENT_ERROR_CODES$1.USER_REJECTS_ERROR,
 						message: reason || "User rejected connection"
 					}
 				};
@@ -31834,7 +32221,7 @@ var init_RequestProcessor = __esmMin((() => {
 			try {
 				const response = typeof reason === "string" || typeof reason === "undefined" ? {
 					error: {
-						code: SEND_TRANSACTION_ERROR_CODES.USER_REJECTS_ERROR,
+						code: SEND_TRANSACTION_ERROR_CODES$1.USER_REJECTS_ERROR,
 						message: reason || "User rejected transaction"
 					},
 					id: event.id
@@ -32022,7 +32409,7 @@ var init_RequestProcessor = __esmMin((() => {
 			try {
 				const response = typeof reason === "string" || typeof reason === "undefined" ? {
 					error: {
-						code: SIGN_DATA_ERROR_CODES.USER_REJECTS_ERROR,
+						code: SIGN_DATA_ERROR_CODES$1.USER_REJECTS_ERROR,
 						message: reason || "User rejected transaction"
 					},
 					id: event.id
@@ -33027,7 +33414,7 @@ var init_JettonsManager = __esmMin((() => {
 		constructor(cacheSize = 1e4, eventEmitter, networkManager) {
 			this.eventEmitter = eventEmitter;
 			this.networkManager = networkManager;
-			this.cache = new M({
+			this.cache = new U({
 				max: cacheSize,
 				ttl: 1e3 * 60 * 10
 			});
@@ -33947,7 +34334,14 @@ var init_generated = __esmMin((() => {
 		};
 	};
 	Api = class extends HttpClient {
-		events = { eventsCreate: (events, params = {}) => this.request({
+		events = { 
+		/**
+		* No description
+		*
+		* @name EventsCreate
+		* @request POST:/events
+		*/
+eventsCreate: (events, params = {}) => this.request({
 			path: `/events`,
 			method: "POST",
 			body: events,
@@ -35374,7 +35768,7 @@ function toEmbeddedRequest(parsed) {
 }
 var log$11;
 var init_embeddedRequest = __esmMin((() => {
-	init_esm$1();
+	init_esm$2();
 	init_internal();
 	init_Logger();
 	log$11 = globalLogger.createChild("embeddedRequestParser");
@@ -35384,7 +35778,7 @@ var init_embeddedRequest = __esmMin((() => {
 var import_dist$12, log$10, TonWalletKit$1;
 var init_TonWalletKit = __esmMin((() => {
 	import_dist$12 = require_dist$1();
-	init_esm$1();
+	init_esm$2();
 	init_Initializer();
 	init_Logger();
 	init_JettonsManager();
@@ -35490,7 +35884,7 @@ var init_TonWalletKit = __esmMin((() => {
 				event: "connect_error",
 				id: Date.now(),
 				payload: {
-					code: CONNECT_EVENT_ERROR_CODES.UNKNOWN_APP_ERROR,
+					code: CONNECT_EVENT_ERROR_CODES$1.UNKNOWN_APP_ERROR,
 					message: ""
 				}
 			};
@@ -38343,7 +38737,7 @@ var init_TonStreamingV2BaseProvider = __esmMin((() => {
 		requestId = 0;
 		lastAddresses = /* @__PURE__ */ new Set();
 		syncTimer = null;
-		traceCache = new M({ max: 1e4 });
+		traceCache = new U({ max: 1e4 });
 		constructor(_ctx, options) {
 			super();
 			this.providerId = options.providerId;
@@ -38631,7 +39025,7 @@ var esm_exports = /* @__PURE__ */ __exportAll({
 	Base64ToHex: () => Base64ToHex,
 	Base64ToUint8Array: () => Base64ToUint8Array,
 	BigIntToBase64: () => BigIntToBase64,
-	BridgeError: () => BridgeError,
+	BridgeError: () => BridgeError$1,
 	BridgeManager: () => BridgeManager,
 	CallForSuccess: () => CallForSuccess,
 	ConnectHandler: () => ConnectHandler,
@@ -38670,7 +39064,7 @@ var esm_exports = /* @__PURE__ */ __exportAll({
 	RESTORE_CONNECTION_TIMEOUT: () => RESTORE_CONNECTION_TIMEOUT,
 	RequestProcessor: () => RequestProcessor,
 	Result: () => Result,
-	SEND_TRANSACTION_ERROR_CODES: () => SEND_TRANSACTION_ERROR_CODES,
+	SEND_TRANSACTION_ERROR_CODES: () => SEND_TRANSACTION_ERROR_CODES$1,
 	SendModeBase: () => SendModeBase,
 	SendModeFlag: () => SendModeFlag,
 	SerializeStack: () => SerializeStack,
@@ -38751,7 +39145,7 @@ var esm_exports = /* @__PURE__ */ __exportAll({
 	wrapWalletInterface: () => wrapWalletInterface
 });
 var init_esm = __esmMin((() => {
-	init_esm$1();
+	init_esm$2();
 	init_TonWalletKit();
 	init_types$2();
 	init_errors$3();
@@ -38946,130 +39340,6 @@ var AndroidTONConnectSessionsManager = class {
 	}
 };
 //#endregion
-//#region src/adapters/AndroidAPIClientAdapter.ts
-/**
-* Android native API client adapter.
-* Uses Android's JavascriptInterface methods for API calls.
-* Similar to SwiftAPIClientAdapter for iOS.
-*/
-var AndroidAPIClientAdapter = class {
-	constructor(network) {
-		const androidWindow = window;
-		if (!androidWindow.WalletKitNative) throw new Error("WalletKitNative bridge not available");
-		this.androidBridge = androidWindow.WalletKitNative;
-		this.network = network;
-	}
-	getNetwork() {
-		return this.network;
-	}
-	/**
-	* Check if native API clients are available.
-	*/
-	static isAvailable() {
-		return typeof window.WalletKitNative?.apiGetNetworks === "function";
-	}
-	/**
-	* Get all networks that have native API clients configured.
-	*/
-	static getAvailableNetworks() {
-		const androidWindow = window;
-		if (!androidWindow.WalletKitNative?.apiGetNetworks) return [];
-		try {
-			const networksJson = androidWindow.WalletKitNative.apiGetNetworks();
-			return JSON.parse(networksJson);
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] Failed to get available networks:", err);
-			return [];
-		}
-	}
-	async sendBoc(boc) {
-		try {
-			const networkJson = JSON.stringify(this.network);
-			return this.androidBridge.apiSendBoc(networkJson, boc);
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] sendBoc failed:", err);
-			throw err;
-		}
-	}
-	async runGetMethod(address, method, stack, seqno) {
-		try {
-			const networkJson = JSON.stringify(this.network);
-			const stackJson = stack ? JSON.stringify(stack) : null;
-			const seqnoArg = seqno ?? -1;
-			const resultJson = this.androidBridge.apiRunGetMethod(networkJson, address, method, stackJson, seqnoArg);
-			return JSON.parse(resultJson);
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] runGetMethod failed:", err);
-			throw err;
-		}
-	}
-	async nftItemsByAddress(_request) {
-		throw new Error("nftItemsByAddress is not implemented yet");
-	}
-	async nftItemsByOwner(_request) {
-		throw new Error("nftItemsByOwner is not implemented yet");
-	}
-	async fetchEmulation(_messageBoc, _ignoreSignature) {
-		throw new Error("fetchEmulation is not implemented yet");
-	}
-	async getAccountState(_address, _seqno) {
-		throw new Error("getAccountState is not implemented yet");
-	}
-	async getAccountStates(_addresses) {
-		throw new Error("getAccountStates is not implemented yet");
-	}
-	async getBalance(address, seqno) {
-		try {
-			const networkJson = JSON.stringify(this.network);
-			const seqnoArg = seqno ?? -1;
-			return this.androidBridge.apiGetBalance(networkJson, address, seqnoArg);
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] getBalance failed:", err);
-			throw err;
-		}
-	}
-	async getAccountTransactions(_request) {
-		throw new Error("getAccountTransactions is not implemented yet");
-	}
-	async getTransactionsByHash(_request) {
-		throw new Error("getTransactionsByHash is not implemented yet");
-	}
-	async getPendingTransactions(_request) {
-		throw new Error("getPendingTransactions is not implemented yet");
-	}
-	async getTrace(_request) {
-		throw new Error("getTrace is not implemented yet");
-	}
-	async getPendingTrace(_request) {
-		throw new Error("getPendingTrace is not implemented yet");
-	}
-	async resolveDnsWallet(_domain) {
-		throw new Error("resolveDnsWallet is not implemented yet");
-	}
-	async backResolveDnsWallet(_address) {
-		throw new Error("backResolveDnsWallet is not implemented yet");
-	}
-	async jettonsByAddress(_request) {
-		throw new Error("jettonsByAddress is not implemented yet");
-	}
-	async jettonsByOwnerAddress(_request) {
-		throw new Error("jettonsByOwnerAddress is not implemented yet");
-	}
-	async getEvents(_request) {
-		throw new Error("getEvents is not implemented yet");
-	}
-	async getMasterchainInfo() {
-		try {
-			const networkJson = JSON.stringify(this.network);
-			const resultJson = this.androidBridge.apiGetMasterchainInfo(networkJson);
-			return JSON.parse(resultJson);
-		} catch (err) {
-			error("[AndroidAPIClientAdapter] getMasterchainInfo failed:", err);
-			throw err;
-		}
-	}
-};
-//#endregion
 //#region src/utils/serialization.ts
 /**
 * Copyright (c) TonTech.
@@ -39147,10 +39417,44 @@ function installPortHandshake() {
 //#region src/transport/nativeBridge.ts
 init_dist();
 var pendingRequests = /* @__PURE__ */ new Map();
+/** Structured failure for every bridge call. Distinguishes wire-level vs. host vs. decode. */
+var BridgeError = class extends Error {
+	constructor(kind, method, options) {
+		super(`[bridge:${kind}] ${method}${options?.raw ? ` raw=${truncate(options.raw)}` : ""}`);
+		this.kind = kind;
+		this.method = method;
+		this.name = "BridgeError";
+		if (options?.cause !== void 0) this.cause = options.cause;
+	}
+};
+function truncate(s, max = 200) {
+	return s.length <= max ? s : `${s.slice(0, max)}…(${s.length} chars)`;
+}
+/** Sync host call via @JavascriptInterface — returns the raw string the host produced. */
 function bridgeRequestSync(method, params) {
 	const native = window.WalletKitNative;
-	if (!native || typeof native.adapterCallSync !== "function") throw new Error("WalletKitNative.adapterCallSync not available");
-	return native.adapterCallSync(method, JSON.stringify(params));
+	if (!native || typeof native.adapterCallSync !== "function") throw new BridgeError("bridge_unavailable", method);
+	try {
+		return native.adapterCallSync(method, JSON.stringify(params, bigIntReplacer));
+	} catch (cause) {
+		throw new BridgeError("native_threw", method, { cause });
+	}
+}
+/** Sync host call with JSON-parsed return. Optional [decode] runs after parse. */
+function bridgeRequestSyncTyped(method, params, decode) {
+	const raw = bridgeRequestSync(method, params);
+	try {
+		const parsed = JSON.parse(raw);
+		return decode ? decode(parsed) : parsed;
+	} catch (cause) {
+		throw new BridgeError("decode_failed", method, {
+			cause,
+			raw
+		});
+	}
+}
+function isBridgeAvailable() {
+	return typeof window.WalletKitNative?.adapterCallSync === "function";
 }
 function bridgeRequest(method, params) {
 	const id = v7();
@@ -39166,23 +39470,6 @@ function bridgeRequest(method, params) {
 			params
 		});
 	});
-}
-/**
-* Reconstructs a native callback that crossed the bridge as a WrappedFunctionRef into a callable.
-* The function itself can't be serialized, so the returned wrapper forwards its arguments through
-* the async `callByReference` reverse-RPC method. Returns undefined when there's no reference.
-* Wrappers are memoized under window.wrapped_funcs (keyed by reference id), not on global scope.
-*/
-function unwrapRef(ref) {
-	if (!ref?.__wrappedFn) return;
-	const refId = ref.__wrappedFn;
-	const registry = window;
-	registry.wrapped_funcs ??= {};
-	registry.wrapped_funcs[refId] ??= (...args) => bridgeRequest("callByReference", {
-		refId,
-		args
-	});
-	return registry.wrapped_funcs[refId];
 }
 function handleNativeResponse(id, resultJson, errorJson) {
 	const entry = pendingRequests.get(id);
@@ -39218,6 +39505,122 @@ function postToNative(payload) {
 	sendToNative(JSON.stringify(payload, bigIntReplacer));
 }
 //#endregion
+//#region src/adapters/AndroidAPIClientAdapter.ts
+/**
+* Android native API client adapter — TS counterpart to the Kotlin `TONAPIClient`.
+*
+* Every method dispatches through the single sync bridge entry point
+* (`window.WalletKitNative.adapterCallSync`) under the `api.*` namespace. The adapter
+* only constructs the params object and picks whether the response is a raw string or
+* a JSON-encoded value — JSON marshalling and error wrapping live in [bridgeRequestSync].
+*
+* Methods iOS's `SwiftAPIClientAdapter` throws on (the ones the Swift host doesn't
+* delegate either) are thrown here too — keeps the two adapters at parity until the
+* host implements them. Bridge-availability checks belong to the bootstrap layer, not here.
+*/
+var AndroidAPIClientAdapter = class {
+	constructor(network) {
+		this.network = network;
+		this.chainId = network.chainId;
+	}
+	getNetwork() {
+		return this.network;
+	}
+	async sendBoc(boc) {
+		return bridgeRequestSync("api.sendBoc", {
+			chainId: this.chainId,
+			boc
+		});
+	}
+	async runGetMethod(address, method, stack, seqno) {
+		return bridgeRequestSyncTyped("api.runGetMethod", {
+			chainId: this.chainId,
+			address,
+			method,
+			stack,
+			seqno
+		});
+	}
+	async getMasterchainInfo() {
+		return bridgeRequestSyncTyped("api.getMasterchainInfo", { chainId: this.chainId });
+	}
+	async nftItemsByAddress(request) {
+		return bridgeRequestSyncTyped("api.nftItemsByAddress", {
+			chainId: this.chainId,
+			request
+		});
+	}
+	async nftItemsByOwner(request) {
+		return bridgeRequestSyncTyped("api.nftItemsByOwner", {
+			chainId: this.chainId,
+			request
+		});
+	}
+	async fetchEmulation(messageBoc, ignoreSignature) {
+		return bridgeRequestSyncTyped("api.fetchEmulation", {
+			chainId: this.chainId,
+			messageBoc,
+			ignoreSignature
+		});
+	}
+	async getAccountState(address, seqno) {
+		return bridgeRequestSyncTyped("api.getAccountState", {
+			chainId: this.chainId,
+			address,
+			seqno
+		});
+	}
+	async getAccountStates(addresses) {
+		return bridgeRequestSyncTyped("api.getAccountStates", {
+			chainId: this.chainId,
+			addresses
+		});
+	}
+	async getBalance(address, seqno) {
+		return bridgeRequestSync("api.getBalance", {
+			chainId: this.chainId,
+			address,
+			seqno
+		});
+	}
+	async resolveDnsWallet(domain) {
+		return bridgeRequestSync("api.resolveDnsWallet", {
+			chainId: this.chainId,
+			domain
+		}) || void 0;
+	}
+	async backResolveDnsWallet(address) {
+		return bridgeRequestSync("api.backResolveDnsWallet", {
+			chainId: this.chainId,
+			address
+		}) || void 0;
+	}
+	async getAccountTransactions(_request) {
+		throw new Error("getAccountTransactions is not implemented yet");
+	}
+	async getTransactionsByHash(_request) {
+		throw new Error("getTransactionsByHash is not implemented yet");
+	}
+	async getPendingTransactions(_request) {
+		throw new Error("getPendingTransactions is not implemented yet");
+	}
+	async getTrace(_request) {
+		throw new Error("getTrace is not implemented yet");
+	}
+	async getPendingTrace(_request) {
+		throw new Error("getPendingTrace is not implemented yet");
+	}
+	async jettonsByAddress(_request) {
+		throw new Error("jettonsByAddress is not implemented yet");
+	}
+	async jettonsByOwnerAddress(_request) {
+		throw new Error("jettonsByOwnerAddress is not implemented yet");
+	}
+	async getEvents(_request) {
+		throw new Error("getEvents is not implemented yet");
+	}
+};
+//#endregion
 //#region src/core/initialization.ts
 init_JSBridgeInjector();
 /**
@@ -39245,12 +39648,8 @@ async function initTonWalletKit(config, deps) {
 		else apiClient = netConfig.apiClientConfiguration;
 		networksConfig[netConfig.network.chainId] = { apiClient };
 	}
-	if (AndroidAPIClientAdapter.isAvailable()) {
-		const availableNetworks = AndroidAPIClientAdapter.getAvailableNetworks();
-		for (const nativeNetwork of availableNetworks) networksConfig[nativeNetwork.chainId] = { apiClient: new AndroidAPIClientAdapter(nativeNetwork) };
-	}
+	if (isBridgeAvailable()) for (const nativeNetwork of bridgeRequestSyncTyped("api.getNetworks", {})) networksConfig[nativeNetwork.chainId] = { apiClient: new AndroidAPIClientAdapter(nativeNetwork) };
 	const kitOptions = { networks: networksConfig };
-	kitOptions.fetchManifest = unwrapRef(config?.fetchManifest);
 	const devOptions = {};
 	if (config?.disableNetworkSend) devOptions.disableNetworkSend = true;
 	if (Object.keys(devOptions).length > 0) kitOptions.dev = devOptions;
@@ -39672,6 +40071,9 @@ async function getWalletById(args) {
 async function getWalletAddress(args) {
 	return wallet(args.walletId, "getAddress");
 }
+async function getWalletNetwork(args) {
+	return wallet(args.walletId, "getNetwork");
+}
 async function removeWallet(args) {
 	return kit("removeWallet", args.walletId);
 }
@@ -40059,7 +40461,7 @@ var StakingCache = class {
 	defaultTtl;
 	constructor(maxSize = 100, defaultTtl = CACHE_TIMEOUT) {
 		this.defaultTtl = defaultTtl;
-		this.cache = new M({ max: maxSize });
+		this.cache = new U({ max: maxSize });
 	}
 	async get(key, fetcher, ttl = this.defaultTtl) {
 		const cached = this.cache.get(key);
@@ -40422,8 +40824,7 @@ var TonStakersStakingProvider = class TonStakersStakingProvider extends StakingP
 //#region src/api/staking.ts
 /**
 * JS-side proxy that implements [StakingProviderInterface] by forwarding every call to a
-* Kotlin-implemented `ITONStakingProvider` via reverse-RPC. Mirrors the streaming
-* `ProxyStreamingProvider` pattern.
+* Kotlin-implemented `ITONStakingProvider` via reverse-RPC.
 *
 * `getStakingProviderMetadata` and `getSupportedNetworks` are synchronous per the interface
 * contract, so both values are passed in at registration and cached on this instance.
@@ -40482,8 +40883,18 @@ async function registerStakingProvider(args) {
 	if (!provider) throw new Error(`Staking provider not found: ${args.providerId}`);
 	(await getKit()).staking.registerProvider(provider);
 }
+async function removeStakingProvider(args) {
+	const instance = await getKit();
+	instance.staking.removeProvider(instance.staking.getProvider(args.providerId));
+}
 async function setDefaultStakingProvider(args) {
 	(await getKit()).staking.setDefaultProvider(args.providerId);
+}
+async function getRegisteredStakingProviders() {
+	return { providerIds: (await getKit()).staking.getProviders().map((provider) => provider.providerId) };
+}
+async function hasStakingProvider(args) {
+	return { result: (await getKit()).staking.hasProvider(args.providerId) };
 }
 async function getStakingQuote(args) {
 	const { providerId, ...params } = args;
@@ -40501,6 +40912,9 @@ async function getStakingProviderInfo(args) {
 }
 async function getStakingProviderMetadata(args) {
 	return (await getKit()).staking.getStakingProviderMetadata(args.network, args.providerId);
+}
+async function getStakingProviderSupportedNetworks(args) {
+	return { networks: (await getKit()).staking.getProvider(args.providerId).getSupportedNetworks() };
 }
 /**
 * Tell the JS staking manager that a Kotlin-implemented provider is available.
@@ -40725,7 +41139,7 @@ async function kotlinProviderDispatch(args) {
 	} catch {}
 }
 //#endregion
-//#region ../../node_modules/tslib/tslib.es6.mjs
+//#region ../../node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
 
@@ -40795,12 +41209,12 @@ function __spreadArray(to, from, pack) {
 	return to.concat(ar || Array.prototype.slice.call(from));
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/util/isFunction.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/util/isFunction.js
 function isFunction(value) {
 	return typeof value === "function";
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/util/createErrorClass.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/util/createErrorClass.js
 function createErrorClass(createImpl) {
 	var _super = function(instance) {
 		Error.call(instance);
@@ -40812,7 +41226,7 @@ function createErrorClass(createImpl) {
 	return ctorFunc;
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/util/UnsubscriptionError.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/util/UnsubscriptionError.js
 var UnsubscriptionError = createErrorClass(function(_super) {
 	return function UnsubscriptionErrorImpl(errors) {
 		_super(this);
@@ -40824,7 +41238,7 @@ var UnsubscriptionError = createErrorClass(function(_super) {
 	};
 });
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/util/arrRemove.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/util/arrRemove.js
 function arrRemove(arr, item) {
 	if (arr) {
 		var index = arr.indexOf(item);
@@ -40832,7 +41246,7 @@ function arrRemove(arr, item) {
 	}
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/Subscription.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/Subscription.js
 var Subscription = function() {
 	function Subscription(initialTeardown) {
 		this.initialTeardown = initialTeardown;
@@ -40939,7 +41353,7 @@ function execFinalizer(finalizer) {
 	else finalizer.unsubscribe();
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/config.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/config.js
 var config = {
 	onUnhandledError: null,
 	onStoppedNotification: null,
@@ -40948,7 +41362,7 @@ var config = {
 	useDeprecatedNextContext: false
 };
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/scheduler/timeoutProvider.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/scheduler/timeoutProvider.js
 var timeoutProvider = {
 	setTimeout: function(handler, timeout) {
 		var args = [];
@@ -40964,7 +41378,7 @@ var timeoutProvider = {
 	delegate: void 0
 };
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/util/reportUnhandledError.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/util/reportUnhandledError.js
 function reportUnhandledError(err) {
 	timeoutProvider.setTimeout(function() {
 		var onUnhandledError = config.onUnhandledError;
@@ -40973,10 +41387,10 @@ function reportUnhandledError(err) {
 	});
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/util/noop.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/util/noop.js
 function noop() {}
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/NotificationFactories.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/NotificationFactories.js
 var COMPLETE_NOTIFICATION = (function() {
 	return createNotification("C", void 0, void 0);
 })();
@@ -40994,7 +41408,7 @@ function createNotification(kind, value, error) {
 	};
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/util/errorContext.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/util/errorContext.js
 var context = null;
 function errorContext(cb) {
 	if (config.useDeprecatedSynchronousErrorHandling) {
@@ -41018,7 +41432,7 @@ function captureError(err) {
 	}
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/Subscriber.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/Subscriber.js
 var Subscriber = function(_super) {
 	__extends(Subscriber, _super);
 	function Subscriber(destination) {
@@ -41161,17 +41575,17 @@ var EMPTY_OBSERVER = {
 	complete: noop
 };
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/symbol/observable.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/symbol/observable.js
 var observable = (function() {
 	return typeof Symbol === "function" && Symbol.observable || "@@observable";
 })();
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/util/identity.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/util/identity.js
 function identity(x) {
 	return x;
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/util/pipe.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/util/pipe.js
 function pipeFromArray(fns) {
 	if (fns.length === 0) return identity;
 	if (fns.length === 1) return fns[0];
@@ -41182,7 +41596,7 @@ function pipeFromArray(fns) {
 	};
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/Observable.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/Observable.js
 var Observable = function() {
 	function Observable(subscribe) {
 		if (subscribe) this._subscribe = subscribe;
@@ -41270,7 +41684,7 @@ function isSubscriber(value) {
 	return value && value instanceof Subscriber || isObserver(value) && isSubscription(value);
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/util/lift.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/util/lift.js
 function hasLift(source) {
 	return isFunction(source === null || source === void 0 ? void 0 : source.lift);
 }
@@ -41287,7 +41701,7 @@ function operate(init) {
 	};
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/operators/OperatorSubscriber.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/operators/OperatorSubscriber.js
 function createOperatorSubscriber(destination, onNext, onComplete, onError, onFinalize) {
 	return new OperatorSubscriber(destination, onNext, onComplete, onError, onFinalize);
 }
@@ -41335,7 +41749,7 @@ var OperatorSubscriber = function(_super) {
 	return OperatorSubscriber;
 }(Subscriber);
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/util/ObjectUnsubscribedError.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/util/ObjectUnsubscribedError.js
 var ObjectUnsubscribedError = createErrorClass(function(_super) {
 	return function ObjectUnsubscribedErrorImpl() {
 		_super(this);
@@ -41344,7 +41758,7 @@ var ObjectUnsubscribedError = createErrorClass(function(_super) {
 	};
 });
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/Subject.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/Subject.js
 var Subject = function(_super) {
 	__extends(Subject, _super);
 	function Subject() {
@@ -41483,7 +41897,7 @@ var AnonymousSubject = function(_super) {
 	return AnonymousSubject;
 }(Subject);
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/operators/map.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/operators/map.js
 function map(project, thisArg) {
 	return operate(function(source, subscriber) {
 		var index = 0;
@@ -41493,7 +41907,7 @@ function map(project, thisArg) {
 	});
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/operators/filter.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/operators/filter.js
 function filter(predicate, thisArg) {
 	return operate(function(source, subscriber) {
 		var index = 0;
@@ -41503,7 +41917,7 @@ function filter(predicate, thisArg) {
 	});
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/operators/finalize.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/operators/finalize.js
 function finalize(callback) {
 	return operate(function(source, subscriber) {
 		try {
@@ -41514,7 +41928,7 @@ function finalize(callback) {
 	});
 }
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/node_modules/rxjs/dist/esm5/internal/operators/tap.js
+//#region ../../node_modules/.pnpm/rxjs@7.8.1/node_modules/rxjs/dist/esm5/internal/operators/tap.js
 function tap(observerOrNext, error, complete) {
 	var tapObserver = isFunction(observerOrNext) || error || complete ? {
 		next: observerOrNext,
@@ -41547,7 +41961,7 @@ function tap(observerOrNext, error, complete) {
 	}) : identity;
 }
 //#endregion
-//#region ../../node_modules/isomorphic-ws/browser.js
+//#region ../../node_modules/.pnpm/isomorphic-ws@5.0.0_ws@8.17.1/node_modules/isomorphic-ws/browser.js
 var ws = null;
 if (typeof WebSocket !== "undefined") ws = WebSocket;
 else if (typeof MozWebSocket !== "undefined") ws = MozWebSocket;
@@ -41556,7 +41970,7 @@ else if (typeof window !== "undefined") ws = window.WebSocket || window.MozWebSo
 else if (typeof self !== "undefined") ws = self.WebSocket || self.MozWebSocket;
 var browser_default = ws;
 //#endregion
-//#region ../../node_modules/json-rpc-2.0/dist/models.js
+//#region ../../node_modules/.pnpm/json-rpc-2.0@1.7.0/node_modules/json-rpc-2.0/dist/models.js
 var require_models = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var __extends = exports && exports.__extends || (function() {
 		var extendStatics = function(d, b) {
@@ -41663,14 +42077,14 @@ var require_models = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.createJSONRPCNotification = createJSONRPCNotification;
 }));
 //#endregion
-//#region ../../node_modules/json-rpc-2.0/dist/internal.js
+//#region ../../node_modules/.pnpm/json-rpc-2.0@1.7.0/node_modules/json-rpc-2.0/dist/internal.js
 var require_internal = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Object.defineProperty(exports, "__esModule", { value: true });
 	exports.DefaultErrorCode = void 0;
 	exports.DefaultErrorCode = 0;
 }));
 //#endregion
-//#region ../../node_modules/json-rpc-2.0/dist/client.js
+//#region ../../node_modules/.pnpm/json-rpc-2.0@1.7.0/node_modules/json-rpc-2.0/dist/client.js
 var require_client = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
 		function adopt(value) {
@@ -41921,12 +42335,12 @@ var require_client = /* @__PURE__ */ __commonJSMin(((exports) => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/json-rpc-2.0/dist/interfaces.js
+//#region ../../node_modules/.pnpm/json-rpc-2.0@1.7.0/node_modules/json-rpc-2.0/dist/interfaces.js
 var require_interfaces = /* @__PURE__ */ __commonJSMin(((exports) => {
 	Object.defineProperty(exports, "__esModule", { value: true });
 }));
 //#endregion
-//#region ../../node_modules/json-rpc-2.0/dist/server.js
+//#region ../../node_modules/.pnpm/json-rpc-2.0@1.7.0/node_modules/json-rpc-2.0/dist/server.js
 var require_server = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var __assign = exports && exports.__assign || function() {
 		__assign = Object.assign || function(t) {
@@ -42221,7 +42635,7 @@ var require_server = /* @__PURE__ */ __commonJSMin(((exports) => {
 	};
 }));
 //#endregion
-//#region ../../node_modules/json-rpc-2.0/dist/server-and-client.js
+//#region ../../node_modules/.pnpm/json-rpc-2.0@1.7.0/node_modules/json-rpc-2.0/dist/server-and-client.js
 var require_server_and_client = /* @__PURE__ */ __commonJSMin(((exports) => {
 	var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
 		function adopt(value) {
@@ -42407,7 +42821,7 @@ var require_server_and_client = /* @__PURE__ */ __commonJSMin(((exports) => {
 	}();
 }));
 //#endregion
-//#region ../../node_modules/@ston-fi/omniston-sdk/dist/index.js
+//#region ../../node_modules/.pnpm/@ston-fi+omniston-sdk@0.7.9/node_modules/@ston-fi/omniston-sdk/dist/index.js
 var import_dist = (/* @__PURE__ */ __commonJSMin(((exports) => {
 	var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
 		if (k2 === void 0) k2 = k;
@@ -45000,11 +45414,21 @@ async function createDeDustSwapProvider(args) {
 async function registerSwapProvider(args) {
 	(await getSwap()).registerProvider(get(args.providerId));
 }
+async function removeSwapProvider(args) {
+	const swap = await getSwap();
+	swap.removeProvider(swap.getProvider(args.providerId));
+}
 async function setDefaultSwapProvider(args) {
 	(await getSwap()).setDefaultProvider(args.providerId);
 }
 async function getRegisteredSwapProviders() {
 	return { providerIds: (await getSwap()).getProviders().map((provider) => provider.providerId) };
+}
+async function getSwapProviderMetadata(args) {
+	return (await getSwap()).getProvider(args.providerId).getMetadata();
+}
+async function getSwapProviderSupportedNetworks(args) {
+	return { networks: (await getSwap()).getProvider(args.providerId).getSupportedNetworks() };
 }
 async function hasSwapProvider(args) {
 	return { result: (await getSwap()).hasProvider(args.providerId) };
@@ -45030,6 +45454,41 @@ async function registerKotlinSwapProvider(args) {
 	(await getSwap()).registerProvider(provider);
 }
 //#endregion
+//#region src/api/walletClient.ts
+async function walletClientSendBoc(args) {
+	return { result: await (await getWallet(args.walletId)).client.sendBoc(args.boc) };
+}
+async function walletClientRunGetMethod(args) {
+	return (await getWallet(args.walletId)).client.runGetMethod(args.address, args.method, args.stack, args.seqno);
+}
+async function walletClientGetBalance(args) {
+	return { result: await (await getWallet(args.walletId)).client.getBalance(args.address, args.seqno) };
+}
+async function walletClientGetMasterchainInfo(args) {
+	return (await getWallet(args.walletId)).client.getMasterchainInfo();
+}
+async function walletClientNftItemsByAddress(args) {
+	return (await getWallet(args.walletId)).client.nftItemsByAddress(args.request);
+}
+async function walletClientNftItemsByOwner(args) {
+	return (await getWallet(args.walletId)).client.nftItemsByOwner(args.request);
+}
+async function walletClientFetchEmulation(args) {
+	return (await getWallet(args.walletId)).client.fetchEmulation(args.messageBoc, args.ignoreSignature);
+}
+async function walletClientAccountState(args) {
+	return (await getWallet(args.walletId)).client.getAccountState(args.address, args.seqno);
+}
+async function walletClientAccountStates(args) {
+	return (await getWallet(args.walletId)).client.getAccountStates(args.addresses);
+}
+async function walletClientResolveDnsWallet(args) {
+	return { result: await (await getWallet(args.walletId)).client.resolveDnsWallet(args.domain) ?? null };
+}
+async function walletClientBackResolveDnsWallet(args) {
+	return { result: await (await getWallet(args.walletId)).client.backResolveDnsWallet(args.address) ?? null };
+}
+//#endregion
 //#region src/api/index.ts
 var api = {
 	init,
@@ -45048,6 +45507,7 @@ var api = {
 	getWallets,
 	getWallet: getWalletById,
 	getWalletAddress,
+	getWalletNetwork,
 	removeWallet,
 	getBalance,
 	getRecentTransactions,
@@ -45097,22 +45557,40 @@ var api = {
 	kotlinProviderDispatch,
 	createTonStakersStakingProvider,
 	registerStakingProvider,
+	removeStakingProvider,
 	setDefaultStakingProvider,
+	getRegisteredStakingProviders,
+	hasStakingProvider,
 	getStakingQuote,
 	buildStakeTransaction,
 	getStakedBalance,
 	getStakingProviderInfo,
 	getStakingProviderMetadata,
+	getStakingProviderSupportedNetworks,
 	registerKotlinStakingProvider,
 	createOmnistonSwapProvider,
 	createDeDustSwapProvider,
 	registerSwapProvider,
+	removeSwapProvider,
 	setDefaultSwapProvider,
 	getRegisteredSwapProviders,
+	getSwapProviderMetadata,
+	getSwapProviderSupportedNetworks,
 	hasSwapProvider,
 	getSwapQuote,
 	buildSwapTransaction,
-	registerKotlinSwapProvider
+	registerKotlinSwapProvider,
+	walletClientSendBoc,
+	walletClientRunGetMethod,
+	walletClientGetBalance,
+	walletClientGetMasterchainInfo,
+	walletClientNftItemsByAddress,
+	walletClientNftItemsByOwner,
+	walletClientFetchEmulation,
+	walletClientAccountState,
+	walletClientAccountStates,
+	walletClientResolveDnsWallet,
+	walletClientBackResolveDnsWallet
 };
 //#endregion
 //#region src/bridge.ts

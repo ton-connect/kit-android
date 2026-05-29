@@ -60,6 +60,7 @@ import kotlinx.serialization.json.Json
 internal class TONWallet internal constructor(
     override val id: String,
     override val address: TONUserFriendlyAddress,
+    private val network: TONNetwork,
     private val engine: WalletKitEngine,
     private val account: WalletAccount,
 ) : ITONWallet {
@@ -69,6 +70,7 @@ internal class TONWallet internal constructor(
     override val client: TONAPIClient = BridgedJSAPIClient(
         walletId = id,
         engine = engine,
+        network = network,
     )
     companion object {
         /**

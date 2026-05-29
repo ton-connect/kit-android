@@ -760,10 +760,10 @@ var consoleRef = globalThis.console;
 * Get the current log level from window
 */
 function getCurrentLogLevel() {
-	return LogLevel[logWindow.__WALLETKIT_LOG_LEVEL__ || "OFF"] ?? LogLevel.OFF;
+	return LogLevel[logWindow.__WALLETKIT_LOG_LEVEL__ || "OFF"] ?? 0;
 }
 var error = (...args) => {
-	if (getCurrentLogLevel() >= LogLevel.ERROR) consoleRef?.error?.("[WalletKit]", ...args);
+	if (getCurrentLogLevel() >= 1) consoleRef?.error?.("[WalletKit]", ...args);
 };
 //#endregion
 //#region src/inject.ts

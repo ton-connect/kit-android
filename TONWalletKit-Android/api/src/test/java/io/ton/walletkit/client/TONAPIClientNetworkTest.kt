@@ -23,39 +23,59 @@ package io.ton.walletkit.client
 
 import io.ton.walletkit.api.MAINNET
 import io.ton.walletkit.api.TESTNET
+import io.ton.walletkit.api.generated.TONAccountState
+import io.ton.walletkit.api.generated.TONEmulationResult
 import io.ton.walletkit.api.generated.TONGetMethodResult
 import io.ton.walletkit.api.generated.TONMasterchainInfo
+import io.ton.walletkit.api.generated.TONNFTsRequest
+import io.ton.walletkit.api.generated.TONNFTsResponse
 import io.ton.walletkit.api.generated.TONNetwork
 import io.ton.walletkit.api.generated.TONRawStackItem
+import io.ton.walletkit.api.generated.TONUserNFTsRequest
 import io.ton.walletkit.config.TONWalletKitConfiguration
 import io.ton.walletkit.model.TONBase64
+import io.ton.walletkit.model.TONTokenAmount
 import io.ton.walletkit.model.TONUserFriendlyAddress
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 
-/**
- * Verifies how custom [TONAPIClient] implementations attach to networks via
- * [TONWalletKitConfiguration.NetworkConfiguration]. Network identity is owned by the
- * configuration, not by the client — matches iOS, where `TONAPIClient` does not expose
- * `network`.
- */
 class TONAPIClientNetworkTest {
 
-    private class StubbedClient : TONAPIClient {
+    private class StubbedClient(private val net: TONNetwork) : TONAPIClient {
+        override fun network(): TONNetwork = net
         override suspend fun sendBoc(boc: TONBase64): String = ""
         override suspend fun runGetMethod(
             address: TONUserFriendlyAddress,
             method: String,
             stack: List<TONRawStackItem>?,
-            seqno: Int?,
+            seqno: UInt?,
         ): TONGetMethodResult = error("not used")
+        override suspend fun getBalance(address: TONUserFriendlyAddress, seqno: UInt?): TONTokenAmount =
+            TONTokenAmount.ZERO
         override suspend fun getMasterchainInfo(): TONMasterchainInfo = error("not used")
+        override suspend fun nftItemsByAddress(request: TONNFTsRequest): TONNFTsResponse = error("not used")
+        override suspend fun nftItemsByOwner(request: TONUserNFTsRequest): TONNFTsResponse = error("not used")
+        override suspend fun fetchEmulation(messageBoc: TONBase64, ignoreSignature: Boolean): TONEmulationResult =
+            error("not used")
+        override suspend fun accountState(address: TONUserFriendlyAddress, seqno: UInt?): TONAccountState =
+            error("not used")
+        override suspend fun accountStates(
+            addresses: List<TONUserFriendlyAddress>,
+        ): Map<TONUserFriendlyAddress, TONAccountState> = emptyMap()
+        override suspend fun resolveDnsWallet(domain: String): String? = null
+        override suspend fun backResolveDnsWallet(address: TONUserFriendlyAddress): String? = null
+    }
+
+    @Test
+    fun `client_network reports the configured network`() {
+        val client = StubbedClient(TONNetwork.MAINNET)
+        assertEquals(TONNetwork.MAINNET, client.network())
     }
 
     @Test
     fun `NetworkConfiguration pairs a custom client with its network`() {
-        val client = StubbedClient()
+        val client = StubbedClient(TONNetwork.MAINNET)
         val nc = TONWalletKitConfiguration.NetworkConfiguration(
             network = TONNetwork.MAINNET,
             apiClient = client,
@@ -63,6 +83,7 @@ class TONAPIClientNetworkTest {
 
         assertEquals(TONNetwork.MAINNET, nc.network)
         assertNotNull(nc.apiClient)
+        assertEquals(TONNetwork.MAINNET, nc.apiClient?.network())
     }
 
     @Test
@@ -77,8 +98,8 @@ class TONAPIClientNetworkTest {
 
     @Test
     fun `multiple networks each carry their own client pairing`() {
-        val mainnetClient = StubbedClient()
-        val testnetClient = StubbedClient()
+        val mainnetClient = StubbedClient(TONNetwork.MAINNET)
+        val testnetClient = StubbedClient(TONNetwork.TESTNET)
         val configs = listOf(
             TONWalletKitConfiguration.NetworkConfiguration(
                 network = TONNetwork.MAINNET,
@@ -95,6 +116,8 @@ class TONAPIClientNetworkTest {
 
         assertEquals(mainnetClient, byMainnet)
         assertEquals(testnetClient, byTestnet)
+        assertEquals(TONNetwork.MAINNET, byMainnet?.network())
+        assertEquals(TONNetwork.TESTNET, byTestnet?.network())
     }
 
     @Test
@@ -102,10 +125,11 @@ class TONAPIClientNetworkTest {
         val custom = TONNetwork(chainId = "123456")
         val nc = TONWalletKitConfiguration.NetworkConfiguration(
             network = custom,
-            apiClient = StubbedClient(),
+            apiClient = StubbedClient(custom),
         )
 
         assertEquals(custom, nc.network)
         assertEquals("123456", nc.network.chainId)
+        assertEquals(custom, nc.apiClient?.network())
     }
 }
